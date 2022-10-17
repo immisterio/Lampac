@@ -7,6 +7,7 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
+using System;
 
 namespace Lampac.Controllers.Xnxx
 {
@@ -19,7 +20,7 @@ namespace Lampac.Controllers.Xnxx
             if (!AppInit.conf.Xnxx.enable)
                 return OnError("disable");
 
-            string url = $"{AppInit.conf.Xnxx.host}/todays-selection/{pg}";
+            string url = $"{AppInit.conf.Xnxx.host}/best/{DateTime.Today.ToString("yyyy-MM")}/{pg}";
             if (!string.IsNullOrWhiteSpace(search))
                 url = $"{AppInit.conf.Xnxx.host}/search/{HttpUtility.UrlEncode(search)}/{pg}";
 

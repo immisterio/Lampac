@@ -15,7 +15,7 @@ namespace Lampac.Controllers.JAC
     public class JackettController : BaseController
     {
         [Route("api/v2.0/indexers/all/results")]
-        public ActionResult Jackett(string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        public ActionResult Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
             var torrents = new ConcurrentBag<TorrentDetails>();
             var temptorrents = new ConcurrentBag<TorrentDetails>();
@@ -618,7 +618,7 @@ namespace Lampac.Controllers.JAC
                     Seeders = i.sid,
                     Peers = i.pir,
                     MagnetUri = i.magnet,
-                    Link = i.parselink,
+                    Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
                     Info = new
                     {
                         i.name,
