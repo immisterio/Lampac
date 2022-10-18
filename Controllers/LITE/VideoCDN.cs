@@ -16,6 +16,7 @@ namespace Lampac.Controllers.LITE
 {
     public class VideoCDN : BaseController
     {
+        [HttpGet]
         [Route("lite/vcdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int sid, int s = -1)
         {

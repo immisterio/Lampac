@@ -13,6 +13,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Jackett : BaseController
     {
+        [HttpGet]
         [Route("lite/jac")]
         async public Task<ActionResult> Index(string apikey, string title, string original_title, int year, int quality = -1)
         {
