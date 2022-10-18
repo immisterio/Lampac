@@ -2,11 +2,15 @@
 2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
 3. Запустить "dotnet Lampac.dll" (linux) или "Lampac.exe" (windows)
 
-# В настройках Lampa указать 
+# Настройки Lampa
 1. Парсер Jackett - "IP:9118"
 2. Личный прокси  - "http://IP:9118/proxy/" 
 3. Плагин онлайн  - "http://IP:9118/online.js" 
 4. Плагин xxx     - "http://IP:9118/sisi.js"
+
+# Настройки Lampa Lite
+1. Плагин онлайн  - "http://IP:9118/lite.js" 
+2. Плагин xxx     - "http://IP:9118/sisi.js"
 
 
 ***
