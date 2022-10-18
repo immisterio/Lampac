@@ -11,6 +11,33 @@ namespace Lampac.Controllers
         {
             var channels = new List<dynamic>();
 
+            if (AppInit.conf.xdb)
+            {
+                channels.Add(new
+                {
+                    title = "Sexy Time",
+                    playlist_url = "http://vi.sisi.am/xdb"
+                });
+
+                channels.Add(new
+                {
+                    title = "xhamster.com/gold",
+                    playlist_url = "http://vi.sisi.am/xdb?sites=faphouse"
+                });
+
+                channels.Add(new
+                {
+                    title = "pornhubpremium.com",
+                    playlist_url = "http://vi.sisi.am/xdb?sites=pornhub"
+                });
+
+                channels.Add(new
+                {
+                    title = "bang.com",
+                    playlist_url = "http://vi.sisi.am/xdb?sites=bang"
+                });
+            }
+
             if (AppInit.conf.HQporner.enable)
             {
                 channels.Add(new
