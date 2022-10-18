@@ -18,6 +18,16 @@ namespace Lampac.Controllers
         }
 
         [HttpGet]
+        [Route("lite.js")]
+        public ActionResult Lite()
+        {
+            string file = System.IO.File.ReadAllText("lite.js");
+            file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+
+        [HttpGet]
         [Route("online.js")]
         async public Task<ActionResult> Online()
         {

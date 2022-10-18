@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
             string id = Regex.Match(url, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
             var root = await HttpClient.Post<RootObject>($"{AppInit.conf.Filmix.host}/api/movies/player_data?t=1844147559201", $"post_id={id}&showfull=true", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>()
             {
-                ("cookie", "x-a-key=sinatra; FILMIXNET=1j59ook8hn417n6ufo3ue1pe3a; _ga_GYLWSWSZ3C=GS1.1.1666078393.1.0.1666078393.0.0.0; _ga=GA1.1.1446684338.1666078393; cto_bundle=QMLJ8V9PQlFNNDdLaWMwUVhKYjZDU2lYcnJ0a09jVXdHTGZaRGhndlNNU2F0bUZMZUV3NUxrZjBqNHUlMkY0YzJUQUgzWmFTNUE3Nm5UTUFNUVlTRkhwaXRsUTUyM0t2R1VWeW1EbnpkNkpCYlI4b1RyMDdTWVRWU3MwV05TUTBKbUFOcWN3d0hxJTJGJTJGMlZLWFB6JTJGcXp4bU45S3JudyUzRCUzRA"),
+                ("cookie", "x-a-key=sinatra; FILMIXNET=1j59ook8hn417n6ufo3ue1pe3a;"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("origin", AppInit.conf.Filmix.host),
