@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System.IO;
 using Lampac.Models.LITE.VideoCDN;
+using Lampac.Models.LITE.Collaps;
 
 namespace Lampac
 {
@@ -61,6 +62,8 @@ namespace Lampac
 
 
         public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
+
+        public CollapsSettings Collaps = new CollapsSettings("https://api.delivembd.ws", false);
 
 
         public ProxySettings proxy = new ProxySettings();
