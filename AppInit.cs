@@ -3,6 +3,7 @@ using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System.IO;
+using Lampac.Models.LITE.VideoCDN;
 
 namespace Lampac
 {
@@ -57,6 +58,9 @@ namespace Lampac
         public SisiSettings Xnxx = new SisiSettings("https://www.xnxx.com", true, false);
 
         public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com", true, false);
+
+
+        public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
 
 
         public ProxySettings proxy = new ProxySettings();
