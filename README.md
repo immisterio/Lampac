@@ -9,7 +9,7 @@
 4. Плагин xxx     - "http://IP:9118/sisi.js"
 
 # Настройки Lampa Lite
-1. Плагин онлайн  - "http://IP:9118/lite.js" 
+1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 
 2. Плагин xxx     - "http://IP:9118/sisi.js"
 
 
