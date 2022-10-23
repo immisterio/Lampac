@@ -28,6 +28,8 @@ namespace Lampac
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", true, false);
 
+        public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip", true, false);
+
         public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by", true, false);
 
         public TrackerSettings Kinozal = new TrackerSettings("http://kinozal.tv", true, false);

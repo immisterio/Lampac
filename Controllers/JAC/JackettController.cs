@@ -77,6 +77,10 @@ namespace Lampac.Controllers.JAC
                     RutorController.parsePage(temptorrents, search, "12"), // documovie
                     RutorController.parsePage(temptorrents, search, "17", true, "1"), // UKR
 
+                    MegapeerController.parsePage(host, temptorrents, search, "79"),  // movie
+                    MegapeerController.parsePage(host, temptorrents, search, "174"), // movie
+                    MegapeerController.parsePage(host, temptorrents, search, "76"),  // multfilm
+
                     TorrentByController.parsePage(temptorrents, search, "1"), // movie
                     TorrentByController.parsePage(temptorrents, search, "2"), // movie
                     TorrentByController.parsePage(temptorrents, search, "5"), // multfilm
@@ -104,6 +108,12 @@ namespace Lampac.Controllers.JAC
                     RutorController.parsePage(temptorrents, search, "6"),  // tvshow
                     RutorController.parsePage(temptorrents, search, "17", true, "4"), // UKR
 
+                    MegapeerController.parsePage(host, temptorrents, search, "5"),  // serial
+                    MegapeerController.parsePage(host, temptorrents, search, "6"),  // serial
+                    MegapeerController.parsePage(host, temptorrents, search, "55"), // docuserial
+                    MegapeerController.parsePage(host, temptorrents, search, "57"), // tvshow
+                    MegapeerController.parsePage(host, temptorrents, search, "76"), // multserial
+
                     TorrentByController.parsePage(temptorrents, search, "3"),  // serial
                     TorrentByController.parsePage(temptorrents, search, "5"),  // multserial
                     TorrentByController.parsePage(temptorrents, search, "4"),  // tvshow
@@ -125,6 +135,7 @@ namespace Lampac.Controllers.JAC
                 Task.WaitAll(new Task[]
                 {
                     RutorController.parsePage(temptorrents, search, "6"),
+                    MegapeerController.parsePage(host, temptorrents, search, "57"),
                     TorrentByController.parsePage(temptorrents, search, "4"),
                     TorrentByController.parsePage(temptorrents, search, "12"),
                     KinozalController.parsePage(host, temptorrents, search, new string[] { "tvshow" }),
@@ -142,6 +153,7 @@ namespace Lampac.Controllers.JAC
                 Task.WaitAll(new Task[]
                 {
                     RutorController.parsePage(temptorrents, search, "12"),
+                    MegapeerController.parsePage(host, temptorrents, search, "55"),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
                     TolokaController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
@@ -172,12 +184,14 @@ namespace Lampac.Controllers.JAC
                 Task.WaitAll(new Task[]
                 {
                     RutorController.parsePage(temptorrents, search, "0"),
+                    MegapeerController.parsePage(host, temptorrents, search, "0"),
                     TorrentByController.parsePage(temptorrents, search, "0"),
                     KinozalController.parsePage(host, temptorrents, search, null),
                     NNMClubController.parsePage(host, temptorrents, search, null),
                     TolokaController.parsePage(host, temptorrents, search, null),
                     RutrackerController.parsePage(host, temptorrents, search, null),
                     UnderverseController.parsePage(temptorrents, search, null),
+                    SelezenController.parsePage(host, temptorrents, search),
 
                 }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
                 #endregion

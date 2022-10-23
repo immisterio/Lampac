@@ -158,7 +158,7 @@ namespace Lampac.Controllers.JAC
 
             foreach (string row in cachehtml.Split("class=\"card radius-10 overflow-hidden\"").Skip(1))
             {
-                if (row.Contains(">Аниме</a>"))
+                if (row.Contains(">Аниме</a>") || row.Contains(" [S0"))
                     continue;
 
                 #region Локальный метод - Match
