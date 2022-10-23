@@ -17,7 +17,7 @@
 
 * Онлайн Videocdn, Rezka, Kinobase, Collaps, Cdnmovies, Filmix
 * Клубничка bongacams.com, chaturbate.com, ebalovo.pro, eporner.com, hqporner.com, porntrex.com, spankbang.com, xhamster.com, xnxx.com, xvideos.com
-* Трекеры kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, toloka.to (нужна авторизация), rutracker.net (нужна авторизация), underver.se (нужна авторизация), selezen.net (нужна авторизация)
+* Трекеры kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, anilibria.tv, toloka.to (нужна авторизация), rutracker.net (нужна авторизация), underver.se (нужна авторизация), selezen.net (нужна авторизация)
 
 
 ***

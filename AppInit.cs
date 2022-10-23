@@ -38,13 +38,15 @@ namespace Lampac
 
         public TrackerSettings Bitru = new TrackerSettings("https://bitru.org", true, false);
 
-        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", false, false, null);
+        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", false, false);
 
-        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", false, false, null);
+        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", false, false);
 
-        public TrackerSettings Underverse = new TrackerSettings("https://underver.se", false, false, null);
+        public TrackerSettings Underverse = new TrackerSettings("https://underver.se", false, false);
 
-        public TrackerSettings Selezen = new TrackerSettings("https://selezen.net", false, false, null);
+        public TrackerSettings Selezen = new TrackerSettings("https://selezen.net", false, false);
+
+        public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv", true, false);
 
 
         public bool xdb = false;

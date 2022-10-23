@@ -174,6 +174,7 @@ namespace Lampac.Controllers.JAC
                     KinozalController.parsePage(host, temptorrents, search, new string[] { "anime" }),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "anime" }),
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "anime" }),
+                    AniLibriaController.parsePage(host, temptorrents, search),
 
                 }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
                 #endregion
@@ -192,6 +193,7 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, search, null),
                     UnderverseController.parsePage(temptorrents, search, null),
                     SelezenController.parsePage(host, temptorrents, search),
+                    AniLibriaController.parsePage(host, temptorrents, search),
 
                 }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
                 #endregion
