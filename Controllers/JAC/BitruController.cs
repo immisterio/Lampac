@@ -57,7 +57,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in tParse.ReplaceBadNames(cachehtml).Split("<div class=\"b-title\"").Skip(1))
+            foreach (string row in cachehtml.Split("<div class=\"b-title\"").Skip(1))
             {
                 if (row.Contains(">Аниме</a>") || row.Contains(">Мульт"))
                     continue;

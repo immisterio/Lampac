@@ -7,6 +7,12 @@ namespace Lampac.Controllers
 {
     public class ApiController : BaseController
     {
+        [Route("/")]
+        public ActionResult Index()
+        {
+            return Content("api work", contentType: "text/plain; charset=utf-8");
+        }
+
         [HttpGet]
         [Route("sisi.js")]
         public ActionResult Sisi()

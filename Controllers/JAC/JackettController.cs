@@ -87,6 +87,7 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
                     UnderverseController.parsePage(temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
                     BitruController.parsePage(host, temptorrents, search, new string[] { "movie" }),
+                    SelezenController.parsePage(host, temptorrents, search),
 
                 }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
                 #endregion

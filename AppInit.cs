@@ -42,6 +42,8 @@ namespace Lampac
 
         public TrackerSettings Underverse = new TrackerSettings("https://underver.se", false, false, null);
 
+        public TrackerSettings Selezen = new TrackerSettings("https://selezen.net", false, false, null);
+
 
         public bool xdb = false;
 

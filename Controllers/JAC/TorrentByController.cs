@@ -37,7 +37,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in tParse.ReplaceBadNames(cachehtml).Split("<tr class=\"ttable_col").Skip(1))
+            foreach (string row in cachehtml.Split("<tr class=\"ttable_col").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

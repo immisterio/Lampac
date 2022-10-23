@@ -162,7 +162,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in Regex.Split(tParse.ReplaceBadNames(cachehtml), "<tr class=('first bg'|bg)>").Skip(1))
+            foreach (string row in Regex.Split(cachehtml, "<tr class=('first bg'|bg)>").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

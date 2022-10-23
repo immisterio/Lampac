@@ -156,7 +156,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in tParse.ReplaceBadNames(cachehtml).Split("</tr>"))
+            foreach (string row in cachehtml.Split("</tr>"))
             {
                 if (string.IsNullOrWhiteSpace(row) || Regex.IsMatch(row, "Збір коштів", RegexOptions.IgnoreCase))
                     continue;

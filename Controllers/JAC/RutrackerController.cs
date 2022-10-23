@@ -136,7 +136,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in tParse.ReplaceBadNames(cachehtml).Split("class=\"tCenter hl-tr\"").Skip(1))
+            foreach (string row in cachehtml.Split("class=\"tCenter hl-tr\"").Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(row))
                     continue;

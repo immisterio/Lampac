@@ -37,7 +37,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in Regex.Split(Regex.Replace(tParse.ReplaceBadNames(cachehtml).Split("</span></td></tr></table><b>")[0], "[\n\r\t]+", ""), "<tr class=\"(gai|tum)\">").Skip(1))
+            foreach (string row in Regex.Split(Regex.Replace(cachehtml.Split("</span></td></tr></table><b>")[0], "[\n\r\t]+", ""), "<tr class=\"(gai|tum)\">").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

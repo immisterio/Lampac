@@ -6,13 +6,6 @@ namespace Lampac.Engine.Parse
 {
     public static class tParse
     {
-        #region ReplaceBadNames
-        public static string ReplaceBadNames(string html)
-        {
-            return html.Replace("Ё", "Е").Replace("ё", "е").Replace("щ", "ш");
-        }
-        #endregion
-
         #region ParseCreateTime
         public static DateTime ParseCreateTime(string line, string format)
         {
