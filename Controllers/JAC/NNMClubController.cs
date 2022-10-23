@@ -11,29 +11,120 @@ using System.Collections.Concurrent;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using Lampac.Models.JAC;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("nnmclub/[action]")]
     public class NNMClubController : BaseController
     {
+        #region Cookie / TakeLogin
+        static string Cookie;
+
+        async public static Task<bool> TakeLogin()
+        {
+            try
+            {
+                var clientHandler = new System.Net.Http.HttpClientHandler()
+                {
+                    AllowAutoRedirect = false
+                };
+
+                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.timeoutSeconds);
+                    client.MaxResponseContentBufferSize = 2000000; // 2MB
+                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
+                    client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+                    client.DefaultRequestHeaders.Add("dnt", "1");
+                    client.DefaultRequestHeaders.Add("origin", AppInit.conf.NNMClub.host);
+                    client.DefaultRequestHeaders.Add("pragma", "no-cache");
+                    client.DefaultRequestHeaders.Add("referer", $"{AppInit.conf.NNMClub.host}/");
+                    client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
+
+                    var postParams = new Dictionary<string, string>();
+                    postParams.Add("redirect", "%2F");
+                    postParams.Add("username", AppInit.conf.NNMClub.login.u);
+                    postParams.Add("password", AppInit.conf.NNMClub.login.p);
+                    postParams.Add("autologin", "on");
+                    postParams.Add("login", "%C2%F5%EE%E4");
+
+                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                    {
+                        using (var response = await client.PostAsync($"{AppInit.conf.NNMClub.host}/forum/login.php", postContent))
+                        {
+                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            {
+                                string data = null, sid = null;
+                                foreach (string line in cook)
+                                {
+                                    if (string.IsNullOrWhiteSpace(line))
+                                        continue;
+
+                                    if (line.Contains("phpbb2mysql_4_data="))
+                                        data = new Regex("phpbb2mysql_4_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
+
+                                    if (line.Contains("phpbb2mysql_4_sid="))
+                                        sid = new Regex("phpbb2mysql_4_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(data) && !string.IsNullOrWhiteSpace(sid))
+                                {
+                                    Cookie = $"phpbb2mysql_4_data={data}; phpbb2mysql_4_sid={sid};";
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+        #endregion
+
+
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
-            string key = $"nnmclub:parseMagnet:{id}";
-            if (Startup.memoryCache.TryGetValue(key, out string _m))
+            string keydownload = $"nnmclub:parseMagnet:download:{id}";
+            if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _f))
+                return File(_f, "application/x-bittorrent");
+
+            string keymagnet = $"nnmclub:parseMagnet:{id}";
+            if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
                 return Redirect(_m);
 
             string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: 10);
-            if (html != null && html.Contains("NNM-Club</title>"))
+            if (html == null || !html.Contains("NNM-Club</title>"))
+                return Content("error");
+
+            #region download
+            if (Cookie != null)
             {
-                string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html).Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(magnet))
+                string downloadid = new Regex("href=\"download\\.php\\?id=([0-9]+)\"").Match(html).Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(downloadid))
                 {
-                    Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
-                    return Redirect(magnet);
+                    byte[] _t = await HttpClient.Download($"{AppInit.conf.NNMClub.host}/forum/download.php?id={downloadid}", cookie: Cookie, referer: AppInit.conf.NNMClub.host, timeoutSeconds: 10);
+                    if (_t != null)
+                    {
+                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                        return File(_t, "application/x-bittorrent");
+                    }
                 }
             }
+            #endregion
+
+            #region magnet
+            string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html).Groups[1].Value;
+            if (!string.IsNullOrWhiteSpace(magnet))
+            {
+                Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                return Redirect(magnet);
+            }
+            #endregion
 
             return Content("error");
         }
@@ -44,6 +135,18 @@ namespace Lampac.Controllers.JAC
         {
             if (!AppInit.conf.NNMClub.enable)
                 return false;
+
+            #region Авторизация
+            if (Cookie == null && !string.IsNullOrWhiteSpace(AppInit.conf.NNMClub.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.NNMClub.login.p))
+            {
+                string authKey = "NNMClub:TakeLogin()";
+                if (!Startup.memoryCache.TryGetValue(authKey, out _))
+                {
+                    if (await TakeLogin() == false)
+                        Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+                }
+            }
+            #endregion
 
             #region Кеш
             string cachekey = $"nnmclub:{string.Join(":", cats ?? new string[] { })}:{query}";
