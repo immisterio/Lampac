@@ -48,6 +48,8 @@ namespace Lampac
 
         public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv", true, false);
 
+        public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", false, false);
+
 
         public bool xdb = false;
 
