@@ -20,7 +20,7 @@ namespace Lampac
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseKestrel(op => op.Listen(IPAddress.Any, 9118))
+                    webBuilder.UseKestrel(op => op.Listen(IPAddress.Any, AppInit.conf.listenport))
                     .UseStartup<Startup>();
                 });
     }

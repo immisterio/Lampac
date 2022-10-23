@@ -1,4 +1,4 @@
-using Lampac.Models.SISI;
+﻿using Lampac.Models.SISI;
 using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
@@ -15,6 +15,8 @@ namespace Lampac
 
         public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
 
+
+        public int listenport = 9118;
 
         public int timeoutSeconds = 5;
 

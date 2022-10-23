@@ -35,6 +35,9 @@ namespace Lampac.Controllers
             if (!HtmlCache.Read(cachekey, out string cachetxt))
             {
                 string txt = await HttpClient.Get("https://pastebin.com/raw/Qkm6WFtZ");
+                if (txt == null || !txt.Contains("Lampa.Reguest()"))
+                    txt = await HttpClient.Get("http://jin.energy/online.js?v=1666454579");
+
                 if (txt != null && txt.Contains("Lampa.Reguest()"))
                 {
                     cachetxt = txt;
