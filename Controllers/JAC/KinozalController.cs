@@ -10,31 +10,118 @@ using Lampac.Engine;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Lampac.Models.JAC;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("kinozal/[action]")]
     public class KinozalController : BaseController
     {
+        #region Cookie / TakeLogin
+        static string Cookie;
+
+        async public static Task<bool> TakeLogin()
+        {
+            try
+            {
+                var clientHandler = new System.Net.Http.HttpClientHandler()
+                {
+                    AllowAutoRedirect = false
+                };
+
+                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.timeoutSeconds);
+                    client.MaxResponseContentBufferSize = 2000000; // 2MB
+                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
+                    client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+                    client.DefaultRequestHeaders.Add("dnt", "1");
+                    client.DefaultRequestHeaders.Add("origin", AppInit.conf.Kinozal.host);
+                    client.DefaultRequestHeaders.Add("pragma", "no-cache");
+                    client.DefaultRequestHeaders.Add("referer", $"{AppInit.conf.Kinozal.host}/");
+                    client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
+
+                    var postParams = new Dictionary<string, string>();
+                    postParams.Add("username", AppInit.conf.Kinozal.login.u);
+                    postParams.Add("password", AppInit.conf.Kinozal.login.p);
+                    postParams.Add("returnto", "");
+
+                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                    {
+                        using (var response = await client.PostAsync($"{AppInit.conf.Kinozal.host}/takelogin.php", postContent))
+                        {
+                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            {
+                                string uid = null, pass = null;
+                                foreach (string line in cook)
+                                {
+                                    if (string.IsNullOrWhiteSpace(line))
+                                        continue;
+
+                                    if (line.Contains("uid="))
+                                        uid = new Regex("uid=([0-9]+)").Match(line).Groups[1].Value;
+
+                                    if (line.Contains("pass="))
+                                        pass = new Regex("pass=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(uid) && !string.IsNullOrWhiteSpace(pass))
+                                {
+                                    Cookie = $"uid={uid}; pass={pass};";
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+        #endregion
+
+
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
-            string key = $"kinozal:parseMagnet:{id}";
-            if (Startup.memoryCache.TryGetValue(key, out string _m))
-                return Redirect(_m);
-
-            // Получаем Инфо хеш
-            string srv_details = await HttpClient.Post($"{AppInit.conf.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: 10);
-            if (srv_details != null)
+            #region Download
+            if (Cookie != null)
             {
-                // Инфо хеш
-                string torrentHash = new Regex("<ul><li>Инфо хеш: +([^<]+)</li>").Match(srv_details).Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(torrentHash))
+                string key = $"kinozal:parseMagnet:download:{id}";
+                if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
+                    return File(_m, "application/x-bittorrent");
+
+                byte[] _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: AppInit.conf.Kinozal.host, timeoutSeconds: 10);
+                if (_t != null)
                 {
-                    Startup.memoryCache.Set(key, $"magnet:?xt=urn:btih:{torrentHash}", DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
-                    return Redirect($"magnet:?xt=urn:btih:{torrentHash}");
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                    return File(_t, "application/x-bittorrent");
                 }
             }
+            #endregion
+
+            #region Инфо хеш
+            {
+                string key = $"kinozal:parseMagnet:{id}";
+                if (Startup.memoryCache.TryGetValue(key, out string _m))
+                    return Redirect(_m);
+
+                // Получаем Инфо хеш
+                string srv_details = await HttpClient.Post($"{AppInit.conf.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: 10);
+                if (srv_details != null)
+                {
+                    // Инфо хеш
+                    string torrentHash = new Regex("<ul><li>Инфо хеш: +([^<]+)</li>").Match(srv_details).Groups[1].Value;
+                    if (!string.IsNullOrWhiteSpace(torrentHash))
+                    {
+                        Startup.memoryCache.Set(key, $"magnet:?xt=urn:btih:{torrentHash}", DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                        return Redirect($"magnet:?xt=urn:btih:{torrentHash}");
+                    }
+                }
+            }
+            #endregion
 
             return Content("error");
         }
@@ -45,6 +132,18 @@ namespace Lampac.Controllers.JAC
         {
             if (!AppInit.conf.Kinozal.enable)
                 return false;
+
+            #region Авторизация
+            if (Cookie == null && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.p))
+            {
+                string authKey = "kinozal:TakeLogin()";
+                if (!Startup.memoryCache.TryGetValue(authKey, out _))
+                {
+                    if (await TakeLogin() == false)
+                        Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+                }
+            }
+            #endregion
 
             #region Кеш
             string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
