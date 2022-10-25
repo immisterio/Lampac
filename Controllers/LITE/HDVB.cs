@@ -95,13 +95,12 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string iframe, string title, string original_title)
         {
             string memKey = $"video:view:video:{iframe}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
+            if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
                 string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8);
                 if (html == null)
                     return Content(string.Empty);
 
-                #region urim3u8
                 string vid = "vid1666694269";
                 string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
                 string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
@@ -112,7 +111,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
                     return Content(string.Empty);
 
-                string urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>() 
+                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>() 
                 {
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -129,30 +128,11 @@ namespace Lampac.Controllers.LITE
 
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return Content(string.Empty);
-                #endregion
 
-                string m3u8 = await HttpClient.Get(urim3u8, timeoutSeconds: 8);
-                if (m3u8 == null)
-                    return Content(string.Empty);
-
-                streams = new List<(string q, string url)>();
-                var match = new Regex("/([0-9]+)/index\\.m3u8", RegexOptions.IgnoreCase).Match(m3u8);
-                while (match.Success)
-                {
-                    if (!string.IsNullOrWhiteSpace(match.Groups[1].Value))
-                        streams.Insert(0, ($"{match.Groups[1].Value}p", urim3u8.Replace("/index.m3u8", $"/{match.Groups[1].Value}/index.m3u8")));
-
-                    match = match.NextMatch();
-                }
-
-                memoryCache.Set(memKey, streams, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(10));
             }
 
-            string streansquality = string.Empty;
-            foreach (var l in streams)
-                streansquality += $"\"{l.q}\":\"" + l.url + "\",";
-
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -162,7 +142,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title)
         {
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
+            if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
                 string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8);
                 if (html == null)
@@ -199,7 +179,6 @@ namespace Lampac.Controllers.LITE
                     return Content(string.Empty);
                 #endregion
 
-                #region urim3u8
                 file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
                 if (string.IsNullOrWhiteSpace(file))
                     return Content(string.Empty);
@@ -207,33 +186,14 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "^/playlist/", "/");
                 file = Regex.Replace(file, "\\.txt$", "");
 
-                string urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: headers);
+                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: headers);
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return Content(string.Empty);
-                #endregion
 
-                string m3u8 = await HttpClient.Get(urim3u8, timeoutSeconds: 8);
-                if (m3u8 == null)
-                    return Content(string.Empty);
-
-                streams = new List<(string q, string url)>();
-                var match = new Regex("/([0-9]+)/index\\.m3u8", RegexOptions.IgnoreCase).Match(m3u8);
-                while (match.Success)
-                {
-                    if (!string.IsNullOrWhiteSpace(match.Groups[1].Value))
-                        streams.Insert(0, ($"{match.Groups[1].Value}p", urim3u8.Replace("/index.m3u8", $"/{match.Groups[1].Value}/index.m3u8")));
-
-                    match = match.NextMatch();
-                }
-
-                memoryCache.Set(memKey, streams, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(10));
             }
 
-            string streansquality = string.Empty;
-            foreach (var l in streams)
-                streansquality += $"\"{l.q}\":\"" + l.url + "\",";
-
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
