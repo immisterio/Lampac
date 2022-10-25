@@ -40,6 +40,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 addonline += "{name:'Kodik',url:'{localhost}/kodik'},";
 
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
+                addonline += "{name:'HDVB',url:'{localhost}/hdvb'},";
+
             file = file.Replace("{addonline}", addonline);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 

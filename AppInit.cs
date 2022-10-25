@@ -7,6 +7,7 @@ using Lampac.Models.LITE.VideoCDN;
 using Lampac.Models.LITE.Collaps;
 using Lampac.Models.LITE.Filmix;
 using Lampac.Models.LITE;
+using Lampac.Models.LITE.HDVB;
 
 namespace Lampac
 {
@@ -86,6 +87,8 @@ namespace Lampac
         public AllohaSettings Alloha = new AllohaSettings("https://api.alloha.tv", "https://torso.as.alloeclub.com", "", "", true);
 
         public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "", "", true);
+
+        public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "");
 
 
         public ProxySettings proxy = new ProxySettings();

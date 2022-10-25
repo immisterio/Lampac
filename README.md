@@ -16,7 +16,7 @@
 ***
 
 * Public online  - Videocdn, Rezka, Collaps, Filmix
-* Private online - Bazon, Alloha, Kodik
+* Private online - Bazon, Alloha, HDVB, Kodik
 * Public Trackers  - kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, anilibria.tv
 * Private Trackers - toloka.to, rutracker.net, underver.se, selezen.net, animelayer.ru
 * Клубничка bongacams.com, chaturbate.com, ebalovo.pro, eporner.com, hqporner.com, porntrex.com, spankbang.com, xhamster.com, xnxx.com, xvideos.com
