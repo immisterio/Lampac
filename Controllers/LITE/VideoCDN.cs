@@ -294,9 +294,7 @@ namespace Lampac.Controllers.LITE
         {
             try
             {
-                #region iframe_src
                 string memKeyIframesrc = $"videocdn:view:iframe_src:{imdb_id}:{kinopoisk_id}";
-
                 if (!memoryCache.TryGetValue(memKeyIframesrc, out string iframe_src))
                 {
                     var json = await HttpClient.Get<JObject>($"{AppInit.conf.VCDN.apihost}/api/short?api_token={AppInit.conf.VCDN.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}");
@@ -307,7 +305,6 @@ namespace Lampac.Controllers.LITE
                     iframe_src = $"{AppInit.conf.VCDN.cdnhost}/" + Regex.Replace(iframe_src, "^(https?:)?//[^/]+/", "");
                     memoryCache.Set(memKeyIframesrc, iframe_src, DateTime.Now.AddHours(1));
                 }
-                #endregion
 
                 return iframe_src;
             }
