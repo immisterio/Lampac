@@ -78,7 +78,7 @@ namespace Lampac
 
         public CollapsSettings Collaps = new CollapsSettings("https://api.delivembd.ws", false);
 
-        public FilmixSettings Filmix = new FilmixSettings("https://filmix.ac", false);
+        public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou", false);
 
 
         public ProxySettings proxy = new ProxySettings();

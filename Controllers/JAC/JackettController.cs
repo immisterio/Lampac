@@ -38,6 +38,7 @@ namespace Lampac.Controllers.JAC
                     title = g[1].Value;
                     title_original = g[2].Value;
                     year = int.Parse(g[3].Value);
+                    search = title_original ?? title;
                 }
             }
             #endregion

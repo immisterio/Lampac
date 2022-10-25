@@ -2,6 +2,6 @@
 {
     public class RootObject
     {
-        public Message message { get; set; }
+        public PlayerLinks player_links { get; set; }
     }
 }

@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Web;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Filmix;
+using Newtonsoft.Json.Linq;
+using System.Linq;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -15,96 +17,136 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/filmix")]
-        async public Task<ActionResult> Index(string title, string original_title, int serial, int year)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int postid, int t, int s = -1)
         {
-            if (serial != 0 || year == 0)
+            postid = postid == 0 ? await search(title ?? original_title, year) : postid;
+            if (postid == 0)
                 return Content(string.Empty);
 
-            var url = await search(title ?? original_title, serial, year);
-            if (url == null)
-                return Content(string.Empty);
-
-            string id = Regex.Match(url, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
-            var root = await HttpClient.Post<RootObject>($"{AppInit.conf.Filmix.host}/api/movies/player_data?t=1844147559201", $"post_id={id}&showfull=true", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>()
+            string memKey = $"filmix:{postid}";
+            if (!memoryCache.TryGetValue(memKey, out RootObject root))
             {
-                ("cookie", "x-a-key=sinatra; FILMIXNET=1j59ook8hn417n6ufo3ue1pe3a;"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("origin", AppInit.conf.Filmix.host),
-                ("pragma", "no-cache"),
-                ("x-requested-with", "XMLHttpRequest"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-origin")
-            });
+                root = await HttpClient.Get<RootObject>($"{AppInit.conf.Filmix.apihost}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, IgnoreDeserializeObject: true);
+                if (root?.player_links == null)
+                    return Content(string.Empty);
 
-            if (root?.message?.translations?.video == null || root.message.translations.video.Count == 0)
-                return Content(string.Empty);
+                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(10));
+            }
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
-            #region Фильм
-            foreach (var v in root.message.translations.video)
+            if (root.player_links.movie != null && root.player_links.movie.Count > 0)
             {
-                string stream = v.Value.Replace(":<:bzl3UHQwaWk0MkdXZVM3TDdB", "").Replace(":<:SURhQnQwOEM5V2Y3bFlyMGVI", "").Replace(":<:bE5qSTlWNVUxZ01uc3h0NFFy", "").Replace(":<:Mm93S0RVb0d6c3VMTkV5aE54", "").Replace(":<:MTluMWlLQnI4OXVic2tTNXpU", "");  
-                stream = Encoding.UTF8.GetString(Convert.FromBase64String(stream.Remove(0, 2)));
-
-                string link = null;
-                string streansquality = string.Empty;
-                List<(string link, string quality)> streams = new List<(string, string)>();
-
-                foreach (string q in new string[] { /*"4K UHD", "1080p Ultra\\+", "1080p",*/ "720p", "480p", "360p" })
+                #region Фильм
+                foreach (var v in root.player_links.movie)
                 {
-                    string l = Regex.Match(stream, $"\\[{q}\\](https?://[^\\?,\\[ ]+\\.mp4)").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(l))
+                    string link = null;
+                    string streansquality = string.Empty;
+                    List<(string link, string quality)> streams = new List<(string, string)>();
+
+                    foreach (string q in new string[] { /*"2160,", "1440,", "1080,",*/ "720,", "480,", "360," })
                     {
+                        if (!v.link.Contains(q))
+                            continue;
+
+                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4$", $"_{q.Replace(",", "")}.mp4");
                         if (link == null)
-                            link = l.Replace("https:", "http:");
+                            link = l;
 
-                        streams.Add((l.Replace("https:", "http:"), q.Replace("\\", "")));
-                        streansquality += $"\"{q.Replace("\\", "")}\":\"" + l.Replace("https:", "http:") + "\",";
+                        streams.Add((l, q.Replace(",", "p")));
+                        streansquality += $"\"{q.Replace(",", "p")}\":\"" + l + "\",";
                     }
+
+                    streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.translation + "</div></div>";
+                    firstjson = false;
                 }
-
-                streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
-                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.Key + "</div></div>";
-                firstjson = false;
+                #endregion
             }
-            #endregion
+            else
+            {
+                #region Сериал
+                firstjson = true;
+
+                if (s == -1)
+                {
+                    #region Сезоны
+                    foreach (var season in root.player_links.playlist)
+                    {
+                        string link = $"{AppInit.Host(HttpContext)}/lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
+
+                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
+                        firstjson = false;
+                    }
+                    #endregion
+                }
+                else
+                {
+                    #region Перевод
+                    int indexTranslate = 0;
+
+                    foreach (var translation in root.player_links.playlist[s.ToString()])
+                    {
+                        string link = $"{AppInit.Host(HttpContext)}/lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
+                        string active = t == indexTranslate ? "active" : "";
+
+                        indexTranslate++;
+                        html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Key + "</div>";
+                    }
+
+                    html += "</div><div class=\"videos__line\">";
+                    #endregion
+
+                    #region Серии
+                    foreach (var episode in root.player_links.playlist[s.ToString()].ElementAt(t).Value)
+                    {
+                        string streansquality = string.Empty;
+                        List<(string link, string quality)> streams = new List<(string, string)>();
+
+                        foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
+                        {
+                            if (lq > 720)
+                                continue;
+
+                            string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
+
+                            streams.Add((l, $"{lq}p"));
+                            streansquality += $"\"{lq}p\":\"" + l + "\",";
+                        }
+
+                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
+                        firstjson = false;
+                    }
+                    #endregion
+                }
+                #endregion
+            }
 
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
 
         #region search
-        async static ValueTask<string> search(string title, int serial, int year)
+        async static ValueTask<int> search(string title, int year)
         {
-            if (serial != 0)
-                return null;
+            if (year == 0)
+                return 0;
 
-            var data = new System.Net.Http.StringContent($"scf=fx&story={HttpUtility.UrlEncode($"{title} {year}")}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", Encoding.GetEncoding(1251), "application/x-www-form-urlencoded");
-            string search = await HttpClient.Post($"{AppInit.conf.Filmix.host}/engine/ajax/sphinx_search.php", data, encoding: Encoding.UTF8, timeoutSeconds: 8, useproxy: AppInit.conf.Filmix.useproxy, addHeaders: new List<(string name, string val)>()
+            var root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.apihost}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
+            if (root == null || root.Count == 0)
+                return 0;
+
+            foreach (var item in root)
             {
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("origin", AppInit.conf.Filmix.host),
-                ("pragma", "no-cache"),
-                ("x-requested-with", "XMLHttpRequest"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-origin")
-            });
+                if (item.Value<int>("year") == year)
+                    return item.Value<int>("id");
+            }
 
-            if (search == null)
-                return null;
-
-            string url = Regex.Match(search, "itemprop=\"url\" href=\"(https?://[^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(url))
-                return null;
-
-            return url;
+            return 0;
         }
         #endregion
     }
