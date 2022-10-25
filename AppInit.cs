@@ -85,6 +85,8 @@ namespace Lampac
 
         public AllohaSettings Alloha = new AllohaSettings("https://api.alloha.tv", "https://torso.as.alloeclub.com", "", "", true);
 
+        public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "", "", true);
+
 
         public ProxySettings proxy = new ProxySettings();
     }
