@@ -83,6 +83,8 @@ namespace Lampac
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
+        public AllohaSettings Alloha = new AllohaSettings("https://api.alloha.tv", "https://torso.as.alloeclub.com", "", "", true);
+
 
         public ProxySettings proxy = new ProxySettings();
     }

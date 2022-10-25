@@ -14,6 +14,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Bazon : BaseController
     {
+        [HttpGet]
         [Route("lite/bazon")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
@@ -27,9 +28,8 @@ namespace Lampac.Controllers.LITE
 
                 if (AppInit.conf.Bazon.localip)
                 {
-                    string ipinfo = await HttpClient.Get("https://ipinfo.io/", timeoutSeconds: 5);
-                    userIp = Regex.Match(ipinfo ?? string.Empty, "\"userIp\":\"([^\"]+)\"").Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(userIp))
+                    userIp = await mylocalip();
+                    if (userIp == null)
                         return Content(string.Empty);
                 }
 

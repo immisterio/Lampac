@@ -34,6 +34,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
                 addonline += "{name:'Bazon',url:'{localhost}/bazon'},";
 
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
+                addonline += "{name:'Alloha',url:'{localhost}/alloha'},";
+
             file = file.Replace("{addonline}", addonline);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
