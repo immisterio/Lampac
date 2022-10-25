@@ -28,6 +28,13 @@ namespace Lampac.Controllers
         public ActionResult Lite()
         {
             string file = System.IO.File.ReadAllText("lite.js");
+
+            string addonline = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
+                addonline += "{name:'Bazon',url:'{localhost}/bazon'},";
+
+            file = file.Replace("{addonline}", addonline);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");

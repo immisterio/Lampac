@@ -6,6 +6,7 @@ using System.IO;
 using Lampac.Models.LITE.VideoCDN;
 using Lampac.Models.LITE.Collaps;
 using Lampac.Models.LITE.Filmix;
+using Lampac.Models.LITE;
 
 namespace Lampac
 {
@@ -79,6 +80,8 @@ namespace Lampac
         public CollapsSettings Collaps = new CollapsSettings("https://api.delivembd.ws", false);
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou", false);
+
+        public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
 
         public ProxySettings proxy = new ProxySettings();

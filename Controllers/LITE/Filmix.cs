@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"filmix:{postid}";
             if (!memoryCache.TryGetValue(memKey, out RootObject root))
             {
-                root = await HttpClient.Get<RootObject>($"{AppInit.conf.Filmix.apihost}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, IgnoreDeserializeObject: true);
+                root = await HttpClient.Get<RootObject>($"{AppInit.conf.Filmix.apihost}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, IgnoreDeserializeObject: true, useproxy: AppInit.conf.Filmix.useproxy);
                 if (root?.player_links == null)
                     return Content(string.Empty);
 
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
             if (year == 0)
                 return 0;
 
-            var root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.apihost}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
+            var root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.apihost}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, useproxy: AppInit.conf.Filmix.useproxy);
             if (root == null || root.Count == 0)
                 return 0;
 
