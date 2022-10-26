@@ -24,6 +24,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return Content(string.Empty);
 
+            bool firstjson = true;
             string html = string.Empty;
 
             foreach (var quality in new List<string> { "1080", "720", "480", "360", "240" })
@@ -32,7 +33,8 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrEmpty(hls))
                 {
                     hls = $"{AppInit.Host(HttpContext)}/proxy/{hls}";
-                    html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
+                    firstjson = true;
                 }
             }
 

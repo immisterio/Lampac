@@ -88,6 +88,8 @@ namespace Lampac
 
         public OnlinesSettings Kinokrad = new OnlinesSettings("https://kinokrad.cc", false);
 
+        public OnlinesSettings Kinotochka = new OnlinesSettings("https://kinotochka.co", false);
+
         public OnlinesSettings Filmix = new OnlinesSettings("http://filmixapp.cyou", false);
 
         public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
