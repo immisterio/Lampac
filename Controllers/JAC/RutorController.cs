@@ -3,7 +3,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
 using Lampac.Engine;
@@ -19,6 +18,9 @@ namespace Lampac.Controllers.JAC
         {
             if (!AppInit.conf.Rutor.enable)
                 return false;
+
+            // fix search
+            query = query.Replace("\"", " ").Replace("'", " ").Replace("?", " ").Replace("&", " ");
 
             #region Кеш
             string cachekey = $"rutor:{cat}:{query}:{isua}";
