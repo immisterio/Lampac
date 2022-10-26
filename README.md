@@ -15,7 +15,7 @@
 
 ***
 
-* Public online  - Videocdn, Rezka, Collaps, Filmix
+* Public online  - Videocdn, Rezka, Collaps, Filmix, Ashdi
 * Private online - Bazon, Alloha, HDVB, Kodik
 * Public Trackers  - kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, anilibria.tv
 * Private Trackers - toloka.to, rutracker.net, underver.se, selezen.net, animelayer.ru

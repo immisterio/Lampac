@@ -80,6 +80,8 @@ namespace Lampac
 
         public CollapsSettings Collaps = new CollapsSettings("https://api.delivembd.ws", false);
 
+        public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip", false);
+
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou", false);
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
