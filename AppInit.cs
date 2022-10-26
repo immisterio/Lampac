@@ -76,13 +76,13 @@ namespace Lampac
         public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com", true, false);
 
 
-        public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
-
-        public CollapsSettings Collaps = new CollapsSettings("https://api.delivembd.ws", false);
+        public OnlinesSettings Collaps = new OnlinesSettings("https://api.delivembd.ws", false);
 
         public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip", false);
 
-        public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou", false);
+        public OnlinesSettings Filmix = new OnlinesSettings("http://filmixapp.cyou", false);
+
+        public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
