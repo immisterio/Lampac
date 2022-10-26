@@ -112,7 +112,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                content = await HttpClient.Get($"{AppInit.conf.Collaps.host}/embed/kp/{kinopoisk_id}", useproxy: AppInit.conf.Collaps.useproxy);
+                content = await HttpClient.Get($"{AppInit.conf.Collaps.host}/embed/kp/{kinopoisk_id}", timeoutSeconds: 8, useproxy: AppInit.conf.Collaps.useproxy);
                 if (content == null)
                     return null;
 

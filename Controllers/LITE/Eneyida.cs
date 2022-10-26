@@ -133,7 +133,11 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Eneyida.useproxy);
+                System.Net.WebProxy proxy = null;
+                if (AppInit.conf.Eneyida.useproxy)
+                    proxy = HttpClient.webProxy();
+
+                string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, proxy: proxy);
                 if (search == null)
                     return null;
 
@@ -154,7 +158,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(link))
                     return null;
 
-                string news = await HttpClient.Get(link, timeoutSeconds: 8, useproxy: AppInit.conf.Eneyida.useproxy);
+                string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (news == null)
                     return null;
 
@@ -162,7 +166,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(iframeUri))
                     return null;
 
-                content = await HttpClient.Get(iframeUri, timeoutSeconds: 8, useproxy: AppInit.conf.Eneyida.useproxy);
+                content = await HttpClient.Get(iframeUri, timeoutSeconds: 8, proxy: proxy);
                 if (content == null || !content.Contains("file:"))
                     return null;
 

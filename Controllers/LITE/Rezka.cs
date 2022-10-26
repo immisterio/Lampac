@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                content = await HttpClient.Get($"https://voidboost.net/serial/{t}/iframe?s={s}", MaxResponseContentBufferSize: 20_000_000);
+                content = await HttpClient.Get($"{AppInit.conf.Rezka.host}/serial/{t}/iframe?s={s}", timeoutSeconds: 8, useproxy: AppInit.conf.Rezka.useproxy, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
                     return Content(string.Empty);
 
@@ -154,11 +154,11 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string uri = $"https://voidboost.net/movie/{t}/iframe";
+                string uri = $"{AppInit.conf.Rezka.host}/movie/{t}/iframe";
                 if (s > 0 || e > 0)
-                    uri = $"https://voidboost.net/serial/{t}/iframe?s={s}&e={e}";
+                    uri = $"{AppInit.conf.Rezka.host}/serial/{t}/iframe?s={s}&e={e}";
 
-                content = await HttpClient.Get(uri, MaxResponseContentBufferSize: 20_000_000);
+                content = await HttpClient.Get(uri, timeoutSeconds: 8, useproxy: AppInit.conf.Rezka.useproxy, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
                     return Content(string.Empty);
 
@@ -278,12 +278,12 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string uri = $"https://voidboost.net/embed/" + (kinopoisk_id > 0 ? kinopoisk_id.ToString() : imdb_id);
+                string uri = $"{AppInit.conf.Rezka.host}/embed/" + (kinopoisk_id > 0 ? kinopoisk_id.ToString() : imdb_id);
                 if (!string.IsNullOrWhiteSpace(t))
-                    uri = $"https://voidboost.net/serial/{t}/iframe";
+                    uri = $"{AppInit.conf.Rezka.host}/serial/{t}/iframe";
 
                 // Получаем html
-                content = await HttpClient.Get(uri, MaxResponseContentBufferSize: 20_000_000);
+                content = await HttpClient.Get(uri, timeoutSeconds: 8, useproxy: AppInit.conf.Rezka.useproxy, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
                     return null;
 

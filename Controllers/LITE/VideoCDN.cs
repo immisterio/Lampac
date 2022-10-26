@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out List<(string translation_id, string translation, string code)> cache))
             {
-                string content = await HttpClient.Get(iframe_src, MaxResponseContentBufferSize: 20_000_000, useproxy: AppInit.conf.VCDN.useproxy);
+                string content = await HttpClient.Get(iframe_src, MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
                 if (content == null)
                     return Content(string.Empty);
 
@@ -297,7 +297,7 @@ namespace Lampac.Controllers.LITE
                 string memKeyIframesrc = $"videocdn:view:iframe_src:{imdb_id}:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKeyIframesrc, out string iframe_src))
                 {
-                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VCDN.apihost}/api/short?api_token={AppInit.conf.VCDN.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}");
+                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VCDN.apihost}/api/short?api_token={AppInit.conf.VCDN.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
                     iframe_src = json.Value<JArray>("data").First.Value<string>("iframe_src");
                     if (string.IsNullOrWhiteSpace(iframe_src))
                         return null;

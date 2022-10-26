@@ -78,6 +78,8 @@ namespace Lampac
 
         public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org", false);
 
+        public OnlinesSettings Rezka = new OnlinesSettings("https://voidboost.net", false);
+
         public OnlinesSettings Collaps = new OnlinesSettings("https://api.delivembd.ws", false);
 
         public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip", false);

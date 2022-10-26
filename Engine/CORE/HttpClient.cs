@@ -15,7 +15,7 @@ namespace Lampac.Engine.CORE
         #region webProxy
         static ConcurrentBag<string> proxyRandomList = new ConcurrentBag<string>();
 
-        static WebProxy webProxy()
+        public static WebProxy webProxy()
         {
             if (proxyRandomList.Count == 0)
             {

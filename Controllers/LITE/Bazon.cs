@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
                         return Content(string.Empty);
                 }
 
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Bazon.apihost}/api/playlist?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}&ref=&ip={userIp}");
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Bazon.apihost}/api/playlist?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}&ref=&ip={userIp}", timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("results"))
                     return Content(string.Empty);
 

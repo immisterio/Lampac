@@ -132,7 +132,11 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string product = await HttpClient.Get($"{AppInit.conf.Ashdi.host}/api/product/read_api.php?kinopoisk={kinopoisk_id}", timeoutSeconds: 8, useproxy: AppInit.conf.Ashdi.useproxy);
+                System.Net.WebProxy proxy = null;
+                if (AppInit.conf.Ashdi.useproxy)
+                    proxy = HttpClient.webProxy();
+
+                string product = await HttpClient.Get($"{AppInit.conf.Ashdi.host}/api/product/read_api.php?kinopoisk={kinopoisk_id}", timeoutSeconds: 8, proxy: proxy);
                 if (product == null || !product.Contains("</iframe>"))
                     return null;
 
@@ -140,7 +144,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(iframeuri))
                     return null;
 
-                content = await HttpClient.Get(iframeuri, timeoutSeconds: 8, useproxy: AppInit.conf.Ashdi.useproxy);
+                content = await HttpClient.Get(iframeuri, timeoutSeconds: 8, proxy: proxy);
                 if (content == null || !content.Contains("Playerjs"))
                     return null;
 
