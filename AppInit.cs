@@ -76,6 +76,8 @@ namespace Lampac
         public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com", true, false);
 
 
+        public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org", false);
+
         public OnlinesSettings Collaps = new OnlinesSettings("https://api.delivembd.ws", false);
 
         public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip", false);
