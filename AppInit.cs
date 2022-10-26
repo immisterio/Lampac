@@ -80,6 +80,8 @@ namespace Lampac
 
         public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip", false);
 
+        public OnlinesSettings Eneyida = new OnlinesSettings("https://eneyida.tv", false);
+
         public OnlinesSettings Filmix = new OnlinesSettings("http://filmixapp.cyou", false);
 
         public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);

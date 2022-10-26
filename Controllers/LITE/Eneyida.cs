@@ -9,19 +9,20 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Ashdi;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Ashdi : BaseController
+    public class Eneyida : BaseController
     {
         [HttpGet]
-        [Route("lite/ashdi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1)
+        [Route("lite/eneyida")]
+        async public Task<ActionResult> Index(string title, string original_title, int year, int t, int s = -1)
         {
-            if (kinopoisk_id == 0)
+            if (year == 0)
                 return Content(string.Empty);
 
-            string content = await embed(memoryCache, kinopoisk_id);
+            string content = await embed(memoryCache, title, original_title, year);
             if (content == null)
                 return Content(string.Empty);
 
@@ -67,7 +68,7 @@ namespace Lampac.Controllers.LITE
                     #region Перевод
                     for (int i = 0; i < root.Count; i++)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
+                        string link = $"{AppInit.Host(HttpContext)}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&t={i}";
 
                         html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + root[i].title + "</div>";
                     }
@@ -79,7 +80,7 @@ namespace Lampac.Controllers.LITE
                     {
                         for (int i = 0; i < root[t].folder.Count; i++)
                         {
-                            string link = $"{AppInit.Host(HttpContext)}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
+                            string link = $"{AppInit.Host(HttpContext)}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&t={t}&s={i}";
 
                             html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + root[t].folder[i].title + "</div></div></div>";
                             firstjson = false;
@@ -126,22 +127,43 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async static ValueTask<string> embed(IMemoryCache memoryCache, long kinopoisk_id)
+        async static ValueTask<string> embed(IMemoryCache memoryCache, string title, string original_title, int year)
         {
-            string memKey = $"ashdi:view:{kinopoisk_id}";
+            string memKey = $"eneyida:view:{title}:{original_title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string product = await HttpClient.Get($"{AppInit.conf.Ashdi.host}/api/product/read_api.php?kinopoisk={kinopoisk_id}", timeoutSeconds: 8, useproxy: AppInit.conf.Ashdi.useproxy);
-                if (product == null || !product.Contains("</iframe>"))
+                string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Eneyida.useproxy);
+                if (search == null)
                     return null;
 
-                string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(iframeuri))
+                string link = null;
+                foreach (string row in search.Split("<article ").Skip(1))
+                {
+                    if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
+                        continue;
+
+                    if (Regex.Match(row, "/year/[0-9]+/?\">([0-9]{4})</a>").Groups[1].Value == year.ToString())
+                    {
+                        link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                        if (!string.IsNullOrWhiteSpace(link))
+                            break;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(link))
                     return null;
 
-                content = await HttpClient.Get(iframeuri, timeoutSeconds: 8, useproxy: AppInit.conf.Ashdi.useproxy);
-                if (content == null || !content.Contains("Playerjs"))
+                string news = await HttpClient.Get(link, timeoutSeconds: 8, useproxy: AppInit.conf.Eneyida.useproxy);
+                if (news == null)
+                    return null;
+
+                string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
+                if (string.IsNullOrWhiteSpace(iframeUri))
+                    return null;
+
+                content = await HttpClient.Get(iframeUri, timeoutSeconds: 8, useproxy: AppInit.conf.Eneyida.useproxy);
+                if (content == null || !content.Contains("file:"))
                     return null;
 
                 memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(10));
