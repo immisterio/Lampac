@@ -11,11 +11,19 @@ echo "export DOTNET_ROOT=\$HOME/.dotnet" >> ~/.bashrc
 echo "export PATH=\$PATH:\$HOME/.dotnet:\$HOME/.dotnet/tools" >> ~/.bashrc
 source ~/.bashrc
 
+# Delete previous version
+systemctl stop lampac
+systemctl disable lampac
+systemctl daemon-reload
+rm -f /etc/systemd/system/lampac.service
+mv $DEST/lampac/init.conf ~/init.conf
+
 # Download zip
 cd $DEST && rm -rf lampac && mkdir lampac && cd lampac
 wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 unzip publish.zip
 rm -f publish.zip
+mv ~/init.conf init.conf.back
 
 # Create service
 echo ""
@@ -43,8 +51,10 @@ systemctl start lampac
 
 # Note
 echo ""
-echo "Please check / edit $DEST/lampac/init.conf params and configure it"
-echo ""
-echo "Then [re]start it as systemctl [re]start lampac"
+echo "################################################################"
 echo ""
 echo "Have fun!"
+echo ""
+echo "Please check/edit $DEST/lampac/init.conf params and configure it"
+echo ""
+echo "Then [re]start it as systemctl [re]start lampac"
