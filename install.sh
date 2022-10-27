@@ -13,7 +13,7 @@ source ~/.bashrc
 
 # Download zip
 cd $DEST && rm -rf lampac && mkdir lampac && cd lampac
-wget https://github.com/immisterio/Lampac/releases/download/lam5/publish.zip
+wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 unzip publish.zip
 rm -f publish.zip
 
