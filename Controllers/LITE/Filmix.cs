@@ -15,6 +15,21 @@ namespace Lampac.Controllers.LITE
 {
     public class Filmix : BaseController
     {
+        #region filmixpro
+        [HttpGet]
+        [Route("lite/filmixpro")]
+        async public Task<ActionResult> Pro()
+        {
+            var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.host}/api/v2/token_request?user_dev_apk=1.1.3&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=");
+
+            string html = "1. Откройте <a href='https://filmix.ac/consoles'>https://filmix.ac/consoles</a> <br>";
+            html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";
+            html += $"3. В init.conf укажите token <b>{token_request.Value<string>("code")}</b>";
+
+            return Content(html, "text/html; charset=utf-8");
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int postid, int t, int s = -1)
@@ -26,7 +41,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"filmix:{postid}";
             if (!memoryCache.TryGetValue(memKey, out RootObject root))
             {
-                root = await HttpClient.Get<RootObject>($"{AppInit.conf.Filmix.host}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, IgnoreDeserializeObject: true, useproxy: AppInit.conf.Filmix.useproxy);
+                root = await HttpClient.Get<RootObject>($"{AppInit.conf.Filmix.host}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8, IgnoreDeserializeObject: true, useproxy: AppInit.conf.Filmix.useproxy);
                 if (root?.player_links == null)
                     return Content(string.Empty);
 
@@ -45,19 +60,22 @@ namespace Lampac.Controllers.LITE
                     string streansquality = string.Empty;
                     List<(string link, string quality)> streams = new List<(string, string)>();
 
-                    foreach (string q in new string[] { /*"2160,", "1440,", "1080,",*/ "720,", "480,", "360," })
+                    foreach (int q in new int[] { 2160, 1440, 1080, 720, 480, 360 })
                     {
-                        if (!v.link.Contains(q))
+                        if (!v.link.Contains($"{q},"))
                             continue;
 
-                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4$", $"_{q.Replace(",", "")}.mp4");
+                        if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && q > 720)
+                            continue;
+
+                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4$", $"_{q}.mp4");
                         l = AppInit.conf.Filmix.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l}" : l;
 
                         if (link == null)
                             link = l;
 
-                        streams.Add((l, q.Replace(",", "p")));
-                        streansquality += $"\"{q.Replace(",", "p")}\":\"" + l + "\",";
+                        streams.Add((l, $"{q}p"));
+                        streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
                     }
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
@@ -109,7 +127,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
-                            if (lq > 720)
+                            if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && lq > 720)
                                 continue;
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");

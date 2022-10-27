@@ -2,15 +2,18 @@
 {
     public class FilmixSettings
     {
-        public FilmixSettings(string apihost, bool useproxy)
+        public FilmixSettings(string host)
         {
-            this.apihost = apihost;
-            this.useproxy = useproxy;
+            this.host = host;
         }
 
 
-        public string apihost { get; set; }
+        public string host { get; set; }
+
+        public string token { get; set; }
 
         public bool useproxy { get; set; }
+
+        public bool streamproxy { get; set; }
     }
 }
