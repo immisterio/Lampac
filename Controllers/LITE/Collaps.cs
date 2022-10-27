@@ -46,13 +46,17 @@ namespace Lampac.Controllers.LITE
                 try
                 {
                     foreach (var cc in JsonConvert.DeserializeObject<List<Cc>>(Regex.Match(content, "cc: +(\\[[^\n\r]+\\]),").Groups[1].Value))
-                        subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + cc.url.Replace("https:", "http:") + "\"},";
+                    {
+                        string suburl = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{cc.url.Replace("https:", "http:")}" : cc.url.Replace("https:", "http:");
+                        subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + suburl + "\"},";
+                    }
                 }
                 catch { }
 
                 subtitles = Regex.Replace(subtitles, ",$", "");
                 #endregion
 
+                hls = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + audio + "</div></div>";
                 #endregion
             }
@@ -83,13 +87,17 @@ namespace Lampac.Controllers.LITE
                             if (episode.cc != null && episode.cc.Count > 0)
                             {
                                 foreach (var cc in episode.cc)
-                                    subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + cc.url.Replace("https:", "http:") + "\"},";
+                                {
+                                    string suburl = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{cc.url.Replace("https:", "http:")}" : cc.url.Replace("https:", "http:");
+                                    subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + suburl + "\"},";
+                                }
                             }
 
                             subtitles = Regex.Replace(subtitles, ",$", "");
                             #endregion
 
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + episode.hls.Replace("https:", "http:") + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>";
+                            string file = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{episode.hls.Replace("https:", "http:")}" : episode.hls.Replace("https:", "http:");
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>";
                             firstjson = false;
                         }
                     }

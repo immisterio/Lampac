@@ -106,6 +106,8 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         link = $"http://{link}.mp4";
+                        link = AppInit.conf.VCDN.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
                     }
@@ -177,7 +179,10 @@ namespace Lampac.Controllers.LITE
                             if (string.IsNullOrEmpty(file))
                                 continue;
 
-                            streams.Add(($"http://{file}.mp4", $"{quality}p"));
+                            file = $"http://{file}.mp4";
+                            file = AppInit.conf.VCDN.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{file}" : file;
+
+                            streams.Add((file, $"{quality}p"));
                         }
 
                         return streams;
@@ -303,7 +308,7 @@ namespace Lampac.Controllers.LITE
                         return null;
 
                     iframe_src = $"{AppInit.conf.VCDN.cdnhost}/" + Regex.Replace(iframe_src, "^(https?:)?//[^/]+/", "");
-                    memoryCache.Set(memKeyIframesrc, iframe_src, DateTime.Now.AddHours(1));
+                    memoryCache.Set(memKeyIframesrc, iframe_src, DateTime.Now.AddMinutes(10));
                 }
 
                 return iframe_src;

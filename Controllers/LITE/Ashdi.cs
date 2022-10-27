@@ -45,7 +45,10 @@ namespace Lampac.Controllers.LITE
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + match.Groups[2].Value + "\"},";
+                        {
+                            string suburl = AppInit.conf.Ashdi.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{match.Groups[2].Value}" : match.Groups[2].Value;
+                            subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
+                        }
 
                         match = match.NextMatch();
                     }
@@ -54,6 +57,7 @@ namespace Lampac.Controllers.LITE
                 subtitles = Regex.Replace(subtitles, ",$", "");
                 #endregion
 
+                hls = AppInit.conf.Ashdi.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }
@@ -100,7 +104,10 @@ namespace Lampac.Controllers.LITE
                                 while (match.Success)
                                 {
                                     if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                                        subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + match.Groups[2].Value + "\"},";
+                                    {
+                                        string suburl = AppInit.conf.Ashdi.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{match.Groups[2].Value}" : match.Groups[2].Value;
+                                        subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
+                                    }
 
                                     match = match.NextMatch();
                                 }
@@ -109,7 +116,8 @@ namespace Lampac.Controllers.LITE
                             subtitles = Regex.Replace(subtitles, ",$", "");
                             #endregion
 
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + episode.file + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
+                            string file = AppInit.conf.Ashdi.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{episode.file}" : episode.file;
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
                             firstjson = false;
                         }
                     }

@@ -37,7 +37,8 @@ namespace Lampac.Controllers.Spankbang
             var match = new Regex("\"([0-9]+)(p|k)\":\\[\"(https?://[^\"]+)\"").Match(json);
             while (match.Success)
             {
-                stream_links.TryAdd($"{match.Groups[1].Value}{match.Groups[2].Value}", match.Groups[3].Value.Replace("https:", "http:"));
+                string hls = match.Groups[3].Value.Replace("https:", "http:");
+                stream_links.TryAdd($"{match.Groups[1].Value}{match.Groups[2].Value}", AppInit.conf.Spankbang.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
                 match = match.NextMatch();
             }
             #endregion

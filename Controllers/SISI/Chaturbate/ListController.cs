@@ -41,12 +41,14 @@ namespace Lampac.Controllers.Chaturbate
                 if (row.Contains(">Private</li>") || string.IsNullOrWhiteSpace(g[1].Value) || string.IsNullOrWhiteSpace(g[3].Value))
                     continue;
 
+                string img = new Regex("<img src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+
                 playlists.Add(new PlaylistItem()
                 {
                     name = g[3].Value.Trim(),
                     quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
                     video = $"{AppInit.Host(HttpContext)}/chu/potok.m3u8?baba={HttpUtility.UrlEncode(g[1].Value)}",
-                    picture = new Regex("<img src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value
+                    picture = AppInit.conf.Chaturbate.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img
                 });
             }
 

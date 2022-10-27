@@ -106,7 +106,7 @@ namespace Lampac.Controllers.Ebalovo
                     {
                         name = title,
                         video = $"{AppInit.Host(HttpContext)}/elo/vidosik?goni={HttpUtility.UrlEncode(link)}",
-                        picture = img[2].Value,
+                        picture = AppInit.conf.Ebalovo.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img[2].Value}" : img[2].Value,
                         time = duration
                     });
                 }

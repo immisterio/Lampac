@@ -23,7 +23,8 @@ namespace Lampac.Controllers.Chaturbate
             if (string.IsNullOrWhiteSpace(hls))
                 return OnError("hls");
 
-            return Redirect(hls.Replace("\\u002D", "-").Replace("\\", ""));
+            hls = hls.Replace("\\u002D", "-").Replace("\\", "");
+            return Redirect(AppInit.conf.Chaturbate.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
         }
     }
 }

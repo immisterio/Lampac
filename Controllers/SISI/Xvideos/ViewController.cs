@@ -36,10 +36,11 @@ namespace Lampac.Controllers.Xvideos
                 if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("hls-"))
                     continue;
 
+                string hls = $"{Regex.Replace(stream_link.Replace("https:", "http:"), "/hls.m3u8.*", "")}/{line}";
                 playlists.Add(new PlaylistItem()
                 {
                     name = new Regex("hls-([0-9]+)p").Match(line).Groups[1].Value,
-                    video = $"{Regex.Replace(stream_link.Replace("https:", "http:"), "/hls.m3u8.*", "")}/{line}"
+                    video = AppInit.conf.Xvideos.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls
                 });
             }
 

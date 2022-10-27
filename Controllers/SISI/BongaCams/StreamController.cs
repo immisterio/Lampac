@@ -35,7 +35,8 @@ namespace Lampac.Controllers.BongaCams
             if (string.IsNullOrWhiteSpace(root?.localData?.videoServerUrl))
                 return OnError("baba");
 
-            return Redirect($"http:{root.localData.videoServerUrl}/hls/stream_{baba}/public-aac/stream_{baba}/chunks.m3u8");
+            string hls = $"http:{root.localData.videoServerUrl}/hls/stream_{baba}/public-aac/stream_{baba}/chunks.m3u8";
+            return Redirect(AppInit.conf.BongaCams.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
         }
     }
 }

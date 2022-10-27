@@ -54,7 +54,10 @@ namespace Lampac.Controllers.Xhamster
                     }
 
                     if (RESOLUTION > stream.RESOLUTION && RESOLUTION != 2160)
-                        stream = (link.Replace("https:", "http:"), RESOLUTION);
+                    {
+                        link = link.Replace("https:", "http:");
+                        stream = (AppInit.conf.Xhamster.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link, RESOLUTION);
+                    }
                 }
             }
             #endregion

@@ -57,7 +57,7 @@ namespace Lampac.Controllers.BongaCams
                     name = model.display_name,
                     quality = model.hd_plus == 1 ? "HD+" : model.hd_cam == 1 ? "HD" : null,
                     video = $"{AppInit.Host(HttpContext)}/bgs/potok.m3u8?baba={HttpUtility.UrlEncode(model.username)}",
-                    picture = img,
+                    picture = AppInit.conf.BongaCams.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img,
                 });
             }
 

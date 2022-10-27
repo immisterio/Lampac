@@ -68,6 +68,7 @@ namespace Lampac
             app.UseRouting();
             app.UseResponseCompression();
             app.UseModHeaders();
+            app.UseProxyIMG();
             app.UseProxyAPI();
 
             app.UseEndpoints(endpoints =>

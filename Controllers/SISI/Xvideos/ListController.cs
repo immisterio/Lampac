@@ -45,7 +45,7 @@ namespace Lampac.Controllers.Xvideos
                     {
                         name = g[2].Value,
                         video = $"{AppInit.Host(HttpContext)}/xds/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = img,
+                        picture = AppInit.conf.Xvideos.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img,
                         quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
                         time = duration,
                         json = true

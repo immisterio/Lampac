@@ -55,7 +55,7 @@ namespace Lampac.Controllers.Porntrex
             if (location == null || link == location)
                 return OnError("location");
 
-            return Redirect(location);
+            return Redirect(AppInit.conf.Porntrex.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{location}" : location);
         }
     }
 }

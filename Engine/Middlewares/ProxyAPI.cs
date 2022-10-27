@@ -7,6 +7,8 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
 using System.Net;
+using System.Linq;
+using System.Text;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -25,11 +27,18 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
+                if (HttpMethods.IsOptions(httpContext.Request.Method))
+                {
+                    httpContext.Response.StatusCode = 405;
+                    return;
+                }
+
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
 
                 HttpClientHandler handler = new HttpClientHandler()
                 {
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
+                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AllowAutoRedirect = false
                 };
 
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
@@ -39,7 +48,55 @@ namespace Lampac.Engine.Middlewares
                     var request = CreateProxyHttpRequest(httpContext, new Uri(servUri));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
-                    await CopyProxyHttpResponse(httpContext, response);
+                    if ((int)response.StatusCode is 301 or 302 || response.Headers.Location != null)
+                    {
+                        httpContext.Response.Redirect($"{AppInit.Host(httpContext)}/proxy/{response.Headers.Location.AbsoluteUri}");
+                        return;
+                    }
+
+                    if (response.Content.Headers.TryGetValues("Content-Type", out var contentType) && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")
+                    {
+                        using (HttpContent content = response.Content)
+                        {
+                            if (response.StatusCode == HttpStatusCode.OK)
+                            {
+                                string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
+                                string m3u8 = Regex.Replace(Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync()), "(https?://[^\n\r\"\\# ]+)", m =>
+                                {
+                                    return $"{proxyhost}/{m.Groups[1].Value}";
+                                });
+
+                                string hlshost = Regex.Match(servUri, "(https?://[^/]+)/").Groups[1].Value;
+                                string hlspatch = Regex.Match(servUri, "(https?://[^\n\r]+/)([^/]+)$").Groups[1].Value;
+
+                                m3u8 = Regex.Replace(m3u8, "([\n\r])([^\n\r]+)", m =>
+                                {
+                                    string uri = m.Groups[2].Value;
+
+                                    if (uri.Contains("#") || uri.Contains("\"") || uri.StartsWith("http"))
+                                        return m.Groups[0].Value;
+
+                                    if (uri.StartsWith("/"))
+                                    {
+                                        uri = hlshost + uri;
+                                    }
+                                    else
+                                    {
+                                        uri = hlspatch + uri;
+                                    }
+
+                                    return m.Groups[1].Value + $"{proxyhost}/{uri}";
+                                });
+
+                                httpContext.Response.ContentType = contentType.First();
+                                await httpContext.Response.WriteAsync(m3u8);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        await CopyProxyHttpResponse(httpContext, response);
+                    }
                 }
             }
             else
@@ -47,7 +104,6 @@ namespace Lampac.Engine.Middlewares
                 await _next(httpContext);
             }
         }
-
 
 
         #region CreateProxyHttpRequest

@@ -34,7 +34,7 @@ namespace Lampac.Controllers.Ebalovo
             if (location == null || stream_link == location || location.Contains("/get_file/"))
                 return OnError("location");
 
-            return Redirect(location);
+            return Redirect(AppInit.conf.Ebalovo.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{location}" : location);
         }
     }
 }

@@ -106,7 +106,7 @@ namespace Lampac.Controllers.Spankbang
                         name = title,
                         video = $"{AppInit.Host(HttpContext)}/sbg/vidosik?goni={HttpUtility.UrlEncode(link)}",
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
-                        picture = img,
+                        picture = AppInit.conf.Spankbang.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img,
                         time = duration,
                         json = true
                     });

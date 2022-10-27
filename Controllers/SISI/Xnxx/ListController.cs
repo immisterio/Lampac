@@ -62,12 +62,13 @@ namespace Lampac.Controllers.Xnxx
                 {
                     string duration = new Regex("</span>([^<]+)<span class=\"video-hd\">", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
                     string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                    img = img.Replace(".THUMBNUM.", ".1.");
 
                     playlists.Add(new PlaylistItem()
                     {
                         name = g[2].Value,
                         video = $"{AppInit.Host(HttpContext)}/xnx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = img.Replace(".THUMBNUM.", ".1."),
+                        picture = AppInit.conf.Xnxx.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img,
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
                         json = true

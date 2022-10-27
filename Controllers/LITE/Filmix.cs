@@ -51,6 +51,8 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4$", $"_{q.Replace(",", "")}.mp4");
+                        l = AppInit.conf.Filmix.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l}" : l;
+
                         if (link == null)
                             link = l;
 
@@ -111,6 +113,7 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
+                            l = AppInit.conf.Filmix.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l}" : l;
 
                             streams.Add((l, $"{lq}p"));
                             streansquality += $"\"{lq}p\":\"" + l + "\",";

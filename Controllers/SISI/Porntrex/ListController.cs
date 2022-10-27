@@ -103,7 +103,7 @@ namespace Lampac.Controllers.Porntrex
                     {
                         video = $"{AppInit.Host(HttpContext)}/ptx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
                         name = g[2].Value,
-                        picture = $"{AppInit.Host(HttpContext)}/proxy/https://{img[2].Value}",
+                        picture = $"{AppInit.Host(HttpContext)}/proxyimg/https://{img[2].Value}",
                         quality = !string.IsNullOrEmpty(quality) ? quality : null,
                         time = duration,
                         json = true

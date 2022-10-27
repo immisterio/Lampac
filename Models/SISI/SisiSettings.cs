@@ -15,5 +15,7 @@
         public bool enable { get; set; }
 
         public bool useproxy { get; set; }
+
+        public bool streamproxy { get; set; }
     }
 }
