@@ -49,6 +49,21 @@ systemctl daemon-reload
 systemctl enable lampac
 systemctl start lampac
 
+# iptables drop
+cat <<EOF > iptables-drop.sh
+#!/bin/sh
+echo "Stopping firewall and allowing everyone..."
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+EOF
+
 # Note
 echo ""
 echo "################################################################"
@@ -58,3 +73,7 @@ echo ""
 echo "Please check/edit $DEST/lampac/init.conf params and configure it"
 echo ""
 echo "Then [re]start it as systemctl [re]start lampac"
+echo ""
+echo "Clear iptables if port 9118 is not available"
+echo "bash $DEST/lampac/iptables-drop.sh"
+echo ""

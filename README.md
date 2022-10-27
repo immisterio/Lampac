@@ -24,6 +24,6 @@
 
 ***
 
-Альтернативная установка на linux с помощью скрипта, спасибо @nikk
+Альтернативная установка на linux с помощью скрипта, спасибо @nikk, @Denis
 
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
