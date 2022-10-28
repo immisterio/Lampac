@@ -55,7 +55,7 @@ namespace Lampac.Controllers.LITE
                 string memKeyIframesrc = $"videoapi:view:iframe_src:{imdb_id}:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKeyIframesrc, out string code))
                 {
-                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VideoAPI.apihost}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
+                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VideoAPI.host}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
                     string iframe_src = json.Value<JArray>("data").First.Value<string>("iframe_src");
                     if (string.IsNullOrWhiteSpace(iframe_src))
                         return null;

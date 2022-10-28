@@ -91,17 +91,21 @@ namespace Lampac
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 
+
         public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
 
-        public VCDNSettings VideoAPI = new VCDNSettings("http://5100.svetacdn.in", "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O", null, false);
+        public OnlinesSettings VideoAPI = new OnlinesSettings("http://5100.svetacdn.in", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O");
+
+        public IframeVideoSettings IframeVideo = new IframeVideoSettings("https://iframe.video");
+
+        public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "");
+
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
         public AllohaSettings Alloha = new AllohaSettings("https://api.alloha.tv", "https://torso.as.alloeclub.com", "", "", true);
 
         public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "", "", true);
-
-        public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "");
 
 
         public ProxySettings proxy = new ProxySettings();

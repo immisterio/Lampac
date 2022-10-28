@@ -43,6 +43,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 addonline += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+                addonline += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
+
             file = file.Replace("{addonline}", addonline);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
