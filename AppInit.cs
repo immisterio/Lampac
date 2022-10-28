@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System.IO;
 using Lampac.Models.LITE.VideoCDN;
-using Lampac.Models.LITE.Collaps;
 using Lampac.Models.LITE.Filmix;
 using Lampac.Models.LITE;
 using Lampac.Models.LITE.HDVB;
@@ -93,6 +92,8 @@ namespace Lampac
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 
         public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
+
+        public VCDNSettings VideoAPI = new VCDNSettings("http://5100.svetacdn.in", "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O", null, false);
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
