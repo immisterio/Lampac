@@ -89,6 +89,8 @@ namespace Lampac
 
         public OnlinesSettings Kinotochka = new OnlinesSettings("https://kinotochka.co", false);
 
+        public OnlinesSettings Lostfilmhd = new OnlinesSettings("http://www.lostfilmhd.ru");
+
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 
 

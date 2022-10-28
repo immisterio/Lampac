@@ -15,7 +15,7 @@
 
 ***
 
-* Public online  - Videocdn, Rezka, Kinobase, Collaps, Filmix, Kinokrad, Kinotochka, VideoAPI (ENG), Ashdi (UA), Eneyida (UA)
+* Public online  - Videocdn, Rezka, Kinobase, Collaps, Filmix, Kinokrad, Kinotochka, LostfilmHD, VideoAPI (ENG), Ashdi (UA), Eneyida (UA)
 * Private online - HDVB (FREE), IframeVideo (FREE), Bazon (PAY), Alloha (PAY), Kodik (PAY)
 * Public Trackers  - kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, anilibria.tv
 * Private Trackers - toloka.to, rutracker.net, underver.se, selezen.net, animelayer.ru

@@ -155,6 +155,9 @@ namespace Lampac.Engine.Middlewares
                     if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection")
                         continue;
 
+                    if (header.Key.ToLower().Contains("access-control"))
+                        continue;
+
                     string value = string.Empty;
                     foreach (var val in header.Value)
                         value += $"; {val}";

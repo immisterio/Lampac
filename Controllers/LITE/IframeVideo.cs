@@ -82,7 +82,8 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(5));
             }
 
-            return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            string url = AppInit.conf.IframeVideo.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{urim3u8}" : urim3u8;
+            return Content("{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
