@@ -46,6 +46,8 @@ namespace Lampac.Engine.Middlewares
                 if (File.Exists(outFile))
                 {
                     httpContext.Response.ContentType = "image/jpeg";
+                    httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+
                     using (var fs = new FileStream(outFile, FileMode.Open))
                     {
                         await fs.CopyToAsync(httpContext.Response.Body);
@@ -83,6 +85,8 @@ namespace Lampac.Engine.Middlewares
                 await File.WriteAllBytesAsync(outFile, array);
 
                 httpContext.Response.ContentType = "image/jpeg";
+                httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+
                 await httpContext.Response.Body.WriteAsync(array);
             }
             else
