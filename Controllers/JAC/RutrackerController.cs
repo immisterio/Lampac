@@ -91,7 +91,12 @@ namespace Lampac.Controllers.JAC
 
             string cookie = await Cookie();
             if (cookie == null)
+            {
+                if (TorrentCache.Read(key, out _m))
+                    Redirect(_m);
+
                 return Content("TakeLogin == false");
+            }
 
             var fullNews = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: cookie, timeoutSeconds: 10);
             if (fullNews != null)
@@ -99,10 +104,14 @@ namespace Lampac.Controllers.JAC
                 string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"med magnet-link\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(magnet))
                 {
+                    TorrentCache.Write(key, magnet);
                     Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                     return Redirect(magnet);
                 }
             }
+
+            if (TorrentCache.Read(key, out _m))
+                Redirect(_m);
 
             return Content("error");
         }

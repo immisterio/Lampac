@@ -97,9 +97,19 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
                 return Redirect(_m);
 
+            #region html
             string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: 10);
             if (html == null || !html.Contains("NNM-Club</title>"))
+            {
+                if (TorrentCache.Read(keydownload, out _f))
+                    return File(_f, "application/x-bittorrent");
+
+                if (TorrentCache.Read(keymagnet, out _m))
+                    Redirect(_m);
+
                 return Content("error");
+            }
+            #endregion
 
             #region download
             if (Cookie != null)
@@ -125,6 +135,12 @@ namespace Lampac.Controllers.JAC
                 return Redirect(magnet);
             }
             #endregion
+
+            if (TorrentCache.Read(keydownload, out _f))
+                return File(_f, "application/x-bittorrent");
+
+            if (TorrentCache.Read(keymagnet, out _m))
+                Redirect(_m);
 
             return Content("error");
         }

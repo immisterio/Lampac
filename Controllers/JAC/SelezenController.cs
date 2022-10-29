@@ -97,6 +97,9 @@ namespace Lampac.Controllers.JAC
 
                 if (await TakeLogin(Startup.memoryCache) == false)
                 {
+                    if (TorrentCache.Read(key, out _m))
+                        Redirect(_m);
+
                     Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return Content("TakeLogin == false");
                 }
@@ -105,14 +108,23 @@ namespace Lampac.Controllers.JAC
 
             string html = await HttpClient.Get(url, cookie: Cookie(Startup.memoryCache), timeoutSeconds: 10);
             if (html == null)
+            {
+                if (TorrentCache.Read(key, out _m))
+                    Redirect(_m);
+
                 return Content("error");
+            }
 
             string magnet = new Regex("href=\"(magnet:[^\"]+)\"").Match(html).Groups[1].Value;
             if (!string.IsNullOrWhiteSpace(magnet))
             {
+                TorrentCache.Write(key, magnet);
                 Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return Redirect(magnet);
             }
+
+            if (TorrentCache.Read(key, out _m))
+                Redirect(_m);
 
             return Content("error");
         }

@@ -101,6 +101,9 @@ namespace Lampac.Controllers.JAC
 
                 if (await TakeLogin(memoryCache) == false)
                 {
+                    if (TorrentCache.Read(key, out byte[] t))
+                        return File(t, "application/x-bittorrent");
+
                     memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return Content("TakeLogin == false");
                 }
@@ -110,7 +113,12 @@ namespace Lampac.Controllers.JAC
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Toloka.host}/download.php?id={id}", cookie: Cookie(memoryCache), referer: AppInit.conf.Toloka.host, timeoutSeconds: 10);
             if (_t != null)
             {
+                TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                return File(_t, "application/x-bittorrent");
+            }
+            else if (TorrentCache.Read(key, out _t))
+            {
                 return File(_t, "application/x-bittorrent");
             }
 

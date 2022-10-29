@@ -86,42 +86,47 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
+            string keydownload = $"kinozal:parseMagnet:download:{id}";
+            if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
+                return File(_t, "application/x-bittorrent");
+
+            string keymagnet = $"kinozal:parseMagnet:{id}";
+            if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
+                return Redirect(_m);
+
             #region Download
             if (Cookie != null)
             {
-                string key = $"kinozal:parseMagnet:download:{id}";
-                if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
-                    return File(_m, "application/x-bittorrent");
-
-                byte[] _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: AppInit.conf.Kinozal.host, timeoutSeconds: 10);
+                _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: AppInit.conf.Kinozal.host, timeoutSeconds: 10);
                 if (_t != null)
                 {
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                    TorrentCache.Write(keydownload, _t);
+                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                     return File(_t, "application/x-bittorrent");
                 }
             }
             #endregion
 
             #region Инфо хеш
+            string srv_details = await HttpClient.Post($"{AppInit.conf.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: 10);
+            if (srv_details != null)
             {
-                string key = $"kinozal:parseMagnet:{id}";
-                if (Startup.memoryCache.TryGetValue(key, out string _m))
-                    return Redirect(_m);
-
-                // Получаем Инфо хеш
-                string srv_details = await HttpClient.Post($"{AppInit.conf.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: 10);
-                if (srv_details != null)
+                string torrentHash = new Regex("<ul><li>Инфо хеш: +([^<]+)</li>").Match(srv_details).Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(torrentHash))
                 {
-                    // Инфо хеш
-                    string torrentHash = new Regex("<ul><li>Инфо хеш: +([^<]+)</li>").Match(srv_details).Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(torrentHash))
-                    {
-                        Startup.memoryCache.Set(key, $"magnet:?xt=urn:btih:{torrentHash}", DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
-                        return Redirect($"magnet:?xt=urn:btih:{torrentHash}");
-                    }
+                    string magnet = $"magnet:?xt=urn:btih:{torrentHash}";
+                    TorrentCache.Write(keymagnet, magnet);
+                    Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                    return Redirect(magnet);
                 }
             }
             #endregion
+
+            if (TorrentCache.Read(keydownload, out _t))
+                return File(_t, "application/x-bittorrent");
+
+            if (TorrentCache.Read(keymagnet, out _m))
+                Redirect(_m);
 
             return Content("error");
         }
