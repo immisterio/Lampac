@@ -27,6 +27,8 @@ namespace Lampac
 
         public string apikey = null;
 
+        public string ffprobe = "win";
+
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", true, false);
 
         public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip", true, false);
