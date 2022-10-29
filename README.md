@@ -1,29 +1,49 @@
+# Установка
 1. Установить https://learn.microsoft.com/ru-ru/dotnet/core/install/
 2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
 3. Запустить "dotnet Lampac.dll" (linux) или "Lampac.exe" (windows)
 
+# Альтернативная установка
+Установка на linux с помощью скрипта, спасибо @nikk, @Denis
+
+curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
+
 # Настройки Lampa
 1. Парсер Jackett - "IP:9118"
 2. Личный прокси  - "http://IP:9118/proxy/" 
-3. Плагин онлайн  - "http://IP:9118/online.js" 
+3. Плагин онлайн  - планируется в декабре
 4. Плагин xxx     - "http://IP:9118/sisi.js"
 
 # Настройки Lampa Lite
 1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 
 2. Плагин xxx     - "http://IP:9118/sisi.js"
 
+# Обязательные настройки для онлайн 
+1. Открыть настройки, раздел "Остальное"
+2. В "Основной источник" выбрать "CUB"
 
-***
-
+# Источники 
 * Public online  - Videocdn, Rezka, Kinobase, Collaps, Filmix, Kinokrad, Kinotochka, LostfilmHD, VideoAPI (ENG), Ashdi (UA), Eneyida (UA)
 * Private online - HDVB (FREE), IframeVideo (FREE), Bazon (PAY), Alloha (PAY), Kodik (PAY)
 * Public Trackers  - kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, anilibria.tv
 * Private Trackers - toloka.to, rutracker.net, underver.se, selezen.net, animelayer.ru
 * Клубничка bongacams.com, chaturbate.com, ebalovo.pro, eporner.com, hqporner.com, porntrex.com, spankbang.com, xhamster.com, xnxx.com, xvideos.com
 
+# Плагин Tracks.js
+Заменяет название аудиодорожек и субтитров в плеере, работает только в торрентах
+Автор: @aabytt
 
-***
+1. Добавить плагин "http://IP:9118/tracks.js" 
+2. В init.conf заменить значение "ffprobe" на один из вариантов "win.exe", "linux", "arm"
 
-Альтернативная установка на linux с помощью скрипта, спасибо @nikk, @Denis
+# Плагин TmdbProxy.js
+Проксирование постеров для сайта TMDB
 
-curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
+1. Добавить плагин "http://IP:9118/tmdbproxy.js" 
+2. В настройках TMDB включить проксирование
+
+# Параметры init.conf
+* xdb - Выводит платные источники с sisi.am
+* useproxy - Парсит источник через прокси указанные в "proxy"
+* streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
+* timeoutSeconds - Максимальное время ожидания ответа от трекера
