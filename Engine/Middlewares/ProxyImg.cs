@@ -63,24 +63,26 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                if (href.Contains(".webp"))
+                if (!href.Contains("tmdb.org"))
                 {
+                    if (href.Contains(".webp"))
+                    {
+                        using (MagickImage image = new MagickImage(array))
+                        {
+                            image.Format = MagickFormat.Jpg;
+                            array = image.ToByteArray();
+                        }
+                    }
+
                     using (MagickImage image = new MagickImage(array))
                     {
-                        image.Format = MagickFormat.Jpg;
-                        array = image.ToByteArray();
+                        if (image.Height > 200)
+                        {
+                            image.Resize(0, 200);
+                            array = image.ToByteArray();
+                        }
                     }
                 }
-
-                using (MagickImage image = new MagickImage(array))
-                {
-                    if (image.Height > 200)
-                    {
-                        image.Resize(0, 200);
-                        array = image.ToByteArray();
-                    }
-                }
-
 
                 await File.WriteAllBytesAsync(outFile, array);
 
