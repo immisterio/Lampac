@@ -19,13 +19,16 @@ namespace Lampac.Engine.Middlewares
         }
         #endregion
 
-        #region md5
-        static string md5(string IntText)
+        #region getFolder
+        static string getFolder(string href)
         {
             using (var md5 = MD5.Create())
             {
-                var result = md5.ComputeHash(Encoding.UTF8.GetBytes(IntText));
-                return BitConverter.ToString(result).Replace("-", "").ToLower();
+                var result = md5.ComputeHash(Encoding.UTF8.GetBytes(href));
+                string md5key = BitConverter.ToString(result).Replace("-", "").ToLower();
+
+                Directory.CreateDirectory($"cache/img/{md5key[0]}");
+                return $"cache/img/{md5key[0]}/{md5key}";
             }
         }
         #endregion
@@ -41,7 +44,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 string href = httpContext.Request.Path.Value.Replace("/proxyimg/", "") + httpContext.Request.QueryString.Value;
-                string outFile = $"cache/img/{md5(href)}";
+                string outFile = getFolder(href);
 
                 if (File.Exists(outFile))
                 {
@@ -56,24 +59,24 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var array = await CORE.HttpClient.Download(href, timeoutSeconds: 6);
+                var array = await CORE.HttpClient.Download(href, timeoutSeconds: 8);
                 if (array == null)
                 {
                     httpContext.Response.Redirect(href);
                     return;
                 }
 
+                if (href.Contains(".webp"))
+                {
+                    using (MagickImage image = new MagickImage(array))
+                    {
+                        image.Format = MagickFormat.Jpg;
+                        array = image.ToByteArray();
+                    }
+                }
+
                 if (!href.Contains("tmdb.org"))
                 {
-                    if (href.Contains(".webp"))
-                    {
-                        using (MagickImage image = new MagickImage(array))
-                        {
-                            image.Format = MagickFormat.Jpg;
-                            array = image.ToByteArray();
-                        }
-                    }
-
                     using (MagickImage image = new MagickImage(array))
                     {
                         if (image.Height > 200)
