@@ -11,15 +11,19 @@ namespace Lampac.Engine.CORE
         #region Read
         public static bool Read(string key, out string html)
         {
-            string pathfile = getFolder(key);
-            if (File.Exists(pathfile))
+            try
             {
-                if (Startup.memoryCache.TryGetValue(key, out _))
+                string pathfile = getFolder(key);
+                if (File.Exists(pathfile))
                 {
-                    html = File.ReadAllText(pathfile);
-                    return true;
+                    if (Startup.memoryCache.TryGetValue(key, out _))
+                    {
+                        html = File.ReadAllText(pathfile);
+                        return true;
+                    }
                 }
             }
+            catch { }
 
             html = null;
             return false;
@@ -29,8 +33,12 @@ namespace Lampac.Engine.CORE
         #region Write
         public static void Write(string key, string html)
         {
-            File.WriteAllText(getFolder(key), html);
-            Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+            try
+            {
+                File.WriteAllText(getFolder(key), html);
+                Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+            }
+            catch { }
         }
         #endregion
 

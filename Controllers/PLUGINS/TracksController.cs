@@ -5,7 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Text;
 
-namespace Lampac.Controllers.JAC
+namespace Lampac.Controllers.PLUGINS
 {
     public class TracksController : BaseController
     {
