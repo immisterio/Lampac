@@ -18,7 +18,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 
 2. Плагин xxx     - "http://IP:9118/sisi.js"
 
-# Обязательные настройки для онлайн 
+# Общие настройки
 1. Открыть настройки, раздел "Остальное"
 2. В "Основной источник" выбрать "CUB"
 
@@ -31,6 +31,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере, работает только в торрентах
+
 Автор: @aabytt
 
 1. Добавить плагин "http://IP:9118/tracks.js" 
