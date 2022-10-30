@@ -10,7 +10,31 @@ namespace Lampac.Controllers
         [Route("/")]
         public ActionResult Index()
         {
-            return Content("api work", contentType: "text/plain; charset=utf-8");
+            if (!System.IO.File.Exists("wwwroot/lampa-main/index.html"))
+                return Content("api work", contentType: "text/plain; charset=utf-8");
+
+            return LocalRedirect("/lampa-main/index.html");
+        }
+
+        [HttpGet]
+        [Route("lampainit.js")]
+        public ActionResult LamInit()
+        {
+            string file = System.IO.File.ReadAllText("lampainit.js");
+            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            file = file.Replace("{jachost}", AppInit.Host(HttpContext).Replace("https://", "").Replace("http://", ""));
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+
+        [HttpGet]
+        [Route("msx/start.json")]
+        public ActionResult MSX()
+        {
+            string file = System.IO.File.ReadAllText("msx.json");
+            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+
+            return Content(file, contentType: "application/json; charset=utf-8");
         }
 
         [HttpGet]
@@ -59,9 +83,9 @@ namespace Lampac.Controllers
             string cachekey = "online.js";
             if (!HtmlCache.Read(cachekey, out string cachetxt))
             {
-                string txt = await HttpClient.Get("https://pastebin.com/raw/Qkm6WFtZ");
+                string txt = await HttpClient.Get("https://pastebin.com/raw/3VubfYPR");
                 if (txt == null || !txt.Contains("Lampa.Reguest()"))
-                    txt = await HttpClient.Get("http://jin.energy/online.js?v=1666454579");
+                    txt = await HttpClient.Get("http://jin.energy/newonline.js");
 
                 if (txt != null && txt.Contains("Lampa.Reguest()"))
                 {

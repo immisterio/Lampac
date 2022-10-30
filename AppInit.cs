@@ -27,7 +27,9 @@ namespace Lampac
 
         public string apikey = null;
 
-        public string ffprobe = "win.exe";
+        public string ffprobe = "linux";
+
+        public bool autoupdatelampahtml = true;
 
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");

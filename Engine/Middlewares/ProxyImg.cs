@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System.IO;
-using System;
-using System.Text;
-using System.Security.Cryptography;
 using ImageMagick;
+using Lampac.Engine.CORE;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -22,14 +20,9 @@ namespace Lampac.Engine.Middlewares
         #region getFolder
         static string getFolder(string href)
         {
-            using (var md5 = MD5.Create())
-            {
-                var result = md5.ComputeHash(Encoding.UTF8.GetBytes(href));
-                string md5key = BitConverter.ToString(result).Replace("-", "").ToLower();
-
-                Directory.CreateDirectory($"cache/img/{md5key[0]}");
-                return $"cache/img/{md5key[0]}/{md5key}";
-            }
+            string md5key = CrypTo.md5(href);
+            Directory.CreateDirectory($"cache/img/{md5key[0]}");
+            return $"cache/img/{md5key[0]}/{md5key}";
         }
         #endregion
 

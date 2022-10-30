@@ -66,13 +66,7 @@ namespace Lampac.Engine.CORE
         #region getFolder
         static string getFolder(string key)
         {
-            using (var md5 = MD5.Create())
-            {
-                byte[] result = md5.ComputeHash(Encoding.UTF8.GetBytes(key));
-                string md5key = BitConverter.ToString(result).Replace("-", "").ToLower();
-
-                return $"cache/torrent/{md5key}";
-            }
+            return $"cache/torrent/{CrypTo.md5(key)}";
         }
         #endregion
     }

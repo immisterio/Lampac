@@ -70,6 +70,7 @@ namespace Lampac
             app.UseModHeaders();
             app.UseProxyIMG();
             app.UseProxyAPI();
+            app.UseStaticFiles();
 
             app.UseEndpoints(endpoints =>
             {
