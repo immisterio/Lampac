@@ -88,6 +88,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
+            if (!AppInit.conf.Toloka.enable)
+                return Content("disable");
+
             string key = $"toloka:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");

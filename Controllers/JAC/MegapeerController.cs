@@ -20,6 +20,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
+            if (!AppInit.conf.Megapeer.enable)
+                return Content("disable");
+
             string key = $"megapeer:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");

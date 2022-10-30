@@ -89,6 +89,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
+            if (!AppInit.conf.NNMClub.enable)
+                return Content("disable");
+
             string keydownload = $"nnmclub:parseMagnet:download:{id}";
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _f))
                 return File(_f, "application/x-bittorrent");

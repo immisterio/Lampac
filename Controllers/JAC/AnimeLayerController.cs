@@ -81,6 +81,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string url)
         {
+            if (!AppInit.conf.Animelayer.enable)
+                return Content("disable");
+
             string key = $"animelayer:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");

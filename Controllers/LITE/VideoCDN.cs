@@ -20,6 +20,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vcdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int sid, int s = -1)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.VCDN.token))
+                return Content(string.Empty);
+
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 

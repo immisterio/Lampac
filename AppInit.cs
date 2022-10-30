@@ -29,67 +29,68 @@ namespace Lampac
 
         public string ffprobe = "win.exe";
 
-        public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", true, false);
 
-        public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip", true, false);
+        public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");
 
-        public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by", true, false);
+        public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip");
 
-        public TrackerSettings Kinozal = new TrackerSettings("http://kinozal.tv", true, false);
+        public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by");
 
-        public TrackerSettings NNMClub = new TrackerSettings("https://nnmclub.to", true, false);
+        public TrackerSettings Kinozal = new TrackerSettings("http://kinozal.tv");
 
-        public TrackerSettings Bitru = new TrackerSettings("https://bitru.org", true, false);
+        public TrackerSettings NNMClub = new TrackerSettings("https://nnmclub.to");
 
-        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", false, false);
+        public TrackerSettings Bitru = new TrackerSettings("https://bitru.org");
 
-        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", false, false);
+        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", enable: false);
 
-        public TrackerSettings Underverse = new TrackerSettings("https://underver.se", false, false);
+        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", enable: false);
 
-        public TrackerSettings Selezen = new TrackerSettings("https://selezen.net", false, false);
+        public TrackerSettings Underverse = new TrackerSettings("https://underver.se", enable: false);
 
-        public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv", true, false);
+        public TrackerSettings Selezen = new TrackerSettings("https://selezen.net", enable: false);
 
-        public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", false, false);
+        public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv");
+
+        public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
 
 
         public bool xdb = false;
 
-        public SisiSettings BongaCams = new SisiSettings("https://rt.bongacams.com", true, false);
+        public SisiSettings BongaCams = new SisiSettings("https://rt.bongacams.com");
 
-        public SisiSettings Chaturbate = new SisiSettings("https://chaturbate.com", true, false);
+        public SisiSettings Chaturbate = new SisiSettings("https://chaturbate.com");
 
-        public SisiSettings Ebalovo = new SisiSettings("https://www.ebalovo.pro", true, false);
+        public SisiSettings Ebalovo = new SisiSettings("https://www.ebalovo.pro");
 
-        public SisiSettings Eporner = new SisiSettings("https://www.eporner.com", true, false);
+        public SisiSettings Eporner = new SisiSettings("https://www.eporner.com");
 
-        public SisiSettings HQporner = new SisiSettings("https://hqporner.com", true, false);
+        public SisiSettings HQporner = new SisiSettings("https://hqporner.com");
 
-        public SisiSettings Porntrex = new SisiSettings("https://www.porntrex.com", true, false);
+        public SisiSettings Porntrex = new SisiSettings("https://www.porntrex.com");
 
-        public SisiSettings Spankbang = new SisiSettings("https://ru.spankbang.com", true, false);
+        public SisiSettings Spankbang = new SisiSettings("https://ru.spankbang.com");
 
-        public SisiSettings Xhamster = new SisiSettings("https://ru.xhamster.com", true, false);
+        public SisiSettings Xhamster = new SisiSettings("https://ru.xhamster.com");
 
-        public SisiSettings Xnxx = new SisiSettings("https://www.xnxx.com", true, false);
+        public SisiSettings Xnxx = new SisiSettings("https://www.xnxx.com");
 
-        public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com", true, false);
+        public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com");
 
 
-        public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org", false);
+        public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org");
 
-        public OnlinesSettings Rezka = new OnlinesSettings("https://voidboost.net", false);
+        public OnlinesSettings Rezka = new OnlinesSettings("https://voidboost.net");
 
-        public OnlinesSettings Collaps = new OnlinesSettings("https://api.delivembd.ws", false);
+        public OnlinesSettings Collaps = new OnlinesSettings("https://api.delivembd.ws");
 
-        public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip", false);
+        public OnlinesSettings Ashdi = new OnlinesSettings("https://base.ashdi.vip");
 
-        public OnlinesSettings Eneyida = new OnlinesSettings("https://eneyida.tv", false);
+        public OnlinesSettings Eneyida = new OnlinesSettings("https://eneyida.tv");
 
-        public OnlinesSettings Kinokrad = new OnlinesSettings("https://kinokrad.cc", false);
+        public OnlinesSettings Kinokrad = new OnlinesSettings("https://kinokrad.cc");
 
-        public OnlinesSettings Kinotochka = new OnlinesSettings("https://kinotochka.co", false);
+        public OnlinesSettings Kinotochka = new OnlinesSettings("https://kinotochka.co");
 
         public OnlinesSettings Lostfilmhd = new OnlinesSettings("http://www.lostfilmhd.ru");
 

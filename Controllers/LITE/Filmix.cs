@@ -34,6 +34,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int postid, int t, int s = -1)
         {
+            if (!AppInit.conf.Filmix.enable)
+                return Content(string.Empty);
+
             postid = postid == 0 ? await search(title ?? original_title, year) : postid;
             if (postid == 0)
                 return Content(string.Empty);

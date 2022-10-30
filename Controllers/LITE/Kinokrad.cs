@@ -17,6 +17,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinokrad")]
         async public Task<ActionResult> Index(string title, int year)
         {
+            if (!AppInit.conf.Kinokrad.enable)
+                return Content(string.Empty);
+
             if (year == 0 || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
 

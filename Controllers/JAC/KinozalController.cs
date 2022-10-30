@@ -86,6 +86,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
+            if (!AppInit.conf.Kinozal.enable)
+                return Content("disable");
+
             string keydownload = $"kinozal:parseMagnet:download:{id}";
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");

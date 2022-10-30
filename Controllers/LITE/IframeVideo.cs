@@ -17,6 +17,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+                return Content(string.Empty);
+
             var frame = await iframe(memoryCache, imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
                 return Content(string.Empty);
@@ -59,6 +62,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo/video")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+                return Content(string.Empty);
+
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {

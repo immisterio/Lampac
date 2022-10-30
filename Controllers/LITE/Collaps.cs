@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/collaps")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s)
         {
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || !AppInit.conf.Collaps.enable)
                 return Content(string.Empty);
 
             string content = await embed(memoryCache, kinopoisk_id);

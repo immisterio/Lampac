@@ -19,6 +19,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lostfilmhd")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int s = -1)
         {
+            if (!AppInit.conf.Lostfilmhd.enable)
+                return Content(string.Empty);
+
             if (year == 0 || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
 
@@ -65,6 +68,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lostfilmhd/video")]
         async public Task<ActionResult> Video(string iframe, int s, int e, int v, string title, string original_title)
         {
+            if (!AppInit.conf.Lostfilmhd.enable)
+                return Content(string.Empty);
+
             string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}:{v}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {

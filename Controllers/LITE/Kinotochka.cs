@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinotochka")]
         async public Task<ActionResult> Index(string title, string original_title, int year)
         {
-            if (year == 0)
+            if (year == 0 || !AppInit.conf.Kinotochka.enable)
                 return Content(string.Empty);
 
             string file = await embed(memoryCache, title, original_title, year);

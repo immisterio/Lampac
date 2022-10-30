@@ -84,6 +84,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string url)
         {
+            if (!AppInit.conf.Selezen.enable)
+                return Content("disable");
+
             string key = $"selezen:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);

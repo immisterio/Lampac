@@ -2,7 +2,7 @@
 {
     public class SisiSettings
     {
-        public SisiSettings(string host, bool enable, bool useproxy)
+        public SisiSettings(string host, bool enable = true, bool useproxy = false)
         {
             this.host = host;
             this.enable = enable;

@@ -19,6 +19,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string url, string code)
         {
+            if (!AppInit.conf.Anilibria.enable)
+                return Content("disable");
+
             string key = $"anilibria:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");

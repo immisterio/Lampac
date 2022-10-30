@@ -85,6 +85,9 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
         {
+            if (!AppInit.conf.Rutracker.enable)
+                return Content("disable");
+
             string key = $"rutracker:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);

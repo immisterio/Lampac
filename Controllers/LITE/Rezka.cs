@@ -18,6 +18,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t)
         {
+            if (!AppInit.conf.Rezka.enable)
+                return Content(string.Empty);
+
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 
@@ -109,6 +112,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/serial")]
         async public Task<ActionResult> Serial(string title, string original_title, string t, int s)
         {
+            if (!AppInit.conf.Rezka.enable)
+                return Content(string.Empty);
+
             #region Кеш запроса
             string memKey = $"rezka:view:serial:{t}:{s}";
 
@@ -149,6 +155,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/episode")]
         async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e)
         {
+            if (!AppInit.conf.Rezka.enable)
+                return Content(string.Empty);
+
             #region Кеш запроса
             string memKey = $"rezka:view:stream:{t}:{s}:{e}";
 
@@ -275,7 +284,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async public static ValueTask<string> embed(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id, string t)
+        async static ValueTask<string> embed(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id, string t)
         {
             string memKey = $"rezka:view:{kinopoisk_id}:{imdb_id}:{t}";
 

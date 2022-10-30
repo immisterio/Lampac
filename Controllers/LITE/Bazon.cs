@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/bazon")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
                 return Content(string.Empty);
 
             string memKey = $"bazon:view:{kinopoisk_id}";

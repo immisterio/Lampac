@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/ashdi")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1)
         {
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || !AppInit.conf.Ashdi.enable)
                 return Content(string.Empty);
 
             string content = await embed(memoryCache, kinopoisk_id);

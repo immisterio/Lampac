@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinobase")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int s = -1)
         {
-            if (year == 0)
+            if (year == 0 || !AppInit.conf.Kinobase.enable)
                 return Content(string.Empty);
 
             string content = await embed(memoryCache, title, original_title, year);

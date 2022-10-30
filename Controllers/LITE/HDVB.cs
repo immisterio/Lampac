@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, int t, int s = -1)
         {
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 return Content(string.Empty);
 
             JArray data = await search(memoryCache, kinopoisk_id);
@@ -94,6 +94,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/video")]
         async public Task<ActionResult> Video(string iframe, string title, string original_title)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
+                return Content(string.Empty);
+
             string memKey = $"video:view:video:{iframe}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
@@ -141,6 +144,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/serial")]
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
+                return Content(string.Empty);
+
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {

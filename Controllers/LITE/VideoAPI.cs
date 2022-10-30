@@ -16,6 +16,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videoapi")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token))
+                return Content(string.Empty);
+
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 

@@ -18,6 +18,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
+                return Content(string.Empty);
+
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 
@@ -95,6 +98,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha/video")]
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
+                return Content(string.Empty);
+
             string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}";
             if (!memoryCache.TryGetValue(memKey, out (string m3u8, string subtitle) _cache))
             {

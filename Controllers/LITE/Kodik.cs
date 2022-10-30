@@ -21,6 +21,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string kid, string t, int s = -1)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
+                return Content(string.Empty);
+
             JToken results = await search(memoryCache, imdb_id, kinopoisk_id);
             if (results == null)
                 return Content(string.Empty);
@@ -122,6 +125,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/video")]
         async public Task<ActionResult> Video(string title, string original_title, string link)
         {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
+                return Content(string.Empty);
+
             string memKey = $"kodik:view:stream:{link}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
