@@ -85,7 +85,7 @@ namespace Lampac.Controllers
             {
                 string txt = await HttpClient.Get("https://pastebin.com/raw/3VubfYPR");
                 if (txt == null || !txt.Contains("Lampa.Reguest()"))
-                    txt = await HttpClient.Get("http://jin.energy/newonline.js");
+                    txt = await HttpClient.Get("http://jin.energy/newonline.js?v=1667137689");
 
                 if (txt != null && txt.Contains("Lampa.Reguest()"))
                 {
