@@ -81,7 +81,9 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Online()
         {
             string cachekey = "online.js";
-            if (!HtmlCache.Read(cachekey, out string cachetxt))
+            var cachetxt = await HtmlCache.Read(cachekey);
+
+            if (!cachetxt.cache)
             {
                 string txt = await HttpClient.Get("https://pastebin.com/raw/3VubfYPR");
                 if (txt == null || !txt.Contains("Lampa.Reguest()"))
@@ -89,15 +91,15 @@ namespace Lampac.Controllers
 
                 if (txt != null && txt.Contains("Lampa.Reguest()"))
                 {
-                    cachetxt = txt;
-                    HtmlCache.Write(cachekey, txt);
+                    cachetxt.html = txt;
+                    await HtmlCache.Write(cachekey, txt);
                 }
 
-                if (cachetxt == null)
+                if (cachetxt.html == null)
                     return OnError("cachetxt");
             }
 
-            return Content(cachetxt, contentType: "application/javascript; charset=utf-8");
+            return Content(cachetxt.html, contentType: "application/javascript; charset=utf-8");
         }
     }
 }

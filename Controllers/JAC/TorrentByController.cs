@@ -22,22 +22,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"torrentby:{cat}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}&search_in=0", useproxy: AppInit.conf.TorrentBy.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null)
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("<tr class=\"ttable_col").Skip(1))
+            foreach (string row in cread.html.Split("<tr class=\"ttable_col").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

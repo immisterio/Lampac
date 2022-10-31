@@ -104,8 +104,8 @@ namespace Lampac.Controllers.JAC
 
                 if (await TakeLogin(memoryCache) == false)
                 {
-                    if (TorrentCache.Read(key, out byte[] t))
-                        return File(t, "application/x-bittorrent");
+                    if (await TorrentCache.Read(key) is var tcache && tcache.cache)
+                        return File(tcache.torrent, "application/x-bittorrent");
 
                     memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return Content("TakeLogin == false");
@@ -116,13 +116,13 @@ namespace Lampac.Controllers.JAC
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Toloka.host}/download.php?id={id}", cookie: Cookie(memoryCache), referer: AppInit.conf.Toloka.host, timeoutSeconds: 10);
             if (_t != null)
             {
-                TorrentCache.Write(key, _t);
+                await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (TorrentCache.Read(key, out _t))
+            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
             {
-                return File(_t, "application/x-bittorrent");
+                return File(tcache.torrent, "application/x-bittorrent");
             }
 
             return Content("error");
@@ -152,22 +152,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"toloka:{string.Join(":", cats ?? new string[] { })}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie(Startup.memoryCache), /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("<html lang=\"uk\""))
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("</tr>"))
+            foreach (string row in cread.html.Split("</tr>"))
             {
                 if (string.IsNullOrWhiteSpace(row) || Regex.IsMatch(row, "Збір коштів", RegexOptions.IgnoreCase))
                     continue;

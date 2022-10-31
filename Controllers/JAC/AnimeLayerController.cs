@@ -91,13 +91,13 @@ namespace Lampac.Controllers.JAC
             byte[] _t = await HttpClient.Download($"{url}download/", cookie: Cookie, referer: AppInit.conf.Animelayer.host, timeoutSeconds: 10);
             if (_t != null)
             {
-                TorrentCache.Write(key, _t);
+                await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (TorrentCache.Read(key, out _t))
+            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
             {
-                return File(_t, "application/x-bittorrent");
+                return File(tcache.torrent, "application/x-bittorrent");
             }
 
             return Content("error");
@@ -127,22 +127,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"animelayer:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", cookie: Cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("id=\"wrapper\""))
                 {
-                    cachehtml = HttpUtility.HtmlDecode(html.Replace("&nbsp;", ""));
-                    HtmlCache.Write(cachekey, cachehtml);
+                    cread.html = HttpUtility.HtmlDecode(html.Replace("&nbsp;", ""));
+                    await HtmlCache.Write(cachekey, cread.html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))
+            foreach (string row in cread.html.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

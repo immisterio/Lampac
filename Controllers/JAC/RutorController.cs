@@ -24,22 +24,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"rutor:{cat}:{query}:{isua}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Rutor.host}/search" + (cat == "0" ? $"/{HttpUtility.UrlEncode(query)}" : $"/0/{cat}/000/0/{HttpUtility.UrlEncode(query)}"), useproxy: AppInit.conf.Rutor.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null)
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in Regex.Split(Regex.Replace(cachehtml.Split("</span></td></tr></table><b>")[0], "[\n\r\t]+", ""), "<tr class=\"(gai|tum)\">").Skip(1))
+            foreach (string row in Regex.Split(Regex.Replace(cread.html.Split("</span></td></tr></table><b>")[0], "[\n\r\t]+", ""), "<tr class=\"(gai|tum)\">").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

@@ -103,7 +103,7 @@ namespace Lampac.Controllers.JAC
                 _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: AppInit.conf.Kinozal.host, timeoutSeconds: 10);
                 if (_t != null)
                 {
-                    TorrentCache.Write(keydownload, _t);
+                    await TorrentCache.Write(keydownload, _t);
                     Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                     return File(_t, "application/x-bittorrent");
                 }
@@ -118,18 +118,18 @@ namespace Lampac.Controllers.JAC
                 if (!string.IsNullOrWhiteSpace(torrentHash))
                 {
                     string magnet = $"magnet:?xt=urn:btih:{torrentHash}";
-                    TorrentCache.Write(keymagnet, magnet);
+                    await TorrentCache.Write(keymagnet, magnet);
                     Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                     return Redirect(magnet);
                 }
             }
             #endregion
 
-            if (TorrentCache.Read(keydownload, out _t))
-                return File(_t, "application/x-bittorrent");
+            if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                return File(tcache.torrent, "application/x-bittorrent");
 
-            if (TorrentCache.Read(keymagnet, out _m))
-                Redirect(_m);
+            if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                Redirect(mcache.torrent);
 
             return Content("error");
         }
@@ -155,22 +155,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("Кинозал.ТВ</title>"))
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in Regex.Split(cachehtml, "<tr class=('first bg'|bg)>").Skip(1))
+            foreach (string row in Regex.Split(cread.html, "<tr class=('first bg'|bg)>").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

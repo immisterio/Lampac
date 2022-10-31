@@ -104,11 +104,11 @@ namespace Lampac.Controllers.JAC
             string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: 10);
             if (html == null || !html.Contains("NNM-Club</title>"))
             {
-                if (TorrentCache.Read(keydownload, out _f))
-                    return File(_f, "application/x-bittorrent");
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
 
-                if (TorrentCache.Read(keymagnet, out _m))
-                    Redirect(_m);
+                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
 
                 return Content("error");
             }
@@ -139,11 +139,13 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            if (TorrentCache.Read(keydownload, out _f))
-                return File(_f, "application/x-bittorrent");
+            {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
 
-            if (TorrentCache.Read(keymagnet, out _m))
-                Redirect(_m);
+                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+            }
 
             return Content("error");
         }
@@ -169,23 +171,25 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"nnmclub:{string.Join(":", cats ?? new string[] { })}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string data = $"prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_shs=0&prev_shr=0&prev_sht=0&o=1&s=2&tm=-1&shf=1&sha=1&ta=-1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&pn=&submit=%CF%EE%E8%F1%EA";
                 string html = await HttpClient.Post($"{AppInit.conf.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("NNM-Club</title>"))
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("</tr>"))
+            foreach (string row in cread.html.Split("</tr>"))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)

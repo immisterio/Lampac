@@ -100,8 +100,8 @@ namespace Lampac.Controllers.JAC
 
                 if (await TakeLogin(Startup.memoryCache) == false)
                 {
-                    if (TorrentCache.Read(key, out _m))
-                        Redirect(_m);
+                    if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                        Redirect(mcache.torrent);
 
                     Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return Content("TakeLogin == false");
@@ -112,8 +112,8 @@ namespace Lampac.Controllers.JAC
             string html = await HttpClient.Get(url, cookie: Cookie(Startup.memoryCache), timeoutSeconds: 10);
             if (html == null)
             {
-                if (TorrentCache.Read(key, out _m))
-                    Redirect(_m);
+                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
 
                 return Content("error");
             }
@@ -121,13 +121,13 @@ namespace Lampac.Controllers.JAC
             string magnet = new Regex("href=\"(magnet:[^\"]+)\"").Match(html).Groups[1].Value;
             if (!string.IsNullOrWhiteSpace(magnet))
             {
-                TorrentCache.Write(key, magnet);
+                await TorrentCache.Write(key, magnet);
                 Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return Redirect(magnet);
             }
 
-            if (TorrentCache.Read(key, out _m))
-                Redirect(_m);
+            if (await TorrentCache.ReadMagnet(key) is var _mcache && _mcache.cache)
+                Redirect(_mcache.torrent);
 
             return Content("error");
         }
@@ -141,17 +141,19 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"selezen:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie(Startup.memoryCache), timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("релизы от селезнь</title>"))
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
@@ -171,7 +173,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("class=\"card radius-10 overflow-hidden\"").Skip(1))
+            foreach (string row in cread.html.Split("class=\"card radius-10 overflow-hidden\"").Skip(1))
             {
                 if (row.Contains(">Аниме</a>") || row.Contains(" [S0"))
                     continue;

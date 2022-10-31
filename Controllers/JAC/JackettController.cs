@@ -26,19 +26,19 @@ namespace Lampac.Controllers.JAC
                 goto end;
 
             #region Запрос с NUM
-            var mNum = Regex.Match(query ?? string.Empty, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
-
-            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original) &&
-                mNum.Success)
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original))
             {
-                if (Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z]{4}"))
+                var mNum = Regex.Match(query ?? string.Empty, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
+
+                if (mNum.Success && Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z]{4}"))
                 {
                     var g = mNum.Groups;
 
                     title = g[1].Value;
                     title_original = g[2].Value;
                     year = int.Parse(g[3].Value);
-                    search = title_original ?? title;
+
+                    search = title_original;
                 }
             }
             #endregion

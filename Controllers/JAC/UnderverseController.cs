@@ -147,21 +147,23 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"underverse:{string.Join(":", cats ?? new string[] { })}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await getHtml(query);
                 if (html != null)
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("id=\"tor_").Skip(1))
+            foreach (string row in cread.html.Split("id=\"tor_").Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(row))
                     continue;

@@ -29,13 +29,13 @@ namespace Lampac.Controllers.JAC
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Bitru.host}/download.php?id={id}", referer: $"{AppInit.conf.Bitru}/details.php?id={id}", useproxy: AppInit.conf.Bitru.useproxy, timeoutSeconds: 10);
             if (_t != null)
             {
-                TorrentCache.Write(key, _t);
+                await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (TorrentCache.Read(key, out _t))
+            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
             {
-                return File(_t, "application/x-bittorrent");
+                return File(tcache.torrent, "application/x-bittorrent");
             }
 
             return Content("error");
@@ -50,22 +50,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", useproxy: AppInit.conf.Bitru.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null)
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("<div class=\"b-title\"").Skip(1))
+            foreach (string row in cread.html.Split("<div class=\"b-title\"").Skip(1))
             {
                 if (row.Contains(">Аниме</a>") || row.Contains(">Мульт"))
                     continue;

@@ -1,63 +1,53 @@
-﻿using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
+﻿using System.IO;
+using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
     public static class TorrentCache
     {
         #region Read
-        public static bool Read(string key, out byte[] torrent)
+        async public static ValueTask<(bool cache, byte[] torrent)> Read(string key)
         {
             try
             {
                 string pathfile = getFolder(key);
                 if (File.Exists(pathfile))
-                {
-                    torrent = File.ReadAllBytes(pathfile);
-                    return true;
-                }
+                    return (true, await File.ReadAllBytesAsync(pathfile));
             }
             catch { }
 
-            torrent = null;
-            return false;
+            return (false, null);
         }
 
-        public static bool Read(string key, out string torrent)
+        async public static ValueTask<(bool cache, string torrent)> ReadMagnet(string key)
         {
             try
             {
                 string pathfile = getFolder($"{key}:magnet");
                 if (File.Exists(pathfile))
-                {
-                    torrent = File.ReadAllText(pathfile);
-                    return true;
-                }
+                    return (true, await File.ReadAllTextAsync(pathfile));
             }
             catch { }
 
-            torrent = null;
-            return false;
+            return (false, null);
         }
         #endregion
 
         #region Write
-        public static void Write(string key, byte[] torrent)
+        async public static ValueTask Write(string key, byte[] torrent)
         {
             try
             {
-                File.WriteAllBytes(getFolder(key), torrent);
+                await File.WriteAllBytesAsync(getFolder(key), torrent);
             }
             catch { }
         }
 
-        public static void Write(string key, string torrent)
+        async public static ValueTask Write(string key, string torrent)
         {
             try
             {
-                File.WriteAllText(getFolder($"{key}:magnet"), torrent);
+                await File.WriteAllTextAsync(getFolder($"{key}:magnet"), torrent);
             }
             catch { }
         }

@@ -29,13 +29,13 @@ namespace Lampac.Controllers.JAC
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Anilibria.host}/{url}", referer: $"{AppInit.conf.Anilibria.host}/release/{code}.html", timeoutSeconds: 10, useproxy: AppInit.conf.Anilibria.useproxy);
             if (_t != null)
             {
-                TorrentCache.Write(key, _t);
+                await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (TorrentCache.Read(key, out _t))
+            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
             {
-                return File(_t, "application/x-bittorrent");
+                return File(tcache.torrent, "application/x-bittorrent");
             }
 
             return Content("error");

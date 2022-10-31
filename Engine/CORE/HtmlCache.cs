@@ -1,13 +1,14 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
     public static class HtmlCache
     {
         #region Read
-        public static bool Read(string key, out string html)
+        async public static ValueTask<(bool cache, string html)> Read(string key)
         {
             try
             {
@@ -15,25 +16,21 @@ namespace Lampac.Engine.CORE
                 if (File.Exists(pathfile))
                 {
                     if (Startup.memoryCache.TryGetValue(key, out _))
-                    {
-                        html = File.ReadAllText(pathfile);
-                        return true;
-                    }
+                        return (true, await File.ReadAllTextAsync(pathfile));
                 }
             }
             catch { }
 
-            html = null;
-            return false;
+            return (false, null);
         }
         #endregion
 
         #region Write
-        public static void Write(string key, string html)
+        async public static ValueTask Write(string key, string html)
         {
             try
             {
-                File.WriteAllText(getFolder(key), html);
+                await File.WriteAllTextAsync(getFolder(key), html);
                 Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
             }
             catch { }

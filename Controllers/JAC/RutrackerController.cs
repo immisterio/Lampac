@@ -95,8 +95,8 @@ namespace Lampac.Controllers.JAC
             string cookie = await Cookie();
             if (cookie == null)
             {
-                if (TorrentCache.Read(key, out _m))
-                    Redirect(_m);
+                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
 
                 return Content("TakeLogin == false");
             }
@@ -107,14 +107,14 @@ namespace Lampac.Controllers.JAC
                 string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"med magnet-link\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(magnet))
                 {
-                    TorrentCache.Write(key, magnet);
+                    await TorrentCache.Write(key, magnet);
                     Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                     return Redirect(magnet);
                 }
             }
 
-            if (TorrentCache.Read(key, out _m))
-                Redirect(_m);
+            if (await TorrentCache.ReadMagnet(key) is var _mcache && _mcache.cache)
+                Redirect(_mcache.torrent);
 
             return Content("error");
         }
@@ -133,22 +133,24 @@ namespace Lampac.Controllers.JAC
 
             #region Кеш
             string cachekey = $"rutracker:{string.Join(":", cats ?? new string[] { })}:{query}";
-            if (!HtmlCache.Read(cachekey, out string cachehtml))
+            var cread = await HtmlCache.Read(cachekey);
+
+            if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), cookie: cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null)
                 {
-                    cachehtml = html;
-                    HtmlCache.Write(cachekey, html);
+                    cread.html = html;
+                    await HtmlCache.Write(cachekey, html);
                 }
 
-                if (cachehtml == null)
+                if (cread.html == null)
                     return false;
             }
             #endregion
 
-            foreach (string row in cachehtml.Split("class=\"tCenter hl-tr\"").Skip(1))
+            foreach (string row in cread.html.Split("class=\"tCenter hl-tr\"").Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(row))
                     continue;
