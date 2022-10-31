@@ -8,20 +8,22 @@ namespace Lampac.Engine.CORE
     public static class HtmlCache
     {
         #region Read
-        async public static ValueTask<(bool cache, string html)> Read(string key)
+        async public static ValueTask<(bool cache, bool emptycache, string html)> Read(string key)
         {
             try
             {
                 string pathfile = getFolder(key);
-                if (File.Exists(pathfile))
+                if (Startup.memoryCache.TryGetValue(key, out _))
                 {
-                    if (Startup.memoryCache.TryGetValue(key, out _))
-                        return (true, await File.ReadAllTextAsync(pathfile));
+                    if (File.Exists(pathfile))
+                        return (true, false, await File.ReadAllTextAsync(pathfile));
+                    else
+                        return (false, true, null);
                 }
             }
             catch { }
 
-            return (false, null);
+            return (false, false, null);
         }
         #endregion
 
@@ -34,6 +36,14 @@ namespace Lampac.Engine.CORE
                 Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
             }
             catch { }
+        }
+        #endregion
+
+        #region EmptyCache
+        public static void EmptyCache(string key)
+        {
+            if (AppInit.conf.emptycache)
+                Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
         }
         #endregion
 

@@ -154,6 +154,9 @@ namespace Lampac.Controllers.JAC
             string cachekey = $"toloka:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
+            if (cread.emptycache)
+                return false;
+
             if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie(Startup.memoryCache), /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: AppInit.conf.timeoutSeconds);
@@ -165,7 +168,10 @@ namespace Lampac.Controllers.JAC
                 }
 
                 if (cread.html == null)
+                {
+                    HtmlCache.EmptyCache(cachekey);
                     return false;
+                }
             }
             #endregion
 

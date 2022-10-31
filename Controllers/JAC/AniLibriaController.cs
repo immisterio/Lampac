@@ -45,12 +45,26 @@ namespace Lampac.Controllers.JAC
         #region parsePage
         async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            if (!AppInit.conf.Anilibria.enable)
+            string memkey = $"anilibria:{query}";
+
+            if (!AppInit.conf.Anilibria.enable || Startup.memoryCache.TryGetValue($"{memkey}:error", out _))
                 return false;
 
-            var roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: AppInit.conf.timeoutSeconds, useproxy: AppInit.conf.Anilibria.useproxy, IgnoreDeserializeObject: true);
-            if (roots == null || roots.Count == 0)
-                return false;
+            #region Кеш
+            if (!Startup.memoryCache.TryGetValue(memkey, out List<RootObject> roots))
+            {
+                roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: AppInit.conf.timeoutSeconds, useproxy: AppInit.conf.Anilibria.useproxy, IgnoreDeserializeObject: true);
+                if (roots == null || roots.Count == 0)
+                {
+                    if (AppInit.conf.emptycache)
+                        Startup.memoryCache.Set($"{memkey}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+
+                    return false;
+                }
+
+                Startup.memoryCache.Set(memkey, roots, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+            }
+            #endregion
 
             foreach (var root in roots)
             {

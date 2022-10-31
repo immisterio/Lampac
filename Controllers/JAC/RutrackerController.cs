@@ -135,6 +135,9 @@ namespace Lampac.Controllers.JAC
             string cachekey = $"rutracker:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
+            if (cread.emptycache)
+                return false;
+
             if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), cookie: cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
@@ -146,7 +149,10 @@ namespace Lampac.Controllers.JAC
                 }
 
                 if (cread.html == null)
+                {
+                    HtmlCache.EmptyCache(cachekey);
                     return false;
+                }
             }
             #endregion
 

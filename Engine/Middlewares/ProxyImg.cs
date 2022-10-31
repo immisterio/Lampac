@@ -52,7 +52,7 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var array = await CORE.HttpClient.Download(href, timeoutSeconds: 8);
+                var array = await HttpClient.Download(href, timeoutSeconds: 8);
                 if (array == null)
                 {
                     httpContext.Response.Redirect(href);

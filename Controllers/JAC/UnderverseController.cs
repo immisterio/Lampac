@@ -149,6 +149,9 @@ namespace Lampac.Controllers.JAC
             string cachekey = $"underverse:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
+            if (cread.emptycache)
+                return false;
+
             if (!cread.cache)
             {
                 string html = await getHtml(query);
@@ -159,7 +162,10 @@ namespace Lampac.Controllers.JAC
                 }
 
                 if (cread.html == null)
+                {
+                    HtmlCache.EmptyCache(cachekey);
                     return false;
+                }
             }
             #endregion
 

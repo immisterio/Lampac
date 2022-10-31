@@ -157,6 +157,9 @@ namespace Lampac.Controllers.JAC
             string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
+            if (cread.emptycache)
+                return false;
+
             if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
@@ -168,7 +171,10 @@ namespace Lampac.Controllers.JAC
                 }
 
                 if (cread.html == null)
+                {
+                    HtmlCache.EmptyCache(cachekey);
                     return false;
+                }
             }
             #endregion
 

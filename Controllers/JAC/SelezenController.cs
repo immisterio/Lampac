@@ -143,6 +143,9 @@ namespace Lampac.Controllers.JAC
             string cachekey = $"selezen:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
+            if (cread.emptycache)
+                return false;
+
             if (!cread.cache)
             {
                 string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie(Startup.memoryCache), timeoutSeconds: AppInit.conf.timeoutSeconds);
@@ -154,7 +157,10 @@ namespace Lampac.Controllers.JAC
                 }
 
                 if (cread.html == null)
+                {
+                    HtmlCache.EmptyCache(cachekey);
                     return false;
+                }
             }
             #endregion
 

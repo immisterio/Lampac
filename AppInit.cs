@@ -25,7 +25,10 @@ namespace Lampac
 
         public int magnetCacheToMinutes = 2;
 
+        public bool emptycache = false;
+
         public string apikey = null;
+
 
         public string ffprobe = "linux";
 

@@ -24,6 +24,9 @@ namespace Lampac.Controllers.JAC
             string cachekey = $"torrentby:{cat}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
+            if (cread.emptycache)
+                return false;
+
             if (!cread.cache)
             {
                 string html = await HttpClient.Get($"{AppInit.conf.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}&search_in=0", useproxy: AppInit.conf.TorrentBy.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
@@ -35,7 +38,10 @@ namespace Lampac.Controllers.JAC
                 }
 
                 if (cread.html == null)
+                {
+                    HtmlCache.EmptyCache(cachekey);
                     return false;
+                }
             }
             #endregion
 
