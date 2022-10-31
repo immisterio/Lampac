@@ -46,7 +46,8 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Параметры init.conf
 * xdb - Выводит платные источники с sisi.am
 * emptycache - Сохраняет пустой результат как валидный кеш (рекомендуется включать при публичном использование)
+* timeoutSeconds - Максимальное время ожидания ответа от трекера
 * useproxy - Парсит источник через прокси указанные в "proxy"
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
-* timeoutSeconds - Максимальное время ожидания ответа от трекера
+* disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети

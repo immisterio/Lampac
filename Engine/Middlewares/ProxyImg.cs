@@ -30,6 +30,12 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg/"))
             {
+                if (AppInit.conf.disableserverproxy)
+                {
+                    httpContext.Response.StatusCode = 403;
+                    return;
+                }
+
                 if (HttpMethods.IsOptions(httpContext.Request.Method))
                 {
                     httpContext.Response.StatusCode = 405;

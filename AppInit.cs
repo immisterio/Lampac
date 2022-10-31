@@ -19,7 +19,7 @@ namespace Lampac
 
         public int listenport = 9118;
 
-        public int timeoutSeconds = 5;
+        public int timeoutSeconds = 6;
 
         public int htmlCacheToMinutes = 1;
 
@@ -29,10 +29,11 @@ namespace Lampac
 
         public string apikey = null;
 
-
         public string ffprobe = "linux";
 
         public bool autoupdatelampahtml = true;
+
+        public bool disableserverproxy = false;
 
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");
