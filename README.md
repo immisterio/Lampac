@@ -47,6 +47,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * xdb - Выводит платные источники с sisi.am
 * emptycache - Сохраняет пустой результат как валидный кеш (рекомендуется включать при публичном использование)
 * timeoutSeconds - Максимальное время ожидания ответа от трекера
+* fileCacheInactiveDay - Время хранения резервного кеша на диске
 * useproxy - Парсит источник через прокси указанные в "proxy"
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
 * disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"

@@ -23,6 +23,8 @@ namespace Lampac
 
         public int htmlCacheToMinutes = 1;
 
+        public int fileCacheInactiveDay = 20;
+
         public int magnetCacheToMinutes = 2;
 
         public bool emptycache = false;
