@@ -12,9 +12,18 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                string pathfile = getFolder(key);
+                if (AppInit.conf.cachetype == "mem")
+                {
+                    if (Startup.memoryCache.TryGetValue(key, out string html))
+                        return (true, false, html);
+
+                    return (false, false, null);
+                }
+
                 if (Startup.memoryCache.TryGetValue(key, out _))
                 {
+                    string pathfile = getFolder(key);
+
                     if (File.Exists(pathfile))
                         return (true, false, await File.ReadAllTextAsync(pathfile));
                     else
@@ -32,8 +41,15 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                await File.WriteAllTextAsync(getFolder(key), html);
-                Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+                if (AppInit.conf.cachetype == "mem")
+                {
+                    Startup.memoryCache.Set(key, html, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+                }
+                else
+                {
+                    await File.WriteAllTextAsync(getFolder(key), html);
+                    Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+                }
             }
             catch { }
         }
@@ -43,7 +59,7 @@ namespace Lampac.Engine.CORE
         public static void EmptyCache(string key)
         {
             if (AppInit.conf.emptycache)
-                Startup.memoryCache.Set(key, 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+                Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
         }
         #endregion
 

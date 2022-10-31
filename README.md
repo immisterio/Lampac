@@ -45,6 +45,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 
 # Параметры init.conf
 * xdb - Выводит платные источники с sisi.am
+* cachetype - Место хранения кеша "file", "mem" 
 * emptycache - Сохраняет пустой результат как валидный кеш (рекомендуется включать при публичном использование)
 * timeoutSeconds - Максимальное время ожидания ответа от трекера
 * fileCacheInactiveDay - Время хранения резервного кеша на диске

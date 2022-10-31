@@ -21,6 +21,8 @@ namespace Lampac
 
         public int timeoutSeconds = 6;
 
+        public string cachetype = "file";
+
         public int htmlCacheToMinutes = 1;
 
         public int fileCacheInactiveDay = 20;
