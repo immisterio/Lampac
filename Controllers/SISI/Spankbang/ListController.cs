@@ -7,6 +7,8 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.Spankbang
 {
@@ -35,9 +37,15 @@ namespace Lampac.Controllers.Spankbang
             }
             #endregion
 
-            string html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"Spankbang:list:{search}:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out string html))
+            {
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy);
+                if (html == null || !html.Contains("<div class=\"video-item"))
+                    return OnError("html");
+
+                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             var playlists = getTubes(html);
             if (playlists.Count == 0)

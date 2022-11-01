@@ -124,7 +124,7 @@ namespace Lampac.Controllers.LITE
                 if (content == null)
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
             #endregion
 
@@ -171,7 +171,7 @@ namespace Lampac.Controllers.LITE
                 if (content == null)
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
             #endregion
 
@@ -299,7 +299,7 @@ namespace Lampac.Controllers.LITE
                 if (content == null)
                     return null;
 
-                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             return content;

@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
                 if (root?.player_links == null)
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             bool firstjson = true;
@@ -155,14 +155,20 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async static ValueTask<int> search(string title, int year)
+        async ValueTask<int> search(string title, int year)
         {
             if (year == 0)
                 return 0;
 
-            var root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.host}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, useproxy: AppInit.conf.Filmix.useproxy);
-            if (root == null || root.Count == 0)
-                return 0;
+            string memKey = $"filmix:search:{title}:{year}";
+            if (!memoryCache.TryGetValue(memKey, out JArray root))
+            {
+                root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.host}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, useproxy: AppInit.conf.Filmix.useproxy);
+                if (root == null || root.Count == 0)
+                    return 0;
+
+                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+            }
 
             foreach (var item in root)
             {

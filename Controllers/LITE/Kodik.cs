@@ -128,17 +128,17 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 return Content(string.Empty);
 
-            string memKey = $"kodik:view:stream:{link}";
+            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+            if (AppInit.conf.Kodik.localip)
+            {
+                userIp = await mylocalip();
+                if (userIp == null)
+                    return Content(string.Empty);
+            }
+
+            string memKey = $"kodik:view:stream:{link}:{userIp}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
-                string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
-                if (AppInit.conf.Kodik.localip)
-                {
-                    userIp = await mylocalip();
-                    if (userIp == null)
-                        return Content(string.Empty);
-                }
-
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                 string hmac = HMAC(AppInit.conf.Kodik.secret_token, $"{link}:{userIp}:{deadline}");
 
@@ -188,7 +188,7 @@ namespace Lampac.Controllers.LITE
                 if (results.Count() == 0)
                     return null;
 
-                memoryCache.Set(memKey, results, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, results, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             return results;

@@ -39,6 +39,8 @@ namespace Lampac
 
         public bool disableserverproxy = false;
 
+        public bool multiaccess = false;
+
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");
 

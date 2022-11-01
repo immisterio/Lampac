@@ -178,7 +178,7 @@ namespace Lampac.Controllers.LITE
                 if (content == null || !content.Contains("file:"))
                     return null;
 
-                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             return content;

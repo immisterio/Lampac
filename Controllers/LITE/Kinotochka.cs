@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(file))
                     return null;
 
-                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
             return file;

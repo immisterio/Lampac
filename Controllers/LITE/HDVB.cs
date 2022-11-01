@@ -132,7 +132,7 @@ namespace Lampac.Controllers.LITE
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
@@ -196,7 +196,7 @@ namespace Lampac.Controllers.LITE
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
@@ -215,7 +215,7 @@ namespace Lampac.Controllers.LITE
                 if (root == null || root.Count == 0)
                     return null;
 
-                memoryCache.Set(memKey, root, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, root, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             return root;

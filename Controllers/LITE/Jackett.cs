@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
                 if (results == null || results.Count == 0)
                     return null;
 
-                memoryCache.Set(memkey, results, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memkey, results, DateTime.Now.AddMinutes(5));
             }
 
             bool firstjson = true;

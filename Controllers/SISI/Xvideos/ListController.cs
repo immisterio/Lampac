@@ -7,6 +7,8 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.Xvideos
 {
@@ -23,9 +25,15 @@ namespace Lampac.Controllers.Xvideos
             if (!string.IsNullOrWhiteSpace(search))
                 url = $"{AppInit.conf.Xvideos.host}/?k={HttpUtility.UrlEncode(search)}&p={pg}";
 
-            var html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"Xvideos:list:{search}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out string html))
+            {
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy);
+                if (html == null || !html.Contains("<div class=\"thumb-inside\">"))
+                    return OnError("html");
+
+                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             var playlists = new List<PlaylistItem>();
             foreach (string row in Regex.Split(html, "<div class=\"thumb-inside\">").Skip(1))

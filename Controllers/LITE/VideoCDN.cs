@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
                     #endregion
                 }
 
-                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(5));
+                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
             #endregion
 
@@ -311,7 +311,7 @@ namespace Lampac.Controllers.LITE
                         return null;
 
                     iframe_src = $"{AppInit.conf.VCDN.cdnhost}/" + Regex.Replace(iframe_src, "^(https?:)?//[^/]+/", "");
-                    memoryCache.Set(memKeyIframesrc, iframe_src, DateTime.Now.AddMinutes(10));
+                    memoryCache.Set(memKeyIframesrc, iframe_src, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 60 * 4 : 10));
                 }
 
                 return iframe_src;

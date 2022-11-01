@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Web;
 using Lampac.Engine;
@@ -6,6 +7,7 @@ using Lampac.Engine.CORE;
 using Lampac.Model.SISI.BongaCams;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.BongaCams
 {
@@ -25,22 +27,28 @@ namespace Lampac.Controllers.BongaCams
             if (pg > 1)
                 offset = (pg - 1) * 50;
 
-            // Страница запроса
-            string url = $"{AppInit.conf.BongaCams.host}/tools/listing_v3.php?livetab={sort ?? "new"}&online_only=true&offset={offset}";
-
-            // Получаем json
-            var root = await HttpClient.Get<Listing>(url, useproxy: AppInit.conf.BongaCams.useproxy, addHeaders: new List<(string name, string val)>()
+            string memKey = $"BongaCams:list:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out Listing root))
             {
-                ("dnt", "1"),
-                ("referer", AppInit.conf.BongaCams.host),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-origin"),
-                ("x-requested-with", "XMLHttpRequest")
-            });
+                // Страница запроса
+                string url = $"{AppInit.conf.BongaCams.host}/tools/listing_v3.php?livetab={sort ?? "new"}&online_only=true&offset={offset}";
 
-            if (root?.models == null || root.models.Count == 0)
-                return OnError("models");
+                // Получаем json
+                root = await HttpClient.Get<Listing>(url, useproxy: AppInit.conf.BongaCams.useproxy, addHeaders: new List<(string name, string val)>()
+                {
+                    ("dnt", "1"),
+                    ("referer", AppInit.conf.BongaCams.host),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("x-requested-with", "XMLHttpRequest")
+                });
+
+                if (root?.models == null || root.models.Count == 0)
+                    return OnError("models");
+
+                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
+            }
 
             var playlists = new List<PlaylistItem>();
 

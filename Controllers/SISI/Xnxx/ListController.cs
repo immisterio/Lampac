@@ -8,6 +8,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using System;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.Xnxx
 {
@@ -24,9 +25,15 @@ namespace Lampac.Controllers.Xnxx
             if (!string.IsNullOrWhiteSpace(search))
                 url = $"{AppInit.conf.Xnxx.host}/search/{HttpUtility.UrlEncode(search)}/{pg}";
 
-            string html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xnxx.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"Xnxx:list:{search}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out string html))
+            {
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xnxx.useproxy);
+                if (html == null || !html.Contains("<div id=\"video_"))
+                    return OnError("html");
+
+                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             var playlists = getTubes(html);
             if (playlists.Count == 0)

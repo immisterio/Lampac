@@ -101,17 +101,17 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
                 return Content(string.Empty);
 
-            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}";
+            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+            if (AppInit.conf.Alloha.localip)
+            {
+                userIp = await mylocalip();
+                if (userIp == null)
+                    return Content(string.Empty);
+            }
+
+            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}";
             if (!memoryCache.TryGetValue(memKey, out (string m3u8, string subtitle) _cache))
             {
-                string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
-                if (AppInit.conf.Alloha.localip)
-                {
-                    userIp = await mylocalip();
-                    if (userIp == null)
-                        return Content(string.Empty);
-                }
-
                 #region url запроса
                 string uri = $"{AppInit.conf.Alloha.linkhost}/link_file.php?secret_token={AppInit.conf.Alloha.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
 
@@ -160,7 +160,7 @@ namespace Lampac.Controllers.LITE
                     return null;
 
                 data = root.GetValue("data");
-                memoryCache.Set(memKey, data, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, data, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             return data;

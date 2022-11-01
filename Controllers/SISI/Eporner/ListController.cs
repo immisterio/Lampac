@@ -7,6 +7,8 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
+using System;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.Eporner
 {
@@ -36,9 +38,15 @@ namespace Lampac.Controllers.Eporner
                 url += $"{pg}/";
             #endregion
 
-            string html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Eporner.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"Eporner:list:{search}:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out string html))
+            {
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Eporner.useproxy);
+                if (html == null || !Regex.IsMatch(html, "<div class=\"mb( hdy)?\""))
+                    return OnError("html");
+
+                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             var playlists = getTubes(html);
             if (playlists.Count == 0)

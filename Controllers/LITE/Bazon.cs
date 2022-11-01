@@ -21,18 +21,18 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
                 return Content(string.Empty);
 
-            string memKey = $"bazon:view:{kinopoisk_id}";
+            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+
+            if (AppInit.conf.Bazon.localip)
+            {
+                userIp = await mylocalip();
+                if (userIp == null)
+                    return Content(string.Empty);
+            }
+
+            string memKey = $"bazon:view:{kinopoisk_id}:{userIp}";
             if (!memoryCache.TryGetValue(memKey, out JToken results))
             {
-                string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
-
-                if (AppInit.conf.Bazon.localip)
-                {
-                    userIp = await mylocalip();
-                    if (userIp == null)
-                        return Content(string.Empty);
-                }
-
                 var root = await HttpClient.Get<JObject>($"{AppInit.conf.Bazon.apihost}/api/playlist?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}&ref=&ip={userIp}", timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("results"))
                     return Content(string.Empty);

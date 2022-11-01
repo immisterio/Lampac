@@ -7,6 +7,7 @@ using System.Linq;
 using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -19,30 +20,37 @@ namespace Lampac.Controllers.Porntrex
             if (!AppInit.conf.Porntrex.enable)
                 return OnError("disable");
 
-            string html = await HttpClient.Get($"{AppInit.conf.Porntrex.host}/{goni}", timeoutSeconds: 10, useproxy: AppInit.conf.Porntrex.useproxy);
-            if (html == null)
-                return OnError("html");
-
-            var stream_links = new Dictionary<string, string>();
-            var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
-            while (match.Success)
+            string memKey = $"Porntrex:vidosik:{goni}";
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                stream_links.TryAdd(match.Groups[2].Value, $"{AppInit.Host(HttpContext)}/ptx/strem?link={HttpUtility.UrlEncode(match.Groups[1].Value)}");
-                match = match.NextMatch();
-                //break;
+                string html = await HttpClient.Get($"{AppInit.conf.Porntrex.host}/{goni}", timeoutSeconds: 10, useproxy: AppInit.conf.Porntrex.useproxy);
+                if (html == null)
+                    return OnError("html");
+
+                stream_links = new Dictionary<string, string>();
+                var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
+                while (match.Success)
+                {
+                    stream_links.TryAdd(match.Groups[2].Value, $"{AppInit.Host(HttpContext)}/ptx/strem?link={HttpUtility.UrlEncode(match.Groups[1].Value)}");
+                    match = match.NextMatch();
+                    //break;
+                }
+
+                if (stream_links.Count == 0)
+                {
+                    string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)").Groups[1].Value;
+                    if (!string.IsNullOrWhiteSpace(link))
+                        stream_links.TryAdd("auto", $"{AppInit.Host(HttpContext)}/ptx/strem?link={HttpUtility.UrlEncode(link)}");
+                }
+
+                if (stream_links.Count == 0)
+                    return OnError("stream_links");
+
+                stream_links = stream_links.Reverse().ToDictionary(k => k.Key, v => v.Value);
+
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
-
-            if (stream_links.Count == 0)
-            {
-                string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(link))
-                    stream_links.TryAdd("auto", $"{AppInit.Host(HttpContext)}/ptx/strem?link={HttpUtility.UrlEncode(link)}");
-            }
-
-            if (stream_links.Count == 0)
-                return OnError("stream_links");
-
-            stream_links = stream_links.Reverse().ToDictionary(k => k.Key, v => v.Value);
+            
             return Json(stream_links);
         }
 
@@ -51,9 +59,15 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/strem")]
         async public Task<ActionResult> strem(string link)
         {
-            string location = await HttpClient.GetLocation(link, referer: $"{AppInit.conf.Porntrex.host}/", timeoutSeconds: 10);
-            if (location == null || link == location)
-                return OnError("location");
+            string memKey = $"Porntrex:strem:{link}";
+            if (!memoryCache.TryGetValue(memKey, out string location))
+            {
+                location = await HttpClient.GetLocation(link, referer: $"{AppInit.conf.Porntrex.host}/", timeoutSeconds: 10);
+                if (location == null || link == location)
+                    return OnError("location");
+
+                memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
+            }
 
             return Redirect(AppInit.conf.Porntrex.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{location}" : location);
         }

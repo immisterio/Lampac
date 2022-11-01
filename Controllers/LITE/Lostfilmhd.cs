@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(urim3u8))
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(5));
+                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
             return Content("{\"method\":\"play\",\"url\":\"" + $"{AppInit.Host(HttpContext)}/proxy/{urim3u8}" + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
@@ -137,7 +137,7 @@ namespace Lampac.Controllers.LITE
                 cache.iframe_src = $"http://{iframe_src}";
                 cache.seasons = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
 
-                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             return cache;

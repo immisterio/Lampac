@@ -85,7 +85,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(content))
                     return null;
 
-                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
             return content;

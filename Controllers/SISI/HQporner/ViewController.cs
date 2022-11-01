@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.HQporner
 {
@@ -18,14 +19,20 @@ namespace Lampac.Controllers.HQporner
             if (!AppInit.conf.HQporner.enable)
                 return OnError("disable");
 
-            string html = await HttpClient.Get($"{AppInit.conf.HQporner.host}/{goni}", referer: AppInit.conf.HQporner.host, timeoutSeconds: 10, useproxy: AppInit.conf.HQporner.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"HQporner:vidosik:{goni}";
+            if (!memoryCache.TryGetValue(memKey, out string iframeHtml))
+            {
+                string html = await HttpClient.Get($"{AppInit.conf.HQporner.host}/{goni}", referer: AppInit.conf.HQporner.host, timeoutSeconds: 10, useproxy: AppInit.conf.HQporner.useproxy);
+                if (html == null)
+                    return OnError("html");
 
-            string iframeUri = new Regex("<iframe [^>]+ src=\"//([^/]+/video/[^/]+/)\"").Match(html).Groups[1].Value;
-            string iframeHtml = await HttpClient.Get($"https://{iframeUri}");
-            if (iframeHtml == null)
-                return OnError("iframeHtml");
+                string iframeUri = new Regex("<iframe [^>]+ src=\"//([^/]+/video/[^/]+/)\"").Match(html).Groups[1].Value;
+                iframeHtml = await HttpClient.Get($"https://{iframeUri}");
+                if (iframeHtml == null)
+                    return OnError("iframeHtml");
+
+                memoryCache.Set(memKey, iframeHtml, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
+            }
 
             var stream_links = new Dictionary<string, string>();
             var match = new Regex("src=\"//([^\"]+)\" title=\"([^\"]+)\"").Match(iframeHtml.Replace("\\", ""));

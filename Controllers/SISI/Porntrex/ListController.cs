@@ -7,6 +7,8 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -39,9 +41,15 @@ namespace Lampac.Controllers.Porntrex
             }
             #endregion
 
-            string html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Porntrex.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"Porntrex:list:{search}:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out string html))
+            {
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Porntrex.useproxy);
+                if (html == null || !html.Contains("<div class=\"video-preview-screen"))
+                    return OnError("html");
+
+                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             var playlists = getTubes(html);
             if (playlists.Count == 0)

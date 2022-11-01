@@ -19,17 +19,23 @@ namespace Lampac.Controllers.Spankbang
             if (!AppInit.conf.Spankbang.enable)
                 return OnError("disable");
 
-            string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10/*, useproxy: AppInit.conf.Spankbang.useproxy*/);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"Spankbang:vidosik:{goni}";
+            if (!memoryCache.TryGetValue(memKey, out string json))
+            {
+                string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10/*, useproxy: AppInit.conf.Spankbang.useproxy*/);
+                if (html == null)
+                    return OnError("html");
 
-            #region Получаем ссылки на mp4
-            string csrf_session = await getCsrfSession();
-            string streamkey = new Regex("data-streamkey=\"([^\"]+)\"").Match(html).Groups[1].Value;
-            string json = await HttpClient.Post($"{AppInit.conf.Spankbang.host}/api/videos/stream", $"&id={streamkey}&data=0&sb_csrf_session={csrf_session}", timeoutSeconds: 8);
-            if (json == null)
-                return OnError("json");
-            #endregion
+                #region Получаем ссылки на mp4
+                string csrf_session = await getCsrfSession();
+                string streamkey = new Regex("data-streamkey=\"([^\"]+)\"").Match(html).Groups[1].Value;
+                json = await HttpClient.Post($"{AppInit.conf.Spankbang.host}/api/videos/stream", $"&id={streamkey}&data=0&sb_csrf_session={csrf_session}", timeoutSeconds: 8);
+                if (json == null)
+                    return OnError("json");
+                #endregion
+
+                memoryCache.Set(memKey, json, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             #region Достаем ссылки на поток
             var stream_links = new Dictionary<string, string>();

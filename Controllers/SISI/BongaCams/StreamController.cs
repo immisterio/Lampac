@@ -5,6 +5,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Model.SISI.BongaCams;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.BongaCams
 {
@@ -16,6 +17,10 @@ namespace Lampac.Controllers.BongaCams
         {
             if (!AppInit.conf.BongaCams.enable)
                 return OnError("disable");
+
+            string memKey = $"bongacams:stream:{baba}";
+            if (memoryCache.TryGetValue(memKey, out string hls))
+                return Redirect(AppInit.conf.BongaCams.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
 
             var root = await HttpClient.Post<Amf>(
                        $"{AppInit.conf.BongaCams.host}/tools/amf.php?x-country=ua&res=1061112?{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", $"method=getRoomData&args%5B%5D={baba}&args%5B%5D=&args%5B%5D=",
@@ -35,7 +40,9 @@ namespace Lampac.Controllers.BongaCams
             if (string.IsNullOrWhiteSpace(root?.localData?.videoServerUrl))
                 return OnError("baba");
 
-            string hls = $"http:{root.localData.videoServerUrl}/hls/stream_{baba}/public-aac/stream_{baba}/chunks.m3u8";
+            hls = $"http:{root.localData.videoServerUrl}/hls/stream_{baba}/public-aac/stream_{baba}/chunks.m3u8";
+            memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
+
             return Redirect(AppInit.conf.BongaCams.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
         }
     }

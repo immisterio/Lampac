@@ -7,6 +7,8 @@ using System.Linq;
 using Lampac.Engine;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.HQporner
 {
@@ -39,9 +41,15 @@ namespace Lampac.Controllers.HQporner
             }
             #endregion
 
-            string html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.HQporner.useproxy);
-            if (html == null)
-                return OnError("html");
+            string memKey = $"HQporner:list:{search}:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out string html))
+            {
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.HQporner.useproxy);
+                if (html == null || !html.Contains("<div class=\"6u\">"))
+                    return OnError("html");
+
+                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+            }
 
             var playlists = new List<PlaylistItem>();
             foreach (string row in html.Split("<div class=\"6u\">").Skip(1))
