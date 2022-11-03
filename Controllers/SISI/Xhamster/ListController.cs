@@ -115,7 +115,7 @@ namespace Lampac.Controllers.Xhamster
                     {
                         name = g[4].Value,
                         video = $"{AppInit.Host(HttpContext)}/xmr/vidosik.m3u8?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.conf.Xhamster.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img,
+                        picture = $"{AppInit.Host(HttpContext)}/proxyimg/{img}",
                         //quality = row.Contains("_icon--hd") ? "HD" : row.Contains("_icon--uhd") ? "4K" : null,
                         time = duration
                     });

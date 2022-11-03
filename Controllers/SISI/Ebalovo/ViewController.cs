@@ -42,7 +42,7 @@ namespace Lampac.Controllers.Ebalovo
                 memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
-            return Redirect(AppInit.conf.Ebalovo.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{location}" : location);
+            return Redirect($"{AppInit.Host(HttpContext)}/proxy/{location}");
         }
     }
 }

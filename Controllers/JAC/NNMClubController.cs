@@ -123,6 +123,7 @@ namespace Lampac.Controllers.JAC
                     byte[] _t = await HttpClient.Download($"{AppInit.conf.NNMClub.host}/forum/download.php?id={downloadid}", cookie: Cookie, referer: AppInit.conf.NNMClub.host, timeoutSeconds: 10);
                     if (_t != null)
                     {
+                        await TorrentCache.Write(keydownload, _t);
                         Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                         return File(_t, "application/x-bittorrent");
                     }
@@ -134,6 +135,7 @@ namespace Lampac.Controllers.JAC
             string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html).Groups[1].Value;
             if (!string.IsNullOrWhiteSpace(magnet))
             {
+                await TorrentCache.Write(keymagnet, magnet);
                 Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
                 return Redirect(magnet);
             }

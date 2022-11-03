@@ -21,7 +21,7 @@ namespace Lampac.Controllers.Xnxx
             if (!AppInit.conf.Xnxx.enable)
                 return OnError("disable");
 
-            string url = $"{AppInit.conf.Xnxx.host}/best/{DateTime.Today.ToString("yyyy-MM")}/{pg}";
+            string url = $"{AppInit.conf.Xnxx.host}/best/{DateTime.Today.AddMonths(-1).ToString("yyyy-MM")}/{pg}";
             if (!string.IsNullOrWhiteSpace(search))
                 url = $"{AppInit.conf.Xnxx.host}/search/{HttpUtility.UrlEncode(search)}/{pg}";
 
@@ -75,7 +75,7 @@ namespace Lampac.Controllers.Xnxx
                     {
                         name = g[2].Value,
                         video = $"{AppInit.Host(HttpContext)}/xnx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.conf.Xnxx.streamproxy ? $"{AppInit.Host(HttpContext)}/proxyimg/{img}" : img,
+                        picture = $"{AppInit.Host(HttpContext)}/proxyimg/{img}",
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
                         json = true
