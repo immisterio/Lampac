@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System.IO;
-using ImageMagick;
 using Lampac.Engine.CORE;
+using NetVips;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -65,23 +65,14 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                if (href.Contains(".webp"))
-                {
-                    using (MagickImage image = new MagickImage(array))
-                    {
-                        image.Format = MagickFormat.Jpg;
-                        array = image.ToByteArray();
-                    }
-                }
-
                 if (!href.Contains("tmdb.org"))
                 {
-                    using (MagickImage image = new MagickImage(array))
+                    using (var image = Image.NewFromBuffer(array))
                     {
                         if (image.Height > 200)
                         {
-                            image.Resize(0, 200);
-                            array = image.ToByteArray();
+                            using (var res = image.ThumbnailImage(image.Width, 200, crop: Enums.Interesting.None))
+                                array = res.JpegsaveBuffer();
                         }
                     }
                 }
