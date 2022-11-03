@@ -58,7 +58,7 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 8);
+                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.proxytoproxyimg);
                 if (array == null)
                 {
                     httpContext.Response.Redirect(href);

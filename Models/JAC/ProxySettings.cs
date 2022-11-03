@@ -4,6 +4,8 @@ namespace Lampac.Models.JAC
 {
     public class ProxySettings
     {
+        public string pattern;
+
         public bool useAuth;
 
         public bool BypassOnLocal;

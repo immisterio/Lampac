@@ -7,6 +7,7 @@ using Lampac.Models.LITE.VideoCDN;
 using Lampac.Models.LITE.Filmix;
 using Lampac.Models.LITE;
 using Lampac.Models.LITE.HDVB;
+using System.Collections.Generic;
 
 namespace Lampac
 {
@@ -40,6 +41,8 @@ namespace Lampac
         public bool disableserverproxy = false;
 
         public bool multiaccess = false;
+
+        public bool proxytoproxyimg = false;
 
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");
@@ -126,5 +129,7 @@ namespace Lampac
 
 
         public ProxySettings proxy = new ProxySettings();
+
+        public List<ProxySettings> globalproxy = new List<ProxySettings>();
     }
 }

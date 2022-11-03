@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Lampac.Models.JAC;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
@@ -31,6 +33,17 @@ namespace Lampac.Engine.CORE
                 credentials = new NetworkCredential(AppInit.conf.proxy.username, AppInit.conf.proxy.password);
 
             return new WebProxy(proxyip, AppInit.conf.proxy.BypassOnLocal, null, credentials);
+        }
+
+
+        static WebProxy webProxy(ProxySettings p)
+        {
+            ICredentials credentials = null;
+
+            if (p.useAuth)
+                credentials = new NetworkCredential(p.username, p.password);
+
+            return new WebProxy(p.list.OrderBy(a => Guid.NewGuid()).First(), p.BypassOnLocal, null, credentials);
         }
         #endregion
 
@@ -114,11 +127,30 @@ namespace Lampac.Engine.CORE
                 };
 
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                if (AppInit.conf.proxy.list != null && useproxy)
+
+                #region proxy
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && useproxy)
                 {
                     handler.UseProxy = true;
                     handler.Proxy = proxy ?? webProxy();
                 }
+
+                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
+                {
+                    foreach (var p in AppInit.conf.globalproxy)
+                    {
+                        if (p.list == null || p.list.Count == 0)
+                            continue;
+
+                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
+                        {
+                            handler.UseProxy = true;
+                            handler.Proxy = webProxy(p);
+                            break;
+                        }
+                    }
+                }
+                #endregion
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
@@ -193,11 +225,30 @@ namespace Lampac.Engine.CORE
                 };
 
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                if (AppInit.conf.proxy.list != null && useproxy)
+
+                #region proxy
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && useproxy)
                 {
                     handler.UseProxy = true;
                     handler.Proxy = proxy ?? webProxy();
                 }
+
+                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
+                {
+                    foreach (var p in AppInit.conf.globalproxy)
+                    {
+                        if (p.list == null || p.list.Count == 0)
+                            continue;
+
+                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
+                        {
+                            handler.UseProxy = true;
+                            handler.Proxy = webProxy(p);
+                            break;
+                        }
+                    }
+                }
+                #endregion
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
@@ -284,11 +335,30 @@ namespace Lampac.Engine.CORE
                 };
 
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                if (AppInit.conf.proxy.list != null && useproxy)
+
+                #region proxy
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && useproxy)
                 {
                     handler.UseProxy = true;
                     handler.Proxy = proxy ?? webProxy();
                 }
+
+                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
+                {
+                    foreach (var p in AppInit.conf.globalproxy)
+                    {
+                        if (p.list == null || p.list.Count == 0)
+                            continue;
+
+                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
+                        {
+                            handler.UseProxy = true;
+                            handler.Proxy = webProxy(p);
+                            break;
+                        }
+                    }
+                }
+                #endregion
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
