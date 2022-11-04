@@ -2,9 +2,10 @@
 {
     public class OnlinesSettings
     {
-        public OnlinesSettings(string host, bool useproxy = false, string token = null, bool enable = true)
+        public OnlinesSettings(string host, string apihost = null, bool useproxy = false, string token = null, bool enable = true)
         {
             this.host = host;
+            this.apihost = apihost;
             this.enable = enable;
             this.token = token;
             this.useproxy = useproxy;
@@ -12,6 +13,8 @@
 
 
         public string host { get; set; }
+
+        public string apihost { get; set; }
 
         public bool enable { get; set; }
 

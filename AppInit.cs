@@ -109,6 +109,8 @@ namespace Lampac
 
         public OnlinesSettings Kinotochka = new OnlinesSettings("https://kinotochka.co");
 
+        public OnlinesSettings Kinoprofi = new OnlinesSettings("https://kinoprofi.vip", apihost: "https://api.kinoprofi.vip");
+
         public OnlinesSettings Lostfilmhd = new OnlinesSettings("http://www.lostfilmhd.ru");
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
