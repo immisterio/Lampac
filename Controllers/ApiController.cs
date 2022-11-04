@@ -53,24 +53,62 @@ namespace Lampac.Controllers
         {
             string file = System.IO.File.ReadAllText("lite.js");
 
-            string addonline = string.Empty;
+            string online = string.Empty;
+
+            if (AppInit.conf.Kinobase.enable)
+                online += "{name:'Kinobase',url:'{localhost}/kinobase'},";
+
+            if (AppInit.conf.Filmix.enable)
+                online += "{name:'Filmix',url:'{localhost}/filmix'},";
+
+            if (AppInit.conf.Rezka.enable)
+                online += "{name:'HDRezka',url:'{localhost}/rezka'},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.VCDN.token))
+                online += "{name:'VCDN',url:'{localhost}/vcdn'},";
+
+            if (AppInit.conf.Collaps.enable)
+                online += "{name:'Collaps',url:'{localhost}/collaps'},";
+
+            if (AppInit.conf.Ashdi.enable)
+                online += "{name:'Ashdi',url:'{localhost}/ashdi'},";
+
+            if (AppInit.conf.Eneyida.enable)
+                online += "{name:'Eneyida',url:'{localhost}/eneyida'},";
+
+            if (AppInit.conf.Kinokrad.enable)
+                online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
+
+            if (AppInit.conf.Kinotochka.enable)
+                online += "{name:'Kinotochka',url:'{localhost}/kinotochka'},";
+
+            if (AppInit.conf.Kinoprofi.enable)
+                online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
+
+            if (AppInit.conf.Lostfilmhd.enable)
+                online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
+
+            online += "{name:'Jackett',url:'{localhost}/jac'},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token))
+                online += "{name:'VideoAPI',url:'{localhost}/videoapi'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
-                addonline += "{name:'Bazon',url:'{localhost}/bazon'},";
+                online += "{name:'Bazon',url:'{localhost}/bazon'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
-                addonline += "{name:'Alloha',url:'{localhost}/alloha'},";
+                online += "{name:'Alloha',url:'{localhost}/alloha'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
-                addonline += "{name:'Kodik',url:'{localhost}/kodik'},";
+                online += "{name:'Kodik',url:'{localhost}/kodik'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
-                addonline += "{name:'HDVB',url:'{localhost}/hdvb'},";
+                online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
-                addonline += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
+                online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
 
-            file = file.Replace("{addonline}", addonline);
+            file = file.Replace("{online}", online);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
