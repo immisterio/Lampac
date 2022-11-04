@@ -290,7 +290,12 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string uri = $"{AppInit.conf.Rezka.host}/embed/" + (kinopoisk_id > 0 ? kinopoisk_id.ToString() : imdb_id);
+                string uri = $"{AppInit.conf.Rezka.host}/embed/";
+                if (kinopoisk_id > 0 && !string.IsNullOrWhiteSpace(imdb_id))
+                    uri += $"{imdb_id},{kinopoisk_id}";
+                else
+                    uri += (kinopoisk_id > 0 ? kinopoisk_id.ToString() : imdb_id);
+
                 if (!string.IsNullOrWhiteSpace(t))
                     uri = $"{AppInit.conf.Rezka.host}/serial/{t}/iframe";
 
