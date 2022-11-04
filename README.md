@@ -54,3 +54,21 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
 * disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети
+
+# Настройки при совместном использовании
+* timeoutSeconds - 10
+* cachetype - file
+* htmlCacheToMinutes - 20
+* magnetCacheToMinutes - 40
+* emptycache - true
+* multiaccess - true
+
+# Доступ к доменам .onion
+1. Запустить tor на порту 9050
+2. В init.conf указать onion домен в host
+
+# Media Station X
+1. Settings -> Start Parameter -> Setup
+2. Enter current ip address and port "IP:9118"
+
+Убрать/Добавить адреса можно в msx.json
