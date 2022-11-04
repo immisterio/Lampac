@@ -72,6 +72,8 @@ namespace Lampac
 
         public bool xdb = false;
 
+        public int SisiHeightPicture = 200;
+
         public SisiSettings BongaCams = new SisiSettings("https://rt.bongacams.com");
 
         public SisiSettings Chaturbate = new SisiSettings("https://chaturbate.com");

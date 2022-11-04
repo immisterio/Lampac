@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.IO;
 using Lampac.Engine.CORE;
 using NetVips;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -28,7 +29,7 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
-            if (httpContext.Request.Path.Value.StartsWith("/proxyimg/"))
+            if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
                 if (AppInit.conf.disableserverproxy)
                 {
@@ -42,7 +43,7 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                string href = httpContext.Request.Path.Value.Replace("/proxyimg/", "") + httpContext.Request.QueryString.Value;
+                string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
                 string outFile = getFolder(href);
 
                 if (File.Exists(outFile))
@@ -65,13 +66,18 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                if (!href.Contains("tmdb.org"))
+                if (httpContext.Request.Path.Value.StartsWith("/proxyimg:"))
                 {
+                    var gimg = Regex.Match(httpContext.Request.Path.Value, "/proxyimg:([0-9]+):([0-9]+)").Groups;
+
+                    int width = int.Parse(gimg[1].Value);
+                    int height = int.Parse(gimg[2].Value);
+
                     using (var image = Image.NewFromBuffer(array))
                     {
-                        if (image.Height > 200)
+                        if (image.Width > width || image.Height > height)
                         {
-                            using (var res = image.ThumbnailImage(image.Width, 200, crop: Enums.Interesting.None))
+                            using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
                                 array = res.JpegsaveBuffer();
                         }
                     }
