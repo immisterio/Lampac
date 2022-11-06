@@ -108,6 +108,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
 
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
+                online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
+
             file = file.Replace("{online}", online);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 

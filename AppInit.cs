@@ -124,6 +124,8 @@ namespace Lampac
 
         public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "");
 
+        public OnlinesSettings Seasonvar = new OnlinesSettings("http://seasonvar.ru", apihost: "http://api.seasonvar.ru");
+
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
