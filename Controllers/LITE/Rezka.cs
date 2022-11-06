@@ -167,7 +167,7 @@ namespace Lampac.Controllers.LITE
                 if (s > 0 || e > 0)
                     uri = $"{AppInit.conf.Rezka.host}/serial/{t}/iframe?s={s}&e={e}";
 
-                content = await HttpClient.Get(uri, timeoutSeconds: 8, useproxy: AppInit.conf.Rezka.useproxy, MaxResponseContentBufferSize: 20_000_000);
+                content = await HttpClient.Get(uri, timeoutSeconds: 8, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
                     return Content(string.Empty);
 

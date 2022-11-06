@@ -42,7 +42,7 @@ namespace Lampac.Controllers.PornHub
             string memKey = $"PornHub:list:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out string html))
             {
-                html = await HttpClient.Get(url);
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.PornHub.useproxy);
                 if (html == null || !html.Contains("PornHub - RSS Feed"))
                     return OnError("html");
 
