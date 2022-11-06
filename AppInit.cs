@@ -94,6 +94,8 @@ namespace Lampac
 
         public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com");
 
+        public SisiSettings PornHub = new SisiSettings("https://rt.pornhub.com");
+
 
         public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org");
 

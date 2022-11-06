@@ -38,6 +38,15 @@ namespace Lampac.Controllers
                 });
             }
 
+            if (AppInit.conf.PornHub.enable)
+            {
+                channels.Add(new
+                {
+                    title = "pornhub.com",
+                    playlist_url = $"{AppInit.Host(HttpContext)}/phub"
+                });
+            }
+
             if (AppInit.conf.HQporner.enable)
             {
                 channels.Add(new
