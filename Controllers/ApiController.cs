@@ -111,6 +111,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
                 online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
 
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
+                online += "{name:'KinoPub',url:'{localhost}/kinopub'},";
+
             file = file.Replace("{online}", online);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 

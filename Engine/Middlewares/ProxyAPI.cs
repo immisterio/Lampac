@@ -94,6 +94,25 @@ namespace Lampac.Engine.Middlewares
                                     return m.Groups[1].Value + $"{proxyhost}/{uri}";
                                 });
 
+                                m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
+                                {
+                                    string uri = m.Groups[2].Value;
+
+                                    if (uri.Contains("\"") || uri.StartsWith("http"))
+                                        return m.Groups[0].Value;
+
+                                    if (uri.StartsWith("/"))
+                                    {
+                                        uri = hlshost + uri;
+                                    }
+                                    else
+                                    {
+                                        uri = hlspatch + uri;
+                                    }
+
+                                    return m.Groups[1].Value + $"{proxyhost}/{uri}";
+                                });
+
                                 httpContext.Response.ContentType = contentType.First();
                                 await httpContext.Response.WriteAsync(m3u8);
                             }

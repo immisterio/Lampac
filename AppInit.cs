@@ -128,6 +128,8 @@ namespace Lampac
 
         public OnlinesSettings Seasonvar = new OnlinesSettings("http://seasonvar.ru", apihost: "http://api.seasonvar.ru");
 
+        public OnlinesSettings KinoPub = new OnlinesSettings(null, apihost: "https://api.service-kp.com");
+
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
