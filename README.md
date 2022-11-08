@@ -29,6 +29,10 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * Private Trackers - toloka.to, rutracker.net, underver.se, selezen.net, animelayer.ru
 * Клубничка pornhub.com, bongacams.com, chaturbate.com, ebalovo.pro, eporner.com, hqporner.com, porntrex.com, spankbang.com, xhamster.com, xnxx.com, xvideos.com
 
+# Привязка PRO аккаунтов
+* Filmix - "http://IP:9118/lite/filmixpro" 
+* KinoPub - "http://IP:9118/lite/kinopubpro" 
+
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере, работает только в торрентах
 
@@ -54,6 +58,8 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
 * disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети
+* proxytoproxyimg - Использовать прокси при получении картинки в "http://IP:9118/proxyimg/"
+* SisiHeightPicture - Уменьшение размера картинки в xxx по высоте до 200px
 
 # Настройки при совместном использовании
 * timeoutSeconds - 10

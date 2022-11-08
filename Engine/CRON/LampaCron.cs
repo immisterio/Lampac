@@ -15,7 +15,7 @@ namespace Lampac.Engine.CRON
                 {
                     async ValueTask<bool> update()
                     {
-                        if (!AppInit.conf.autoupdatelampahtml)
+                        if (!AppInit.conf.LampaWeb.autoupdate)
                             return false;
 
                         if (!File.Exists("wwwroot/lampa-main/app.min.js"))

@@ -8,6 +8,7 @@ using Lampac.Models.LITE.Filmix;
 using Lampac.Models.LITE;
 using Lampac.Models.LITE.HDVB;
 using System.Collections.Generic;
+using Lampac.Models;
 
 namespace Lampac
 {
@@ -36,13 +37,14 @@ namespace Lampac
 
         public string ffprobe = "linux";
 
-        public bool autoupdatelampahtml = true;
-
         public bool disableserverproxy = false;
 
         public bool multiaccess = false;
 
         public bool proxytoproxyimg = false;
+
+
+        public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true };
 
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");

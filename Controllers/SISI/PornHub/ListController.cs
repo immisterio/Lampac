@@ -113,7 +113,7 @@ namespace Lampac.Controllers.PornHub
 
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(vkey))
                 {
-                    string img = new Regex("data-src( +)?=( +)?\"(https?://[^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[3].Value;
+                    string img = new Regex("data-mediumthumb=\"(https?://[^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
                     string duration = new Regex("<var class=\"duration\">([^<]+)</var>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
 
                     playlists.Add(new PlaylistItem()

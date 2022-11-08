@@ -10,10 +10,10 @@ namespace Lampac.Controllers
         [Route("/")]
         public ActionResult Index()
         {
-            if (!System.IO.File.Exists("wwwroot/lampa-main/index.html"))
-                return Content("api work", contentType: "text/plain; charset=utf-8");
+            if (AppInit.conf.LampaWeb.autoindex && System.IO.File.Exists("wwwroot/lampa-main/index.html"))
+                return LocalRedirect("/lampa-main/index.html");
 
-            return LocalRedirect("/lampa-main/index.html");
+            return Content("api work", contentType: "text/plain; charset=utf-8");
         }
 
         [HttpGet]
