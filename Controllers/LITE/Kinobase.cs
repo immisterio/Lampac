@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (year == 0 || !AppInit.conf.Kinobase.enable)
                 return Content(string.Empty);
 
-            string content = await embed(memoryCache, title, original_title, year);
+            string content = await embed(title, original_title, year);
             if (content == null)
                 return Content(string.Empty);
 
@@ -168,7 +168,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async static ValueTask<string> embed(IMemoryCache memoryCache, string title, string original_title, int year)
+        async ValueTask<string> embed(string title, string original_title, int year)
         {
             string memKey = $"kinobase:view:{title}:{original_title}:{year}";
 

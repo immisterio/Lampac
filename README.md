@@ -23,7 +23,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. В "Основной источник" выбрать "CUB"
 
 # Источники 
-* Public online  - Videocdn, Rezka, Kinobase, Collaps, Filmix, Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, VideoAPI (ENG), Ashdi (UKR), Eneyida (UKR)
+* Public online  - Videocdn, Rezka, Kinobase, Collaps, Filmix, Zetflix, Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, VideoAPI (ENG), Ashdi (UKR), Eneyida (UKR)
 * Private online - HDVB (FREE), IframeVideo (FREE), Bazon (PAY), Alloha (PAY), Kodik (PAY), Seasonvar (PAY), KinoPub (PAY)
 * Public Trackers  - kinozal.tv, nnmclub.to, rutor.info, megapeer.vip, torrent.by, bitru.org, anilibria.tv
 * Private Trackers - toloka.to, rutracker.net, underver.se, selezen.net, animelayer.ru

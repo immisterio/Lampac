@@ -119,6 +119,8 @@ namespace Lampac
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 
+        public OnlinesSettings Zetflix = new OnlinesSettings("https://8nov.zetfix.online");
+
 
         public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
 

@@ -58,6 +58,9 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinobase.enable)
                 online += "{name:'Kinobase',url:'{localhost}/kinobase'},";
 
+            if (AppInit.conf.Zetflix.enable)
+                online += "{name:'Zetflix',url:'{localhost}/zetflix'},";
+
             if (AppInit.conf.Filmix.enable)
                 online += "{name:'Filmix',url:'{localhost}/filmix'},";
 
