@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
                 {
                     int number_of_seasons = 1;
 
-                    var themoviedb = await HttpClient.Get<JObject>($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96");
+                    var themoviedb = await HttpClient.Get<JObject>($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", timeoutSeconds: 8);
                     if (themoviedb != null)
                     {
                         number_of_seasons = themoviedb.Value<int>("number_of_seasons");

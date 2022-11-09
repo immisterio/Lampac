@@ -55,6 +55,8 @@ namespace Lampac.Controllers
 
             string online = string.Empty;
 
+            online += "{name:'Jackett',url:'{localhost}/jac'},";
+
             if (AppInit.conf.Kinobase.enable)
                 online += "{name:'Kinobase',url:'{localhost}/kinobase'},";
 
@@ -91,7 +93,8 @@ namespace Lampac.Controllers
             if (AppInit.conf.Lostfilmhd.enable)
                 online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
 
-            online += "{name:'Jackett',url:'{localhost}/jac'},";
+            if (AppInit.conf.Redheadsound.enable)
+                online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token))
                 online += "{name:'VideoAPI',url:'{localhost}/videoapi'},";
