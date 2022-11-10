@@ -8,6 +8,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -43,7 +44,7 @@ namespace Lampac.Controllers.LITE
 
                         links = new List<(string, string)>();
 
-                        foreach (string row in search.Split("sres-wrap clearfix").Skip(1))
+                        foreach (string row in search.Split("sres-wrap clearfix").Skip(1).Reverse())
                         {
                             var gname = Regex.Match(row, "<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase).Groups;
 
@@ -84,18 +85,27 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(filetxt))
                             return Content(string.Empty);
 
-                        string playlist = await HttpClient.Get(filetxt, timeoutSeconds: 8, useproxy: AppInit.conf.Kinotochka.useproxy);
+                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, useproxy: AppInit.conf.Kinotochka.useproxy);
+                        if (root == null)
+                            return Content(string.Empty);
+
+                        var playlist = root.Value<JArray>("playlist");
                         if (playlist == null)
                             return Content(string.Empty);
 
                         links = new List<(string name, string uri)>();
 
-                        foreach (string row in playlist.Split("},"))
+                        foreach (var pl in playlist)
                         {
-                            string name = Regex.Match(row, "\"comment\":\"([^\"<]+)").Groups[1].Value;
-                            string file = Regex.Match(row, "\"file\":\"(https?://[^\"]+)\"").Groups[1].Value;
+                            string name = pl.Value<string>("comment");
+                            string file = pl.Value<string>("file");
                             if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(file))
-                                links.Add((name, file));
+                            {
+                                if (file.Contains("].mp4"))
+                                    file = Regex.Replace(file, "\\[[^\\]]+,([0-9]+)\\]\\.mp4$", "$1.mp4");
+
+                                links.Add((name.Split("<")[0].Trim(), file));
+                            }
                         }
 
                         if (links.Count == 0)
