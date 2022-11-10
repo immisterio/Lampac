@@ -43,6 +43,8 @@ namespace Lampac
 
         public bool proxytoproxyimg = false;
 
+        public bool dlna = false;
+
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true };
 
