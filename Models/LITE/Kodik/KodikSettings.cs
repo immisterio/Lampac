@@ -21,5 +21,9 @@
         public string secret_token { get; set; }
 
         public bool localip { get; set; }
+
+        public bool useproxy { get; set; }
+
+        public bool streamproxy { get; set; }
     }
 }

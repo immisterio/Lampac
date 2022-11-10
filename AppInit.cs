@@ -136,12 +136,11 @@ namespace Lampac
 
         public OnlinesSettings KinoPub = new OnlinesSettings(null, apihost: "https://api.service-kp.com");
 
-
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
         public AllohaSettings Alloha = new AllohaSettings("https://api.alloha.tv", "https://torso.as.alloeclub.com", "", "", true);
 
-        public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "", "", true);
+        public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
 
 
         public ProxySettings proxy = new ProxySettings();

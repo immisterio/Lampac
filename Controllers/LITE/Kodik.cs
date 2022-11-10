@@ -120,13 +120,13 @@ namespace Lampac.Controllers.LITE
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
-        #region Video
+        #region Video - API
         [HttpGet]
         [Route("lite/kodik/video")]
-        async public Task<ActionResult> Video(string title, string original_title, string link)
+        async public Task<ActionResult> VideoAPI(string title, string original_title, string link)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
-                return Content(string.Empty);
+            if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.secret_token))
+                return LocalRedirect($"/lite/kodik/videoparse?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}");
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
             if (AppInit.conf.Kodik.localip)
@@ -154,12 +154,78 @@ namespace Lampac.Controllers.LITE
                     match = match.NextMatch();
                 }
 
-                memoryCache.Set(memKey, streams, TimeSpan.FromHours(1));
+                if (streams.Count == 0)
+                    return Content(string.Empty);
+
+                memoryCache.Set(memKey, streams, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             string streansquality = string.Empty;
             foreach (var l in streams)
                 streansquality += $"\"{l.q}\":\"" + l.url + "\",";
+
+            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+        }
+        #endregion
+
+        #region Video - Parse
+        [HttpGet]
+        [Route("lite/kodik/videoparse")]
+        async public Task<ActionResult> VideoParse(string title, string original_title, string link)
+        {
+            string memKey = $"kodik:view:VideoParse:{link}";
+            if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
+            {
+                System.Net.WebProxy proxy = null;
+                if (AppInit.conf.Kodik.useproxy)
+                    proxy = HttpClient.webProxy();
+
+                string iframe = await HttpClient.Get($"http:{link}", referer: "https://animego.org/", proxy: proxy, timeoutSeconds: 8);
+                if (iframe == null)
+                    return Content(string.Empty);
+
+                string _frame = Regex.Replace(iframe, "[\n\r\t ]+", "");
+                string d_sign = new Regex("d_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
+                string pd_sign = new Regex("pd_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
+                string ref_sign = new Regex("ref_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
+                string type = new Regex("videoInfo.type='([^']+)'").Match(_frame).Groups[1].Value;
+                string hash = new Regex("videoInfo.hash='([^']+)'").Match(_frame).Groups[1].Value;
+                string id = new Regex("videoInfo.id='([^']+)'").Match(_frame).Groups[1].Value;
+
+                string json = await HttpClient.Post($"{AppInit.conf.Kodik.linkhost}/gvi", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D", proxy: proxy, timeoutSeconds: 8);
+                if (json == null)
+                    return Content(string.Empty);
+
+                streams = new List<(string q, string url)>();
+
+                var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
+                while (match.Success)
+                {
+                    if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                    {
+                        string decodedString = DecodeUrlBase64(new string(match.Groups[2].Value.Reverse().ToArray()));
+
+                        if (decodedString.StartsWith("//"))
+                            decodedString = $"http:{decodedString}";
+
+                        streams.Insert(0, ($"{match.Groups[1].Value}p", decodedString));
+                    }
+
+                    match = match.NextMatch();
+                }
+
+                if (streams.Count == 0)
+                    return Content(string.Empty);
+
+                memoryCache.Set(memKey, streams, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+            }
+
+            string streansquality = string.Empty;
+            foreach (var l in streams)
+            {
+                string hls = AppInit.conf.Kodik.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l.url}" : l.url;
+                streansquality += $"\"{l.q}\":\"" + hls + "\",";
+            }
 
             return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }
@@ -202,6 +268,14 @@ namespace Lampac.Controllers.LITE
             {
                 return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(message))).Replace("-", "").ToLower();
             }
+        }
+        #endregion
+
+        #region DecodeUrlBase64
+        static string DecodeUrlBase64(string s)
+        {
+            s = s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=');
+            return Encoding.UTF8.GetString(Convert.FromBase64String(s));
         }
         #endregion
     }
