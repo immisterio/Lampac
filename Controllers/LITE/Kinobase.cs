@@ -108,7 +108,7 @@ namespace Lampac.Controllers.LITE
                         string hls = new Regex($"\\[{quality}p?\\]" + "(\\{[^\\}]+\\})?(https?://[^\\[\\|,;\n\r\t ]+.m3u8)").Match(content).Groups[2].Value;
                         if (!string.IsNullOrEmpty(hls))
                         {
-                            html = AppInit.conf.Kinobase.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
+                            hls = AppInit.conf.Kinobase.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                             firstjson = true;
                         }

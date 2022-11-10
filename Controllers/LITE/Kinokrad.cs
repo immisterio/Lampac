@@ -124,7 +124,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
                     if (search == null)
-                        return null;
+                        return Content(string.Empty);
 
                     string link = null;
                     foreach (string row in search.Split("searchitem").Skip(1))
@@ -138,15 +138,15 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (string.IsNullOrWhiteSpace(link))
-                        return null;
+                        return Content(string.Empty);
 
                     string news = await HttpClient.Get(link, timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
                     if (news == null)
-                        return null;
+                        return Content(string.Empty);
 
                     content = Regex.Match(news, "var filmSource ([^\n\r]+)").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(content))
-                        return null;
+                        return Content(string.Empty);
 
                     memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }

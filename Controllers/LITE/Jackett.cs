@@ -15,12 +15,12 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/jac")]
-        async public Task<ActionResult> Index(string apikey, string title, string original_title, int year, int quality = -1)
+        async public Task<ActionResult> Index(string apikey, string title, string original_title, int year, int serial, int quality = -1)
         {
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
             if (!memoryCache.TryGetValue(memkey, out JArray results) || quality == -1)
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.Host(HttpContext)}/api/v2.0/indexers/all/results?apikey={apikey}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"{AppInit.Host(HttpContext)}/api/v2.0/indexers/all/results?apikey={apikey}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={serial+1}", timeoutSeconds: 8);
                 if (root == null || root.Count == 0)
                     return null;
 
