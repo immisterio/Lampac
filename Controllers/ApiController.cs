@@ -20,7 +20,7 @@ namespace Lampac.Controllers
         [Route("lampainit.js")]
         public ActionResult LamInit()
         {
-            string file = System.IO.File.ReadAllText("lampainit.js");
+            string file = System.IO.File.ReadAllText("plugins/lampainit.js");
             file = file.Replace("{localhost}", AppInit.Host(HttpContext));
             file = file.Replace("{jachost}", AppInit.Host(HttpContext).Replace("https://", "").Replace("http://", ""));
 
@@ -41,7 +41,7 @@ namespace Lampac.Controllers
         [Route("sisi.js")]
         public ActionResult Sisi()
         {
-            string file = System.IO.File.ReadAllText("sisi.js");
+            string file = System.IO.File.ReadAllText("plugins/sisi.js");
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/sisi");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
@@ -51,7 +51,7 @@ namespace Lampac.Controllers
         [Route("lite.js")]
         public ActionResult Lite()
         {
-            string file = System.IO.File.ReadAllText("lite.js");
+            string file = System.IO.File.ReadAllText("plugins/lite.js");
 
             string online = string.Empty;
 

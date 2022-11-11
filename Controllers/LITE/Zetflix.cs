@@ -79,7 +79,7 @@ namespace Lampac.Controllers.LITE
 
                     for (int i = 1; i <= number_of_seasons; i++)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/zetfix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={i}";
+                        string link = $"{AppInit.Host(HttpContext)}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={i}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{i} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(t))
                             t = perevod;
 
-                        string link = $"{AppInit.Host(HttpContext)}/lite/zetfix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
+                        string link = $"{AppInit.Host(HttpContext)}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
                         string active = t == perevod ? "active" : "";
 
                         html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>";
@@ -157,11 +157,12 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out (JArray pl, bool movie) cache))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), timeoutSeconds: 8, useproxy: AppInit.conf.Zetflix.useproxy, addHeaders: new List<(string name, string val)>()
+                string host = await getHost();
+                string html = await HttpClient.Get($"{host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), timeoutSeconds: 8, useproxy: AppInit.conf.Zetflix.useproxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("dnt", "1"),
                     ("pragma", "no-cache"),
-                    ("referer", $"{AppInit.conf.Zetflix.host}/iplayer/player.php?id=JTJGaXBsYXllciUyRnZpZGVvZGIucGhwJTNGa3AlM0Q0NDcxMDU0JTI2c2Vhc29uJTNEMSUyNmVwaXNvZGUlM0Q2JTI2cG9zdGVyJTNEaHR0cHMlM0ElMkYlMkZ6ZXRmaXgub25saW5lJTJGdXBsb2FkcyUyRnBvc3RzJTJGMjAyMS0wNyUyRjE2MjUxMjY0NTVfbW9uYXJoaTYuanBnJTI2enZ1ayUzRFNESStNZWRpYSUyQ1ZTSStNb3Njb3clMkMlRDAlOUYlRDAlQjglRDElODQlRDAlQjAlRDAlQjMlRDAlQkUlRDElODAlMkNOZXRmbGl4JTJDTG9zdEZpbG0=&poster=aHR0cHM6Ly96ZXRmaXgub25saW5lL3VwbG9hZHMvcG9zdHMvMjAyMS0wNy8xNjI1MTI2NDU1X21vbmFyaGk2LmpwZw=="),
+                    ("referer", $"{host}/iplayer/player.php?id=JTJGaXBsYXllciUyRnZpZGVvZGIucGhwJTNGa3AlM0Q0NDcxMDU0JTI2c2Vhc29uJTNEMSUyNmVwaXNvZGUlM0Q2JTI2cG9zdGVyJTNEaHR0cHMlM0ElMkYlMkZ6ZXRmaXgub25saW5lJTJGdXBsb2FkcyUyRnBvc3RzJTJGMjAyMS0wNyUyRjE2MjUxMjY0NTVfbW9uYXJoaTYuanBnJTI2enZ1ayUzRFNESStNZWRpYSUyQ1ZTSStNb3Njb3clMkMlRDAlOUYlRDAlQjglRDElODQlRDAlQjAlRDAlQjMlRDAlQkUlRDElODAlMkNOZXRmbGl4JTJDTG9zdEZpbG0=&poster=aHR0cHM6Ly96ZXRmaXgub25saW5lL3VwbG9hZHMvcG9zdHMvMjAyMS0wNy8xNjI1MTI2NDU1X21vbmFyaGk2LmpwZw=="),
                     ("upgrade-insecure-requests", "1")
                 });
 
@@ -175,6 +176,26 @@ namespace Lampac.Controllers.LITE
             }
 
             return cache;
+        }
+        #endregion
+
+        #region getHost
+        async ValueTask<string> getHost()
+        {
+            string memKey = "zetfix:getHost";
+
+            if (!memoryCache.TryGetValue(memKey, out string location))
+            {
+                location = await HttpClient.GetLocation(AppInit.conf.Zetflix.host, timeoutSeconds: 8, referer: "https://www.google.com/");
+
+                if (string.IsNullOrWhiteSpace(location))
+                    return AppInit.conf.Zetflix.host;
+
+                location = Regex.Match(location, "^(https?://[^/]+)").Groups[1].Value;
+                memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(20));
+            }
+
+            return location;
         }
         #endregion
     }

@@ -37,7 +37,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("tracks.js")]
         public ActionResult Tracks()
         {
-            string file = System.IO.File.ReadAllText("tracks.js");
+            string file = System.IO.File.ReadAllText("plugins/tracks.js");
             file = file.Replace("{localhost}", AppInit.Host(HttpContext));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");

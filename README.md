@@ -11,7 +11,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Настройки Lampa
 1. Парсер Jackett - "IP:9118"
 2. Личный прокси  - "http://IP:9118/proxy/" 
-3. Плагин онлайн  - планируется в декабре
+3. Плагин онлайн  - "http://IP:9118/online.js"
 4. Плагин xxx     - "http://IP:9118/sisi.js"
 
 # Настройки Lampa Lite

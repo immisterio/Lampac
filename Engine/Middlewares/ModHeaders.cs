@@ -28,7 +28,7 @@ namespace Lampac.Engine.Middlewares
             httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET");
             httpContext.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
-            if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|tracks)\\.js"))
+            if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|tracks|dlna)\\.js"))
             {
                 if (string.IsNullOrWhiteSpace(httpContext.Request.QueryString.Value))
                 {
