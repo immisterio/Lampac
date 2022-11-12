@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 
-            string content = await embed(memoryCache, imdb_id, kinopoisk_id, t);
+            string content = await embed(imdb_id, kinopoisk_id, t);
             if (content == null)
                 return Content(string.Empty);
 
@@ -284,7 +284,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async static ValueTask<string> embed(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id, string t)
+        async ValueTask<string> embed(string imdb_id, long kinopoisk_id, string t)
         {
             string memKey = $"rezka:view:{kinopoisk_id}:{imdb_id}:{t}";
 

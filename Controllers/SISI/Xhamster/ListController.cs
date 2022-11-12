@@ -101,7 +101,7 @@ namespace Lampac.Controllers.Xhamster
                 if (string.IsNullOrWhiteSpace(row) || row.Contains("badge_premium"))
                     continue;
 
-                var g = new Regex("class=\"video-thumb-info__nam[^\"]+\" href=\"https?://[^/]+/([^\"]+)\"([^>]+)?>(<!--[^-]+-->)?([^<]+)", RegexOptions.IgnoreCase).Match(row).Groups;
+                var g = new Regex("video-thumb-info__nam[^\"]+\" href=\"https?://[^/]+/([^\"]+)\"([^>]+)?>(<!--[^-]+-->)?([^<]+)", RegexOptions.IgnoreCase).Match(row).Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[4].Value))
                 {

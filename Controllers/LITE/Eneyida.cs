@@ -19,10 +19,10 @@ namespace Lampac.Controllers.LITE
         [Route("lite/eneyida")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int t, int s = -1)
         {
-            if (year == 0 || !AppInit.conf.Eneyida.enable)
+            if (year == 0 || !AppInit.conf.Eneyida.enable || string.IsNullOrWhiteSpace(original_title))
                 return Content(string.Empty);
 
-            string content = await embed(memoryCache, title, original_title, year);
+            string content = await embed(original_title, year);
             if (content == null)
                 return Content(string.Empty);
 
@@ -135,9 +135,9 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async static ValueTask<string> embed(IMemoryCache memoryCache, string title, string original_title, int year)
+        async ValueTask<string> embed(string original_title, int year)
         {
-            string memKey = $"eneyida:view:{title}:{original_title}:{year}";
+            string memKey = $"eneyida:view:{original_title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
@@ -145,7 +145,7 @@ namespace Lampac.Controllers.LITE
                 if (AppInit.conf.Eneyida.useproxy)
                     proxy = HttpClient.webProxy();
 
-                string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, proxy: proxy);
+                string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}", timeoutSeconds: 8, proxy: proxy);
                 if (search == null)
                     return null;
 
@@ -155,7 +155,9 @@ namespace Lampac.Controllers.LITE
                     if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
                         continue;
 
-                    if (Regex.Match(row, "/year/[0-9]+/?\">([0-9]{4})</a>").Groups[1].Value == year.ToString())
+                    var g = Regex.Match(row, "class=\"short_subtitle\"><a [^>]+>([0-9]{4})</a> &bull; ([^<]+)</div>").Groups;
+
+                    if (g[1].Value == year.ToString() && g[2].Value.ToLower().Trim() == original_title.ToLower())
                     {
                         link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
                         if (!string.IsNullOrWhiteSpace(link))

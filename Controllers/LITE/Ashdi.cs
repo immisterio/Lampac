@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || !AppInit.conf.Ashdi.enable)
                 return Content(string.Empty);
 
-            string content = await embed(memoryCache, kinopoisk_id);
+            string content = await embed(kinopoisk_id);
             if (content == null)
                 return Content(string.Empty);
 
@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async static ValueTask<string> embed(IMemoryCache memoryCache, long kinopoisk_id)
+        async ValueTask<string> embed(long kinopoisk_id)
         {
             string memKey = $"ashdi:view:{kinopoisk_id}";
 

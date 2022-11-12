@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vcdn")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int sid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int s, int sid = -1)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.VCDN.token))
                 return Content(string.Empty);
@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
                 return Content(string.Empty);
 
             #region iframe_src
-            string iframe_src = await iframesrc(memoryCache, imdb_id, kinopoisk_id);
+            string iframe_src = await iframesrc(imdb_id, kinopoisk_id);
             if (iframe_src == null)
                 return Content(string.Empty);
             #endregion
@@ -251,13 +251,13 @@ namespace Lampac.Controllers.LITE
 
                 html += "<div class=\"videos__line\">";
 
-                if (serialmedia[0].submenu[0].type == "season" && s == -1)
+                if (serialmedia[0].submenu[0].type == "season" && sid == -1)
                 {
                     firstjson = true;
                     for (int i = 0; i < serialmedia[t].submenu.Count; i++)
                     {
                         var season = serialmedia[t].submenu[i];
-                        string link = $"{AppInit.Host(HttpContext)}/lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}&sid={Regex.Match(season.title, "^([0-9]+)").Groups[1].Value}";
+                        string link = $"{AppInit.Host(HttpContext)}/lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={Regex.Match(season.title, "^([0-9]+)").Groups[1].Value}&sid={i}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>";
                         firstjson = false;
@@ -266,14 +266,12 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     firstjson = true;
-                    foreach (var episode in (s == -1 ? serialmedia[t].submenu : serialmedia[t].submenu[s].submenu))
+                    foreach (var episode in (sid == -1 ? serialmedia[t].submenu : serialmedia[t].submenu[sid].submenu))
                     {
                         string sname = (title ?? original_title) + " / " + Regex.Replace(episode.title, "<[^>]+>", "");
                         string ename = Regex.Match(episode.title, "<i>([^<]+)</i>").Groups[1].Value;
 
                         string eid = Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value;
-                        if (sid == 0)
-                            sid = 1;
 
                         #region streamsquality
                         string streamsquality = string.Empty;
@@ -286,7 +284,7 @@ namespace Lampac.Controllers.LITE
                         streamsquality = "\"quality\": {" + Regex.Replace(streamsquality, ",$", "") + "}";
                         #endregion
 
-                        html += "<div class=\"videos__item videos__episode selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + sid + "\" e=\"" + eid + "\" data-json='{\"method\":\"play\",\"url\":\"" + episode.stream_url + "\",\"title\":\"" + sname + "\", " + streamsquality + "}'><div class=\"videos__item-imgbox videos__episode-imgbox\"><div class=\"videos__episode-number\">" + episode.title.Split("<")[0].Trim() + "</div></div><div class=\"videos__item-title videos__episode-title\">" + ename + "</div></div>";
+                        html += "<div class=\"videos__item videos__episode selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + eid + "\" data-json='{\"method\":\"play\",\"url\":\"" + episode.stream_url + "\",\"title\":\"" + sname + "\", " + streamsquality + "}'><div class=\"videos__item-imgbox videos__episode-imgbox\"><div class=\"videos__episode-number\">" + episode.title.Split("<")[0].Trim() + "</div></div><div class=\"videos__item-title videos__episode-title\">" + ename + "</div></div>";
                         firstjson = false;
                     }
                 }
@@ -298,7 +296,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region iframesrc
-        async public static ValueTask<string> iframesrc(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id)
+        async ValueTask<string> iframesrc(string imdb_id, long kinopoisk_id)
         {
             try
             {

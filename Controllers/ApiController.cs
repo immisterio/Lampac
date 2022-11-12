@@ -48,6 +48,16 @@ namespace Lampac.Controllers
         }
 
         [HttpGet]
+        [Route("online.js")]
+        public ActionResult Online()
+        {
+            string file = System.IO.File.ReadAllText("plugins/online.js");
+            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+
+        [HttpGet]
         [Route("lite.js")]
         public ActionResult Lite()
         {
@@ -57,29 +67,50 @@ namespace Lampac.Controllers
 
             online += "{name:'Jackett',url:'{localhost}/jac'},";
 
-            if (AppInit.conf.Kinobase.enable)
-                online += "{name:'Kinobase',url:'{localhost}/kinobase'},";
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
+                online += "{name:'KinoPub',url:'{localhost}/kinopub'},";
+
+            if (AppInit.conf.Filmix.enable)
+                online += "{name:'Filmix',url:'{localhost}/filmix'},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
+                online += "{name:'Alloha',url:'{localhost}/alloha'},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
+                online += "{name:'Bazon',url:'{localhost}/bazon'},";
 
             if (AppInit.conf.Zetflix.enable)
                 online += "{name:'Zetflix',url:'{localhost}/zetflix'},";
 
-            if (AppInit.conf.Filmix.enable)
-                online += "{name:'Filmix',url:'{localhost}/filmix'},";
+            if (AppInit.conf.Kinobase.enable)
+                online += "{name:'Kinobase',url:'{localhost}/kinobase'},";
 
             if (AppInit.conf.Rezka.enable)
                 online += "{name:'HDRezka',url:'{localhost}/rezka'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.VCDN.token))
-                online += "{name:'VCDN',url:'{localhost}/vcdn'},";
+                online += "{name:'VideoCDN',url:'{localhost}/vcdn'},";
+
+            if (AppInit.conf.Ashdi.enable)
+                online += "{name:'Ashdi (UKR)',url:'{localhost}/ashdi'},";
+
+            if (AppInit.conf.Eneyida.enable)
+                online += "{name:'Eneyida (UKR)',url:'{localhost}/eneyida'},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
+                online += "{name:'Kodik',url:'{localhost}/kodik'},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
+                online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
+
+            if (AppInit.conf.Lostfilmhd.enable)
+                online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
 
             if (AppInit.conf.Collaps.enable)
                 online += "{name:'Collaps',url:'{localhost}/collaps'},";
 
-            if (AppInit.conf.Ashdi.enable)
-                online += "{name:'Ashdi',url:'{localhost}/ashdi'},";
-
-            if (AppInit.conf.Eneyida.enable)
-                online += "{name:'Eneyida',url:'{localhost}/eneyida'},";
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
+                online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
             if (AppInit.conf.Kinokrad.enable)
                 online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
@@ -90,66 +121,19 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinoprofi.enable)
                 online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
 
-            if (AppInit.conf.Lostfilmhd.enable)
-                online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
-
             if (AppInit.conf.Redheadsound.enable)
                 online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token))
-                online += "{name:'VideoAPI',url:'{localhost}/videoapi'},";
-
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
-                online += "{name:'Bazon',url:'{localhost}/bazon'},";
-
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
-                online += "{name:'Alloha',url:'{localhost}/alloha'},";
-
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
-                online += "{name:'Kodik',url:'{localhost}/kodik'},";
-
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
-                online += "{name:'HDVB',url:'{localhost}/hdvb'},";
+                online += "{name:'VideoAPI (ENG)',url:'{localhost}/videoapi'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
-
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
-                online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
-
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
-                online += "{name:'KinoPub',url:'{localhost}/kinopub'},";
 
             file = file.Replace("{online}", online);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
-        }
-
-        [HttpGet]
-        [Route("online.js")]
-        async public Task<ActionResult> Online()
-        {
-            string cachekey = "online.js";
-            var cachetxt = await HtmlCache.Read(cachekey);
-
-            if (!cachetxt.cache)
-            {
-                string txt = await HttpClient.Get("https://pastebin.com/raw/3VubfYPR");
-                if (txt == null || !txt.Contains("Lampa.Reguest()"))
-                    txt = await HttpClient.Get("http://jin.energy/newonline.js?v=1667137689");
-
-                if (txt != null && txt.Contains("Lampa.Reguest()"))
-                {
-                    cachetxt.html = txt;
-                    await HtmlCache.Write(cachekey, txt);
-                }
-
-                if (cachetxt.html == null)
-                    return OnError("cachetxt");
-            }
-
-            return Content(cachetxt.html, contentType: "application/javascript; charset=utf-8");
         }
     }
 }

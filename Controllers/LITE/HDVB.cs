@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 return Content(string.Empty);
 
-            JArray data = await search(memoryCache, kinopoisk_id);
+            JArray data = await search(kinopoisk_id);
             if (data == null)
                 return Content(string.Empty);
 
@@ -79,7 +79,7 @@ namespace Lampac.Controllers.LITE
 
                         string link = $"{AppInit.Host(HttpContext)}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={season}&e={episode}";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + season + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
                         firstjson = false;
                     }
                 }
@@ -180,7 +180,7 @@ namespace Lampac.Controllers.LITE
                     ("x-csrf-token", csrftoken)
                 };
 
-                var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: headers);
+                var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: headers, IgnoreDeserializeObject: true);
                 if (playlist == null || playlist.Count == 0)
                     return Content(string.Empty);
                 #endregion
@@ -205,7 +205,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<JArray> search(IMemoryCache memoryCache, long kinopoisk_id)
+        async ValueTask<JArray> search(long kinopoisk_id)
         {
             string memKey = $"hdvb:view:{kinopoisk_id}";
 

@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 
-            JToken data = await search(memoryCache, imdb_id, kinopoisk_id);
+            JToken data = await search(imdb_id, kinopoisk_id);
             if (data == null)
                 return Content(string.Empty);
 
@@ -149,7 +149,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<JToken> search(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id)
+        async ValueTask<JToken> search(string imdb_id, long kinopoisk_id)
         {
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
 

@@ -25,7 +25,7 @@ namespace Lampac.Controllers.LITE
             if (year == 0 || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
 
-            var content = await embed(memoryCache, title, year);
+            var content = await embed(title, year);
             if (content.seasons == null)
                 return Content(string.Empty);
 
@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async static ValueTask<(Dictionary<string, object> seasons, string iframe_src)> embed(IMemoryCache memoryCache, string title, int year)
+        async ValueTask<(Dictionary<string, object> seasons, string iframe_src)> embed(string title, int year)
         {
             string memKey = $"lostfilmhd:view:{title}:{year}";
 
@@ -110,8 +110,9 @@ namespace Lampac.Controllers.LITE
                 {
                     link = Regex.Match(row, "href=\"/(publ/serialy/[^\"]+)\"").Groups[1].Value;
                     string vent = Regex.Match(row, "<strong>Выпущено</strong>: ([^\n\r<]+)").Groups[1].Value;
+                    string eTitle = Regex.Match(row, "class=\"eTitle\"[^>]+>([^<]+) ([0-9,\\-]+) сезон").Groups[1].Value;
 
-                    if (vent.Contains(year.ToString()) && !string.IsNullOrWhiteSpace(link))
+                    if (vent.Contains(year.ToString()) && !string.IsNullOrWhiteSpace(link) && eTitle.ToLower().Trim() == title.ToLower())
                         break;
                 }
 

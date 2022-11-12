@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
                 return Content(string.Empty);
 
-            var frame = await iframe(memoryCache, imdb_id, kinopoisk_id);
+            var frame = await iframe(imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
                 return Content(string.Empty);
 
@@ -95,7 +95,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region iframe
-        async ValueTask<(string content, string type, int cid, string path)> iframe(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id)
+        async ValueTask<(string content, string type, int cid, string path)> iframe(string imdb_id, long kinopoisk_id)
         {
             string memKey = $"iframevideo:view:{imdb_id}:{kinopoisk_id}";
 

@@ -129,9 +129,11 @@ namespace Lampac.Controllers.LITE
                     string link = null;
                     foreach (string row in search.Split("searchitem").Skip(1))
                     {
-                        if (Regex.Match(row, "<h3><a [^>]+>[^\\(]+ \\(([0-9]{4})\\)</a></h3>").Groups[1].Value == year.ToString())
+                        var g = Regex.Match(row, "<h3><a href=\"(https?://[^/]+/[^\"]+\\.html)\"([^>]+)?>([^\\(]+) \\(([0-9]{4})\\)</a></h3>").Groups;
+
+                        if (g[4].Value == year.ToString() && g[3].Value.ToLower().Trim() == title.ToLower())
                         {
-                            link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                            link = g[1].Value;
                             if (!string.IsNullOrWhiteSpace(link))
                                 break;
                         }

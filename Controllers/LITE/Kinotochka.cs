@@ -126,21 +126,23 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Фильм
-                string memKey = $"kinotochka:view:{title}:{original_title}:{year}";
+                string memKey = $"kinotochka:view:{title}:{year}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
                     System.Net.WebProxy proxy = null;
                     if (AppInit.conf.Kinotochka.useproxy)
                         proxy = HttpClient.webProxy();
 
-                    string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, proxy: proxy);
+                    string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
                         return Content(string.Empty);
 
                     string link = null;
                     foreach (string row in search.Split("sres-wrap clearfix").Skip(1))
                     {
-                        if (Regex.Match(row, "<h2>[^\\(]+ \\(([0-9]{4})\\)</h2>").Groups[1].Value == year.ToString())
+                        var g = Regex.Match(row, "<h2>([^\\(]+) \\(([0-9]{4})\\)</h2>").Groups;
+
+                        if (g[2].Value == year.ToString() && g[1].Value.ToLower().Trim() == title.ToLower())
                         {
                             link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
                             if (!string.IsNullOrWhiteSpace(link))
@@ -155,9 +157,18 @@ namespace Lampac.Controllers.LITE
                     if (news == null)
                         return Content(string.Empty);
 
-                    file = Regex.Match(news, "file:\"(https?://[^\"]+\\.mp4)\"").Groups[1].Value;
+                    file = Regex.Match(news, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(file))
                         return Content(string.Empty);
+
+                    foreach (string f in file.Split(",").Reverse())
+                    {
+                        if (string.IsNullOrWhiteSpace(f))
+                            continue;
+
+                        file = f;
+                        break;
+                    }
 
                     memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }

@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 
-            string content = await iframe(memoryCache, imdb_id, kinopoisk_id);
+            string content = await iframe(imdb_id, kinopoisk_id);
             if (content == null)
                 return Content(string.Empty);
 
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region iframe
-        async public static ValueTask<string> iframe(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id)
+        async ValueTask<string> iframe(string imdb_id, long kinopoisk_id)
         {
             try
             {

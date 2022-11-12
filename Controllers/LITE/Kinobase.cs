@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (year == 0 || !AppInit.conf.Kinobase.enable)
                 return Content(string.Empty);
 
-            string content = await embed(title, original_title, year);
+            string content = await embed(title, year);
             if (content == null)
                 return Content(string.Empty);
 
@@ -168,9 +168,9 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async ValueTask<string> embed(string title, string original_title, int year)
+        async ValueTask<string> embed(string title, int year)
         {
-            string memKey = $"kinobase:view:{title}:{original_title}:{year}";
+            string memKey = $"kinobase:view:{title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
@@ -178,7 +178,7 @@ namespace Lampac.Controllers.LITE
                 if (AppInit.conf.Kinobase.useproxy)
                     proxy = HttpClient.webProxy();
 
-                string search = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/search?query={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, proxy: proxy);
+                string search = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/search?query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                 if (search == null)
                     return null;
 
@@ -188,7 +188,9 @@ namespace Lampac.Controllers.LITE
                     if (row.Contains(">Трейлер</span>"))
                         continue;
 
-                    if (Regex.Match(row, "class=\"desc\">([0-9]{4}),").Groups[1].Value == year.ToString())
+                    var g = Regex.Match(row, "class=\"link\" alt=\"([^\"]+) \\(([0-9]{4})\\)\"").Groups;
+
+                    if (g[2].Value == year.ToString() && g[1].Value.ToLower().Trim() == title.ToLower())
                     {
                         link = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
                         if (!string.IsNullOrWhiteSpace(link))

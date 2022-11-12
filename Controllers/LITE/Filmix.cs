@@ -57,6 +57,9 @@ namespace Lampac.Controllers.LITE
             if (root.player_links.movie != null && root.player_links.movie.Count > 0)
             {
                 #region Фильм
+                if (root.player_links.movie.Count == 1 && root.player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
+                    return Content(string.Empty);
+
                 foreach (var v in root.player_links.movie)
                 {
                     string link = null;
@@ -172,7 +175,7 @@ namespace Lampac.Controllers.LITE
 
             foreach (var item in root)
             {
-                if (item.Value<int>("year") == year)
+                if (item.Value<int>("year") == year && item.Value<string>("title").ToLower() == title.ToLower())
                     return item.Value<int>("id");
             }
 

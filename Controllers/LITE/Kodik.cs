@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 return Content(string.Empty);
 
-            JToken results = await search(memoryCache, imdb_id, kinopoisk_id);
+            JToken results = await search(imdb_id, kinopoisk_id);
             if (results == null)
                 return Content(string.Empty);
 
@@ -233,7 +233,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<JToken> search(IMemoryCache memoryCache, string imdb_id, long kinopoisk_id)
+        async ValueTask<JToken> search(string imdb_id, long kinopoisk_id)
         {
             string memKey = $"kodik:view:{kinopoisk_id}:{imdb_id}";
 
