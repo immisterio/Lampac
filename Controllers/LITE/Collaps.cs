@@ -36,9 +36,9 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(hls))
                     return Content(string.Empty);
 
-                string audio = Regex.Match(content, "audio: +\\{\"names\":\\[\"([^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(audio))
-                    audio = "По умолчанию";
+                string name = Regex.Match(content, "audio: +\\{\"names\":\\[\"([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrWhiteSpace(name))
+                    name = "По умолчанию";
 
                 #region subtitle
                 string subtitles = string.Empty;
@@ -56,8 +56,12 @@ namespace Lampac.Controllers.LITE
                 subtitles = Regex.Replace(subtitles, ",$", "");
                 #endregion
 
+                string voicename = Regex.Match(content, "audio: +\\{\"names\":\\[\"([^\\]]+)\\]").Groups[1].Value;
+                voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
+                voicename = Regex.Replace(voicename, "[, ]+$", "");
+
                 hls = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
-                html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + audio + "</div></div>";
+                html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
                 #endregion
             }
             else
@@ -81,6 +85,16 @@ namespace Lampac.Controllers.LITE
                     {
                         foreach (var episode in root.First(i => i.season == s).episodes)
                         {
+                            #region voicename
+                            string voicename = string.Empty;
+
+                            if (episode?.audio?.names != null)
+                            {
+                                voicename = string.Join(", ", episode.audio.names);
+                                voicename = Regex.Replace(voicename, "[, ]+$", "");
+                            }
+                            #endregion
+
                             #region subtitle
                             string subtitles = string.Empty;
 
@@ -97,7 +111,7 @@ namespace Lampac.Controllers.LITE
                             #endregion
 
                             string file = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{episode.hls.Replace("https:", "http:")}" : episode.hls.Replace("https:", "http:");
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>";
                             firstjson = false;
                         }
                     }
