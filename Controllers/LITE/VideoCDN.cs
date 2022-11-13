@@ -268,7 +268,11 @@ namespace Lampac.Controllers.LITE
                     firstjson = true;
                     foreach (var episode in (sid == -1 ? serialmedia[t].submenu : serialmedia[t].submenu[sid].submenu))
                     {
-                        string sname = (title ?? original_title) + " / " + Regex.Replace(episode.title, "<[^>]+>", "");
+                        string sname = (title ?? original_title);
+                        string episodetitle = Regex.Replace(episode.title, "<[^>]+>", "");
+                        if (!string.IsNullOrWhiteSpace(episodetitle))
+                            sname += $" ({episodetitle})";
+
                         string ename = Regex.Match(episode.title, "<i>([^<]+)</i>").Groups[1].Value;
 
                         string eid = Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value;

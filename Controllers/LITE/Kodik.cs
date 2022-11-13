@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var episode in item.Value<JObject>("seasons").ToObject<Dictionary<string, Season>>().First().Value.episodes)
                         {
-                            string url = $"{AppInit.Host(HttpContext)}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}";
+                            string url = $"{AppInit.Host(HttpContext)}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
 
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                             firstjson = false;
@@ -123,10 +123,10 @@ namespace Lampac.Controllers.LITE
         #region Video - API
         [HttpGet]
         [Route("lite/kodik/video")]
-        async public Task<ActionResult> VideoAPI(string title, string original_title, string link)
+        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.secret_token))
-                return LocalRedirect($"/lite/kodik/videoparse?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}");
+                return LocalRedirect($"/lite/kodik/videoparse?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}");
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
             if (AppInit.conf.Kodik.localip)
@@ -164,14 +164,18 @@ namespace Lampac.Controllers.LITE
             foreach (var l in streams)
                 streansquality += $"\"{l.q}\":\"" + l.url + "\",";
 
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            string name = title ?? original_title;
+            if (episode > 0)
+                name += $" ({episode} серия)";
+
+            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }
         #endregion
 
         #region Video - Parse
         [HttpGet]
         [Route("lite/kodik/videoparse")]
-        async public Task<ActionResult> VideoParse(string title, string original_title, string link)
+        async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode)
         {
             string memKey = $"kodik:view:VideoParse:{link}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
@@ -227,7 +231,11 @@ namespace Lampac.Controllers.LITE
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            string name = title ?? original_title;
+            if (episode > 0)
+                name += $" ({episode} серия)";
+
+            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }
         #endregion
 

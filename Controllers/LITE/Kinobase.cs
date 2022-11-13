@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var episode in root[s].playlist)
                         {
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(episode.file) + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.comment + "</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(episode.file) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.comment})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.comment + "</div></div>";
                             firstjson = false;
                         }
                     }
