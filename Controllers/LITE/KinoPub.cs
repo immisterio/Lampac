@@ -8,6 +8,7 @@ using Lampac.Models.LITE.KinoPub;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -72,17 +73,62 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 foreach (var v in root.item.videos)
                 {
-                    foreach (var f in v.files)
+                    #region voicename
+                    string voicename = string.Empty;
+
+                    if (v.audios != null)
                     {
-                        string name = v.title;
-                        if (string.IsNullOrWhiteSpace(name))
-                            name = f.quality;
+                        foreach (var audio in v.audios)
+                        {
+                            if (audio.lang == "eng")
+                            {
+                                if (!voicename.Contains(audio.lang))
+                                    voicename += "eng, ";
+                            }
+                            else
+                            {
+                                string a = audio?.author?.title ?? audio?.type?.title;
+                                if (a != null)
+                                {
+                                    a = $"{a} ({audio.lang})";
+                                    if (!voicename.Contains(a))
+                                        voicename += $"{a}, ";
+                                }
+                            }
+                        }
 
-                        string hls = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{f.url.hls4}" : f.url.hls4;
+                        voicename = Regex.Replace(voicename, "[, ]+$", "");
+                    }
+                    #endregion
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
-                        firstjson = false;
-                        break;
+                    if (AppInit.conf.KinoPub.filetype == "hls4")
+                    {
+                        string hls = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{v.files[0].url.hls4}" : v.files[0].url.hls4;
+                        html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
+                    }
+                    else
+                    {
+                        #region subtitle
+                        string subtitles = string.Empty;
+
+                        if (v.subtitles != null)
+                        {
+                            foreach (var sub in v.subtitles)
+                            {
+                                string suburl = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{sub.url}" : sub.url;
+                                subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
+                            }
+
+                            subtitles = Regex.Replace(subtitles, ",$", "");
+                        }
+                        #endregion
+
+                        foreach (var f in v.files)
+                        {
+                            string mp4 = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{f.url.http}" : f.url.http;
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + f.quality + "</div></div>";
+                            firstjson = false;
+                        }
                     }
                 }
                 #endregion
@@ -109,11 +155,65 @@ namespace Lampac.Controllers.LITE
                     #region Серии
                     foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
                     {
-                        string hls = episode.files[0].url.hls4;
-                        hls = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
+                        #region voicename
+                        string voicename = string.Empty;
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
-                        firstjson = false;
+                        if (episode.audios != null)
+                        {
+                            foreach (var audio in episode.audios)
+                            {
+                                string a = audio.author?.title ?? audio.lang;
+                                if (a != null && !voicename.Contains(a) && a != "rus")
+                                    voicename += $"{a}, ";
+                            }
+
+                            voicename = Regex.Replace(voicename, "[, ]+$", "");
+                        }
+                        #endregion
+
+                        if (AppInit.conf.KinoPub.filetype == "hls4")
+                        {
+                            string hls = episode.files[0].url.hls4;
+                            hls = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
+
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
+                            firstjson = false;
+                        }
+                        else
+                        {
+                            #region subtitle
+                            string subtitles = string.Empty;
+
+                            if (episode.subtitles != null)
+                            {
+                                foreach (var sub in episode.subtitles)
+                                {
+                                    string suburl = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{sub.url}" : sub.url;
+                                    subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
+                                }
+
+                                subtitles = Regex.Replace(subtitles, ",$", "");
+                            }
+                            #endregion
+
+                            #region streansquality
+                            string streansquality = string.Empty;
+
+                            foreach (var f in episode.files)
+                            {
+                                string l = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{f.url.http}" : f.url.http;
+                                streansquality += $"\"{f.quality}\":\"" + l + "\",";
+                            }
+
+                            streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+                            #endregion
+
+                            string mp4 = episode.files[0].url.http;
+                            mp4 = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{mp4}" : mp4;
+
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
+                            firstjson = false;
+                        }
                     }
                     #endregion
                 }
@@ -143,7 +243,7 @@ namespace Lampac.Controllers.LITE
 
             foreach (var item in items)
             {
-                if (item.Value<int?>("kinopoisk") == kinopoisk_id)
+                if (item.Value<int?>("kinopoisk") is int _kp && _kp > 0 && _kp == kinopoisk_id)
                     return item.Value<int>("id");
 
                 if ($"tt{item.Value<int?>("imdb")}" == imdb_id)

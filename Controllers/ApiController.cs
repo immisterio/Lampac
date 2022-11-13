@@ -52,6 +52,7 @@ namespace Lampac.Controllers
         public ActionResult Online()
         {
             string file = System.IO.File.ReadAllText("plugins/online.js");
+            file = file.Replace("http://127.0.0.1:9118", AppInit.Host(HttpContext));
             file = file.Replace("{localhost}", AppInit.Host(HttpContext));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
