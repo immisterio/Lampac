@@ -59,7 +59,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite.js")]
-        public ActionResult Lite()
+        public ActionResult Lite(int serial = -1)
         {
             string file = System.IO.File.ReadAllText("plugins/lite.js");
 
@@ -100,10 +100,10 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 online += "{name:'Kodik',url:'{localhost}/kodik'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && serial == 1)
                 online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
 
-            if (AppInit.conf.Lostfilmhd.enable)
+            if (AppInit.conf.Lostfilmhd.enable && serial == 1)
                 online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
 
             if (AppInit.conf.Collaps.enable)
@@ -121,13 +121,13 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinoprofi.enable)
                 online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
 
-            if (AppInit.conf.Redheadsound.enable)
+            if (AppInit.conf.Redheadsound.enable && serial == 0)
                 online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && serial == 0)
                 online += "{name:'VideoAPI (ENG)',url:'{localhost}/videoapi'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token) && serial == 0)
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
 
             file = file.Replace("{online}", online);

@@ -16,12 +16,12 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/seasonvar")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int seasonid, string t, int s = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, int seasonid, string t, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
                 return Content(string.Empty);
 
-            seasonid = seasonid == 0 ? await search(title, original_title, year) : seasonid;
+            seasonid = seasonid == 0 ? await search(clarification == 1 ? (title ?? original_title) : (original_title ?? title), year) : seasonid;
             if (seasonid == 0)
                 return Content(string.Empty);
 
@@ -90,15 +90,15 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<int> search(string title, string original_title, int year)
+        async ValueTask<int> search(string title, int year)
         {
             if (year == 0)
                 return 0;
 
-            string memKey = $"seasonvar:search:{title}:{original_title}:{year}";
+            string memKey = $"seasonvar:search:{title}:{year}";
             if (!memoryCache.TryGetValue(memKey, out JArray root))
             {
-                root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(original_title ?? title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Seasonvar.useproxy);
+                root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Seasonvar.useproxy);
                 if (root == null || root.Count == 0)
                     return 0;
 
@@ -108,21 +108,14 @@ namespace Lampac.Controllers.LITE
             foreach (var item in root)
             {
                 string name = item.Value<string>("name");
+                string name_original = item.Value<string>("name_original");
                 string y = item.Value<string>("year");
 
                 if (year.ToString() != y)
                     continue;
 
-                if (original_title != null)
-                {
-                    if (item.Value<string>("name_original") != original_title)
-                        continue;
-                }
-                else
-                {
-                    if (item.Value<string>("name") != name)
-                        continue;
-                }
+                if (title != name && title != name_original)
+                    continue;
 
                 return int.Parse(item.Value<string>("id"));
             }

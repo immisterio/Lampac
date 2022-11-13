@@ -46,23 +46,29 @@ namespace Lampac.Controllers.LITE
 
             if (results[0].Value<string>("serial") == "0")
             {
+                #region getQualitys
+                string getQualitys(string max)
+                {
+                    string streansquality = string.Empty;
+                    if (!int.TryParse(max, out int _max) || _max == 0)
+                        return string.Empty;
+
+                    foreach (var link in results[0].Value<JObject>("playlists").ToObject<Dictionary<string, string>>().Reverse())
+                    {
+                        if (int.TryParse(link.Key, out int _q) && _q > 0 && _max >= _q)
+                            streansquality += $"\"{link.Key}p\":\"" + link.Value.Replace("https:", "http:") + "\",";
+                    }
+
+                    return "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+                }
+                #endregion
+
                 #region Фильм
-                string streansquality = string.Empty;
-                List<(string link, string quality)> streams = new List<(string, string)>();
+                string translation = results[0].Value<string>("translation");
 
                 foreach (var link in results[0].Value<JObject>("playlists").ToObject<Dictionary<string, string>>().Reverse())
                 {
-                    streams.Add((link.Value.Replace("https:", "http:"), $"{link.Key}p"));
-                    streansquality += $"\"{link.Key}p\":\"" + link.Value.Replace("https:", "http:") + "\",";
-                }
-
-                streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
-                string translation = results[0].Value<string>("translation");
-
-                foreach (var link in streams)
-                {
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link.link + "\",\"title\":\"" + $"{title ?? original_title} ({translation})" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + link.quality + "</div></div>";
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link.Value + "\",\"title\":\"" + $"{title ?? original_title} ({translation})" + "\", " + getQualitys(link.Key) + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{link.Key}p" + "</div></div>";
                     firstjson = false;
                 }
                 #endregion

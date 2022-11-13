@@ -45,12 +45,12 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int postid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int postid, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 return Content(string.Empty);
 
-            postid = postid == 0 ? await search(original_title ?? title, imdb_id, kinopoisk_id) : postid;
+            postid = postid == 0 ? await search(clarification == 1 ? (title ?? original_title) : (original_title ?? title), imdb_id, kinopoisk_id) : postid;
             if (postid == 0)
                 return Content(string.Empty);
 

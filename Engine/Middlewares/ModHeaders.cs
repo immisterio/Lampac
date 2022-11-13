@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -28,13 +27,12 @@ namespace Lampac.Engine.Middlewares
             httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET");
             httpContext.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
+
             if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|tracks|dlna)\\.js"))
             {
-                if (string.IsNullOrWhiteSpace(httpContext.Request.QueryString.Value))
-                {
-                    httpContext.Response.Redirect(httpContext.Request.Path.Value + "?v=" + DateTime.Now.ToBinary().ToString().Replace("-", ""));
-                    return Task.CompletedTask;
-                }
+                httpContext.Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+                httpContext.Response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
+                httpContext.Response.Headers.Add("Expires", "0"); // Proxies.
             }
 
             return _next(httpContext);

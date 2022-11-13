@@ -1,9 +1,9 @@
-#!/usr/bin/bash
+﻿#!/usr/bin/bash
 DEST="/home"
 
 # Become root
 # sudo su -
-apt-get update && apt-get install -y wget unzip
+apt-get update && apt-get install -y wget unzip ffmpeg
 
 # Install .NET
 wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && chmod 755 dotnet-install.sh && ./dotnet-install.sh

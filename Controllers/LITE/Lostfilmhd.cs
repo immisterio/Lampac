@@ -108,12 +108,15 @@ namespace Lampac.Controllers.LITE
                 string link = null;
                 foreach (string row in search.Split("<div id=\"entryID").Skip(1))
                 {
-                    link = Regex.Match(row, "href=\"/(publ/serialy/[^\"]+)\"").Groups[1].Value;
+                    string href = Regex.Match(row, "href=\"/(publ/serialy/[^\"]+)\"").Groups[1].Value;
                     string vent = Regex.Match(row, "<strong>Выпущено</strong>: ([^\n\r<]+)").Groups[1].Value;
-                    string eTitle = Regex.Match(row, "class=\"eTitle\"[^>]+>([^<]+) ([0-9,\\-]+) сезон").Groups[1].Value;
+                    string eTitle = Regex.Match(row, "class=\"eTitle\"[^>]+><a [^>]+>([^<]+) ([0-9,\\-]+) сезон").Groups[1].Value;
 
-                    if (vent.Contains(year.ToString()) && !string.IsNullOrWhiteSpace(link) && eTitle.ToLower().Trim() == title.ToLower())
+                    if (vent.Contains(year.ToString()) && !string.IsNullOrWhiteSpace(href) && eTitle.ToLower().Trim() == title.ToLower())
+                    {
+                        link = href;
                         break;
+                    }
                 }
 
                 if (string.IsNullOrWhiteSpace(link))

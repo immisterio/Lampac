@@ -17,12 +17,12 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/collaps")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.Collaps.enable)
+            if (!AppInit.conf.Collaps.enable)
                 return Content(string.Empty);
 
-            string content = await embed(kinopoisk_id);
+            string content = await embed(imdb_id, kinopoisk_id);
             if (content == null)
                 return Content(string.Empty);
 
@@ -114,13 +114,17 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async ValueTask<string> embed(long kinopoisk_id)
+        async ValueTask<string> embed(string imdb_id, long kinopoisk_id)
         {
-            string memKey = $"collaps:view:{kinopoisk_id}";
+            string memKey = $"collaps:view:{imdb_id}:{kinopoisk_id}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                content = await HttpClient.Get($"{AppInit.conf.Collaps.host}/embed/kp/{kinopoisk_id}", timeoutSeconds: 8, useproxy: AppInit.conf.Collaps.useproxy);
+                string uri = $"{AppInit.conf.Collaps.host}/embed/imdb/{imdb_id}";
+                if (kinopoisk_id > 0)
+                    uri = $"{AppInit.conf.Collaps.host}/embed/kp/{kinopoisk_id}";
+
+                content = await HttpClient.Get(uri, timeoutSeconds: 8, useproxy: AppInit.conf.Collaps.useproxy);
                 if (content == null)
                     return null;
 

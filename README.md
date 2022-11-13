@@ -38,7 +38,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 Автор: @aabytt
 
 1. Добавить плагин "http://IP:9118/tracks.js" 
-2. В init.conf заменить значение "ffprobe" на один из вариантов "win.exe", "linux", "arm"
+2. В init.conf заменить значение "ffprobe" на один из вариантов "win.exe", "linux"
 
 # Плагин TmdbProxy.js
 Проксирование постеров для сайта TMDB
