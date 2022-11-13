@@ -68,6 +68,7 @@ namespace Lampac
             app.UseRouting();
             app.UseResponseCompression();
             app.UseModHeaders();
+            app.UseFindKP();
             app.UseProxyIMG();
             app.UseProxyAPI();
             app.UseStaticFiles();

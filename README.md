@@ -59,6 +59,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети
 * proxytoproxyimg - Использовать прокси при получении картинки в "http://IP:9118/proxyimg/"
 * SisiHeightPicture - Уменьшение размера картинки в xxx по высоте до 200px
+* findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
 
 # Настройки при совместном использовании
 * timeoutSeconds - 10

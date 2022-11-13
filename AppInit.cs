@@ -35,6 +35,8 @@ namespace Lampac
 
         public string apikey = null;
 
+        public string findkp = "alloha";
+
         public string ffprobe = "linux";
 
         public bool disableserverproxy = false;
