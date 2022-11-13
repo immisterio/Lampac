@@ -127,7 +127,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && serial == 0)
                 online += "{name:'VideoAPI (ENG)',url:'{localhost}/videoapi'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token) && serial == 0)
+            if (AppInit.conf.IframeVideo.enable && serial == 0)
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
 
             file = file.Replace("{online}", online);

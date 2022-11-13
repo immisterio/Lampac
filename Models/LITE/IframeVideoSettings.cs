@@ -2,9 +2,10 @@
 {
     public class IframeVideoSettings
     {
-        public IframeVideoSettings(string host)
+        public IframeVideoSettings(string host, string cdnhost)
         {
             apihost = host;
+            this.cdnhost = cdnhost;
         }
 
 
@@ -13,6 +14,10 @@
         public string cdnhost { get; set; }
 
         public string token { get; set; }
+
+        public bool enable { get; set; }
+
+        public bool useproxy { get; set; }
 
         public bool streamproxy { get; set; }
     }

@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+            if (!AppInit.conf.IframeVideo.enable)
                 return Content(string.Empty);
 
             var frame = await iframe(imdb_id, kinopoisk_id);
@@ -62,13 +62,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo/video")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+            if (!AppInit.conf.IframeVideo.enable)
                 return Content(string.Empty);
 
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
+                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, useproxy: AppInit.conf.IframeVideo.useproxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("Origin", AppInit.conf.IframeVideo.cdnhost),
                     ("Referer", $"{AppInit.conf.IframeVideo.cdnhost}/"),
@@ -101,11 +101,18 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out (string content, string type, int cid, string path) res))
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.IframeVideo.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={AppInit.conf.IframeVideo.token}", timeoutSeconds: 8);
+                string uri = $"{AppInit.conf.IframeVideo.apihost}/api/v2/search?imdb={imdb_id}&kp={kinopoisk_id}";
+                if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
+                    uri = $"{AppInit.conf.IframeVideo.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={AppInit.conf.IframeVideo.token}";
+
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8);
                 if (root == null)
                     return (null, null, 0, null);
 
-                var item = root.Value<JArray>("results")[0];
+                var item = root.Value<JArray>("results")?[0];
+                if (item == null)
+                    return (null, null, 0, null);
+
                 res.cid = item.Value<int>("cid");
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");

@@ -130,7 +130,7 @@ namespace Lampac
 
         public OnlinesSettings VideoAPI = new OnlinesSettings("http://5100.svetacdn.in", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O");
 
-        public IframeVideoSettings IframeVideo = new IframeVideoSettings("https://iframe.video");
+        public IframeVideoSettings IframeVideo = new IframeVideoSettings("https://iframe.video", "https://videoframe.space");
 
         public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "");
 
