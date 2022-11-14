@@ -9,5 +9,7 @@ namespace Lampac.Models.LITE.Collaps
         public string hls { get; set; }
 
         public List<Cc> cc { get; set; }
+
+        public Audio audio { get; set; }
     }
 }
