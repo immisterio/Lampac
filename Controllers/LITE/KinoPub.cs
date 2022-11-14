@@ -123,12 +123,20 @@ namespace Lampac.Controllers.LITE
                         }
                         #endregion
 
+                        #region streansquality
+                        string streansquality = string.Empty;
+
                         foreach (var f in v.files)
                         {
-                            string mp4 = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{f.url.http}" : f.url.http;
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + f.quality + "</div></div>";
-                            firstjson = false;
+                            string l = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{f.url.http}" : f.url.http;
+                            streansquality += $"\"{f.quality}\":\"" + l + "\",";
                         }
+
+                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+                        #endregion
+
+                        string mp4 = AppInit.conf.KinoPub.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{v.files[0].url.http}" : v.files[0].url.http;
+                        html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
                     }
                 }
                 #endregion
