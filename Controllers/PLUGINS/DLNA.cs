@@ -12,16 +12,27 @@ using MonoTorrent;
 using Lampac.Engine.Parse;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace Lampac.Controllers.PLUGINS
 {
     public class DLNAController : BaseController
     {
         #region DLNAController
-        static ClientEngine torrentEngine = new ClientEngine();
+        static ClientEngine torrentEngine;
 
         static DLNAController()
         {
+            EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
+            {
+                MaximumConnections = 30,
+                MaximumHalfOpenConnections = 20
+            };
+
+            torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
+
+
             if (!Directory.Exists("cache/metadata"))
                 return;
 
@@ -30,13 +41,71 @@ namespace Lampac.Controllers.PLUGINS
                 var t = Torrent.Load(path);
                 var manager = torrentEngine.AddAsync(t, "dlna/").Result;
 
+                //if (FastResume.TryLoad($"cache/fastresume/{t.InfoHash.ToHex()}.fresume", out FastResume resume))
+                //    manager.LoadFastResume(resume);
+
+                int[] indexs = null;
+
+                try
+                {
+                    if (IO.File.Exists($"cache/metadata/{t.InfoHash.ToHex()}.json"))
+                        indexs = JsonConvert.DeserializeObject<int[]>(IO.File.ReadAllText($"cache/metadata/{t.InfoHash.ToHex()}.json"));
+                }
+                catch { }
+
+                bool setPriority = false;
+
                 manager.TorrentStateChanged += async (s, e) =>
                 {
                     if (e != null && e.NewState == TorrentState.Seeding)
                         await e.TorrentManager.StopAsync();
 
+                    if (e != null && (e.NewState == TorrentState.Metadata || e.NewState == TorrentState.Hashing || e.NewState == TorrentState.Downloading))
+                    {
+                        if (!setPriority)
+                        {
+                            setPriority = true;
+
+                            if (indexs == null || indexs.Length == 0)
+                            {
+                                await manager.SetFilePriorityAsync(manager.Files[0], Priority.High);
+                            }
+                            else
+                            {
+                                for (int i = 0; i < manager.Files.Count; i++)
+                                {
+                                    if (indexs.Contains(i))
+                                    {
+                                        await manager.SetFilePriorityAsync(manager.Files[i], i == indexs[0] ? Priority.High : Priority.Normal);
+                                    }
+                                    else
+                                    {
+                                        await manager.SetFilePriorityAsync(manager.Files[i], Priority.DoNotDownload);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (e != null && (e.NewState == TorrentState.Stopped || e.NewState == TorrentState.Stopping))
-                        IO.File.Delete(path);
+                    {
+                        try
+                        {
+                            IO.File.Delete(path);
+                            IO.File.Delete(path.Replace(".torrent", ".json"));
+                        }
+                        catch { }
+
+                        foreach (var f in e.TorrentManager.Files)
+                        {
+                            try
+                            {
+                                if (f.Priority == Priority.DoNotDownload && IO.File.Exists(f.FullPath))
+                                    IO.File.Delete(f.FullPath);
+                            }
+                            catch { }
+                        }
+                    }
                 };
             }
 
@@ -44,6 +113,57 @@ namespace Lampac.Controllers.PLUGINS
         }
         #endregion
 
+        #region getMagnet
+        async ValueTask<string> getMagnet(string path)
+        {
+            // https://github.com/ngosang/trackerslist
+            string trackers = await IO.File.ReadAllTextAsync("trackers.txt");
+
+            if (!path.StartsWith("http"))
+                return path + trackers;
+
+            string memkey = $"DLNAController:getMagnet:{path}";
+            if (!memoryCache.TryGetValue(memkey, out string magnet))
+            {
+                var handler = new System.Net.Http.HttpClientHandler()
+                {
+                    AllowAutoRedirect = false
+                };
+
+                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+                using (var client = new System.Net.Http.HttpClient(handler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(10);
+
+                    using (var response = await client.GetAsync(path))
+                    {
+                        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                        {
+                            using (var content = response.Content)
+                                magnet = BencodeTo.Magnet(await content.ReadAsByteArrayAsync());
+                        }
+                        else if (((int)response.StatusCode) is 301 or 302 or 307)
+                        {
+                            string location = response.Headers.Location?.ToString() ?? response.RequestMessage.RequestUri?.ToString();
+                            if (location != null && location.StartsWith("magnet:"))
+                                magnet = location;
+                        }
+                    }
+                }
+
+                if (magnet == null)
+                    return null;
+
+                memoryCache.Set(memkey, magnet, DateTime.Now.AddMinutes(10));
+            }
+
+            return magnet + trackers;
+        }
+        #endregion
+
+
+        #region Plugin
         [HttpGet]
         [Route("dlna.js")]
         public ActionResult Plugin()
@@ -53,8 +173,9 @@ namespace Lampac.Controllers.PLUGINS
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
+        #endregion
 
-
+        #region Index
         [HttpGet]
         [Route("dlna")]
         public JsonResult Index(string path)
@@ -90,8 +211,9 @@ namespace Lampac.Controllers.PLUGINS
 
             return Json(playlist);
         }
+        #endregion
 
-
+        #region Stream
         [Route("dlna/stream")]
         public ActionResult Stream(string path)
         {
@@ -100,8 +222,9 @@ namespace Lampac.Controllers.PLUGINS
 
             return File(IO.File.OpenRead("dlna/" + path), "application/octet-stream", true);
         }
+        #endregion
 
-
+        #region Delete
         [HttpGet]
         [Route("dlna/delete")]
         public ActionResult Delete(string path)
@@ -123,8 +246,10 @@ namespace Lampac.Controllers.PLUGINS
 
             return Content(string.Empty);
         }
+        #endregion
 
 
+        #region Managers
         [HttpGet]
         [Route("dlna/tracker/managers")]
         public JsonResult Managers()
@@ -135,6 +260,7 @@ namespace Lampac.Controllers.PLUGINS
             return Json(torrentEngine.Torrents.Where(i => i.State != TorrentState.Stopped).Select(i => new
             {
                 InfoHash = i.InfoHash.ToHex(),
+                i.Torrent.Name,
                 //Engine = new 
                 //{
                 //    i.Engine.ConnectionManager.HalfOpenConnections,
@@ -142,13 +268,12 @@ namespace Lampac.Controllers.PLUGINS
                 //    i.Engine.TotalDownloadSpeed,
                 //    i.Engine.TotalUploadSpeed,
                 //},
-                //Files = i.Files.Select(f => new 
-                //{
-                //    f.Path,
-                //    f.FullPath,
-                //    f.Priority,
-                //    f.Length
-                //}),
+                Files = i.Files.Select(f => new
+                {
+                    f.Path,
+                    f.Priority,
+                    f.Length
+                }),
                 //i.MagnetLink,
                 //i.MetadataPath,
                 i.Monitor,
@@ -156,19 +281,53 @@ namespace Lampac.Controllers.PLUGINS
                 i.PartialProgress,
                 i.Progress,
                 i.Peers,
-                i.PieceLength,
-                i.SavePath,
+                //i.PieceLength,
+                //i.SavePath,
                 i.Size,
                 State = i.State.ToString(),
-                i.Torrent,
+                //i.Torrent,
                 i.UploadingTo
             }));
         }
+        #endregion
 
+        #region Show
+        [HttpGet]
+        [Route("dlna/tracker/show")]
+        async public Task<JsonResult> Show(string path)
+        {
+            if (!AppInit.conf.dlna)
+                return Json(new { });
 
+            try
+            {
+                string magnet = await getMagnet(path);
+                if (magnet == null)
+                    return Json(new { });
+
+                string hash = Regex.Match(magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
+                if (IO.File.Exists($"cache/torrent/{hash}"))
+                    return Json(Torrent.Load(IO.File.ReadAllBytes($"cache/torrent/{hash}")).Files);
+
+                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(magnet), new System.Threading.CancellationToken());
+                if (data == null)
+                    return Json(new { });
+
+                await IO.File.WriteAllBytesAsync($"cache/torrent/{hash}", data);
+
+                return Json(Torrent.Load(data).Files);
+            }
+            catch
+            {
+                return Json(new { });
+            }
+        }
+        #endregion
+
+        #region Download
         [HttpGet]
         [Route("dlna/tracker/download")]
-        async public Task<JsonResult> Download(string path)
+        async public Task<JsonResult> Download(string path, int[] indexs)
         {
             if (!AppInit.conf.dlna)
                 return Json(new { });
@@ -179,50 +338,16 @@ namespace Lampac.Controllers.PLUGINS
 
             try
             {
-                string magnet = path;
                 memoryCache.Set(memKey, 0);
 
-                #region Download
-                if (magnet.StartsWith("http"))
+                string magnet = await getMagnet(path);
+                if (magnet == null)
                 {
-                    var handler = new System.Net.Http.HttpClientHandler()
-                    {
-                        AllowAutoRedirect = false
-                    };
-
-                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                    using (var client = new System.Net.Http.HttpClient(handler))
-                    {
-                        client.Timeout = TimeSpan.FromSeconds(10);
-
-                        using (var response = await client.GetAsync(path))
-                        {
-                            if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                            {
-                                using (var content = response.Content)
-                                    magnet = BencodeTo.Magnet(await content.ReadAsByteArrayAsync());
-                            }
-                            else if (((int)response.StatusCode) is 301 or 302 or 307)
-                            {
-                                string location = response.Headers.Location?.ToString() ?? response.RequestMessage.RequestUri?.ToString();
-                                if (location != null && location.StartsWith("magnet:"))
-                                    magnet = location;
-                            }
-                        }
-                    }
-
-                    if (magnet == null)
-                    {
-                        memoryCache.Remove(memKey);
-                        return Json(new { });
-                    }
+                    memoryCache.Remove(memKey);
+                    return Json(new { });
                 }
-                #endregion
 
-                // https://github.com/ngosang/trackerslist
-                string trackers = await IO.File.ReadAllTextAsync("trackers.txt");
-                var manager = await torrentEngine.AddStreamingAsync(MagnetLink.Parse(magnet + trackers), "dlna/");
+                var manager = await torrentEngine.AddStreamingAsync(MagnetLink.Parse(magnet), "dlna/");
 
                 await manager.StartAsync();
                 await manager.WaitForMetadataAsync();
@@ -235,12 +360,46 @@ namespace Lampac.Controllers.PLUGINS
                     if (e != null && (e.NewState == TorrentState.Stopped || e.NewState == TorrentState.Stopping))
                     {
                         memoryCache.Remove(memKey);
-                        IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.torrent");
+
+                        try
+                        {
+                            IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.torrent");
+                            IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.json");
+                        }
+                        catch { }
+
+                        foreach (var f in e.TorrentManager.Files)
+                        {
+                            try
+                            {
+                                if (f.Priority == Priority.DoNotDownload && IO.File.Exists(f.FullPath))
+                                    IO.File.Delete(f.FullPath);
+                            }
+                            catch { }
+                        }
                     }
                 };
 
-                if (manager.Files != null && manager.Files.Count > 1)
+                if (indexs == null || indexs.Length == 0)
+                {
                     await manager.SetFilePriorityAsync(manager.Files[0], Priority.High);
+                }
+                else
+                {
+                    await IO.File.WriteAllTextAsync($"cache/metadata/{manager.InfoHash.ToHex()}.json", JsonConvert.SerializeObject(indexs));
+
+                    for (int i = 0; i < manager.Files.Count; i++)
+                    {
+                        if (indexs.Contains(i))
+                        {
+                            await manager.SetFilePriorityAsync(manager.Files[i], i == indexs[0] ? Priority.High : Priority.Normal);
+                        }
+                        else
+                        {
+                            await manager.SetFilePriorityAsync(manager.Files[i], Priority.DoNotDownload);
+                        }
+                    }
+                }
             }
             catch
             {
@@ -250,8 +409,9 @@ namespace Lampac.Controllers.PLUGINS
 
             return Json(new { status = true });
         }
+        #endregion
 
-
+        #region Delete
         [HttpGet]
         [Route("dlna/tracker/delete")]
         async public Task<JsonResult> TorrentDelete(string infohash)
@@ -265,5 +425,6 @@ namespace Lampac.Controllers.PLUGINS
 
             return Json(new { status = true });
         }
+        #endregion
     }
 }
