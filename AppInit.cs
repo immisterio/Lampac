@@ -9,6 +9,7 @@ using Lampac.Models.LITE;
 using Lampac.Models.LITE.HDVB;
 using System.Collections.Generic;
 using Lampac.Models;
+using Lampac.Models.DLNA;
 
 namespace Lampac
 {
@@ -45,8 +46,8 @@ namespace Lampac
 
         public bool proxytoproxyimg = false;
 
-        public bool dlna = false;
 
+        public DLNASettings dlna = new DLNASettings() { enable = true };
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true };
 

@@ -27,7 +27,9 @@ namespace Lampac.Controllers.PLUGINS
             EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
             {
                 MaximumConnections = 30,
-                MaximumHalfOpenConnections = 20
+                MaximumHalfOpenConnections = 20,
+                MaximumUploadSpeed = 125000, // 1Mbit/s
+                MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed
             };
 
             torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
@@ -39,7 +41,7 @@ namespace Lampac.Controllers.PLUGINS
             foreach (string path in Directory.GetFiles("cache/metadata", "*.torrent"))
             {
                 var t = Torrent.Load(path);
-                var manager = torrentEngine.AddAsync(t, "dlna/").Result;
+                var manager = AppInit.conf.dlna.mode == "stream" ? torrentEngine.AddStreamingAsync(t, "dlna/").Result : torrentEngine.AddAsync(t, "dlna/").Result;
 
                 //if (FastResume.TryLoad($"cache/fastresume/{t.InfoHash.ToHex()}.fresume", out FastResume resume))
                 //    manager.LoadFastResume(resume);
@@ -116,7 +118,6 @@ namespace Lampac.Controllers.PLUGINS
         #region getMagnet
         async ValueTask<string> getMagnet(string path)
         {
-            // https://github.com/ngosang/trackerslist
             string trackers = await IO.File.ReadAllTextAsync("trackers.txt");
 
             if (!path.StartsWith("http"))
@@ -180,7 +181,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna")]
         public JsonResult Index(string path)
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
             var playlist = new List<DlnaModel>();
@@ -217,7 +218,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna/stream")]
         public ActionResult Stream(string path)
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
             return File(IO.File.OpenRead("dlna/" + path), "application/octet-stream", true);
@@ -229,7 +230,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna/delete")]
         public ActionResult Delete(string path)
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Content(string.Empty);
 
             try
@@ -254,7 +255,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna/tracker/managers")]
         public JsonResult Managers()
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
             return Json(torrentEngine.Torrents.Where(i => i.State != TorrentState.Stopped).Select(i => new
@@ -296,7 +297,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna/tracker/show")]
         async public Task<JsonResult> Show(string path)
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
             try
@@ -329,56 +330,64 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna/tracker/download")]
         async public Task<JsonResult> Download(string path, int[] indexs)
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Json(new { });
-
-            string memKey = $"dlna:tracker:Download:{path}";
-            if (memoryCache.TryGetValue(memKey, out _))
-                return Json(new { status = true });
 
             try
             {
-                memoryCache.Set(memKey, 0);
-
                 string magnet = await getMagnet(path);
                 if (magnet == null)
-                {
-                    memoryCache.Remove(memKey);
                     return Json(new { });
-                }
 
-                var manager = await torrentEngine.AddStreamingAsync(MagnetLink.Parse(magnet), "dlna/");
+                // cache metadata
+                string hash = Regex.Match(magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
+                if (IO.File.Exists($"cache/torrent/{hash}") && !IO.File.Exists($"cache/metadata/{hash.ToUpper()}.torrent"))
+                    IO.File.Copy($"cache/torrent/{hash}", $"cache/metadata/{hash.ToUpper()}.torrent");
 
-                await manager.StartAsync();
-                await manager.WaitForMetadataAsync();
+                var magnetLink = MagnetLink.Parse(magnet);
+                TorrentManager manager = torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex() == magnetLink.InfoHash.ToHex());
 
-                manager.TorrentStateChanged += async (s, e) =>
+                if (manager != null)
                 {
-                    if (e != null && e.NewState == TorrentState.Seeding)
-                        await e.TorrentManager.StopAsync();
-
-                    if (e != null && (e.NewState == TorrentState.Stopped || e.NewState == TorrentState.Stopping))
+                    if (manager.State is TorrentState.Stopped or TorrentState.Stopping)
                     {
-                        memoryCache.Remove(memKey);
+                        await manager.StartAsync();
+                        await manager.WaitForMetadataAsync();
+                    }
+                }
+                else
+                {
+                    manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(MagnetLink.Parse(magnet), "dlna/") : await torrentEngine.AddAsync(MagnetLink.Parse(magnet), "dlna/");
 
-                        try
-                        {
-                            IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.torrent");
-                            IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.json");
-                        }
-                        catch { }
+                    await manager.StartAsync();
+                    await manager.WaitForMetadataAsync();
 
-                        foreach (var f in e.TorrentManager.Files)
+                    manager.TorrentStateChanged += async (s, e) =>
+                    {
+                        if (e != null && e.NewState == TorrentState.Seeding)
+                            await e.TorrentManager.StopAsync();
+
+                        if (e != null && (e.NewState == TorrentState.Stopped || e.NewState == TorrentState.Stopping))
                         {
                             try
                             {
-                                if (f.Priority == Priority.DoNotDownload && IO.File.Exists(f.FullPath))
-                                    IO.File.Delete(f.FullPath);
+                                IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.torrent");
+                                IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.json");
                             }
                             catch { }
+
+                            foreach (var f in e.TorrentManager.Files)
+                            {
+                                try
+                                {
+                                    if (f.Priority == Priority.DoNotDownload && IO.File.Exists(f.FullPath))
+                                        IO.File.Delete(f.FullPath);
+                                }
+                                catch { }
+                            }
                         }
-                    }
-                };
+                    };
+                }
 
                 if (indexs == null || indexs.Length == 0)
                 {
@@ -403,7 +412,6 @@ namespace Lampac.Controllers.PLUGINS
             }
             catch
             {
-                memoryCache.Remove(memKey);
                 return Json(new { });
             }
 
@@ -416,7 +424,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("dlna/tracker/delete")]
         async public Task<JsonResult> TorrentDelete(string infohash)
         {
-            if (!AppInit.conf.dlna)
+            if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
             var manager = torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex() == infohash);
