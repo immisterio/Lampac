@@ -12,6 +12,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 1. Парсер Jackett - "IP:9118"
 2. Плагин онлайн  - "http://IP:9118/online.js"
 3. Плагин xxx     - "http://IP:9118/sisi.js"
+4. Плагин DLNA    - "http://IP:9118/dlna.js"
 
 # Настройки Lampa Lite
 1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 
@@ -31,6 +32,11 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Привязка PRO аккаунтов
 * Filmix - "http://IP:9118/lite/filmixpro" 
 * KinoPub - "http://IP:9118/lite/kinopubpro" 
+
+# Плагин DLNA.js
+* Просмотр медиа файлов с папки dlna
+* Возможность удалять просмотренные папки/файлы
+* Загрузка торрентов в папку dlna
 
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере, работает только в торрентах
