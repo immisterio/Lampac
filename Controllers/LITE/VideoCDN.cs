@@ -20,24 +20,19 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vcdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int s, int sid = -1)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.VCDN.token))
+            if (!AppInit.conf.VCDN.enable)
                 return Content(string.Empty);
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
-
-            #region iframe_src
-            string iframe_src = await iframesrc(imdb_id, kinopoisk_id);
-            if (iframe_src == null)
-                return Content(string.Empty);
-            #endregion
 
             #region Кеш запроса
             string memKey = $"videocdn:view:{imdb_id}:{kinopoisk_id}";
 
             if (!memoryCache.TryGetValue(memKey, out List<(string translation_id, string translation, string code)> cache))
             {
-                string content = await HttpClient.Get(iframe_src, MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
+                string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
+                string content = await HttpClient.Get($"{AppInit.conf.VCDN.apihost}?{args}", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
                 if (content == null)
                     return Content(string.Empty);
 
@@ -83,6 +78,9 @@ namespace Lampac.Controllers.LITE
                         cache.Add((translation_id, translation, code));
                     #endregion
                 }
+
+                if (cache.Count == 0)
+                    return Content(string.Empty);
 
                 memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
@@ -297,29 +295,5 @@ namespace Lampac.Controllers.LITE
 
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
-
-
-        #region iframesrc
-        async ValueTask<string> iframesrc(string imdb_id, long kinopoisk_id)
-        {
-            try
-            {
-                string memKeyIframesrc = $"videocdn:view:iframe_src:{imdb_id}:{kinopoisk_id}";
-                if (!memoryCache.TryGetValue(memKeyIframesrc, out string iframe_src))
-                {
-                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VCDN.apihost}/api/short?api_token={AppInit.conf.VCDN.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
-                    iframe_src = json.Value<JArray>("data").First.Value<string>("iframe_src");
-                    if (string.IsNullOrWhiteSpace(iframe_src))
-                        return null;
-
-                    iframe_src = $"{AppInit.conf.VCDN.cdnhost}/" + Regex.Replace(iframe_src, "^(https?:)?//[^/]+/", "");
-                    memoryCache.Set(memKeyIframesrc, iframe_src, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 60 * 4 : 10));
-                }
-
-                return iframe_src;
-            }
-            catch { return null; }
-        }
-        #endregion
     }
 }
