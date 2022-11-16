@@ -15,6 +15,8 @@
 
         public bool enable { get; set; }
 
+        public string priority { get; set; }
+
         public bool useproxy { get; set; }
 
         public LoginSettings login { get; set; }

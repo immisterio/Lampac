@@ -14,6 +14,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Lampac.Engine.CORE;
+using System.Threading;
 
 namespace Lampac.Controllers.PLUGINS
 {
@@ -115,16 +117,16 @@ namespace Lampac.Controllers.PLUGINS
         }
         #endregion
 
-        #region getMagnet
-        async ValueTask<string> getMagnet(string path)
+        #region getTorrent
+        async ValueTask<(string magnet, byte[] torrent)> getTorrent(string path)
         {
             string trackers = await IO.File.ReadAllTextAsync("trackers.txt");
 
             if (!path.StartsWith("http"))
-                return path + trackers;
+                return (path + trackers, null);
 
-            string memkey = $"DLNAController:getMagnet:{path}";
-            if (!memoryCache.TryGetValue(memkey, out string magnet))
+            string memkey = $"DLNAController:getTorrent:{path}";
+            if (!memoryCache.TryGetValue(memkey, out (string magnet, byte[] torrent) cache))
             {
                 var handler = new System.Net.Http.HttpClientHandler()
                 {
@@ -142,24 +144,32 @@ namespace Lampac.Controllers.PLUGINS
                         if (response.StatusCode == System.Net.HttpStatusCode.OK)
                         {
                             using (var content = response.Content)
-                                magnet = BencodeTo.Magnet(await content.ReadAsByteArrayAsync());
+                            {
+                                var t = await content.ReadAsByteArrayAsync();
+                                cache.magnet = BencodeTo.Magnet(t);
+                                if (cache.magnet != null)
+                                {
+                                    cache.torrent = t;
+                                    cache.magnet += trackers;
+                                }
+                            }
                         }
                         else if (((int)response.StatusCode) is 301 or 302 or 307)
                         {
                             string location = response.Headers.Location?.ToString() ?? response.RequestMessage.RequestUri?.ToString();
                             if (location != null && location.StartsWith("magnet:"))
-                                magnet = location;
+                                cache.magnet = location + trackers;
                         }
                     }
                 }
 
-                if (magnet == null)
-                    return null;
+                if (cache.magnet == null && cache.torrent == null)
+                    return (null, null);
 
-                memoryCache.Set(memkey, magnet, DateTime.Now.AddMinutes(10));
+                memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(10));
             }
 
-            return magnet + trackers;
+            return cache;
         }
         #endregion
 
@@ -176,7 +186,7 @@ namespace Lampac.Controllers.PLUGINS
         }
         #endregion
 
-        #region Index
+        #region Navigation
         [HttpGet]
         [Route("dlna")]
         public JsonResult Index(string path)
@@ -184,15 +194,30 @@ namespace Lampac.Controllers.PLUGINS
             if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
+            #region getImage
+            string getImage(string name)
+            {
+                string pathimage = $"thumbs/{CrypTo.md5(name)}.jpg";
+                if (IO.File.Exists("dlna/" + pathimage))
+                    return $"{AppInit.Host(HttpContext)}/dlna/stream?path={HttpUtility.UrlEncode(pathimage)}";
+
+                return null;
+            }
+            #endregion
+
             var playlist = new List<DlnaModel>();
 
             foreach (string folder in Directory.GetDirectories("dlna/" + path))
             {
+                if (folder.Contains("thumbs"))
+                    continue;
+
                 playlist.Add(new DlnaModel() 
                 {
                     type = "folder",
                     name = Path.GetFileName(folder),
                     uri = $"{AppInit.Host(HttpContext)}/dlna?path={HttpUtility.UrlEncode(folder.Replace("dlna/", ""))}",
+                    img = getImage(Path.GetFileName(folder)),
                     path = folder.Replace("dlna/", ""),
                     length = Directory.GetFiles(folder).Length
                 });
@@ -200,14 +225,31 @@ namespace Lampac.Controllers.PLUGINS
 
             foreach (string file in Directory.GetFiles("dlna/" + path))
             {
-                playlist.Add(new DlnaModel()
+                if (!Regex.IsMatch(Path.GetExtension(file), "(aac|flac|mpga|mpega|mp2|mp3|m4a|oga|ogg|opus|spx|opus|weba|wav|dif|dv|fli|mp4|mpeg|mpg|mpe|mpv|mkv|ts|m2ts|mts|ogv|webm|avi|qt|mov)"))
+                    continue;
+
+                string name = Path.GetFileName(file);
+                var dlnaModel = new DlnaModel()
                 {
                     type = "file",
-                    name = Path.GetFileName(file),
+                    name = name,
                     uri = $"{AppInit.Host(HttpContext)}/dlna/stream?path={HttpUtility.UrlEncode(file.Replace("dlna/", ""))}",
+                    img = getImage(name),
+                    subtitles = new List<Subtitle>(),
                     path = file.Replace("dlna/", ""),
                     length = new FileInfo(file).Length
-                });
+                };
+
+                if (IO.File.Exists($"dlna/{path}/{Path.GetFileNameWithoutExtension(file)}.srt"))
+                {
+                    dlnaModel.subtitles.Add(new Subtitle()
+                    {
+                        label = "Sub #1",
+                        url = $"{AppInit.Host(HttpContext)}/dlna/stream?path={HttpUtility.UrlEncode($"{path}/{Path.GetFileNameWithoutExtension(file)}.srt")}"
+                    });
+                }
+
+                playlist.Add(dlnaModel);
             }
 
             return Json(playlist);
@@ -221,7 +263,12 @@ namespace Lampac.Controllers.PLUGINS
             if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
-            return File(IO.File.OpenRead("dlna/" + path), "application/octet-stream", true);
+            string contentType = "application/octet-stream";
+
+            if (path.EndsWith(".jpg"))
+                contentType = "image/jpeg";
+
+            return File(IO.File.OpenRead("dlna/" + path), contentType, true);
         }
         #endregion
 
@@ -273,7 +320,8 @@ namespace Lampac.Controllers.PLUGINS
                 {
                     f.Path,
                     f.Priority,
-                    f.Length
+                    f.Length,
+                    BytesDownloaded = f.BytesDownloaded()
                 }),
                 //i.MagnetLink,
                 //i.MetadataPath,
@@ -302,15 +350,22 @@ namespace Lampac.Controllers.PLUGINS
 
             try
             {
-                string magnet = await getMagnet(path);
-                if (magnet == null)
+                var tparse = await getTorrent(path);
+
+                if (tparse.torrent != null)
+                    return Json(Torrent.Load(tparse.torrent).Files);
+
+                if (tparse.magnet == null)
                     return Json(new { });
 
-                string hash = Regex.Match(magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
+                string hash = Regex.Match(tparse.magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
                 if (IO.File.Exists($"cache/torrent/{hash}"))
                     return Json(Torrent.Load(IO.File.ReadAllBytes($"cache/torrent/{hash}")).Files);
 
-                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(magnet), new System.Threading.CancellationToken());
+                var s_cts = new CancellationTokenSource();
+                s_cts.CancelAfter(1000 * 60 * 2);
+
+                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(tparse.magnet), s_cts.Token);
                 if (data == null)
                     return Json(new { });
 
@@ -328,23 +383,23 @@ namespace Lampac.Controllers.PLUGINS
         #region Download
         [HttpGet]
         [Route("dlna/tracker/download")]
-        async public Task<JsonResult> Download(string path, int[] indexs)
+        async public Task<JsonResult> Download(string path, int[] indexs, string thumb)
         {
             if (!AppInit.conf.dlna.enable)
                 return Json(new { });
 
             try
             {
-                string magnet = await getMagnet(path);
-                if (magnet == null)
+                var tparse = await getTorrent(path);
+                if (tparse.magnet == null)
                     return Json(new { });
 
                 // cache metadata
-                string hash = Regex.Match(magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
+                string hash = Regex.Match(tparse.magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
                 if (IO.File.Exists($"cache/torrent/{hash}") && !IO.File.Exists($"cache/metadata/{hash.ToUpper()}.torrent"))
                     IO.File.Copy($"cache/torrent/{hash}", $"cache/metadata/{hash.ToUpper()}.torrent");
 
-                var magnetLink = MagnetLink.Parse(magnet);
+                var magnetLink = MagnetLink.Parse(tparse.magnet);
                 TorrentManager manager = torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex() == magnetLink.InfoHash.ToHex());
 
                 if (manager != null)
@@ -357,7 +412,8 @@ namespace Lampac.Controllers.PLUGINS
                 }
                 else
                 {
-                    manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(MagnetLink.Parse(magnet), "dlna/") : await torrentEngine.AddAsync(MagnetLink.Parse(magnet), "dlna/");
+                    dynamic tlink = tparse.torrent != null ? Torrent.Load(tparse.torrent) : MagnetLink.Parse(tparse.magnet);
+                    manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, "dlna/") : await torrentEngine.AddAsync(tlink, "dlna/");
 
                     await manager.StartAsync();
                     await manager.WaitForMetadataAsync();
@@ -408,6 +464,20 @@ namespace Lampac.Controllers.PLUGINS
                             await manager.SetFilePriorityAsync(manager.Files[i], Priority.DoNotDownload);
                         }
                     }
+                }
+
+                if (thumb != null)
+                {
+                    try
+                    {
+                        var array = await HttpClient.Download(thumb);
+                        if (array != null)
+                        {
+                            Directory.CreateDirectory("dlna/thumbs/");
+                            await IO.File.WriteAllBytesAsync($"dlna/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", array);
+                        }
+                    }
+                    catch { }
                 }
             }
             catch

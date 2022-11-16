@@ -89,7 +89,7 @@ namespace Lampac.Controllers
             if (AppInit.conf.Rezka.enable)
                 online += "{name:'HDRezka',url:'{localhost}/rezka'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.VCDN.token))
+            if (AppInit.conf.VCDN.enable)
                 online += "{name:'VideoCDN',url:'{localhost}/vcdn'},";
 
             if (AppInit.conf.Ashdi.enable)
