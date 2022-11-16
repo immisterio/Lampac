@@ -101,7 +101,7 @@ namespace Lampac.Controllers.JAC
             if (Cookie != null)
             {
                 _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: AppInit.conf.Kinozal.host, timeoutSeconds: 10);
-                if (_t != null)
+                if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
                     await TorrentCache.Write(keydownload, _t);
                     Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));

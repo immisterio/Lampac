@@ -72,19 +72,19 @@ namespace Lampac.Controllers.JAC
                 #region Фильм
                 Task.WaitAll(new Task[]
                 {
-                    RutorController.parsePage(temptorrents, search, "1"),  // movie
-                    RutorController.parsePage(temptorrents, search, "5"),  // movie
-                    RutorController.parsePage(temptorrents, search, "7"),  // multfilm
-                    RutorController.parsePage(temptorrents, search, "12"), // documovie
-                    RutorController.parsePage(temptorrents, search, "17", true, "1"), // UKR
+                    RutorController.parsePage(host, temptorrents, search, "1"),  // movie
+                    RutorController.parsePage(host, temptorrents, search, "5"),  // movie
+                    RutorController.parsePage(host, temptorrents, search, "7"),  // multfilm
+                    RutorController.parsePage(host, temptorrents, search, "12"), // documovie
+                    RutorController.parsePage(host, temptorrents, search, "17", true, "1"), // UKR
 
                     MegapeerController.parsePage(host, temptorrents, search, "79"),  // movie
                     MegapeerController.parsePage(host, temptorrents, search, "174"), // movie
                     MegapeerController.parsePage(host, temptorrents, search, "76"),  // multfilm
 
-                    TorrentByController.parsePage(temptorrents, search, "1"), // movie
-                    TorrentByController.parsePage(temptorrents, search, "2"), // movie
-                    TorrentByController.parsePage(temptorrents, search, "5"), // multfilm
+                    TorrentByController.parsePage(host, temptorrents, search, "1"), // movie
+                    TorrentByController.parsePage(host, temptorrents, search, "2"), // movie
+                    TorrentByController.parsePage(host, temptorrents, search, "5"), // multfilm
 
                     KinozalController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "tvshow" }),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
@@ -102,12 +102,12 @@ namespace Lampac.Controllers.JAC
                 #region Сериал
                 Task.WaitAll(new Task[]
                 {
-                    RutorController.parsePage(temptorrents, search, "4"),  // serial
-                    RutorController.parsePage(temptorrents, search, "16"), // serial
-                    RutorController.parsePage(temptorrents, search, "7"),  // multserial
-                    RutorController.parsePage(temptorrents, search, "12"), // docuserial
-                    RutorController.parsePage(temptorrents, search, "6"),  // tvshow
-                    RutorController.parsePage(temptorrents, search, "17", true, "4"), // UKR
+                    RutorController.parsePage(host, temptorrents, search, "4"),  // serial
+                    RutorController.parsePage(host, temptorrents, search, "16"), // serial
+                    RutorController.parsePage(host, temptorrents, search, "7"),  // multserial
+                    RutorController.parsePage(host, temptorrents, search, "12"), // docuserial
+                    RutorController.parsePage(host, temptorrents, search, "6"),  // tvshow
+                    RutorController.parsePage(host, temptorrents, search, "17", true, "4"), // UKR
 
                     MegapeerController.parsePage(host, temptorrents, search, "5"),  // serial
                     MegapeerController.parsePage(host, temptorrents, search, "6"),  // serial
@@ -115,10 +115,10 @@ namespace Lampac.Controllers.JAC
                     MegapeerController.parsePage(host, temptorrents, search, "57"), // tvshow
                     MegapeerController.parsePage(host, temptorrents, search, "76"), // multserial
 
-                    TorrentByController.parsePage(temptorrents, search, "3"),  // serial
-                    TorrentByController.parsePage(temptorrents, search, "5"),  // multserial
-                    TorrentByController.parsePage(temptorrents, search, "4"),  // tvshow
-                    TorrentByController.parsePage(temptorrents, search, "12"), // tvshow
+                    TorrentByController.parsePage(host, temptorrents, search, "3"),  // serial
+                    TorrentByController.parsePage(host, temptorrents, search, "5"),  // multserial
+                    TorrentByController.parsePage(host, temptorrents, search, "4"),  // tvshow
+                    TorrentByController.parsePage(host, temptorrents, search, "12"), // tvshow
 
                     KinozalController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "tvshow" }),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
@@ -135,10 +135,10 @@ namespace Lampac.Controllers.JAC
                 #region tvshow
                 Task.WaitAll(new Task[]
                 {
-                    RutorController.parsePage(temptorrents, search, "6"),
+                    RutorController.parsePage(host, temptorrents, search, "6"),
                     MegapeerController.parsePage(host, temptorrents, search, "57"),
-                    TorrentByController.parsePage(temptorrents, search, "4"),
-                    TorrentByController.parsePage(temptorrents, search, "12"),
+                    TorrentByController.parsePage(host, temptorrents, search, "4"),
+                    TorrentByController.parsePage(host, temptorrents, search, "12"),
                     KinozalController.parsePage(host, temptorrents, search, new string[] { "tvshow" }),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
                     TolokaController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
@@ -153,7 +153,7 @@ namespace Lampac.Controllers.JAC
                 #region docuserial / documovie
                 Task.WaitAll(new Task[]
                 {
-                    RutorController.parsePage(temptorrents, search, "12"),
+                    RutorController.parsePage(host, temptorrents, search, "12"),
                     MegapeerController.parsePage(host, temptorrents, search, "55"),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
                     TolokaController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
@@ -170,8 +170,8 @@ namespace Lampac.Controllers.JAC
 
                 Task.WaitAll(new Task[]
                 {
-                    RutorController.parsePage(temptorrents, animesearch, "10"),
-                    TorrentByController.parsePage(temptorrents, animesearch, "6"),
+                    RutorController.parsePage(host, temptorrents, animesearch, "10"),
+                    TorrentByController.parsePage(host, temptorrents, animesearch, "6"),
                     KinozalController.parsePage(host, temptorrents, search, new string[] { "anime" }),
                     NNMClubController.parsePage(host, temptorrents, search, new string[] { "anime" }),
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "anime" }),
@@ -186,9 +186,9 @@ namespace Lampac.Controllers.JAC
                 #region Неизвестно
                 Task.WaitAll(new Task[]
                 {
-                    RutorController.parsePage(temptorrents, search, "0"),
+                    RutorController.parsePage(host, temptorrents, search, "0"),
                     MegapeerController.parsePage(host, temptorrents, search, "0"),
-                    TorrentByController.parsePage(temptorrents, search, "0"),
+                    TorrentByController.parsePage(host, temptorrents, search, "0"),
                     KinozalController.parsePage(host, temptorrents, search, null),
                     NNMClubController.parsePage(host, temptorrents, search, null),
                     TolokaController.parsePage(host, temptorrents, search, null),

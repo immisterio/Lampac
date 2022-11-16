@@ -9,13 +9,44 @@ using Lampac.Engine.Parse;
 using Lampac.Engine;
 using System.Collections.Concurrent;
 using Lampac.Models.JAC;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.JAC
 {
-    //[Route("torrentby/[action]")]
+    [Route("torrentby/[action]")]
     public class TorrentByController : BaseController
     {
-        async public static Task<bool> parsePage(ConcurrentBag<TorrentDetails> torrents, string query, string cat)
+        #region parseMagnet
+        async public Task<ActionResult> parseMagnet(int id, string magnet)
+        {
+            if (!AppInit.conf.TorrentBy.enable)
+                return Content("disable");
+
+            if (id == 0)
+                return Redirect(magnet);
+
+            string key = $"torrentby:parseMagnet:{id}";
+            if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
+                return File(_t, "application/x-bittorrent");
+
+            _t = await HttpClient.Download($"{AppInit.conf.TorrentBy.host}/d.php?id={id}", referer: AppInit.conf.TorrentBy.host, timeoutSeconds: 10);
+            if (_t != null && BencodeTo.Magnet(_t) != null)
+            {
+                await TorrentCache.Write(key, _t);
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                return File(_t, "application/x-bittorrent");
+            }
+            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
+            {
+                return File(tcache.torrent, "application/x-bittorrent");
+            }
+
+            return Redirect(magnet);
+        }
+        #endregion
+
+        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat)
         {
             if (!AppInit.conf.TorrentBy.enable)
                 return false;
@@ -88,6 +119,7 @@ namespace Lampac.Controllers.JAC
                 string _pir = Match("<font color=\"red\">&darr; ([0-9]+)</font>");
                 string sizeName = Match("</td><td style=\"white-space:nowrap;\">([^<]+)</td>");
                 string magnet = Match("href=\"(magnet:\\?xt=[^\"]+)\"");
+                string viewtopic = Regex.Match(url, "^([0-9]+)").Groups[1].Value;
 
                 if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(magnet))
                     continue;
@@ -305,7 +337,8 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        magnet = magnet,
+                        magnet = AppInit.conf.TorrentBy.priority == "torrent" ? null : magnet,
+                        parselink = AppInit.conf.TorrentBy.priority == "torrent" ? $"{host}/torrentby/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
                         createTime = createTime,
                         name = name,
                         originalname = originalname,

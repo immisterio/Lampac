@@ -88,6 +88,11 @@ namespace Lampac.Controllers.JAC
             if (!AppInit.conf.Rutracker.enable)
                 return Content("disable");
 
+            #region кеш / cookie
+            string keydownload = $"rutracker:parseMagnet:download:{id}";
+            if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
+                return File(_t, "application/x-bittorrent");
+
             string key = $"rutracker:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);
@@ -100,7 +105,26 @@ namespace Lampac.Controllers.JAC
 
                 return Content("TakeLogin == false");
             }
+            #endregion
 
+            #region Download
+            if (AppInit.conf.Rutracker.priority == "torrent")
+            {
+                _t = await HttpClient.Download($"{AppInit.conf.Rutracker.host}/forum/dl.php?t={id}", cookie: cookie, referer: AppInit.conf.Rutracker.host, timeoutSeconds: 10);
+                if (_t != null && BencodeTo.Magnet(_t) != null)
+                {
+                    await TorrentCache.Write(keydownload, _t);
+                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                    return File(_t, "application/x-bittorrent");
+                }
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                {
+                    return File(tcache.torrent, "application/x-bittorrent");
+                }
+            }
+            #endregion
+
+            #region Magnet
             var fullNews = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: cookie, timeoutSeconds: 10);
             if (fullNews != null)
             {
@@ -115,10 +139,12 @@ namespace Lampac.Controllers.JAC
 
             if (await TorrentCache.ReadMagnet(key) is var _mcache && _mcache.cache)
                 Redirect(_mcache.torrent);
+            #endregion
 
             return Content("error");
         }
         #endregion
+
 
         #region parsePage
         async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)

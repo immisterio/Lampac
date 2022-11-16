@@ -27,7 +27,7 @@ namespace Lampac.Controllers.JAC
                 return File(_m, "application/x-bittorrent");
 
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Bitru.host}/download.php?id={id}", referer: $"{AppInit.conf.Bitru}/details.php?id={id}", useproxy: AppInit.conf.Bitru.useproxy, timeoutSeconds: 10);
-            if (_t != null)
+            if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));

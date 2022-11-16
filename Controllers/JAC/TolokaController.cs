@@ -114,7 +114,7 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Toloka.host}/download.php?id={id}", cookie: Cookie(memoryCache), referer: AppInit.conf.Toloka.host, timeoutSeconds: 10);
-            if (_t != null)
+            if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));

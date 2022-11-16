@@ -80,12 +80,15 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string url)
         {
             if (!AppInit.conf.Selezen.enable)
                 return Content("disable");
+
+            string keydownload = $"selezen:parseMagnet:download:{url}";
+            if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
+                return File(_t, "application/x-bittorrent");
 
             string key = $"selezen:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out string _m))
@@ -109,6 +112,7 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
+            #region html
             string html = await HttpClient.Get(url, cookie: Cookie(Startup.memoryCache), timeoutSeconds: 10);
             if (html == null)
             {
@@ -117,6 +121,28 @@ namespace Lampac.Controllers.JAC
 
                 return Content("error");
             }
+            #endregion
+
+            #region Download
+            if (AppInit.conf.Selezen.priority == "torrent")
+            {
+                string id = new Regex("href=\"/index.php\\?do=download&id=([0-9]+)").Match(html).Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    _t = await HttpClient.Download($"{AppInit.conf.Selezen.host}/index.php?do=download&id={id}", cookie: Cookie(Startup.memoryCache), referer: AppInit.conf.Selezen.host, timeoutSeconds: 10);
+                    if (_t != null && BencodeTo.Magnet(_t) != null)
+                    {
+                        await TorrentCache.Write(keydownload, _t);
+                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                        return File(_t, "application/x-bittorrent");
+                    }
+                    if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    {
+                        return File(tcache.torrent, "application/x-bittorrent");
+                    }
+                }
+            }
+            #endregion
 
             string magnet = new Regex("href=\"(magnet:[^\"]+)\"").Match(html).Groups[1].Value;
             if (!string.IsNullOrWhiteSpace(magnet))
@@ -133,6 +159,7 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
+
         #region parsePage
         async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
@@ -148,9 +175,9 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie(Startup.memoryCache), timeoutSeconds: AppInit.conf.timeoutSeconds);
+                string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie(Startup.memoryCache), timeoutSeconds: AppInit.conf.timeoutSeconds);
 
-                if (html != null && html.Contains("релизы от селезнь</title>"))
+                if (html != null && html.Contains("dle_root"))
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);

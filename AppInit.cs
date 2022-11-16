@@ -129,7 +129,7 @@ namespace Lampac
         public OnlinesSettings Zetflix = new OnlinesSettings("https://8nov.zetfix.online");
 
 
-        public VCDNSettings VCDN = new VCDNSettings("https://videocdn.tv", "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", "http://58.svetacdn.in", false);
+        public OnlinesSettings VCDN = new OnlinesSettings(null, apihost: "https://89442664434375553.svetacdn.in/0HlZgU1l1mw5");
 
         public OnlinesSettings VideoAPI = new OnlinesSettings("http://5100.svetacdn.in", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O");
 

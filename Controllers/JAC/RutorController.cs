@@ -8,13 +8,44 @@ using Lampac.Engine.Parse;
 using Lampac.Engine;
 using System.Collections.Concurrent;
 using Lampac.Models.JAC;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.JAC
 {
-    //[Route("rutor/[action]")]
+    [Route("rutor/[action]")]
     public class RutorController : BaseController
     {
-        async public static Task<bool> parsePage(ConcurrentBag<TorrentDetails> torrents, string query, string cat, bool isua = false, string parsecat = null)
+        #region parseMagnet
+        async public Task<ActionResult> parseMagnet(int id, string magnet)
+        {
+            if (!AppInit.conf.Rutor.enable)
+                return Content("disable");
+
+            if (id == 0)
+                return Redirect(magnet);
+
+            string key = $"rutor:parseMagnet:{id}";
+            if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
+                return File(_t, "application/x-bittorrent");
+
+            _t = await HttpClient.Download($"{Regex.Replace(AppInit.conf.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: AppInit.conf.Rutor.host, timeoutSeconds: 10);
+            if (_t != null && BencodeTo.Magnet(_t) != null)
+            {
+                await TorrentCache.Write(key, _t);
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                return File(_t, "application/x-bittorrent");
+            }
+            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
+            {
+                return File(tcache.torrent, "application/x-bittorrent");
+            }
+
+            return Redirect(magnet);
+        }
+        #endregion
+
+        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat, bool isua = false, string parsecat = null)
         {
             if (!AppInit.conf.Rutor.enable)
                 return false;
@@ -74,6 +105,7 @@ namespace Lampac.Controllers.JAC
                 string _pir = Match("<span class=\"red\">&nbsp;([0-9]+)</span>");
                 string sizeName = Match("<td align=\"right\">([^<]+)</td>");
                 string magnet = Match("href=\"(magnet:\\?xt=[^\"]+)\"");
+                string viewtopic = Regex.Match(url, "torrent/([0-9]+)").Groups[1].Value;
 
                 if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(magnet) || title.ToLower().Contains("трейлер"))
                     continue;
@@ -282,7 +314,8 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        magnet = magnet,
+                        magnet = AppInit.conf.Rutor.priority == "torrent" ? null : magnet,
+                        parselink = AppInit.conf.Rutor.priority == "torrent" ? $"{host}/rutor/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
                         createTime = createTime,
                         name = name,
                         originalname = originalname,

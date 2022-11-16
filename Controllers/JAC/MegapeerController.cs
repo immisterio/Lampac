@@ -28,7 +28,7 @@ namespace Lampac.Controllers.JAC
                 return File(_m, "application/x-bittorrent");
 
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Megapeer.host}/download/{id}", referer: AppInit.conf.Megapeer.host, timeoutSeconds: 10);
-            if (_t != null)
+            if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));

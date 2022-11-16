@@ -121,7 +121,7 @@ namespace Lampac.Controllers.JAC
                 if (!string.IsNullOrWhiteSpace(downloadid))
                 {
                     byte[] _t = await HttpClient.Download($"{AppInit.conf.NNMClub.host}/forum/download.php?id={downloadid}", cookie: Cookie, referer: AppInit.conf.NNMClub.host, timeoutSeconds: 10);
-                    if (_t != null)
+                    if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
                         await TorrentCache.Write(keydownload, _t);
                         Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
