@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Lampac.Models.DLNA
 {
@@ -17,5 +18,7 @@ namespace Lampac.Models.DLNA
         public string type { get; set; }
 
         public long length { get; set; }
+
+        public DateTime creationTime { get; set; }
     }
 }

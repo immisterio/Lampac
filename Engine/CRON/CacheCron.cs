@@ -24,7 +24,7 @@ namespace Lampac.Engine.CRON
                     catch { }
                 }
 
-                await Task.Delay(1000 * 60 * 60);
+                await Task.Delay(TimeSpan.FromMinutes(60));
             }
         }
     }

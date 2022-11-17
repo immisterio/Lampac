@@ -46,6 +46,8 @@ namespace Lampac
 
         public bool proxytoproxyimg = false;
 
+        public bool autoupdatetrackers = true;
+
 
         public DLNASettings dlna = new DLNASettings() { enable = true };
 

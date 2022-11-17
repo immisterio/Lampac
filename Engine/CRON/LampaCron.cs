@@ -1,4 +1,5 @@
 ﻿using Lampac.Engine.CORE;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
@@ -50,7 +51,7 @@ namespace Lampac.Engine.CRON
                 }
                 catch { }
 
-                await Task.Delay(1000 * 60 * 20);
+                await Task.Delay(TimeSpan.FromMinutes(20));
             }
         }
     }

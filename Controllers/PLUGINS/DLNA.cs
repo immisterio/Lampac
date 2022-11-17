@@ -28,13 +28,14 @@ namespace Lampac.Controllers.PLUGINS
         {
             EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
             {
-                MaximumConnections = 30,
+                MaximumConnections = 50,
                 MaximumHalfOpenConnections = 20,
                 MaximumUploadSpeed = 125000, // 1Mbit/s
                 MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed
             };
 
             torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
+            torrentEngine.DhtEngine.StartAsync();
 
 
             if (!Directory.Exists("cache/metadata"))
@@ -120,10 +121,8 @@ namespace Lampac.Controllers.PLUGINS
         #region getTorrent
         async ValueTask<(string magnet, byte[] torrent)> getTorrent(string path)
         {
-            string trackers = await IO.File.ReadAllTextAsync("trackers.txt");
-
             if (!path.StartsWith("http"))
-                return (path + trackers, null);
+                return (path, null);
 
             string memkey = $"DLNAController:getTorrent:{path}";
             if (!memoryCache.TryGetValue(memkey, out (string magnet, byte[] torrent) cache))
@@ -148,17 +147,14 @@ namespace Lampac.Controllers.PLUGINS
                                 var t = await content.ReadAsByteArrayAsync();
                                 cache.magnet = BencodeTo.Magnet(t);
                                 if (cache.magnet != null)
-                                {
                                     cache.torrent = t;
-                                    cache.magnet += trackers;
-                                }
                             }
                         }
                         else if (((int)response.StatusCode) is 301 or 302 or 307)
                         {
                             string location = response.Headers.Location?.ToString() ?? response.RequestMessage.RequestUri?.ToString();
                             if (location != null && location.StartsWith("magnet:"))
-                                cache.magnet = location + trackers;
+                                cache.magnet = location;
                         }
                     }
                 }
@@ -169,7 +165,7 @@ namespace Lampac.Controllers.PLUGINS
                 memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(10));
             }
 
-            return cache;
+            return (cache.magnet, cache.torrent);
         }
         #endregion
 
@@ -219,7 +215,8 @@ namespace Lampac.Controllers.PLUGINS
                     uri = $"{AppInit.Host(HttpContext)}/dlna?path={HttpUtility.UrlEncode(folder.Replace("dlna/", ""))}",
                     img = getImage(Path.GetFileName(folder)),
                     path = folder.Replace("dlna/", ""),
-                    length = Directory.GetFiles(folder).Length
+                    length = Directory.GetFiles(folder).Length,
+                    creationTime = Directory.GetCreationTime(folder)
                 });
             }
 
@@ -229,6 +226,8 @@ namespace Lampac.Controllers.PLUGINS
                     continue;
 
                 string name = Path.GetFileName(file);
+                var fileinfo = new FileInfo(file);
+
                 var dlnaModel = new DlnaModel()
                 {
                     type = "file",
@@ -237,7 +236,8 @@ namespace Lampac.Controllers.PLUGINS
                     img = getImage(name),
                     subtitles = new List<Subtitle>(),
                     path = file.Replace("dlna/", ""),
-                    length = new FileInfo(file).Length
+                    length = fileinfo.Length,
+                    creationTime = fileinfo.CreationTime
                 };
 
                 if (IO.File.Exists($"dlna/{path}/{Path.GetFileNameWithoutExtension(file)}.srt"))
@@ -252,7 +252,14 @@ namespace Lampac.Controllers.PLUGINS
                 playlist.Add(dlnaModel);
             }
 
-            return Json(playlist);
+            if (string.IsNullOrWhiteSpace(path))
+                return Json(playlist.OrderByDescending(i => i.creationTime));
+
+            return Json(playlist.OrderBy(i => 
+            {
+                ulong.TryParse(Regex.Replace(i.name, "[^0-9]+", ""), out ulong ident);
+                return ident;
+            }));
         }
         #endregion
 
@@ -365,7 +372,20 @@ namespace Lampac.Controllers.PLUGINS
                 var s_cts = new CancellationTokenSource();
                 s_cts.CancelAfter(1000 * 60 * 2);
 
-                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(tparse.magnet), s_cts.Token);
+                #region trackers
+                string trackers = string.Empty;
+
+                foreach (string line in IO.File.ReadLines("trackers.txt"))
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    if (line.StartsWith("http") || line.StartsWith("udp:"))
+                        trackers += $"&tr={line}";
+                }
+                #endregion
+
+                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(tparse.magnet + trackers), s_cts.Token);
                 if (data == null)
                     return Json(new { });
 
@@ -404,7 +424,7 @@ namespace Lampac.Controllers.PLUGINS
 
                 if (manager != null)
                 {
-                    if (manager.State is TorrentState.Stopped or TorrentState.Stopping)
+                    if (manager.State is TorrentState.Stopped or TorrentState.Stopping or TorrentState.Error)
                     {
                         await manager.StartAsync();
                         await manager.WaitForMetadataAsync();
@@ -412,16 +432,31 @@ namespace Lampac.Controllers.PLUGINS
                 }
                 else
                 {
-                    dynamic tlink = tparse.torrent != null ? Torrent.Load(tparse.torrent) : MagnetLink.Parse(tparse.magnet);
+                    dynamic tlink = tparse.torrent != null ? Torrent.Load(tparse.torrent) : magnetLink;
                     manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, "dlna/") : await torrentEngine.AddAsync(tlink, "dlna/");
+
+                    #region AddTrackerAsync
+                    foreach (string line in IO.File.ReadLines("trackers.txt"))
+                    {
+                        if (string.IsNullOrWhiteSpace(line))
+                            continue;
+
+                        if (line.StartsWith("http") || line.StartsWith("udp:"))
+                            await manager.TrackerManager.AddTrackerAsync(new Uri(line));
+                    }
+                    #endregion
 
                     await manager.StartAsync();
                     await manager.WaitForMetadataAsync();
 
+                    #region TorrentStateChanged
                     manager.TorrentStateChanged += async (s, e) =>
                     {
                         if (e != null && e.NewState == TorrentState.Seeding)
                             await e.TorrentManager.StopAsync();
+
+                        //if (e != null && e.NewState == TorrentState.Error)
+                        //    await e.TorrentManager.StartAsync();
 
                         if (e != null && (e.NewState == TorrentState.Stopped || e.NewState == TorrentState.Stopping))
                         {
@@ -443,8 +478,10 @@ namespace Lampac.Controllers.PLUGINS
                             }
                         }
                     };
+                    #endregion
                 }
 
+                #region indexs
                 if (indexs == null || indexs.Length == 0)
                 {
                     await manager.SetFilePriorityAsync(manager.Files[0], Priority.High);
@@ -457,7 +494,13 @@ namespace Lampac.Controllers.PLUGINS
                     {
                         if (indexs.Contains(i))
                         {
-                            await manager.SetFilePriorityAsync(manager.Files[i], i == indexs[0] ? Priority.High : Priority.Normal);
+                            var priority = Priority.Normal;
+                            if (i == indexs[0])
+                                priority = Priority.Highest;
+                            else if (indexs.Length > 1 && i == indexs[1])
+                                priority = Priority.High;
+
+                            await manager.SetFilePriorityAsync(manager.Files[i], priority);
                         }
                         else
                         {
@@ -465,7 +508,9 @@ namespace Lampac.Controllers.PLUGINS
                         }
                     }
                 }
+                #endregion
 
+                #region thumb
                 if (thumb != null)
                 {
                     try
@@ -479,6 +524,7 @@ namespace Lampac.Controllers.PLUGINS
                     }
                     catch { }
                 }
+                #endregion
             }
             catch
             {
