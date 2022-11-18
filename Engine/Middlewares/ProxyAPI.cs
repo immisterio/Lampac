@@ -158,6 +158,12 @@ namespace Lampac.Engine.Middlewares
                 }
             }
 
+            if (uri.Host.Contains("aniboom."))
+            {
+                requestMessage.Headers.TryAddWithoutValidation("origin", "https://aniboom.one");
+                requestMessage.Headers.TryAddWithoutValidation("referer", "https://aniboom.one/");
+            }
+
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);

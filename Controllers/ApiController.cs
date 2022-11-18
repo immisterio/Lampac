@@ -113,6 +113,15 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
+            if (AppInit.conf.AnimeGo.enable)
+                online += "{name:'AnimeGo',url:'{localhost}/animego'},";
+
+            if (AppInit.conf.AnilibriaOnline.enable)
+                online += "{name:'Anilibria',url:'{localhost}/anilibria'},";
+
+            if (AppInit.conf.AniMedia.enable)
+                online += "{name:'AniMedia',url:'{localhost}/animedia'},";
+
             if (AppInit.conf.Kinokrad.enable)
                 online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
 
@@ -121,12 +130,6 @@ namespace Lampac.Controllers
 
             if (AppInit.conf.Kinoprofi.enable)
                 online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
-
-            if (AppInit.conf.AnilibriaOnline.enable)
-                online += "{name:'Anilibria',url:'{localhost}/anilibria'},";
-
-            if (AppInit.conf.AniMedia.enable)
-                online += "{name:'AniMedia',url:'{localhost}/animedia'},";
 
             if (AppInit.conf.Redheadsound.enable && serial == 0)
                 online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";

@@ -154,6 +154,8 @@ namespace Lampac
 
         public OnlinesSettings AniMedia = new OnlinesSettings("https://online.animedia.tv");
 
+        public OnlinesSettings AnimeGo = new OnlinesSettings("https://animego.org");
+
 
         public ProxySettings proxy = new ProxySettings();
 
