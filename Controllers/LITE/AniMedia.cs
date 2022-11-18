@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string code)> catalog))
                 {
                     string search = await HttpClient.Get($"{AppInit.conf.AniMedia.host}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, useproxy: AppInit.conf.AniMedia.useproxy);
-                    if (search == null || !search.Contains("class=\"xads-list\""))
+                    if (search == null)
                         return Content(string.Empty);
 
                     catalog = new List<(string title, string url)>();
@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string link = $"{AppInit.Host(HttpContext)}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}";
 
-                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
+                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
                     firstjson = false;
                 }
                 #endregion

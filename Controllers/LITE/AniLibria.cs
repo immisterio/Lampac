@@ -47,9 +47,9 @@ namespace Lampac.Controllers.LITE
             if (!string.IsNullOrWhiteSpace(code) || (result.Count == 1 && result[0].season.year == year && result[0].names.ru?.ToLower() == title.ToLower()))
             {
                 #region Серии
-                var player = string.IsNullOrWhiteSpace(code) ? result[0].player : result.Find(i => i.code == code).player;
+                var root = string.IsNullOrWhiteSpace(code) ? result[0] : result.Find(i => i.code == code);
 
-                foreach (var episode in player.playlist.Select(i => i.Value))
+                foreach (var episode in root.player.playlist.Select(i => i.Value))
                 {
                     #region streansquality
                     string streansquality = string.Empty;
@@ -67,10 +67,12 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
-                    hls = $"https://{player.host}{hls}";
+                    hls = $"https://{root.player.host}{hls}";
                     hls = AppInit.conf.AnilibriaOnline.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + episode.serie + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({episode.serie} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.serie} серия" + "</div></div>";
+                    string season = string.IsNullOrWhiteSpace(code) || (root.names.ru?.ToLower() == title.ToLower()) ? "1"  : "0";
+
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + season + "\" e=\"" + episode.serie + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({episode.serie} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.serie} серия" + "</div></div>";
                     firstjson = false;
                 }
                 #endregion
@@ -82,7 +84,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string link = $"{AppInit.Host(HttpContext)}/lite/anilibria?title={HttpUtility.UrlEncode(title)}&code={root.code}";
 
-                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{root.names.ru ?? root.names.en} ({root.season.year})" + "</div></div></div>";
+                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{root.names.ru ?? root.names.en} ({root.season.year})" + "</div></div></div>";
                     firstjson = false;
                 }
                 #endregion
