@@ -150,6 +150,9 @@ namespace Lampac
         public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
 
 
+        public OnlinesSettings AnilibriaOnline = new OnlinesSettings("https://www.anilibria.tv");
+
+
         public ProxySettings proxy = new ProxySettings();
 
         public List<ProxySettings> globalproxy = new List<ProxySettings>();

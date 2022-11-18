@@ -122,6 +122,9 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinoprofi.enable)
                 online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
 
+            if (AppInit.conf.AnilibriaOnline.enable)
+                online += "{name:'Anilibria',url:'{localhost}/anilibriaonline'},";
+
             if (AppInit.conf.Redheadsound.enable && serial == 0)
                 online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
 
