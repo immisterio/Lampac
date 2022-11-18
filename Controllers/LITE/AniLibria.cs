@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
     public class AniLibriaOnline : BaseController
     {
         [HttpGet]
-        [Route("lite/aniLibriaonline")]
+        [Route("lite/anilibria")]
         async public Task<ActionResult> Index(string title, string code, int year)
         {
             if (!AppInit.conf.AnilibriaOnline.enable || string.IsNullOrWhiteSpace(title))
@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memkey, out List<RootObject> result))
             {
-                var search = await HttpClient.Get<List<RootObject>>($"{AppInit.conf.AnilibriaOnline.apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title), timeoutSeconds: AppInit.conf.timeoutSeconds, useproxy: AppInit.conf.AnilibriaOnline.useproxy, IgnoreDeserializeObject: true);
+                var search = await HttpClient.Get<List<RootObject>>($"{AppInit.conf.AnilibriaOnline.apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title), useproxy: AppInit.conf.AnilibriaOnline.useproxy, IgnoreDeserializeObject: true);
                 if (search == null || search.Count == 0)
                     return Content(string.Empty);
 
@@ -80,7 +80,7 @@ namespace Lampac.Controllers.LITE
                 #region Поиск
                 foreach (var root in result)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/aniLibriaonline?title={HttpUtility.UrlEncode(title)}&code={root.code}";
+                    string link = $"{AppInit.Host(HttpContext)}/lite/anilibria?title={HttpUtility.UrlEncode(title)}&code={root.code}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{root.names.ru ?? root.names.en} ({root.season.year})" + "</div></div></div>";
                     firstjson = false;

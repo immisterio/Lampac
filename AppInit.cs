@@ -152,6 +152,8 @@ namespace Lampac
 
         public OnlinesSettings AnilibriaOnline = new OnlinesSettings("https://www.anilibria.tv");
 
+        public OnlinesSettings AniMedia = new OnlinesSettings("https://online.animedia.tv");
+
 
         public ProxySettings proxy = new ProxySettings();
 
