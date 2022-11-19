@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/animego")]
-        async public Task<ActionResult> Index(string title, int year, int pid, int s)
+        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
         {
             if (!AppInit.conf.AnimeGo.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
@@ -74,8 +74,9 @@ namespace Lampac.Controllers.LITE
             {
                 #region Серии
                 string memKey = $"animego:playlist:{pid}";
-                if (!memoryCache.TryGetValue(memKey, out List<(string episode, string uri)> links))
+                if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
+                    #region content
                     var player = await HttpClient.Get<JObject>($"{AppInit.conf.AnimeGo.host}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>() 
                     {
                         ("cache-control", "no-cache"),
@@ -91,30 +92,68 @@ namespace Lampac.Controllers.LITE
                     string content = player?.Value<string>("content");
                     if (string.IsNullOrWhiteSpace(content))
                         return Content(string.Empty);
+                    #endregion
 
                     var g = Regex.Match(content, "data-player=\"(https?:)?//(aniboom\\.[^/]+)/embed/([^\"\\?&]+)\\?episode=1\\&amp;translation=([0-9]+)\"").Groups;
                     if (string.IsNullOrWhiteSpace(g[2].Value) || string.IsNullOrWhiteSpace(g[3].Value) || string.IsNullOrWhiteSpace(g[4].Value))
                         return Content(string.Empty);
 
-                    links = new List<(string episode, string uri)>();
+                    #region links
+                    cache.links = new List<(string episode, string uri)>();
                     var match = Regex.Match(content, "data-episode=\"([0-9]+)\"");
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value))
-                            links.Add((match.Groups[1].Value, $"video.m3u8?host={g[2].Value}&token={g[3].Value}&t={g[4].Value}&e={match.Groups[1].Value}"));
+                            cache.links.Add((match.Groups[1].Value, $"video.m3u8?host={g[2].Value}&token={g[3].Value}&e={match.Groups[1].Value}"));
 
                         match = match.NextMatch();
                     }
 
-                    if (links.Count == 0)
+                    if (cache.links.Count == 0)
                         return Content(string.Empty);
+                    #endregion
 
-                    memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                    #region translation / translations
+                    cache.translation = g[4].Value;
+                    cache.translations = new List<(string name, string id)>();
+
+                    match = Regex.Match(content, "data-player=\"(https?:)?//aniboom\\.[^/]+/embed/[^\"\\?&]+\\?episode=[0-9]+\\&amp;translation=([0-9]+)\"[\n\r\t ]+data-provider=\"[0-9]+\"[\n\r\t ]+data-provide-dubbing=\"([0-9]+)\"");
+                    while (match.Success)
+                    {
+                        if (!string.IsNullOrWhiteSpace(match.Groups[2].Value) && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
+                        {
+                            string name = Regex.Match(content, $"data-dubbing=\"{match.Groups[3].Value}\"><span [^>]+>[\n\r\t ]+([^\n\r<]+)").Groups[1].Value.Trim();
+                            if (!string.IsNullOrWhiteSpace(name))
+                                cache.translations.Add((name, match.Groups[2].Value));
+                        }
+
+                        match = match.NextMatch();
+                    }
+                    #endregion
+
+                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }
 
-                foreach (var l in links)
+                #region Перевод
+                if (string.IsNullOrWhiteSpace(t))
+                    t = cache.translation;
+
+                foreach (var translation in cache.translations)
                 {
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + $"{AppInit.Host(HttpContext)}/lite/animego/{l.uri}" + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
+                    string link = $"{AppInit.Host(HttpContext)}/lite/animego?pid={pid}&title={HttpUtility.UrlEncode(title)}&s={s}&t={translation.id}";
+                    string active = t == translation.id ? "active" : "";
+
+                    html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.name + "</div>";
+                }
+
+                html += "</div><div class=\"videos__line\">";
+                #endregion
+
+                foreach (var l in cache.links)
+                {
+                    string hls = $"{AppInit.Host(HttpContext)}/lite/animego/{l.uri}&t={t ?? cache.translation}&pid={pid}";
+
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
                     firstjson = true;
                 }
                 #endregion
@@ -127,7 +166,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animego/video.m3u8")]
-        async public Task<ActionResult> Video(string host, string token, int t, int e)
+        async public Task<ActionResult> Video(string host, string token, string t, int e, int pid)
         {
             if (!AppInit.conf.AnimeGo.enable)
                 return Content(string.Empty);
@@ -135,6 +174,35 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
+                #region series
+                var player = await HttpClient.Get<JObject>($"{AppInit.conf.AnimeGo.host}/anime/series?provider={t}&episode={e}&id={pid}", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>()
+                {
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("pragma", "no-cache"),
+                    ("referer", $"{AppInit.conf.AnimeGo.host}/"),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("x-requested-with", "XMLHttpRequest")
+                });
+
+                string content = player?.Value<string>("content");
+                if (string.IsNullOrWhiteSpace(content))
+                    return Content(string.Empty);
+
+                if (!content.Contains($"&amp;translation={t}"))
+                {
+                    var g = Regex.Match(content, "data-player=\"(https?:)?//(aniboom\\.[^/]+)/embed/([^\"\\?&]+)\\?episode=[0-9]+\\&amp;translation=([0-9]+)\"").Groups;
+                    if (string.IsNullOrWhiteSpace(g[2].Value) || string.IsNullOrWhiteSpace(g[3].Value) || string.IsNullOrWhiteSpace(g[4].Value))
+                        return Content(string.Empty);
+
+                    host = g[2].Value;
+                    token = g[3].Value;
+                    t = g[4].Value;
+                }
+                #endregion
+
                 string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("cache-control", "no-cache"),
