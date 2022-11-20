@@ -80,6 +80,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
                 online += "{name:'Bazon',url:'{localhost}/bazon'},";
 
+            if (AppInit.conf.VideoDB.enable)
+                online += "{name:'VideoDB',url:'{localhost}/videodb'},";
+
             if (AppInit.conf.Zetflix.enable)
                 online += "{name:'Zetflix',url:'{localhost}/zetflix'},";
 
@@ -113,7 +116,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
-            if (AppInit.conf.CDNmovies.enable)
+            if (AppInit.conf.CDNmovies.enable && serial == 1)
                 online += "{name:'CDNmovies',url:'{localhost}/cdnmovies'},";
 
             if (AppInit.conf.AnimeGo.enable)
