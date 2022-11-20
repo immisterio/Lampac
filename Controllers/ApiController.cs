@@ -113,6 +113,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
+            if (AppInit.conf.CDNmovies.enable)
+                online += "{name:'CDNmovies',url:'{localhost}/cdnmovies'},";
+
             if (AppInit.conf.AnimeGo.enable)
                 online += "{name:'AnimeGo',url:'{localhost}/animego'},";
 

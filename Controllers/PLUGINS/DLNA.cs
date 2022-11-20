@@ -28,7 +28,7 @@ namespace Lampac.Controllers.PLUGINS
         {
             EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
             {
-                MaximumConnections = 50,
+                MaximumConnections = 30,
                 MaximumHalfOpenConnections = 20,
                 MaximumUploadSpeed = 125000, // 1Mbit/s
                 MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed

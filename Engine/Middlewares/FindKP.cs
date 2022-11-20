@@ -21,7 +21,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.QueryString.Value.Contains("&source=tmdb") && !httpContext.Request.QueryString.Value.Contains("&kinopoisk_id="))
             {
-                if (Regex.IsMatch(httpContext.Request.Path.Value, "^/lite/(hdvb|bazon|ashdi|zetflix)"))
+                if (Regex.IsMatch(httpContext.Request.Path.Value, "^/lite/(hdvb|bazon|ashdi|zetflix|cdnmovies)"))
                 {
                     string imdb = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)imdb_id=([^&]+)").Groups[2].Value;
                     if (string.IsNullOrWhiteSpace(imdb))

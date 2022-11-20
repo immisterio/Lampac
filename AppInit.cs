@@ -130,6 +130,8 @@ namespace Lampac
 
         public OnlinesSettings Zetflix = new OnlinesSettings("https://8nov.zetfix.online");
 
+        public OnlinesSettings CDNmovies = new OnlinesSettings("https://cdnmovies.nl");
+
 
         public OnlinesSettings VCDN = new OnlinesSettings(null, apihost: "https://89442664434375553.svetacdn.in/0HlZgU1l1mw5");
 
