@@ -4,7 +4,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Web;
 using Lampac.Engine;
@@ -18,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vcdn")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int s, int sid = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1)
         {
             if (!AppInit.conf.VCDN.enable)
                 return Content(string.Empty);
@@ -272,8 +271,10 @@ namespace Lampac.Controllers.LITE
                             sname += $" ({episodetitle})";
 
                         string ename = Regex.Match(episode.title, "<i>([^<]+)</i>").Groups[1].Value;
-
                         string eid = Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value;
+
+                        if (s == -1)
+                            s = 1;
 
                         #region streamsquality
                         string streamsquality = string.Empty;
