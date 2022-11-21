@@ -7,5 +7,9 @@
         public string mode { get; set; }
 
         public int downloadSpeed { get; set; }
+
+        public int maximumDiskReadRate { get; set; }
+
+        public int maximumDiskWriteRate { get; set; }
     }
 }

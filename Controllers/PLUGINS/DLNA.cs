@@ -31,7 +31,9 @@ namespace Lampac.Controllers.PLUGINS
                 MaximumConnections = 30,
                 MaximumHalfOpenConnections = 20,
                 MaximumUploadSpeed = 125000, // 1Mbit/s
-                MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed
+                MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
+                MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
+                MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
             };
 
             torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
