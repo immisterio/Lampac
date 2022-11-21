@@ -15,7 +15,7 @@ namespace Lampac.Controllers.JAC
     public class JackettController : BaseController
     {
         [Route("api/v2.0/indexers/all/results")]
-        public ActionResult Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        async public Task<ActionResult> Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
             var torrents = new ConcurrentBag<TorrentDetails>();
             var temptorrents = new ConcurrentBag<TorrentDetails>();
@@ -70,7 +70,7 @@ namespace Lampac.Controllers.JAC
             if (is_serial == 1)
             {
                 #region Фильм
-                Task.WaitAll(new Task[]
+                await Task.WhenAll(new Task[]
                 {
                     RutorController.parsePage(host, temptorrents, search, "1"),  // movie
                     RutorController.parsePage(host, temptorrents, search, "5"),  // movie
@@ -94,13 +94,13 @@ namespace Lampac.Controllers.JAC
                     BitruController.parsePage(host, temptorrents, search, new string[] { "movie" }),
                     SelezenController.parsePage(host, temptorrents, search),
 
-                }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
+                });
                 #endregion
             }
             else if (is_serial == 2)
             {
                 #region Сериал
-                Task.WaitAll(new Task[]
+                await Task.WhenAll(new Task[]
                 {
                     RutorController.parsePage(host, temptorrents, search, "4"),  // serial
                     RutorController.parsePage(host, temptorrents, search, "16"), // serial
@@ -127,13 +127,13 @@ namespace Lampac.Controllers.JAC
                     UnderverseController.parsePage(temptorrents, search, new string[] { "serial", "docuserial" }),
                     BitruController.parsePage(host, temptorrents, search, new string[] { "serial" }),
 
-                }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
+                });
                 #endregion
             }
             else if (is_serial == 3)
             {
                 #region tvshow
-                Task.WaitAll(new Task[]
+                await Task.WhenAll(new Task[]
                 {
                     RutorController.parsePage(host, temptorrents, search, "6"),
                     MegapeerController.parsePage(host, temptorrents, search, "57"),
@@ -145,13 +145,13 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "tvshow" }),
                     UnderverseController.parsePage(temptorrents, search, new string[] { "tvshow" }),
 
-                }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
+                });
                 #endregion
             }
             else if (is_serial == 4)
             {
                 #region docuserial / documovie
-                Task.WaitAll(new Task[]
+                await Task.WhenAll(new Task[]
                 {
                     RutorController.parsePage(host, temptorrents, search, "12"),
                     MegapeerController.parsePage(host, temptorrents, search, "55"),
@@ -160,7 +160,7 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
                     UnderverseController.parsePage(temptorrents, search, new string[] { "docuserial", "documovie" }),
 
-                }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
+                });
                 #endregion
             }
             else if (is_serial == 5)
@@ -168,7 +168,7 @@ namespace Lampac.Controllers.JAC
                 #region anime
                 string animesearch = title ?? query;
 
-                Task.WaitAll(new Task[]
+                await Task.WhenAll(new Task[]
                 {
                     RutorController.parsePage(host, temptorrents, animesearch, "10"),
                     TorrentByController.parsePage(host, temptorrents, animesearch, "6"),
@@ -178,13 +178,13 @@ namespace Lampac.Controllers.JAC
                     AniLibriaController.parsePage(host, temptorrents, search),
                     AnimeLayerController.parsePage(host, temptorrents, search),
 
-                }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
+                });
                 #endregion
             }
             else
             {
                 #region Неизвестно
-                Task.WaitAll(new Task[]
+                await Task.WhenAll(new Task[]
                 {
                     RutorController.parsePage(host, temptorrents, search, "0"),
                     MegapeerController.parsePage(host, temptorrents, search, "0"),
@@ -198,7 +198,7 @@ namespace Lampac.Controllers.JAC
                     AniLibriaController.parsePage(host, temptorrents, search),
                     AnimeLayerController.parsePage(host, temptorrents, search),
 
-                }, AppInit.conf.timeoutSeconds * 1000 + 2_000);
+                });
                 #endregion
             }
             #endregion

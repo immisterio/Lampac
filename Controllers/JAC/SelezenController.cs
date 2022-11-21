@@ -166,6 +166,21 @@ namespace Lampac.Controllers.JAC
             if (!AppInit.conf.Selezen.enable)
                 return false;
 
+            #region Авторизация
+            if (Cookie(Startup.memoryCache) == null)
+            {
+                string authKey = "selezen:TakeLogin()";
+                if (Startup.memoryCache.TryGetValue(authKey, out _))
+                    return false;
+
+                if (await TakeLogin(Startup.memoryCache) == false)
+                {
+                    Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
+                    return false;
+                }
+            }
+            #endregion
+
             #region Кеш
             string cachekey = $"selezen:{query}";
             var cread = await HtmlCache.Read(cachekey);
@@ -186,21 +201,6 @@ namespace Lampac.Controllers.JAC
                 if (cread.html == null)
                 {
                     HtmlCache.EmptyCache(cachekey);
-                    return false;
-                }
-            }
-            #endregion
-
-            #region Авторизация
-            if (Cookie(Startup.memoryCache) == null)
-            {
-                string authKey = "selezen:TakeLogin()";
-                if (Startup.memoryCache.TryGetValue(authKey, out _))
-                    return false;
-
-                if (await TakeLogin(Startup.memoryCache) == false)
-                {
-                    Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return false;
                 }
             }

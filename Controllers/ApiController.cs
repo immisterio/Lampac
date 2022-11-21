@@ -65,7 +65,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite.js")]
-        public ActionResult Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial = -1)
+        async public Task<ActionResult> Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial = -1)
         {
             string file = System.IO.File.ReadAllText("plugins/lite.js");
 
@@ -173,7 +173,7 @@ namespace Lampac.Controllers
                     match = match.NextMatch();
                 }
 
-                Task.WaitAll(tasks.ToArray(), millisecondsTimeout: 10_000);
+                await Task.WhenAll(tasks);
 
                 online = string.Join("", links.OrderBy(i => i.index).Select(i => i.code));
             }
