@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animevost:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string uri, string s)> catalog))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Animevost.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0", timeoutSeconds: 10, useproxy: AppInit.conf.Animevost.useproxy);
+                    string search = await HttpClient.Post($"{AppInit.conf.Animevost.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0", timeoutSeconds: 8, useproxy: AppInit.conf.Animevost.useproxy);
                     if (search == null)
                         return Content(string.Empty);
 
@@ -71,7 +71,7 @@ namespace Lampac.Controllers.LITE
             else 
             {
                 #region Серии
-                string memKey = $"animego:playlist:{uri}";
+                string memKey = $"animevost:playlist:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out List<(string episode, string id)> links))
                 {
                     string news = await HttpClient.Get(uri, timeoutSeconds: 10, useproxy: AppInit.conf.Animevost.useproxy);
@@ -123,7 +123,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animevost:video:{id}";
             if (!memoryCache.TryGetValue(memKey, out string mp4))
             {
-                string iframe = await HttpClient.Get($"{AppInit.conf.Animevost.host}/frame5.php?play={id}&old=1", timeoutSeconds: 8, useproxy: AppInit.conf.Animevost.useproxy);
+                string iframe = await HttpClient.Get($"{AppInit.conf.Animevost.host}/frame5.php?play={id}&old=1", timeoutSeconds: 8);
                 if (string.IsNullOrWhiteSpace(iframe))
                     return Content(string.Empty);
 

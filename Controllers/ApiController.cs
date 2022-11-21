@@ -128,6 +128,9 @@ namespace Lampac.Controllers
             if (AppInit.conf.Animevost.enable)
                 online += "{name:'Animevost',url:'{localhost}/animevost'},";
 
+            if (AppInit.conf.Animebesst.enable)
+                online += "{name:'Animebesst',url:'{localhost}/animebesst'},";
+
             if (AppInit.conf.AniMedia.enable)
                 online += "{name:'AniMedia',url:'{localhost}/animedia'},";
 

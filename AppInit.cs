@@ -162,6 +162,8 @@ namespace Lampac
 
         public OnlinesSettings Animevost = new OnlinesSettings("https://animevost.org");
 
+        public OnlinesSettings Animebesst = new OnlinesSettings("https://anime1.animebesst.org");
+
 
         public ProxySettings proxy = new ProxySettings();
 
