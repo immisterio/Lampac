@@ -125,6 +125,9 @@ namespace Lampac.Controllers
             if (AppInit.conf.AnilibriaOnline.enable)
                 online += "{name:'Anilibria',url:'{localhost}/anilibria'},";
 
+            if (AppInit.conf.Animevost.enable)
+                online += "{name:'Animevost',url:'{localhost}/animevost'},";
+
             if (AppInit.conf.AniMedia.enable)
                 online += "{name:'AniMedia',url:'{localhost}/animedia'},";
 

@@ -160,6 +160,8 @@ namespace Lampac
 
         public OnlinesSettings AnimeGo = new OnlinesSettings("https://animego.org");
 
+        public OnlinesSettings Animevost = new OnlinesSettings("https://animevost.org");
+
 
         public ProxySettings proxy = new ProxySettings();
 
