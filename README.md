@@ -24,9 +24,9 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. В "Основной источник" выбрать "CUB"
 
 # Источники 
-* Online - Filmix, Kinobase, HDRezka (Voidboost), VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Redheadsound, Anilibria, AniMedia, AnimeGo, VideoAPI (ENG), Bazon (PAY), Alloha (PAY), Seasonvar (PAY), KinoPub (PAY)
-* Trackers  - kinozal, nnmclub, rutor, megapeer, torrent, bitru, anilibria, toloka, rutracker, underver, selezen, animelayer
-* Клубничка pornhub, bongacams, chaturbate, ebalovo, eporner, hqporner, porntrex, spankbang, xhamster, xnxx, xvideos
+* Online - Filmix, Kinobase, HDRezka (Voidboost), VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Anilibria, AniMedia, AnimeGo, VideoAPI (ENG), Bazon, Alloha, Seasonvar, KinoPub, Redheadsound
+* Trackers - Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (UKR), Rutracker, Underver, Selezen, Animelayer
+* Клубничка - PornHub, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 
 # Привязка PRO аккаунтов
 * Filmix - "http://IP:9118/lite/filmixpro" 
