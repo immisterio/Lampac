@@ -4,6 +4,8 @@
     {
         public bool enable { get; set; }
 
+        public bool autoupdatetrackers { get; set; }
+
         public string mode { get; set; }
 
         public int downloadSpeed { get; set; }

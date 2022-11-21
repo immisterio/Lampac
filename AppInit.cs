@@ -36,9 +36,11 @@ namespace Lampac
 
         public string apikey = null;
 
+        public string ffprobe = "linux";
+
         public string findkp = "alloha";
 
-        public string ffprobe = "linux";
+        public bool checkOnlineSearch = false;
 
         public bool disableserverproxy = false;
 
@@ -46,10 +48,8 @@ namespace Lampac
 
         public bool proxytoproxyimg = false;
 
-        public bool autoupdatetrackers = true;
 
-
-        public DLNASettings dlna = new DLNASettings() { enable = true };
+        public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true };
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true };
 

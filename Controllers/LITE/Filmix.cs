@@ -74,7 +74,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && q > 720)
                             continue;
 
-                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4$", $"_{q}.mp4");
+                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
                         l = AppInit.conf.Filmix.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l}" : l;
 
                         if (link == null)

@@ -14,7 +14,7 @@ namespace Lampac.Engine.CRON
             {
                 try
                 {
-                    if (AppInit.conf.autoupdatetrackers)
+                    if (AppInit.conf.dlna.autoupdatetrackers)
                     {
                         HashSet<string> trackers = new HashSet<string>();
 

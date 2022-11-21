@@ -2,6 +2,11 @@
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Web;
 
 namespace Lampac.Controllers
 {
@@ -60,13 +65,14 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite.js")]
-        public ActionResult Lite(int serial = -1)
+        public ActionResult Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial = -1)
         {
             string file = System.IO.File.ReadAllText("plugins/lite.js");
 
             string online = string.Empty;
 
-            online += "{name:'Jackett',url:'{localhost}/jac'},";
+            if (serial == -1)
+                online += "{name:'Jackett',url:'{localhost}/jac'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 online += "{name:'KinoPub',url:'{localhost}/kinopub'},";
@@ -104,10 +110,10 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 online += "{name:'Kodik',url:'{localhost}/kodik'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && serial == 1)
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && (serial == -1 || serial == 1))
                 online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
 
-            if (AppInit.conf.Lostfilmhd.enable && serial == 1)
+            if (AppInit.conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
                 online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
 
             if (AppInit.conf.Collaps.enable)
@@ -116,7 +122,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
-            if (AppInit.conf.CDNmovies.enable && serial == 1)
+            if (AppInit.conf.CDNmovies.enable && (serial == -1 || serial == 1))
                 online += "{name:'CDNmovies',url:'{localhost}/cdnmovies'},";
 
             if (AppInit.conf.AnimeGo.enable)
@@ -143,19 +149,51 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinoprofi.enable)
                 online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
 
-            if (AppInit.conf.Redheadsound.enable && serial == 0)
+            if (AppInit.conf.Redheadsound.enable && (serial == -1 || serial == 0))
                 online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && serial == 0)
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && (serial == -1 || serial == 0))
                 online += "{name:'VideoAPI (ENG)',url:'{localhost}/videoapi'},";
 
-            if (AppInit.conf.IframeVideo.enable && serial == 0)
+            if (AppInit.conf.IframeVideo.enable && (serial == -1 || serial == 0))
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
+
+            #region checkOnlineSearch
+            if (AppInit.conf.checkOnlineSearch)
+            {
+                List<Task> tasks = new List<Task>();
+                ConcurrentBag<(string code, int index)> links = new ConcurrentBag<(string code, int index)>();
+
+                var match = Regex.Match(online, "(\\{name:'[^']+',url:'\\{localhost\\}/([^']+)'\\},)");
+                while (match.Success)
+                {
+                    if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                        tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, year, serial));
+
+                    match = match.NextMatch();
+                }
+
+                Task.WaitAll(tasks.ToArray(), millisecondsTimeout: 10_000);
+
+                online = string.Join("", links.OrderBy(i => i.index).Select(i => i.code));
+            }
+            #endregion
 
             file = file.Replace("{online}", online);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
+
+
+        #region checkSearch
+        async Task checkSearch(ConcurrentBag<(string code, int index)> links, int index, string code, string uri,
+                               int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
+        {
+            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&serial={serial}", timeoutSeconds: 10);
+            if (!string.IsNullOrWhiteSpace(res) && res.Contains("data-json="))
+                links.Add((code, index));
+        }
+        #endregion
     }
 }
