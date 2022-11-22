@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Web;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers
 {
@@ -161,21 +163,28 @@ namespace Lampac.Controllers
             #region checkOnlineSearch
             if (AppInit.conf.checkOnlineSearch)
             {
-                List<Task> tasks = new List<Task>();
-                ConcurrentBag<(string code, int index)> links = new ConcurrentBag<(string code, int index)>();
-
-                var match = Regex.Match(online, "(\\{name:'[^']+',url:'\\{localhost\\}/([^']+)'\\},)");
-                while (match.Success)
+                string memkey = $"ApiController:checkOnlineSearch:{id}";
+                if (!memoryCache.TryGetValue(memkey, out string newonline))
                 {
-                    if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                        tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, year, serial));
+                    var tasks = new List<Task>();
+                    var links = new ConcurrentBag<(string code, int index)>();
 
-                    match = match.NextMatch();
+                    var match = Regex.Match(online, "(\\{name:'[^']+',url:'\\{localhost\\}/([^']+)'\\},)");
+                    while (match.Success)
+                    {
+                        if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                            tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, year, serial));
+
+                        match = match.NextMatch();
+                    }
+
+                    await Task.WhenAll(tasks);
+                    newonline = online = string.Join("", links.OrderBy(i => i.index).Select(i => i.code));
+
+                    memoryCache.Set(memkey, newonline, DateTime.Now.AddMinutes(10));
                 }
 
-                await Task.WhenAll(tasks);
-
-                online = string.Join("", links.OrderBy(i => i.index).Select(i => i.code));
+                online = newonline;
             }
             #endregion
 
