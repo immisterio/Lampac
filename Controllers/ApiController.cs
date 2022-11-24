@@ -90,6 +90,9 @@ namespace Lampac.Controllers
         {
             string online = string.Empty;
 
+            if (HttpContext.Request.Path.Value.StartsWith("/lite/events"))
+                online += "{name:'Jackett',url:'{localhost}/jac'},";
+
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 online += "{name:'KinoPub',url:'{localhost}/kinopub'},";
 
@@ -180,9 +183,6 @@ namespace Lampac.Controllers
             if (AppInit.conf.IframeVideo.enable && (serial == -1 || serial == 0))
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
 
-            if (serial == -1 || HttpContext.Request.Path.Value.StartsWith("/lite/events"))
-                online += "{name:'Jackett',url:'{localhost}/jac'},";
-
             #region checkOnlineSearch
             if (AppInit.conf.checkOnlineSearch && id > 0)
             {
@@ -219,10 +219,14 @@ namespace Lampac.Controllers
                 return Content($"[{Regex.Replace(events, ",$", "")}]", contentType: "application/javascript; charset=utf-8");
             }
 
-            if (!memoryCache.TryGetValue("ApiController:lite.js", out string file))
+            if (!memoryCache.TryGetValue($"ApiController:lite.js:{id > 0}", out string file))
             {
-                file = await System.IO.File.ReadAllTextAsync("plugins/lite.js");
-                memoryCache.Set("ApiController:lite.js", file, DateTime.Now.AddMinutes(5));
+                if (id > 0)
+                    file = "var append = [{online}]";
+                else
+                    file = await System.IO.File.ReadAllTextAsync("plugins/lite.js");
+
+                memoryCache.Set($"ApiController:lite.js:{id > 0}", file, DateTime.Now.AddMinutes(5));
             }
 
             file = file.Replace("{online}", online);
@@ -239,7 +243,7 @@ namespace Lampac.Controllers
             string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
-            links.Add((code.Replace("},", ",show': " + work.ToString().ToLower()+ "},"), index, work));
+            links.Add((code.Replace("},", ",show:" + work.ToString().ToLower()+ "},"), index, work));
         }
         #endregion
     }
