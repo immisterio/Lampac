@@ -25,12 +25,12 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lampainit.js")]
-        public ActionResult LamInit()
+        public ActionResult LamInit(bool lite)
         {
-            if (!memoryCache.TryGetValue("ApiController:lampainit.js", out string file))
+            if (!memoryCache.TryGetValue($"ApiController:lampainit.js:{lite}", out string file))
             {
-                file = System.IO.File.ReadAllText("plugins/lampainit.js");
-                memoryCache.Set("ApiController:lampainit.js", file, DateTime.Now.AddMinutes(5));
+                file = System.IO.File.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js");
+                memoryCache.Set($"ApiController:lampainit.js:{lite}", file, DateTime.Now.AddMinutes(5));
             }
 
             file = file.Replace("{localhost}", AppInit.Host(HttpContext));
@@ -162,7 +162,7 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinotochka.enable)
                 online += "{name:'Kinotochka',url:'{localhost}/kinotochka'},";
 
-            if (serial != 5)
+            if (serial == -1 || serial == 0 || serial == 1)
             {
                 if (AppInit.conf.Kinokrad.enable)
                     online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
@@ -184,13 +184,13 @@ namespace Lampac.Controllers
                 online += "{name:'Jackett',url:'{localhost}/jac'},";
 
             #region checkOnlineSearch
-            if (AppInit.conf.checkOnlineSearch)
+            if (AppInit.conf.checkOnlineSearch && id > 0)
             {
                 string memkey = $"ApiController:checkOnlineSearch:{id}";
                 if (!memoryCache.TryGetValue(memkey, out string newonline))
                 {
                     var tasks = new List<Task>();
-                    var links = new ConcurrentBag<(string code, int index)>();
+                    var links = new ConcurrentBag<(string code, int index, bool work)>();
 
                     var match = Regex.Match(online, "(\\{name:'[^']+',url:'\\{localhost\\}/([^']+)'\\},)");
                     while (match.Success)
@@ -202,7 +202,7 @@ namespace Lampac.Controllers
                     }
 
                     await Task.WhenAll(tasks);
-                    newonline = online = string.Join("", links.OrderBy(i => i.index).Select(i => i.code));
+                    newonline = online = string.Join("", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
 
                     memoryCache.Set(memkey, newonline, DateTime.Now.AddMinutes(10));
                 }
@@ -214,7 +214,7 @@ namespace Lampac.Controllers
             if (HttpContext.Request.Path.Value.StartsWith("/lite/events"))
             {
                 string events = online.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
-                events = events.Replace("'", "\"").Replace("{", "{\"").Replace(":\"", "\":\"").Replace("\",", "\",\"");
+                events = events.Replace("'", "\"").Replace("{", "{\"").Replace(":\"", "\":\"").Replace("\",", "\",\"").Replace("\"show:", "\"show\":");
 
                 return Content($"[{Regex.Replace(events, ",$", "")}]", contentType: "application/javascript; charset=utf-8");
             }
@@ -233,12 +233,13 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        async Task checkSearch(ConcurrentBag<(string code, int index)> links, int index, string code, string uri,
+        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, int index, string code, string uri,
                                int id, string imdb_id, long kinopoisk_id, string title, string original_title, string source, int year, int serial)
         {
             string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
-            if (!string.IsNullOrWhiteSpace(res) && res.Contains("data-json="))
-                links.Add((code, index));
+
+            bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
+            links.Add((code.Replace("},", ",show': " + work.ToString().ToLower()+ "},"), index, work));
         }
         #endregion
     }

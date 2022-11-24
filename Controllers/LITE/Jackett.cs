@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
             if (!memoryCache.TryGetValue(memkey, out JArray results) || quality == -1)
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.Host(HttpContext)}/api/v2.0/indexers/all/results?apikey={apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(serial == 5 ? 5 : (serial + 1))}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"{AppInit.Host(HttpContext)}/api/v2.0/indexers/all/results?apikey={apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(serial == 5 ? 5 : (serial + 1))}", timeoutSeconds: 11);
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
