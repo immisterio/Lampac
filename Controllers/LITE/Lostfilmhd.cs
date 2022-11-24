@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/lostfilmhd")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int s = -1)
+        async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
             if (!AppInit.conf.Lostfilmhd.enable)
                 return Content(string.Empty);
@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
             {
                 foreach (var season in content.seasons)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/lostfilmhd?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&s={season.Key}";
+                    string link = $"{AppInit.Host(HttpContext)}/lite/lostfilmhd?title={HttpUtility.UrlEncode(title)}&year={year}&s={season.Key}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
                     firstjson = false;
@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
                 {
                     foreach (var episode in jb.ToObject<Dictionary<string, Dictionary<string, object>>>())
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/lostfilmhd/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={HttpUtility.UrlEncode(content.iframe_src)}&s={s}&e={episode.Key}&v={episode.Value.First().Key.Split('#')[0]}";
+                        string link = $"{AppInit.Host(HttpContext)}/lite/lostfilmhd/video?title={HttpUtility.UrlEncode(title)}&iframe={HttpUtility.UrlEncode(content.iframe_src)}&s={s}&e={episode.Key}&v={episode.Value.First().Key.Split('#')[0]}";
 
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                         firstjson = false;

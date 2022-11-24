@@ -172,11 +172,11 @@ namespace Lampac.Controllers.JAC
                 {
                     RutorController.parsePage(host, temptorrents, animesearch, "10"),
                     TorrentByController.parsePage(host, temptorrents, animesearch, "6"),
-                    KinozalController.parsePage(host, temptorrents, search, new string[] { "anime" }),
-                    NNMClubController.parsePage(host, temptorrents, search, new string[] { "anime" }),
-                    RutrackerController.parsePage(host, temptorrents, search, new string[] { "anime" }),
-                    AniLibriaController.parsePage(host, temptorrents, search),
-                    AnimeLayerController.parsePage(host, temptorrents, search),
+                    KinozalController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
+                    NNMClubController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
+                    RutrackerController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
+                    AniLibriaController.parsePage(host, temptorrents, animesearch),
+                    AnimeLayerController.parsePage(host, temptorrents, animesearch),
 
                 });
                 #endregion

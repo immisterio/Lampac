@@ -16,21 +16,15 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int is_serial, int serial, string newsuri, int s = -1)
+        async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, int s = -1)
         {
             if (!AppInit.conf.Kinotochka.enable)
                 return Content(string.Empty);
 
-            if (year == 0)
-            {
-                if (is_serial != 2 && serial != 1)
-                    return Content(string.Empty);
-            }
-
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
-            if (is_serial == 2 || serial == 1)
+            if (serial == 1)
             {
                 if (s == -1)
                 {
@@ -54,7 +48,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrWhiteSpace(uri))
                                     continue;
 
-                                links.Add((gname[2].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&is_serial={is_serial}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}"));
+                                links.Add((gname[2].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}"));
                             }
                         }
 
@@ -117,7 +111,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var l in links)
                     {
                         string link = $"{AppInit.Host(HttpContext)}/proxy/{l.uri}";
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
                     #endregion

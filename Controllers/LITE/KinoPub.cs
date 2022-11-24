@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 return Content(string.Empty);
 
-            postid = postid == 0 ? await search(clarification == 1 ? (title ?? original_title) : (original_title ?? title), imdb_id, kinopoisk_id) : postid;
+            postid = postid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), imdb_id, kinopoisk_id) : postid;
             if (postid == 0)
                 return Content(string.Empty);
 

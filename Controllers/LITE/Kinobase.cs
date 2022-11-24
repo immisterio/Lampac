@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinobase")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int s = -1)
+        async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
             if (year == 0 || !AppInit.conf.Kinobase.enable)
                 return Content(string.Empty);
@@ -89,7 +89,7 @@ namespace Lampac.Controllers.LITE
                             if (!string.IsNullOrWhiteSpace(smatch.Groups[1].Value) && !string.IsNullOrWhiteSpace(smatch.Groups[2].Value))
                             {
                                 string url = AppInit.conf.Kinobase.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{smatch.Groups[2].Value}" : smatch.Groups[2].Value;
-                                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + smatch.Groups[1].Value + "</div></div>";
+                                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + smatch.Groups[1].Value + "</div></div>";
                                 end = true;
                                 firstjson = true;
                             }
@@ -109,7 +109,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrEmpty(hls))
                         {
                             hls = AppInit.conf.Kinobase.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                             firstjson = true;
                         }
                     }
@@ -130,7 +130,7 @@ namespace Lampac.Controllers.LITE
                             var season = root[i];  
                             if (season?.playlist != null && season.playlist.Count > 0)
                             {
-                                string link = $"{AppInit.Host(HttpContext)}/lite/kinobase?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&s={i}";
+                                string link = $"{AppInit.Host(HttpContext)}/lite/kinobase?title={HttpUtility.UrlEncode(title)}&year={year}&s={i}";
 
                                 html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.comment + "</div></div></div>";
                                 firstjson = false;
@@ -140,7 +140,7 @@ namespace Lampac.Controllers.LITE
                                 if (season.file == null)
                                     continue;
 
-                                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + Regex.Match(season.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(season.file) + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + getSubtitle(season.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + season.comment + "</div></div>";
+                                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + Regex.Match(season.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(season.file) + "\",\"title\":\"" + title + "\", \"subtitles\": [" + getSubtitle(season.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + season.comment + "</div></div>";
                                 firstjson = false;
                             }
                         }
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var episode in root[s].playlist)
                         {
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(episode.file) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.comment})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.comment + "</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(episode.file) + "\",\"title\":\"" + $"{title} ({episode.comment})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.comment + "</div></div>";
                             firstjson = false;
                         }
                     }

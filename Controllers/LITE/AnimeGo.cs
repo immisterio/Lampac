@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
                         string name = Regex.Match(row, "card-title text-truncate\"><a [^>]+>([^<]+)<").Groups[1].Value;
                         string animeyear = Regex.Match(row, "class=\"anime-year\"><a [^>]+>([0-9]{4})<").Groups[1].Value;
 
-                        if (!string.IsNullOrWhiteSpace(player_id) && !string.IsNullOrWhiteSpace(name))
+                        if (!string.IsNullOrWhiteSpace(player_id) && !string.IsNullOrWhiteSpace(name) && name.ToLower().Contains(title.ToLower()))
                         {
                             string season = "0";
                             if (animeyear == year.ToString() && name.ToLower() == title.ToLower())
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in cache.links)
                 {
-                    string hls = $"{AppInit.Host(HttpContext)}/lite/animego/{l.uri}&t={t ?? cache.translation}&pid={pid}";
+                    string hls = $"{AppInit.Host(HttpContext)}/lite/animego/{l.uri}&t={t ?? cache.translation}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
                     firstjson = true;
@@ -166,7 +166,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animego/video.m3u8")]
-        async public Task<ActionResult> Video(string host, string token, string t, int e, int pid)
+        async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
             if (!AppInit.conf.AnimeGo.enable)
                 return Content(string.Empty);
@@ -174,35 +174,6 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                #region series
-                var player = await HttpClient.Get<JObject>($"{AppInit.conf.AnimeGo.host}/anime/series?provider={t}&episode={e}&id={pid}", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>()
-                {
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("pragma", "no-cache"),
-                    ("referer", $"{AppInit.conf.AnimeGo.host}/"),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("x-requested-with", "XMLHttpRequest")
-                });
-
-                string content = player?.Value<string>("content");
-                if (string.IsNullOrWhiteSpace(content))
-                    return Content(string.Empty);
-
-                if (!content.Contains($"&amp;translation={t}"))
-                {
-                    var g = Regex.Match(content, "data-player=\"(https?:)?//(aniboom\\.[^/]+)/embed/([^\"\\?&]+)\\?episode=[0-9]+\\&amp;translation=([0-9]+)\"").Groups;
-                    if (string.IsNullOrWhiteSpace(g[2].Value) || string.IsNullOrWhiteSpace(g[3].Value) || string.IsNullOrWhiteSpace(g[4].Value))
-                        return Content(string.Empty);
-
-                    host = g[2].Value;
-                    token = g[3].Value;
-                    t = g[4].Value;
-                }
-                #endregion
-
                 string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("cache-control", "no-cache"),

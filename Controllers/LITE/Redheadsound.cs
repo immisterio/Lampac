@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string title, string original_title, int year)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification)
         {
             if (!AppInit.conf.Redheadsound.enable)
                 return Content(string.Empty);
@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
             if (year == 0)
                 return Content(string.Empty);
 
-            var content = await embed(original_title ?? title, year);
+            var content = await embed(clarification == 1 ? title : (original_title ?? title), year);
             if (content.iframe == null)
                 return Content(string.Empty);
 

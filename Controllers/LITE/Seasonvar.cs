@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
                 return Content(string.Empty);
 
-            seasonid = seasonid == 0 ? await search(clarification == 1 ? (title ?? original_title) : (original_title ?? title), year) : seasonid;
+            seasonid = seasonid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), year) : seasonid;
             if (seasonid == 0)
                 return Content(string.Empty);
 

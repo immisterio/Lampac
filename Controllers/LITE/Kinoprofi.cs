@@ -16,21 +16,15 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinoprofi")]
-        async public Task<ActionResult> Index(string title, int year, int is_serial, int serial, string newsuri, string session, int s = -1)
+        async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, string session, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(title) || !AppInit.conf.Kinoprofi.enable)
                 return Content(string.Empty);
 
-            if (year == 0)
-            {
-                if (is_serial != 2 && serial != 1)
-                    return Content(string.Empty);
-            }
-
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
-            if (is_serial == 2 || serial == 1)
+            if (serial == 1)
             {
                 if (s == -1)
                 {
@@ -56,7 +50,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrWhiteSpace(g[1].Value))
                                     continue;
 
-                                links.Add((g[3].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/kinoprofi?title={HttpUtility.UrlEncode(title)}&is_serial={is_serial}&serial={serial}&s={g[4].Value}&newsuri={HttpUtility.UrlEncode(g[1].Value)}&session={session_id}"));
+                                links.Add((g[3].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/kinoprofi?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={g[4].Value}&newsuri={HttpUtility.UrlEncode(g[1].Value)}&session={session_id}"));
                             }
                         }
 

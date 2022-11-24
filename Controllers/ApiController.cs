@@ -27,7 +27,12 @@ namespace Lampac.Controllers
         [Route("lampainit.js")]
         public ActionResult LamInit()
         {
-            string file = System.IO.File.ReadAllText("plugins/lampainit.js");
+            if (!memoryCache.TryGetValue("ApiController:lampainit.js", out string file))
+            {
+                file = System.IO.File.ReadAllText("plugins/lampainit.js");
+                memoryCache.Set("ApiController:lampainit.js", file, DateTime.Now.AddMinutes(5));
+            }
+
             file = file.Replace("{localhost}", AppInit.Host(HttpContext));
             file = file.Replace("{jachost}", AppInit.Host(HttpContext).Replace("https://", "").Replace("http://", ""));
 
@@ -38,9 +43,13 @@ namespace Lampac.Controllers
         [Route("msx/start.json")]
         public ActionResult MSX()
         {
-            string file = System.IO.File.ReadAllText("msx.json");
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            if (!memoryCache.TryGetValue("ApiController:msx.json", out string file))
+            {
+                file = System.IO.File.ReadAllText("msx.json");
+                memoryCache.Set("ApiController:msx.json", file, DateTime.Now.AddMinutes(5));
+            }
 
+            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
             return Content(file, contentType: "application/json; charset=utf-8");
         }
 
@@ -48,9 +57,13 @@ namespace Lampac.Controllers
         [Route("sisi.js")]
         public ActionResult Sisi()
         {
-            string file = System.IO.File.ReadAllText("plugins/sisi.js");
-            file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/sisi");
+            if (!memoryCache.TryGetValue("ApiController:sisi.js", out string file))
+            {
+                file = System.IO.File.ReadAllText("plugins/sisi.js");
+                memoryCache.Set("ApiController:sisi.js", file, DateTime.Now.AddMinutes(5));
+            }
 
+            file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/sisi");
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
 
@@ -58,7 +71,12 @@ namespace Lampac.Controllers
         [Route("online.js")]
         public ActionResult Online()
         {
-            string file = System.IO.File.ReadAllText("plugins/online.js");
+            if (!memoryCache.TryGetValue("ApiController:online.js", out string file))
+            {
+                file = System.IO.File.ReadAllText("plugins/online.js");
+                memoryCache.Set("ApiController:online.js", file, DateTime.Now.AddMinutes(5));
+            }
+
             file = file.Replace("http://127.0.0.1:9118", AppInit.Host(HttpContext));
             file = file.Replace("{localhost}", AppInit.Host(HttpContext));
 
@@ -67,14 +85,10 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite.js")]
-        async public Task<ActionResult> Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial = -1)
+        [Route("lite/events")]
+        async public Task<ActionResult> Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, string source, int serial = -1)
         {
-            string file = System.IO.File.ReadAllText("plugins/lite.js");
-
             string online = string.Empty;
-
-            if (serial == -1)
-                online += "{name:'Jackett',url:'{localhost}/jac'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 online += "{name:'KinoPub',url:'{localhost}/kinopub'},";
@@ -112,10 +126,10 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 online += "{name:'Kodik',url:'{localhost}/kodik'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && (serial == -1 || serial == 1))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && (serial == -1 || serial == 1 || serial == 5))
                 online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
 
-            if (AppInit.conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
+            if (AppInit.conf.Lostfilmhd.enable && (serial == -1 || serial == 1 || serial == 5))
                 online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
 
             if (AppInit.conf.Collaps.enable)
@@ -127,38 +141,47 @@ namespace Lampac.Controllers
             if (AppInit.conf.CDNmovies.enable && (serial == -1 || serial == 1))
                 online += "{name:'CDNmovies',url:'{localhost}/cdnmovies'},";
 
-            if (AppInit.conf.AnimeGo.enable)
-                online += "{name:'AnimeGo',url:'{localhost}/animego'},";
+            if (serial == -1 || serial == 5)
+            {
+                if (AppInit.conf.AnilibriaOnline.enable)
+                    online += "{name:'Anilibria',url:'{localhost}/anilibria'},";
 
-            if (AppInit.conf.AnilibriaOnline.enable)
-                online += "{name:'Anilibria',url:'{localhost}/anilibria'},";
+                if (AppInit.conf.Animevost.enable)
+                    online += "{name:'Animevost',url:'{localhost}/animevost'},";
 
-            if (AppInit.conf.Animevost.enable)
-                online += "{name:'Animevost',url:'{localhost}/animevost'},";
+                if (AppInit.conf.Animebesst.enable)
+                    online += "{name:'Animebesst',url:'{localhost}/animebesst'},";
 
-            if (AppInit.conf.Animebesst.enable)
-                online += "{name:'Animebesst',url:'{localhost}/animebesst'},";
+                if (AppInit.conf.AnimeGo.enable)
+                    online += "{name:'AnimeGo',url:'{localhost}/animego'},";
 
-            if (AppInit.conf.AniMedia.enable)
-                online += "{name:'AniMedia',url:'{localhost}/animedia'},";
-
-            if (AppInit.conf.Kinokrad.enable)
-                online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
+                if (AppInit.conf.AniMedia.enable)
+                    online += "{name:'AniMedia',url:'{localhost}/animedia'},";
+            }
 
             if (AppInit.conf.Kinotochka.enable)
                 online += "{name:'Kinotochka',url:'{localhost}/kinotochka'},";
 
-            if (AppInit.conf.Kinoprofi.enable)
-                online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
+            if (serial != 5)
+            {
+                if (AppInit.conf.Kinokrad.enable)
+                    online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
 
-            if (AppInit.conf.Redheadsound.enable && (serial == -1 || serial == 0))
-                online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
+                if (AppInit.conf.Kinoprofi.enable)
+                    online += "{name:'Kinoprofi',url:'{localhost}/kinoprofi'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && (serial == -1 || serial == 0))
-                online += "{name:'VideoAPI (ENG)',url:'{localhost}/videoapi'},";
+                if (AppInit.conf.Redheadsound.enable && (serial == -1 || serial == 0))
+                    online += "{name:'Redheadsound',url:'{localhost}/redheadsound'},";
+
+                if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && (serial == -1 || serial == 0))
+                    online += "{name:'VideoAPI (ENG)',url:'{localhost}/videoapi'},";
+            }
 
             if (AppInit.conf.IframeVideo.enable && (serial == -1 || serial == 0))
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
+
+            if (serial == -1 || HttpContext.Request.Path.Value.StartsWith("/lite/events"))
+                online += "{name:'Jackett',url:'{localhost}/jac'},";
 
             #region checkOnlineSearch
             if (AppInit.conf.checkOnlineSearch)
@@ -173,7 +196,7 @@ namespace Lampac.Controllers
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, year, serial));
+                            tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, source, year, serial));
 
                         match = match.NextMatch();
                     }
@@ -188,6 +211,20 @@ namespace Lampac.Controllers
             }
             #endregion
 
+            if (HttpContext.Request.Path.Value.StartsWith("/lite/events"))
+            {
+                string events = online.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
+                events = events.Replace("'", "\"").Replace("{", "{\"").Replace(":\"", "\":\"").Replace("\",", "\",\"");
+
+                return Content($"[{Regex.Replace(events, ",$", "")}]", contentType: "application/javascript; charset=utf-8");
+            }
+
+            if (!memoryCache.TryGetValue("ApiController:lite.js", out string file))
+            {
+                file = await System.IO.File.ReadAllTextAsync("plugins/lite.js");
+                memoryCache.Set("ApiController:lite.js", file, DateTime.Now.AddMinutes(5));
+            }
+
             file = file.Replace("{online}", online);
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
 
@@ -197,9 +234,9 @@ namespace Lampac.Controllers
 
         #region checkSearch
         async Task checkSearch(ConcurrentBag<(string code, int index)> links, int index, string code, string uri,
-                               int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
+                               int id, string imdb_id, long kinopoisk_id, string title, string original_title, string source, int year, int serial)
         {
-            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&serial={serial}", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
             if (!string.IsNullOrWhiteSpace(res) && res.Contains("data-json="))
                 links.Add((code, index));
         }
