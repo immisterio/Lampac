@@ -86,9 +86,10 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("lite.js")]
         [Route("lite/events")]
-        async public Task<ActionResult> Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, int year, string source, int serial = -1)
+        async public Task<ActionResult> Lite(int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1)
         {
             string online = string.Empty;
+            bool isanime = original_language == "ja";
 
             if (HttpContext.Request.Path.Value.StartsWith("/lite/events"))
                 online += "{name:'Jackett',url:'{localhost}/jac'},";
@@ -129,10 +130,10 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 online += "{name:'Kodik',url:'{localhost}/kodik'},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && (serial == -1 || serial == 1 || serial == 5))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && (serial == -1 || serial == 1))
                 online += "{name:'Seasonvar',url:'{localhost}/seasonvar'},";
 
-            if (AppInit.conf.Lostfilmhd.enable && (serial == -1 || serial == 1 || serial == 5))
+            if (AppInit.conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
                 online += "{name:'LostfilmHD',url:'{localhost}/lostfilmhd'},";
 
             if (AppInit.conf.Collaps.enable)
@@ -141,10 +142,10 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 online += "{name:'HDVB',url:'{localhost}/hdvb'},";
 
-            if (AppInit.conf.CDNmovies.enable && (serial == -1 || serial == 1))
+            if (AppInit.conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
                 online += "{name:'CDNmovies',url:'{localhost}/cdnmovies'},";
 
-            if (serial == -1 || serial == 5)
+            if (serial == -1 || isanime)
             {
                 if (AppInit.conf.AnilibriaOnline.enable)
                     online += "{name:'Anilibria',url:'{localhost}/anilibria'},";
@@ -165,7 +166,7 @@ namespace Lampac.Controllers
             if (AppInit.conf.Kinotochka.enable)
                 online += "{name:'Kinotochka',url:'{localhost}/kinotochka'},";
 
-            if (serial == -1 || serial == 0 || serial == 1)
+            if (serial == -1 || serial == 0 || (serial == 1 && !isanime))
             {
                 if (AppInit.conf.Kinokrad.enable)
                     online += "{name:'Kinokrad',url:'{localhost}/kinokrad'},";
@@ -196,7 +197,7 @@ namespace Lampac.Controllers
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, source, year, serial));
+                            tasks.Add(checkSearch(links, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
 
                         match = match.NextMatch();
                     }
@@ -238,9 +239,9 @@ namespace Lampac.Controllers
 
         #region checkSearch
         async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, int index, string code, string uri,
-                               int id, string imdb_id, long kinopoisk_id, string title, string original_title, string source, int year, int serial)
+                               int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
-            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?apikey={AppInit.conf.apikey}&id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
             links.Add((code.Replace("},", ",show:" + work.ToString().ToLower()+ "},"), index, work));
