@@ -16,7 +16,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (!string.IsNullOrWhiteSpace(AppInit.conf.apikey))
             {
-                if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(api/v2.0/indexers|lite/jac|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria)"))
+                if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(api/v2.0/indexers|api/v1.0/torrents|lite/jac|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria)"))
                 {
                     if (AppInit.conf.apikey != Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)apikey=([^&]+)").Groups[2].Value)
                         return Task.CompletedTask;

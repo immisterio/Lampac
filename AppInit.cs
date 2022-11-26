@@ -51,7 +51,7 @@ namespace Lampac
 
         public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true };
 
-        public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true };
+        public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true, index = "lampa-main/index.html" };
 
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");

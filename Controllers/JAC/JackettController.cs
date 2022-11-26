@@ -9,13 +9,175 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Lampac.Models.JAC;
 using System.Globalization;
+using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.JAC
 {
     public class JackettController : BaseController
     {
+        #region JacRed
+        [Route("api/v1.0/torrents")]
+        async public Task<JsonResult> JacRed(string apikey, string search)
+        {
+            if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
+            {
+                string memkey = $"api/v1.0/torrents:{search}";
+                if (!memoryCache.TryGetValue(memkey, out string original_name))
+                {
+                    search = search.Trim();
+                    string uri = $"&imdb={search}";
+                    if (search.StartsWith("kp"))
+                        uri = $"&kp={search.Remove(0, 2)}";
+
+                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 8);
+                    original_name = root?.Value<JObject>("data")?.Value<string>("original_name");
+
+                    memoryCache.Set(memkey, original_name ?? string.Empty, DateTime.Now.AddDays(1));
+                }
+
+                search = original_name;
+            }
+
+            var torrents = await Torrents(search, null, null, 0, 0, null);
+
+            return Json(torrents.Where(i => i.sid > 0).Take(5_000).Select(i => new
+            {
+                tracker = i.trackerName,
+                url = i.url != null && i.url.StartsWith("http") ? i.url : null,
+                i.title,
+                size = (long)(i.size * 1048576),
+                i.sizeName,
+                i.createTime,
+                i.sid,
+                i.pir,
+                magnet = i.magnet ?? $"{i.parselink}&apikey={apikey}",
+                i.name,
+                i.originalname,
+                i.relased,
+                i.videotype,
+                i.quality,
+                i.voices,
+                i.seasons,
+                i.types
+            }));
+        }
+        #endregion
+
+        #region Jackett
         [Route("api/v2.0/indexers/all/results")]
         async public Task<ActionResult> Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        {
+            var torrents = await Torrents(query, title, title_original, year, is_serial, category);
+
+            #region getCategoryIds
+            HashSet<int> getCategoryIds(TorrentDetails t, out string categoryDesc)
+            {
+                categoryDesc = null;
+                HashSet<int> categoryIds = new HashSet<int>();
+
+                foreach (string type in t.types)
+                {
+                    switch (type)
+                    {
+                        case "movie":
+                            categoryDesc = "Movies";
+                            categoryIds.Add(2000);
+                            break;
+
+                        case "serial":
+                            categoryDesc = "TV";
+                            categoryIds.Add(5000);
+                            break;
+
+                        case "documovie":
+                        case "docuserial":
+                            categoryDesc = "TV/Documentary";
+                            categoryIds.Add(5080);
+                            break;
+
+                        case "tvshow":
+                            categoryDesc = "TV/Foreign";
+                            categoryIds.Add(5020);
+                            categoryIds.Add(2010);
+                            break;
+
+                        case "anime":
+                            categoryDesc = "TV/Anime";
+                            categoryIds.Add(5070);
+                            break;
+                    }
+                }
+
+                return categoryIds;
+            }
+            #endregion
+
+            #region getSizeInfo
+            long getSizeInfo(string sizeName)
+            {
+                if (string.IsNullOrWhiteSpace(sizeName))
+                    return 0;
+
+                try
+                {
+                    double size = 0.1;
+                    var gsize = Regex.Match(sizeName, "([0-9\\.,]+) (Mb|МБ|GB|ГБ|TB|ТБ)", RegexOptions.IgnoreCase).Groups;
+                    if (!string.IsNullOrWhiteSpace(gsize[2].Value))
+                    {
+                        if (double.TryParse(gsize[1].Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out size) && size != 0)
+                        {
+                            if (gsize[2].Value.ToLower() is "gb" or "гб")
+                                size *= 1024;
+
+                            if (gsize[2].Value.ToLower() is "tb" or "тб")
+                                size *= 1048576;
+
+                            return (long)(size * 1048576);
+                        }
+                    }
+                }
+                catch { }
+
+                return 0;
+            }
+            #endregion
+
+            return Content(JsonConvert.SerializeObject(new
+            {
+                Results = torrents.Where(i => i.sid > 0).OrderByDescending(i => i.createTime).Select(i => new
+                {
+                    Tracker = i.trackerName,
+                    Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
+                    Title = i.title,
+                    Size = getSizeInfo(i.sizeName),
+                    PublishDate = i.createTime,
+                    Category = getCategoryIds(i, out string categoryDesc),
+                    CategoryDesc = categoryDesc,
+                    Seeders = i.sid,
+                    Peers = i.pir,
+                    MagnetUri = i.magnet,
+                    Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
+                    Info = new
+                    {
+                        i.name,
+                        i.originalname,
+                        i.relased,
+                        i.quality,
+                        i.videotype,
+                        i.sizeName,
+                        i.voices,
+                        i.seasons
+                    }
+                })
+            }), contentType: "application/json; charset=utf-8");
+        }
+        #endregion
+
+
+        #region Torrents
+        async ValueTask<List<TorrentDetails>> Torrents(string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
             var torrents = new ConcurrentBag<TorrentDetails>();
             var temptorrents = new ConcurrentBag<TorrentDetails>();
@@ -311,7 +473,6 @@ namespace Lampac.Controllers.JAC
                 torrents = temptorrents;
             }
 
-            #region UpdateDetails
             foreach (var t in torrents)
             {
                 #region quality
@@ -549,109 +710,9 @@ namespace Lampac.Controllers.JAC
                 }
                 #endregion
             }
-            #endregion
 
-            #region getCategoryIds
-            HashSet<int> getCategoryIds(TorrentDetails t, out string categoryDesc)
-            {
-                categoryDesc = null;
-                HashSet<int> categoryIds = new HashSet<int>();
-
-                foreach (string type in t.types)
-                {
-                    switch (type)
-                    {
-                        case "movie":
-                            categoryDesc = "Movies";
-                            categoryIds.Add(2000);
-                            break;
-
-                        case "serial":
-                            categoryDesc = "TV";
-                            categoryIds.Add(5000);
-                            break;
-
-                        case "documovie":
-                        case "docuserial":
-                            categoryDesc = "TV/Documentary";
-                            categoryIds.Add(5080);
-                            break;
-
-                        case "tvshow":
-                            categoryDesc = "TV/Foreign";
-                            categoryIds.Add(5020);
-                            categoryIds.Add(2010);
-                            break;
-
-                        case "anime":
-                            categoryDesc = "TV/Anime";
-                            categoryIds.Add(5070);
-                            break;
-                    }
-                }
-
-                return categoryIds;
-            }
-            #endregion
-
-            #region getSizeInfo
-            long getSizeInfo(string sizeName)
-            {
-                if (string.IsNullOrWhiteSpace(sizeName))
-                    return 0;
-
-                try
-                {
-                    double size = 0.1;
-                    var gsize = Regex.Match(sizeName, "([0-9\\.,]+) (Mb|МБ|GB|ГБ|TB|ТБ)", RegexOptions.IgnoreCase).Groups;
-                    if (!string.IsNullOrWhiteSpace(gsize[2].Value))
-                    {
-                        if (double.TryParse(gsize[1].Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out size) && size != 0)
-                        {
-                            if (gsize[2].Value.ToLower() is "gb" or "гб")
-                                size *= 1024;
-
-                            if (gsize[2].Value.ToLower() is "tb" or "тб")
-                                size *= 1048576;
-
-                            return (long)(size * 1048576);
-                        }
-                    }
-                }
-                catch { }
-
-                return 0;
-            }
-            #endregion
-
-            end: return Content(JsonConvert.SerializeObject(new
-            {
-                Results = torrents.Where(i => i.sid > 0).OrderByDescending(i => i.createTime).Select(i => new
-                {
-                    Tracker = i.trackerName,
-                    Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
-                    Title = i.title,
-                    Size = getSizeInfo(i.sizeName),
-                    PublishDate = i.createTime,
-                    Category = getCategoryIds(i, out string categoryDesc),
-                    CategoryDesc = categoryDesc,
-                    Seeders = i.sid,
-                    Peers = i.pir,
-                    MagnetUri = i.magnet,
-                    Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
-                    Info = new
-                    {
-                        i.name,
-                        i.originalname,
-                        i.relased,
-                        i.quality,
-                        i.videotype,
-                        i.sizeName,
-                        i.voices,
-                        i.seasons
-                    }
-                })
-            }), contentType: "application/json; charset=utf-8");
+            end: return torrents.ToList();
         }
+        #endregion
     }
 }

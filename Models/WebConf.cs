@@ -5,5 +5,7 @@
         public bool autoupdate { get; set; }
 
         public bool autoindex { get; set; }
+
+        public string index { get; set; }
     }
 }
