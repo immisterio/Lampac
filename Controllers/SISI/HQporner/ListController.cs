@@ -66,7 +66,7 @@ namespace Lampac.Controllers.HQporner
                     {
                         name = g[2].Value.Trim(),
                         video = $"{AppInit.Host(HttpContext)}/hqr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.SisiHeightPicture}/{img}",
+                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.sisi.heightPicture}/{img}",
                         time = duration, 
                         json = true
                     });

@@ -14,11 +14,11 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.apikey))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey))
             {
                 if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(api/v2.0/indexers|api/v1.0/torrents|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria)"))
                 {
-                    if (AppInit.conf.apikey != Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)apikey=([^&]+)").Groups[2].Value)
+                    if (AppInit.conf.jac.apikey != Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)apikey=([^&]+)").Groups[2].Value)
                         return Task.CompletedTask;
                 }
             }

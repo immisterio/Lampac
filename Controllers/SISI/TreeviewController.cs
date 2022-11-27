@@ -11,7 +11,7 @@ namespace Lampac.Controllers
         {
             var channels = new List<dynamic>();
 
-            if (AppInit.conf.xdb)
+            if (AppInit.conf.sisi.xdb)
             {
                 channels.Add(new
                 {

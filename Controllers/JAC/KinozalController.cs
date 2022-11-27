@@ -38,7 +38,7 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
                     client.DefaultRequestHeaders.Add("cache-control", "no-cache");
@@ -104,7 +104,7 @@ namespace Lampac.Controllers.JAC
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
                     await TorrentCache.Write(keydownload, _t);
-                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.magnetCacheToMinutes));
                     return File(_t, "application/x-bittorrent");
                 }
             }
@@ -119,7 +119,7 @@ namespace Lampac.Controllers.JAC
                 {
                     string magnet = $"magnet:?xt=urn:btih:{torrentHash}";
                     await TorrentCache.Write(keymagnet, magnet);
-                    Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                    Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.magnetCacheToMinutes));
                     return Redirect(magnet);
                 }
             }
@@ -150,7 +150,7 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
+                string html = await HttpClient.Get($"{AppInit.conf.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", useproxy: AppInit.conf.Kinozal.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null && html.Contains("Кинозал.ТВ</title>"))
                 {

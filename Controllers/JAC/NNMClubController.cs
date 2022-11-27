@@ -39,7 +39,7 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
                     client.DefaultRequestHeaders.Add("cache-control", "no-cache");
@@ -124,7 +124,7 @@ namespace Lampac.Controllers.JAC
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
                         await TorrentCache.Write(keydownload, _t);
-                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.magnetCacheToMinutes));
                         return File(_t, "application/x-bittorrent");
                     }
                 }
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.JAC
             if (!string.IsNullOrWhiteSpace(magnet))
             {
                 await TorrentCache.Write(keymagnet, magnet);
-                Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.magnetCacheToMinutes));
                 return Redirect(magnet);
             }
             #endregion
@@ -169,7 +169,7 @@ namespace Lampac.Controllers.JAC
             if (!cread.cache)
             {
                 string data = $"prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_shs=0&prev_shr=0&prev_sht=0&o=1&s=2&tm=-1&shf=1&sha=1&ta=-1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&pn=&submit=%CF%EE%E8%F1%EA";
-                string html = await HttpClient.Post($"{AppInit.conf.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: AppInit.conf.timeoutSeconds);
+                string html = await HttpClient.Post($"{AppInit.conf.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null && html.Contains("NNM-Club</title>"))
                 {

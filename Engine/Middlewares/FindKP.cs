@@ -30,7 +30,7 @@ namespace Lampac.Engine.Middlewares
                     string memkey = $"Middlewares:FindKP:{imdb}";
                     if (!mem.TryGetValue(memkey, out string kpid))
                     {
-                        switch (AppInit.conf.findkp ?? "alloha")
+                        switch (AppInit.conf.online.findkp ?? "alloha")
                         {
                             case "alloha":
                                 kpid = await getAlloha(imdb);

@@ -30,7 +30,7 @@ namespace Lampac.Controllers.JAC
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.magnetCacheToMinutes));
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.magnetCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
             else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
@@ -53,16 +53,16 @@ namespace Lampac.Controllers.JAC
             #region Кеш
             if (!Startup.memoryCache.TryGetValue(memkey, out List<RootObject> roots))
             {
-                roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: AppInit.conf.timeoutSeconds, useproxy: AppInit.conf.Anilibria.useproxy, IgnoreDeserializeObject: true);
+                roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: AppInit.conf.jac.timeoutSeconds, useproxy: AppInit.conf.Anilibria.useproxy, IgnoreDeserializeObject: true);
                 if (roots == null || roots.Count == 0)
                 {
-                    if (AppInit.conf.emptycache)
-                        Startup.memoryCache.Set($"{memkey}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+                    if (AppInit.conf.jac.emptycache)
+                        Startup.memoryCache.Set($"{memkey}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
 
                     return false;
                 }
 
-                Startup.memoryCache.Set(memkey, roots, DateTime.Now.AddMinutes(AppInit.conf.htmlCacheToMinutes));
+                Startup.memoryCache.Set(memkey, roots, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
             }
             #endregion
 

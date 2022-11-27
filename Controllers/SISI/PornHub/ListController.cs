@@ -120,7 +120,7 @@ namespace Lampac.Controllers.PornHub
                     {
                         name = title,
                         video = $"{AppInit.Host(HttpContext)}/phub/vidosik.m3u8?goni={vkey}",
-                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.SisiHeightPicture}/{img}",
+                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.sisi.heightPicture}/{img}",
                         time = duration
                     });
                 }

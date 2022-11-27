@@ -7,8 +7,8 @@ using Lampac.Models.LITE.Filmix;
 using Lampac.Models.LITE;
 using Lampac.Models.LITE.HDVB;
 using System.Collections.Generic;
-using Lampac.Models;
 using Lampac.Models.DLNA;
+using Lampac.Models.AppConf;
 
 namespace Lampac
 {
@@ -21,38 +21,26 @@ namespace Lampac
 
         public int listenport = 9118;
 
-        public int timeoutSeconds = 6;
-
-        public string cachetype = "file";
-
-        public int htmlCacheToMinutes = 1;
-
-        public int fileCacheInactiveDay = 20;
-
-        public int magnetCacheToMinutes = 2;
-
-        public bool emptycache = false;
-
-        public string apikey = null;
-
-        public bool litejac = true;
-
         public string ffprobe = "linux";
-
-        public string findkp = "alloha";
-
-        public bool checkOnlineSearch = false;
 
         public bool disableserverproxy = false;
 
-        public bool multiaccess = false;
-
         public bool proxytoproxyimg = false;
 
+        public bool multiaccess = false;
+
+
+        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 10, img = 1 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true };
 
-        public WebConf LampaWeb = new WebConf() { autoupdate = true, autoindex = true, index = "lampa-main/index.html" };
+        public WebConf LampaWeb = new WebConf() { autoupdate = true, index = "lampa-main/index.html" };
+
+        public SisiConf sisi = new SisiConf() { heightPicture = 200 };
+
+        public OnlineConf online = new OnlineConf() { findkp = "alloha", checkOnlineSearch = true };
+
+        public JacConf jac = new JacConf();
 
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");
@@ -80,9 +68,6 @@ namespace Lampac
         public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
 
 
-        public bool xdb = false;
-
-        public int SisiHeightPicture = 200;
 
         public SisiSettings BongaCams = new SisiSettings("https://rt.bongacams.com");
 
@@ -105,6 +90,7 @@ namespace Lampac
         public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com");
 
         public SisiSettings PornHub = new SisiSettings("https://rt.pornhub.com");
+
 
 
         public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org");

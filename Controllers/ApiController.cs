@@ -17,7 +17,7 @@ namespace Lampac.Controllers
         [Route("/")]
         public ActionResult Index()
         {
-            if (AppInit.conf.LampaWeb.autoindex && System.IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) && System.IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
                 return LocalRedirect($"/{AppInit.conf.LampaWeb.index}");
 
             return Content("api work", contentType: "text/plain; charset=utf-8");
@@ -91,7 +91,7 @@ namespace Lampac.Controllers
             string online = string.Empty;
             bool isanime = original_language == "ja";
 
-            if (HttpContext.Request.Path.Value.StartsWith("/lite/events") && AppInit.conf.litejac)
+            if (HttpContext.Request.Path.Value.StartsWith("/lite/events") && AppInit.conf.jac.litejac)
                 online += "{name:'Jackett',url:'{localhost}/jac'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
@@ -185,7 +185,7 @@ namespace Lampac.Controllers
                 online += "{name:'IframeVideo',url:'{localhost}/iframevideo'},";
 
             #region checkOnlineSearch
-            if (AppInit.conf.checkOnlineSearch && id > 0)
+            if (AppInit.conf.online.checkOnlineSearch && id > 0)
             {
                 string memkey = $"ApiController:checkOnlineSearch:{id}";
                 if (!memoryCache.TryGetValue(memkey, out string newonline))

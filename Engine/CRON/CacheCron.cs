@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -10,14 +11,21 @@ namespace Lampac.Engine.CRON
         {
             while (true)
             {
-                foreach (string path in new string[] { "html", "img", "torrent" })
+                foreach (var conf in new List<(string path, int day)> { 
+                    ("html", AppInit.conf.fileCacheInactiveDay.html), 
+                    ("img", AppInit.conf.fileCacheInactiveDay.img), 
+                    ("torrent", AppInit.conf.fileCacheInactiveDay.torrent) 
+                })
                 {
                     try
                     {
-                        foreach (string infile in Directory.GetFiles($"cache/{path}", "*", SearchOption.AllDirectories))
+                        if (conf.day == 0)
+                            continue;
+
+                        foreach (string infile in Directory.GetFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
                         {
                             var fileinfo = new FileInfo(infile);
-                            if (DateTime.Now > fileinfo.LastWriteTime.AddDays(AppInit.conf.fileCacheInactiveDay))
+                            if (DateTime.Now > fileinfo.LastWriteTime.AddDays(conf.day))
                                 fileinfo.Delete();
                         }
                     }
