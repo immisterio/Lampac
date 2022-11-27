@@ -17,11 +17,17 @@ namespace Lampac.Controllers.JAC
     [Route("animelayer/[action]")]
     public class AnimeLayerController : BaseController
     {
-        #region TakeLogin
+        #region Cookie / TakeLogin
         static string Cookie { get; set; }
 
-        async public static Task<bool> TakeLogin()
+        async static Task<bool> TakeLogin()
         {
+            string authKey = "animelayer:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out _))
+                return false;
+
+            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
@@ -78,7 +84,6 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string url)
         {
@@ -114,19 +119,12 @@ namespace Lampac.Controllers.JAC
             #region Авторизация
             if (Cookie == null)
             {
-                string authKey = "animelayer:TakeLogin()";
-                if (Startup.memoryCache.TryGetValue(authKey, out _))
-                    return false;
-
                 if (await TakeLogin() == false)
-                {
-                    Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return false;
-                }
             }
             #endregion
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"animelayer:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
@@ -135,12 +133,24 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", cookie: Cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
+                bool firstrehtml = true;
+                rehtml: string html = await HttpClient.Get($"{AppInit.conf.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", cookie: Cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("id=\"wrapper\""))
                 {
-                    cread.html = HttpUtility.HtmlDecode(html.Replace("&nbsp;", ""));
-                    await HtmlCache.Write(cachekey, cread.html);
+                    if (html.Contains($">{AppInit.conf.Animelayer.login.u}<"))
+                    {
+                        cread.html = HttpUtility.HtmlDecode(html.Replace("&nbsp;", ""));
+                        await HtmlCache.Write(cachekey, cread.html);
+                    }
+                    else
+                    {
+                        if (!firstrehtml || await TakeLogin() == false)
+                            return false;
+
+                        firstrehtml = false;
+                        goto rehtml;
+                    }
                 }
 
                 if (cread.html == null)

@@ -18,16 +18,16 @@ namespace Lampac.Controllers.JAC
     public class SelezenController : BaseController
     {
         #region Cookie / TakeLogin
-        static string Cookie(IMemoryCache memoryCache)
-        {
-            if (memoryCache.TryGetValue("cron:SelezenController:Cookie", out string cookie))
-                return cookie;
+        static string Cookie;
 
-            return null;
-        }
-
-        async static Task<bool> TakeLogin(IMemoryCache memoryCache)
+        async static Task<bool> TakeLogin()
         {
+            string authKey = "selezen:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out _))
+                return false;
+
+            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
@@ -66,7 +66,7 @@ namespace Lampac.Controllers.JAC
 
                                 if (!string.IsNullOrWhiteSpace(PHPSESSID))
                                 {
-                                    memoryCache.Set("cron:SelezenController:Cookie", $"PHPSESSID={PHPSESSID}; _ym_isad=2;", TimeSpan.FromHours(1));
+                                    Cookie = $"PHPSESSID={PHPSESSID}; _ym_isad=2;";
                                     return true;
                                 }
                             }
@@ -95,25 +95,20 @@ namespace Lampac.Controllers.JAC
                 return Redirect(_m);
 
             #region Авторизация
-            if (Cookie(Startup.memoryCache) == null)
+            if (Cookie == null)
             {
-                string authKey = "selezen:TakeLogin()";
-                if (Startup.memoryCache.TryGetValue(authKey, out _))
-                    return Content("TakeLogin == false");
-
-                if (await TakeLogin(Startup.memoryCache) == false)
+                if (await TakeLogin() == false)
                 {
                     if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                         Redirect(mcache.torrent);
 
-                    Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return Content("TakeLogin == false");
                 }
             }
             #endregion
 
             #region html
-            string html = await HttpClient.Get(url, cookie: Cookie(Startup.memoryCache), timeoutSeconds: 10);
+            string html = await HttpClient.Get(url, cookie: Cookie, timeoutSeconds: 10);
             if (html == null)
             {
                 if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
@@ -129,7 +124,7 @@ namespace Lampac.Controllers.JAC
                 string id = new Regex("href=\"/index.php\\?do=download&id=([0-9]+)").Match(html).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(id))
                 {
-                    _t = await HttpClient.Download($"{AppInit.conf.Selezen.host}/index.php?do=download&id={id}", cookie: Cookie(Startup.memoryCache), referer: AppInit.conf.Selezen.host, timeoutSeconds: 10);
+                    _t = await HttpClient.Download($"{AppInit.conf.Selezen.host}/index.php?do=download&id={id}", cookie: Cookie, referer: AppInit.conf.Selezen.host, timeoutSeconds: 10);
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
                         await TorrentCache.Write(keydownload, _t);
@@ -159,7 +154,6 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-
         #region parsePage
         async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
@@ -167,21 +161,14 @@ namespace Lampac.Controllers.JAC
                 return false;
 
             #region Авторизация
-            if (Cookie(Startup.memoryCache) == null)
+            if (Cookie == null)
             {
-                string authKey = "selezen:TakeLogin()";
-                if (Startup.memoryCache.TryGetValue(authKey, out _))
+                if (await TakeLogin() == false)
                     return false;
-
-                if (await TakeLogin(Startup.memoryCache) == false)
-                {
-                    Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
-                    return false;
-                }
             }
             #endregion
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"selezen:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
@@ -190,12 +177,24 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie(Startup.memoryCache), timeoutSeconds: AppInit.conf.timeoutSeconds);
+                bool firstrehtml = true;
+                rehtml: string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("dle_root"))
                 {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
+                    if (html.Contains($">{AppInit.conf.Selezen.login.u}<"))
+                    {
+                        cread.html = html;
+                        await HtmlCache.Write(cachekey, html);
+                    }
+                    else
+                    {
+                        if (!firstrehtml || await TakeLogin() == false)
+                            return false;
+
+                        firstrehtml = false;
+                        goto rehtml;
+                    }
                 }
 
                 if (cread.html == null)

@@ -3,7 +3,6 @@ using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System.IO;
-using Lampac.Models.LITE.VideoCDN;
 using Lampac.Models.LITE.Filmix;
 using Lampac.Models.LITE;
 using Lampac.Models.LITE.HDVB;
@@ -35,6 +34,8 @@ namespace Lampac
         public bool emptycache = false;
 
         public string apikey = null;
+
+        public bool litejac = true;
 
         public string ffprobe = "linux";
 

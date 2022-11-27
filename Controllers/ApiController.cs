@@ -91,7 +91,7 @@ namespace Lampac.Controllers
             string online = string.Empty;
             bool isanime = original_language == "ja";
 
-            if (HttpContext.Request.Path.Value.StartsWith("/lite/events"))
+            if (HttpContext.Request.Path.Value.StartsWith("/lite/events") && AppInit.conf.litejac)
                 online += "{name:'Jackett',url:'{localhost}/jac'},";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
@@ -241,7 +241,7 @@ namespace Lampac.Controllers
         async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, int index, string code, string uri,
                                int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
-            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?apikey={AppInit.conf.apikey}&id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
             links.Add((code.Replace("},", ",show:" + work.ToString().ToLower()+ "},"), index, work));

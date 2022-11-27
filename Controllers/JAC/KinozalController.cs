@@ -20,8 +20,14 @@ namespace Lampac.Controllers.JAC
         #region Cookie / TakeLogin
         static string Cookie;
 
-        async public static Task<bool> TakeLogin()
+        async static void TakeLogin()
         {
+            string authKey = "kinozal:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out _))
+                return;
+
+            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
@@ -67,21 +73,15 @@ namespace Lampac.Controllers.JAC
                                 }
 
                                 if (!string.IsNullOrWhiteSpace(uid) && !string.IsNullOrWhiteSpace(pass))
-                                {
                                     Cookie = $"uid={uid}; pass={pass};";
-                                    return true;
-                                }
                             }
                         }
                     }
                 }
             }
             catch { }
-
-            return false;
         }
         #endregion
-
 
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id)
@@ -141,19 +141,7 @@ namespace Lampac.Controllers.JAC
             if (!AppInit.conf.Kinozal.enable)
                 return false;
 
-            #region Авторизация
-            if (Cookie == null && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.p))
-            {
-                string authKey = "kinozal:TakeLogin()";
-                if (!Startup.memoryCache.TryGetValue(authKey, out _))
-                {
-                    if (await TakeLogin() == false)
-                        Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
-                }
-            }
-            #endregion
-
-            #region Кеш
+            #region Кеш html
             string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
@@ -168,6 +156,9 @@ namespace Lampac.Controllers.JAC
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);
+
+                    if (!html.Contains(">Выход</a>") && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.p))
+                        TakeLogin();
                 }
 
                 if (cread.html == null)

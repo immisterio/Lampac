@@ -18,22 +18,16 @@ namespace Lampac.Controllers.JAC
     public class RutrackerController : BaseController
     {
         #region Cookie / TakeLogin
-        async static ValueTask<string> Cookie()
+        static string Cookie;
+
+        async static ValueTask<bool> TakeLogin()
         {
-            string memKey = "rutracker:RutrackerController:Cookie";
-            if (Startup.memoryCache.TryGetValue(memKey, out string _cookie))
-                return _cookie;
+            string authKey = "rutracker:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out _))
+                return false;
 
-            var res = await TakeLogin();
-            if (!res.Item1)
-                return null;
+            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
 
-            Startup.memoryCache.Set(memKey, res.Item2, TimeSpan.FromHours(2));
-            return res.Item2;
-        }
-
-        async static ValueTask<(bool, string)> TakeLogin()
-        {
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
@@ -70,7 +64,10 @@ namespace Lampac.Controllers.JAC
                                 }
 
                                 if (!string.IsNullOrWhiteSpace(session))
-                                    return (true, $"bb_ssl=1; bb_session={session};");
+                                {
+                                    Cookie = $"bb_ssl=1; bb_session={session};";
+                                    return true;
+                                }
                             }
                         }
                     }
@@ -78,7 +75,7 @@ namespace Lampac.Controllers.JAC
             }
             catch { }
 
-            return (false, null);
+            return false;
         }
         #endregion
 
@@ -97,8 +94,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);
 
-            string cookie = await Cookie();
-            if (cookie == null)
+            if (Cookie == null && await TakeLogin() == false)
             {
                 if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
@@ -110,7 +106,7 @@ namespace Lampac.Controllers.JAC
             #region Download
             if (AppInit.conf.Rutracker.priority == "torrent")
             {
-                _t = await HttpClient.Download($"{AppInit.conf.Rutracker.host}/forum/dl.php?t={id}", cookie: cookie, referer: AppInit.conf.Rutracker.host, timeoutSeconds: 10);
+                _t = await HttpClient.Download($"{AppInit.conf.Rutracker.host}/forum/dl.php?t={id}", cookie: Cookie, referer: AppInit.conf.Rutracker.host, timeoutSeconds: 10);
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
                     await TorrentCache.Write(keydownload, _t);
@@ -125,7 +121,7 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             #region Magnet
-            var fullNews = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: cookie, timeoutSeconds: 10);
+            var fullNews = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: Cookie, timeoutSeconds: 10);
             if (fullNews != null)
             {
                 string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"med magnet-link\"").Groups[1].Value;
@@ -145,19 +141,21 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-
         #region parsePage
         async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
             if (!AppInit.conf.Rutracker.enable)
                 return false;
 
-            // Авторизация
-            string cookie = await Cookie();
-            if (cookie == null)
-                return false;
+            #region Авторизация
+            if (Cookie == null)
+            {
+                if (await TakeLogin() == false)
+                    return false;
+            }
+            #endregion
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"rutracker:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
@@ -166,12 +164,24 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), cookie: cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
+                bool firstrehtml = true;
+                rehtml: string html = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), cookie: Cookie, timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null)
                 {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
+                    if (html.Contains("id=\"logged-in-username\""))
+                    {
+                        cread.html = html;
+                        await HtmlCache.Write(cachekey, html);
+                    }
+                    else
+                    {
+                        if (!firstrehtml || await TakeLogin() == false) 
+                            return false;
+
+                        firstrehtml = false;
+                        goto rehtml;
+                    }
                 }
 
                 if (cread.html == null)

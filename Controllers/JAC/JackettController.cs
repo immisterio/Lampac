@@ -42,7 +42,7 @@ namespace Lampac.Controllers.JAC
 
             var torrents = await Torrents(search, null, null, 0, 0, null);
 
-            return Json(torrents.Where(i => i.sid > 0).Take(5_000).Select(i => new
+            return Json(torrents.Take(5_000).Select(i => new
             {
                 tracker = i.trackerName,
                 url = i.url != null && i.url.StartsWith("http") ? i.url : null,

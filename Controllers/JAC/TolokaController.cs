@@ -18,16 +18,16 @@ namespace Lampac.Controllers.JAC
     public class TolokaController : BaseController
     {
         #region Cookie / TakeLogin
-        static string Cookie(IMemoryCache memoryCache)
-        {
-            if (memoryCache.TryGetValue("cron:TolokaController:Cookie", out string cookie))
-                return cookie;
+        static string Cookie;
 
-            return null;
-        }
-
-        async static Task<bool> TakeLogin(IMemoryCache memoryCache)
+        async static Task<bool> TakeLogin()
         {
+            string authKey = "toloka:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out _))
+                return false;
+
+            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
@@ -71,7 +71,7 @@ namespace Lampac.Controllers.JAC
 
                                 if (!string.IsNullOrWhiteSpace(toloka_sid) && !string.IsNullOrWhiteSpace(toloka_data))
                                 {
-                                    memoryCache.Set("cron:TolokaController:Cookie", $"toloka_sid={toloka_sid}; toloka_ssl=1; toloka_data={toloka_data};", TimeSpan.FromHours(1));
+                                    Cookie = $"toloka_sid={toloka_sid}; toloka_ssl=1; toloka_data={toloka_data};";
                                     return true;
                                 }
                             }
@@ -96,24 +96,19 @@ namespace Lampac.Controllers.JAC
                 return File(_m, "application/x-bittorrent");
 
             #region Авторизация
-            if (Cookie(memoryCache) == null)
+            if (Cookie == null)
             {
-                string authKey = "toloka:TakeLogin()";
-                if (memoryCache.TryGetValue(authKey, out _))
-                    return Content("TakeLogin == false");
-
-                if (await TakeLogin(memoryCache) == false)
+                if (await TakeLogin() == false)
                 {
                     if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                         return File(tcache.torrent, "application/x-bittorrent");
 
-                    memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
                     return Content("TakeLogin == false");
                 }
             }
             #endregion
 
-            byte[] _t = await HttpClient.Download($"{AppInit.conf.Toloka.host}/download.php?id={id}", cookie: Cookie(memoryCache), referer: AppInit.conf.Toloka.host, timeoutSeconds: 10);
+            byte[] _t = await HttpClient.Download($"{AppInit.conf.Toloka.host}/download.php?id={id}", cookie: Cookie, referer: AppInit.conf.Toloka.host, timeoutSeconds: 10);
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -136,21 +131,14 @@ namespace Lampac.Controllers.JAC
                 return false;
 
             #region Авторизация
-            if (Cookie(Startup.memoryCache) == null)
+            if (Cookie == null)
             {
-                string authKey = "toloka:TakeLogin()";
-                if (Startup.memoryCache.TryGetValue(authKey, out _))
+                if (await TakeLogin() == false)
                     return false;
-
-                if (await TakeLogin(Startup.memoryCache) == false)
-                {
-                    Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(1));
-                    return false;
-                }
             }
             #endregion
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"toloka:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
 
@@ -159,12 +147,24 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie(Startup.memoryCache), /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: AppInit.conf.timeoutSeconds);
+                bool firstrehtml = true;
+                rehtml: string html = await HttpClient.Get($"{AppInit.conf.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie, /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: AppInit.conf.timeoutSeconds);
 
                 if (html != null && html.Contains("<html lang=\"uk\""))
                 {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
+                    if (html.Contains(">Вихід"))
+                    {
+                        cread.html = html;
+                        await HtmlCache.Write(cachekey, html);
+                    }
+                    else
+                    {
+                        if (!firstrehtml || await TakeLogin() == false)
+                            return false;
+
+                        firstrehtml = false;
+                        goto rehtml;
+                    }
                 }
 
                 if (cread.html == null)
