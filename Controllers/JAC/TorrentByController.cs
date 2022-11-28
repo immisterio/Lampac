@@ -20,13 +20,13 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id, string magnet)
         {
-            if (!AppInit.conf.TorrentBy.enable)
+            if (!AppInit.conf.TorrentBy.enable || AppInit.conf.TorrentBy.priority != "torrent")
                 return Content("disable");
 
-            if (id == 0)
+            string key = $"torrentby:parseMagnet:{id}";
+            if (id == 0 || Startup.memoryCache.TryGetValue($"{key}:error", out _))
                 return Redirect(magnet);
 
-            string key = $"torrentby:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
@@ -37,10 +37,8 @@ namespace Lampac.Controllers.JAC
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
-            {
-                return File(tcache.torrent, "application/x-bittorrent");
-            }
+            else if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set($"{key}:error", _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
 
             return Redirect(magnet);
         }
@@ -51,9 +49,10 @@ namespace Lampac.Controllers.JAC
             if (!AppInit.conf.TorrentBy.enable)
                 return false;
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"torrentby:{cat}:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            string priority = cread.cache ? AppInit.conf.TorrentBy.priority : "magnet";
 
             if (cread.emptycache)
                 return false;
@@ -66,6 +65,7 @@ namespace Lampac.Controllers.JAC
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);
+                    priority = AppInit.conf.TorrentBy.priority;
                 }
 
                 if (cread.html == null)
@@ -337,8 +337,8 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        magnet = AppInit.conf.TorrentBy.priority == "torrent" ? null : magnet,
-                        parselink = AppInit.conf.TorrentBy.priority == "torrent" ? $"{host}/torrentby/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
+                        magnet = priority == "torrent" ? null : magnet,
+                        parselink = priority == "torrent" ? $"{host}/torrentby/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
                         createTime = createTime,
                         name = name,
                         originalname = originalname,
