@@ -59,6 +59,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * emptycache - Сохраняет пустой результат как валидный кеш (рекомендуется включать при публичном использование)
 * priority - Отдавать торрент в виде magnet ссылки, либо torrent файл (magnet|torrent)
 * timeoutSeconds - Максимальное время ожидания ответа от трекера
+* litejac - Включить Jackett в Lampa Lite
 * fileCacheInactiveDay - Время хранения резервного кеша на диске
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа
