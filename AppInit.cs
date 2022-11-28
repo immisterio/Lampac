@@ -30,7 +30,7 @@ namespace Lampac
         public bool multiaccess = false;
 
 
-        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 10, img = 1 };
+        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 10, img = 1, torrent = 90 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true };
 

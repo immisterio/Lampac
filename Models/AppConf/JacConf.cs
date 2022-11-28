@@ -8,7 +8,7 @@
 
         public int htmlCacheToMinutes = 1;
 
-        public int magnetCacheToMinutes = 2;
+        public int torrentCacheToMinutes = 2;
 
         public bool emptycache = false;
 

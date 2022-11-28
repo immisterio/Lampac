@@ -19,13 +19,13 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id, string magnet)
         {
-            if (!AppInit.conf.Rutor.enable)
+            if (!AppInit.conf.Rutor.enable || AppInit.conf.Rutor.priority != "torrent")
                 return Content("disable");
 
-            if (id == 0)
+            string key = $"rutor:parseMagnet:{id}";
+            if (id == 0 || Startup.memoryCache.TryGetValue($"{key}:error", out _))
                 return Redirect(magnet);
 
-            string key = $"rutor:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
@@ -33,13 +33,11 @@ namespace Lampac.Controllers.JAC
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.magnetCacheToMinutes));
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
-            {
-                return File(tcache.torrent, "application/x-bittorrent");
-            }
+            else if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set($"{key}:error", _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
 
             return Redirect(magnet);
         }
@@ -53,9 +51,10 @@ namespace Lampac.Controllers.JAC
             // fix search
             query = query.Replace("\"", " ").Replace("'", " ").Replace("?", " ").Replace("&", " ");
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"rutor:{cat}:{query}:{isua}";
             var cread = await HtmlCache.Read(cachekey);
+            string priority = cread.cache ? AppInit.conf.Rutor.priority : "magnet";
 
             if (cread.emptycache)
                 return false;
@@ -64,10 +63,11 @@ namespace Lampac.Controllers.JAC
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Rutor.host}/search" + (cat == "0" ? $"/{HttpUtility.UrlEncode(query)}" : $"/0/{cat}/000/0/{HttpUtility.UrlEncode(query)}"), useproxy: AppInit.conf.Rutor.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
-                if (html != null)
+                if (html != null && html.Contains("id=\"logo\""))
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);
+                    priority = AppInit.conf.Rutor.priority;
                 }
 
                 if (cread.html == null)
@@ -314,8 +314,8 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        magnet = AppInit.conf.Rutor.priority == "torrent" ? null : magnet,
-                        parselink = AppInit.conf.Rutor.priority == "torrent" ? $"{host}/rutor/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
+                        magnet = priority == "torrent" ? null : magnet,
+                        parselink = priority == "torrent" ? $"{host}/rutor/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
                         createTime = createTime,
                         name = name,
                         originalname = originalname,
