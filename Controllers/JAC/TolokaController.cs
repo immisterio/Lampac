@@ -97,6 +97,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");
 
+            #region usecache / emptycache
             if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
             {
                 if (await TorrentCache.Read(key) is var tc && tc.cache)
@@ -104,6 +105,7 @@ namespace Lampac.Controllers.JAC
 
                 return Content("error");
             }
+            #endregion
 
             #region Авторизация
             if (Cookie == null)
@@ -126,7 +128,7 @@ namespace Lampac.Controllers.JAC
                 return File(_t, "application/x-bittorrent");
             }
             else if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set($"{key}:error", _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");

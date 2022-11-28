@@ -84,18 +84,39 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(int id)
+        static string TorrentFileMemKey(string id) => $"kinozal:parseMagnet:download:{id}";
+
+        static string TorrentMagnetMemKey(string id) => $"kinozal:parseMagnet:{id}";
+
+
+        async public Task<ActionResult> parseMagnet(string id, bool usecache)
         {
             if (!AppInit.conf.Kinozal.enable)
                 return Content("disable");
 
-            string keydownload = $"kinozal:parseMagnet:download:{id}";
+            #region Кеш torrent
+            string keydownload = TorrentFileMemKey(id);
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            string keymagnet = $"kinozal:parseMagnet:{id}";
+            string keymagnet = TorrentMagnetMemKey(id);
             if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
                 return Redirect(_m);
+            #endregion
+
+            #region usecache / emptycache
+            string keyerror = $"kinozal:parseMagnet:{id}:error";
+            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
+                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+
+                return Content("error");
+            }
+            #endregion
 
             #region Download
             if (Cookie != null)
@@ -125,11 +146,16 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
-                return File(tcache.torrent, "application/x-bittorrent");
+            if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
 
-            if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
-                Redirect(mcache.torrent);
+            {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
+                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+            }
 
             return Content("error");
         }
@@ -144,6 +170,7 @@ namespace Lampac.Controllers.JAC
             #region Кеш html
             string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            bool validrq = cread.cache;
 
             if (cread.emptycache)
                 return false;
@@ -156,6 +183,7 @@ namespace Lampac.Controllers.JAC
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);
+                    validrq = true;
 
                     if (!html.Contains(">Выход</a>") && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.p))
                         TakeLogin();
@@ -415,6 +443,9 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
+                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(id)) && !TorrentCache.Exists(TorrentMagnetMemKey(id)))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "kinozal",
@@ -425,7 +456,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/kinozal/parsemagnet?id={id}",
+                        parselink = $"{host}/kinozal/parsemagnet?id={id}" + (!validrq ? "&usecache=true" : ""),
                         name = name,
                         originalname = originalname,
                         relased = relased

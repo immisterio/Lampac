@@ -80,22 +80,46 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(int id)
+        static string TorrentFileMemKey(string id) => $"rutracker:parseMagnet:download:{id}";
+
+        static string TorrentMagnetMemKey(string id) => $"rutracker:parseMagnet:{id}";
+
+
+        async public Task<ActionResult> parseMagnet(string id, bool usecache)
         {
             if (!AppInit.conf.Rutracker.enable)
                 return Content("disable");
 
             #region кеш / cookie
-            string keydownload = $"rutracker:parseMagnet:download:{id}";
+            string keydownload = TorrentFileMemKey(id);
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            string key = $"rutracker:parseMagnet:{id}";
+            string key = TorrentMagnetMemKey(id);
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);
+            #endregion
 
+            #region usecache / emptycache
+            string keyerror = $"rutracker:parseMagnet:{id}:error";
+            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
+                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+
+                return Content("error");
+            }
+            #endregion
+
+            #region TakeLogin
             if (Cookie == null && await TakeLogin() == false)
             {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
                 if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
 
@@ -113,10 +137,6 @@ namespace Lampac.Controllers.JAC
                     Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                     return File(_t, "application/x-bittorrent");
                 }
-                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
-                {
-                    return File(tcache.torrent, "application/x-bittorrent");
-                }
             }
             #endregion
 
@@ -132,10 +152,18 @@ namespace Lampac.Controllers.JAC
                     return Redirect(magnet);
                 }
             }
-
-            if (await TorrentCache.ReadMagnet(key) is var _mcache && _mcache.cache)
-                Redirect(_mcache.torrent);
             #endregion
+
+            if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+
+            {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
+                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+            }
 
             return Content("error");
         }
@@ -158,6 +186,7 @@ namespace Lampac.Controllers.JAC
             #region Кеш html
             string cachekey = $"rutracker:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            bool validrq = cread.cache;
 
             if (cread.emptycache)
                 return false;
@@ -173,6 +202,7 @@ namespace Lampac.Controllers.JAC
                     {
                         cread.html = html;
                         await HtmlCache.Write(cachekey, html);
+                        validrq = true;
                     }
                     else
                     {
@@ -534,6 +564,9 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
+                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(viewtopic)) && !TorrentCache.Exists(TorrentMagnetMemKey(viewtopic)))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "rutracker",
@@ -544,7 +577,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/rutracker/parsemagnet?id={viewtopic}",
+                        parselink = $"{host}/rutracker/parsemagnet?id={viewtopic}" + (!validrq ? "&usecache=true" : ""),
                         name = name,
                         originalname = originalname,
                         relased = relased

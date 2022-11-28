@@ -81,24 +81,47 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(string url)
+        static string TorrentFileMemKey(string url) => $"selezen:parseMagnet:download:{url}";
+
+        static string TorrentMagnetMemKey(string url) => $"selezen:parseMagnet:{url}";
+
+        async public Task<ActionResult> parseMagnet(string url, bool usecache)
         {
             if (!AppInit.conf.Selezen.enable)
                 return Content("disable");
 
-            string keydownload = $"selezen:parseMagnet:download:{url}";
+            #region Кеш torrent
+            string keydownload = TorrentFileMemKey(url);
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            string key = $"selezen:parseMagnet:{url}";
+            string key = TorrentMagnetMemKey(url);
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);
+            #endregion
+
+            #region usecache / emptycache
+            string keyerror = $"selezen:parseMagnet:{url}:error";
+            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            {
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
+                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+
+                return Content("error");
+            }
+            #endregion
 
             #region Авторизация
             if (Cookie == null)
             {
                 if (await TakeLogin() == false)
                 {
+                    if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                        return File(tcache.torrent, "application/x-bittorrent");
+
                     if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                         Redirect(mcache.torrent);
 
@@ -109,8 +132,16 @@ namespace Lampac.Controllers.JAC
 
             #region html
             string html = await HttpClient.Get(url, cookie: Cookie, timeoutSeconds: 10);
-            if (html == null)
+            string magnet = new Regex("href=\"(magnet:[^\"]+)\"").Match(html ?? string.Empty).Groups[1].Value;
+
+            if (html == null || string.IsNullOrWhiteSpace(magnet))
             {
+                if (AppInit.conf.jac.emptycache)
+                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
                 if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
 
@@ -131,26 +162,13 @@ namespace Lampac.Controllers.JAC
                         Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                         return File(_t, "application/x-bittorrent");
                     }
-                    if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
-                    {
-                        return File(tcache.torrent, "application/x-bittorrent");
-                    }
                 }
             }
             #endregion
 
-            string magnet = new Regex("href=\"(magnet:[^\"]+)\"").Match(html).Groups[1].Value;
-            if (!string.IsNullOrWhiteSpace(magnet))
-            {
-                await TorrentCache.Write(key, magnet);
-                Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
-                return Redirect(magnet);
-            }
-
-            if (await TorrentCache.ReadMagnet(key) is var _mcache && _mcache.cache)
-                Redirect(_mcache.torrent);
-
-            return Content("error");
+            await TorrentCache.Write(key, magnet);
+            Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+            return Redirect(magnet);
         }
         #endregion
 
@@ -171,6 +189,7 @@ namespace Lampac.Controllers.JAC
             #region Кеш html
             string cachekey = $"selezen:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            bool validrq = cread.cache;
 
             if (cread.emptycache)
                 return false;
@@ -186,6 +205,7 @@ namespace Lampac.Controllers.JAC
                     {
                         cread.html = html;
                         await HtmlCache.Write(cachekey, html);
+                        validrq = true;
                     }
                     else
                     {
@@ -273,6 +293,9 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
+                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(url)) && !TorrentCache.Exists(TorrentMagnetMemKey(url)))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "selezen",
@@ -283,11 +306,10 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/selezen/parsemagnet?url={HttpUtility.UrlEncode(url)}",
+                        parselink = $"{host}/selezen/parsemagnet?url={HttpUtility.UrlEncode(url)}" + (!validrq ? "&usecache=true" : ""),
                         name = name,
                         originalname = originalname,
                         relased = relased
-
                     });
                 }
             }

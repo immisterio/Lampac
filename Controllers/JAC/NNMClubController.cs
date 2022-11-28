@@ -87,22 +87,29 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(int id)
+        static string TorrentFileMemKey(string id) => $"nnmclub:parseMagnet:download:{id}";
+
+        static string TorrentMagnetMemKey(string id) => $"nnmclub:parseMagnet:{id}";
+
+
+        async public Task<ActionResult> parseMagnet(string id, bool usecache)
         {
             if (!AppInit.conf.NNMClub.enable)
                 return Content("disable");
 
-            string keydownload = $"nnmclub:parseMagnet:download:{id}";
+            #region Кеш torrent
+            string keydownload = TorrentFileMemKey(id);
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _f))
                 return File(_f, "application/x-bittorrent");
 
-            string keymagnet = $"nnmclub:parseMagnet:{id}";
+            string keymagnet = TorrentMagnetMemKey(id);
             if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
                 return Redirect(_m);
+            #endregion
 
-            #region html
-            string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: 10);
-            if (html == null || !html.Contains("NNM-Club</title>"))
+            #region usecache / emptycache
+            string keyerror = $"nnmclub:parseMagnet:{id}:error";
+            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -114,7 +121,26 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            #region download
+            #region html
+            string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: 10);
+            string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html ?? string.Empty).Groups[1].Value;
+
+            if (html == null || !html.Contains("NNM-Club</title>") || string.IsNullOrWhiteSpace(magnet))
+            {
+                if (AppInit.conf.jac.emptycache)
+                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+
+                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    return File(tcache.torrent, "application/x-bittorrent");
+
+                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                    Redirect(mcache.torrent);
+
+                return Content("error");
+            }
+            #endregion
+
+            #region download torrent
             if (Cookie != null)
             {
                 string downloadid = new Regex("href=\"download\\.php\\?id=([0-9]+)\"").Match(html).Groups[1].Value;
@@ -131,25 +157,9 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            #region magnet
-            string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html).Groups[1].Value;
-            if (!string.IsNullOrWhiteSpace(magnet))
-            {
-                await TorrentCache.Write(keymagnet, magnet);
-                Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
-                return Redirect(magnet);
-            }
-            #endregion
-
-            {
-                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
-                    return File(tcache.torrent, "application/x-bittorrent");
-
-                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
-                    Redirect(mcache.torrent);
-            }
-
-            return Content("error");
+            await TorrentCache.Write(keymagnet, magnet);
+            Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+            return Redirect(magnet);
         }
         #endregion
 
@@ -162,6 +172,7 @@ namespace Lampac.Controllers.JAC
             #region Кеш html
             string cachekey = $"nnmclub:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            bool validrq = cread.cache;
 
             if (cread.emptycache)
                 return false;
@@ -175,6 +186,7 @@ namespace Lampac.Controllers.JAC
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);
+                    validrq = true;
 
                     if (!html.Contains(">Выход") && !string.IsNullOrWhiteSpace(AppInit.conf.NNMClub.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.NNMClub.login.p))
                         TakeLogin();
@@ -579,6 +591,9 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
+                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(viewtopic)) && !TorrentCache.Exists(TorrentMagnetMemKey(viewtopic)))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "nnmclub",
@@ -588,7 +603,7 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        parselink = $"{host}/nnmclub/parsemagnet?id={viewtopic}",
+                        parselink = $"{host}/nnmclub/parsemagnet?id={viewtopic}" + (!validrq ? "&usecache=true" : ""),
                         createTime = createTime,
                         name = name,
                         originalname = originalname,

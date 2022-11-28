@@ -44,7 +44,7 @@ namespace Lampac.Controllers.JAC
                 return File(_t, "application/x-bittorrent");
             }
             else if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set($"{key}:error", _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
