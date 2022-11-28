@@ -18,14 +18,24 @@ namespace Lampac.Controllers.JAC
     public class MegapeerController : BaseController
     {
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(int id)
+        static string TorrentFileMemKey(string id) => $"megapeer:parseMagnet:{id}";
+
+        async public Task<ActionResult> parseMagnet(string id, bool usecache)
         {
             if (!AppInit.conf.Megapeer.enable)
                 return Content("disable");
 
-            string key = $"megapeer:parseMagnet:{id}";
+            string key = TorrentFileMemKey(id);
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");
+
+            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            {
+                if (await TorrentCache.Read(key) is var tc && tc.cache)
+                    return File(tc.torrent, "application/x-bittorrent");
+
+                return Content("error");
+            }
 
             byte[] _t = await HttpClient.Download($"{AppInit.conf.Megapeer.host}/download/{id}", referer: AppInit.conf.Megapeer.host, timeoutSeconds: 10);
             if (_t != null && BencodeTo.Magnet(_t) != null)
@@ -34,10 +44,11 @@ namespace Lampac.Controllers.JAC
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
-            {
+            else if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set($"{key}:error", _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+
+            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
-            }
 
             return Content("error");
         }
@@ -48,9 +59,10 @@ namespace Lampac.Controllers.JAC
             if (!AppInit.conf.Megapeer.enable)
                 return false;
 
-            #region Кеш
+            #region Кеш html
             string cachekey = $"megapeer:{cat}:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            bool validrq = cread.cache;
 
             if (cread.emptycache)
                 return false;
@@ -59,10 +71,11 @@ namespace Lampac.Controllers.JAC
             {
                 string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query)}&cat={cat}", encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.Megapeer.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
-                if (html != null)
+                if (html != null && html.Contains("id=\"logo\""))
                 {
                     cread.html = html;
                     await HtmlCache.Write(cachekey, html);
+                    validrq = true;
                 }
 
                 if (cread.html == null)
@@ -287,6 +300,9 @@ namespace Lampac.Controllers.JAC
                     }
                     #endregion
 
+                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(downloadid)))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "megapeer",
@@ -295,7 +311,7 @@ namespace Lampac.Controllers.JAC
                         title = title,
                         sid = 1,
                         sizeName = sizeName,
-                        parselink = $"{host}/megapeer/parsemagnet?id={downloadid}",
+                        parselink = $"{host}/megapeer/parsemagnet?id={downloadid}" + (!validrq ? "&usecache=true" : ""),
                         createTime = createTime,
                         name = name,
                         originalname = originalname,

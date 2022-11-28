@@ -86,22 +86,32 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(int id)
+        static string TorrentFileMemKey(string id) => $"toloka:parseMagnet:{id}";
+
+        async public Task<ActionResult> parseMagnet(string id, bool usecache)
         {
             if (!AppInit.conf.Toloka.enable)
                 return Content("disable");
 
-            string key = $"toloka:parseMagnet:{id}";
+            string key = TorrentFileMemKey(id);
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");
+
+            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            {
+                if (await TorrentCache.Read(key) is var tc && tc.cache)
+                    return File(tc.torrent, "application/x-bittorrent");
+
+                return Content("error");
+            }
 
             #region Авторизация
             if (Cookie == null)
             {
                 if (await TakeLogin() == false)
                 {
-                    if (await TorrentCache.Read(key) is var tcache && tcache.cache)
-                        return File(tcache.torrent, "application/x-bittorrent");
+                    if (await TorrentCache.Read(key) is var tc && tc.cache)
+                        return File(tc.torrent, "application/x-bittorrent");
 
                     return Content("TakeLogin == false");
                 }
@@ -115,10 +125,11 @@ namespace Lampac.Controllers.JAC
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
-            {
+            else if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set($"{key}:error", _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+
+            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
-            }
 
             return Content("error");
         }
@@ -141,6 +152,7 @@ namespace Lampac.Controllers.JAC
             #region Кеш html
             string cachekey = $"toloka:{string.Join(":", cats ?? new string[] { })}:{query}";
             var cread = await HtmlCache.Read(cachekey);
+            bool validrq = cread.cache;
 
             if (cread.emptycache)
                 return false;
@@ -156,6 +168,7 @@ namespace Lampac.Controllers.JAC
                     {
                         cread.html = html;
                         await HtmlCache.Write(cachekey, html);
+                        validrq = true;
                     }
                     else
                     {
@@ -312,6 +325,9 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
+                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(downloadid)))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "toloka",
@@ -322,7 +338,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/toloka/parsemagnet?id={downloadid}",
+                        parselink = $"{host}/toloka/parsemagnet?id={downloadid}" + (!validrq ? "&usecache=true" : ""),
                         name = name,
                         originalname = originalname,
                         relased = relased

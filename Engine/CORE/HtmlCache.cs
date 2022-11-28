@@ -20,15 +20,13 @@ namespace Lampac.Engine.CORE
                     return (false, false, null);
                 }
 
-                if (Startup.memoryCache.TryGetValue(key, out _))
-                {
-                    string pathfile = getFolder(key);
+                string pathfile = getFolder(key);
+                bool cache = Startup.memoryCache.TryGetValue(key, out _);
 
-                    if (File.Exists(pathfile))
-                        return (true, false, await File.ReadAllTextAsync(pathfile));
-                    else
-                        return (false, true, null);
-                }
+                if (File.Exists(pathfile))
+                    return (cache, false, await File.ReadAllTextAsync(pathfile));
+                else
+                    return (false, cache, null);
             }
             catch { }
 

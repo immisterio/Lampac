@@ -5,6 +5,13 @@ namespace Lampac.Engine.CORE
 {
     public static class TorrentCache
     {
+        #region Exists
+        public static bool Exists(string key)
+        {
+            return File.Exists(getFolder(key)) || File.Exists(getFolder($"{key}:magnet"));
+        }
+        #endregion
+
         #region Read
         async public static ValueTask<(bool cache, byte[] torrent)> Read(string key)
         {
