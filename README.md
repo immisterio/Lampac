@@ -88,3 +88,6 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. Enter current ip address and port "IP:9118"
 
 Убрать/Добавить адреса можно в msx.json
+
+# Виджеты
+1. Для Samsung "IP:9118/samsung.wgt"
