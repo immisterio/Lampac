@@ -9,6 +9,9 @@ using System.Linq;
 using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using IO = System.IO;
+using System.Security.Cryptography;
+using System.IO.Compression;
 
 namespace Lampac.Controllers
 {
@@ -17,19 +20,67 @@ namespace Lampac.Controllers
         [Route("/")]
         public ActionResult Index()
         {
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) && System.IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) && IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
                 return LocalRedirect($"/{AppInit.conf.LampaWeb.index}");
 
             return Content("api work", contentType: "text/plain; charset=utf-8");
         }
 
+        #region samsung.wgt
+        [HttpGet]
+        [Route("samsung.wgt")]
+        public ActionResult SamsWgt()
+        {
+            string wgt = $"widgets/{CrypTo.md5(AppInit.Host(HttpContext))}.wgt";
+            if (IO.File.Exists(wgt))
+                return File(IO.File.OpenRead(wgt), "application/octet-stream");
+
+            string loader = IO.File.ReadAllText("widgets/samsung/loader.js");
+            IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", AppInit.Host(HttpContext)));
+
+            string digestValue = string.Empty;
+            using (SHA512 sha = SHA512.Create())
+            {
+                string hash = Convert.ToBase64String(sha.ComputeHash(IO.File.ReadAllBytes("widgets/samsung/publish/loader.js")));
+                digestValue = hash.Remove(76) + "\n" + hash.Remove(0, 76);
+            }
+
+            string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
+            IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1.Replace("loaderhashsha512", digestValue));
+
+            string author_sigxml = IO.File.ReadAllText("widgets/samsung/author-signature.xml");
+            IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml.Replace("loaderhashsha512", digestValue));
+
+            ZipFile.CreateFromDirectory("widgets/samsung/publish/", wgt);
+
+            return File(IO.File.OpenRead(wgt), "application/octet-stream");
+        }
+        #endregion
+
+        #region MSX
+        [HttpGet]
+        [Route("msx/start.json")]
+        public ActionResult MSX()
+        {
+            if (!memoryCache.TryGetValue("ApiController:msx.json", out string file))
+            {
+                file = IO.File.ReadAllText("msx.json");
+                memoryCache.Set("ApiController:msx.json", file, DateTime.Now.AddMinutes(5));
+            }
+
+            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            return Content(file, contentType: "application/json; charset=utf-8");
+        }
+        #endregion
+
+        #region lampainit.js
         [HttpGet]
         [Route("lampainit.js")]
         public ActionResult LamInit(bool lite)
         {
             if (!memoryCache.TryGetValue($"ApiController:lampainit.js:{lite}", out string file))
             {
-                file = System.IO.File.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js");
+                file = IO.File.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js");
                 memoryCache.Set($"ApiController:lampainit.js:{lite}", file, DateTime.Now.AddMinutes(5));
             }
 
@@ -38,42 +89,32 @@ namespace Lampac.Controllers
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
+        #endregion
 
-        [HttpGet]
-        [Route("msx/start.json")]
-        public ActionResult MSX()
-        {
-            if (!memoryCache.TryGetValue("ApiController:msx.json", out string file))
-            {
-                file = System.IO.File.ReadAllText("msx.json");
-                memoryCache.Set("ApiController:msx.json", file, DateTime.Now.AddMinutes(5));
-            }
-
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
-            return Content(file, contentType: "application/json; charset=utf-8");
-        }
-
+        #region sisi.js
         [HttpGet]
         [Route("sisi.js")]
         public ActionResult Sisi()
         {
             if (!memoryCache.TryGetValue("ApiController:sisi.js", out string file))
             {
-                file = System.IO.File.ReadAllText("plugins/sisi.js");
+                file = IO.File.ReadAllText("plugins/sisi.js");
                 memoryCache.Set("ApiController:sisi.js", file, DateTime.Now.AddMinutes(5));
             }
 
             file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/sisi");
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
+        #endregion
 
+        #region online.js
         [HttpGet]
         [Route("online.js")]
         public ActionResult Online()
         {
             if (!memoryCache.TryGetValue("ApiController:online.js", out string file))
             {
-                file = System.IO.File.ReadAllText("plugins/online.js");
+                file = IO.File.ReadAllText("plugins/online.js");
                 memoryCache.Set("ApiController:online.js", file, DateTime.Now.AddMinutes(5));
             }
 
@@ -82,7 +123,9 @@ namespace Lampac.Controllers
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
+        #endregion
 
+        #region lite.js / events
         [HttpGet]
         [Route("lite.js")]
         [Route("lite/events")]
@@ -235,6 +278,7 @@ namespace Lampac.Controllers
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
+        #endregion
 
 
         #region checkSearch
