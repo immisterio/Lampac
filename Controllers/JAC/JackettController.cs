@@ -18,9 +18,19 @@ namespace Lampac.Controllers.JAC
     public class JackettController : BaseController
     {
         #region JacRed
+        [Route("api/v1.0/conf")]
+        public JsonResult JacRedConf()
+        {
+            return Json(new
+            {
+                apikey = !string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey)
+            });
+        }
+
         [Route("api/v1.0/torrents")]
         async public Task<JsonResult> JacRed(string apikey, string search)
         {
+            #region search kp/imdb
             if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
             {
                 string memkey = $"api/v1.0/torrents:{search}";
@@ -39,6 +49,7 @@ namespace Lampac.Controllers.JAC
 
                 search = original_name;
             }
+            #endregion
 
             var torrents = await Torrents(search, null, null, 0, 0, null);
 
