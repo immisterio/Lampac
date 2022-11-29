@@ -19,11 +19,11 @@ namespace Lampac.Controllers.JAC
     {
         #region JacRed
         [Route("api/v1.0/conf")]
-        public JsonResult JacRedConf()
+        public JsonResult JacRedConf(string apikey)
         {
             return Json(new
             {
-                apikey = !string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey)
+                apikey = string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey) || apikey == AppInit.conf.jac.apikey
             });
         }
 
