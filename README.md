@@ -55,7 +55,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 
 # Доступ к доменам .onion
 1. Запустить tor на порту 9050
-2. В init.conf указать onion домен в host
+2. В init.conf указать .onion домен в host
 
 # Media Station X
 1. Settings -> Start Parameter -> Setup
@@ -100,18 +100,18 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 {
   "listenport": 9120, // изменили порт
   "jac": {
-	"cachetype": "mem", // изменили место хранения кеша
-	"apikey": "1"       // запретили доступ без ключа авторизации
+    "cachetype": "mem", // изменили место хранения кеша
+    "apikey": "1"       // запретили доступ без ключа авторизации
   },
   "dlna": {
-	"downloadSpeed": 25000000 // ограничили скорость загрузки до 200 Mbit/s
+    "downloadSpeed": 25000000 // ограничили скорость загрузки до 200 Mbit/s
   },
   "sisi": {
     "xdb": true // вывели доп. источники с sisi.am
   },
   "Rutracker": {
     "enable": true, // включили rutracker указав данные для авторизации 
-	"login": {
+    "login": {
       "u": "megachel",
       "p": "iegoher"
     }
@@ -120,19 +120,19 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
     "host": "http://nnmclub2vvjqzjne6q4rrozkkkdmlvnrcsyes2bbkm7e5ut2aproy4id.onion"
   },
   "Rezka": {
-	"streamproxy": true // отправили видеопоток через "http://IP:9118/proxy/{uri}" 
+    "streamproxy": true // отправили видеопоток через "http://IP:9118/proxy/{uri}" 
   },
   "Filmix": {
-	"token": "protoken" // добавили токен от PRO аккаунта
+    "token": "protoken" // добавили токен от PRO аккаунта
   },
   "PornHub": {
     "enable": false // отключили PornHub
   },
   "globalproxy": [
-	{
+    {
       "pattern": "\\.onion",  // запросы на домены .onion отправить через прокси
       "list": [
-		"socks5://127.0.0.1:9050" // прокси сервер tor
+        "socks5://127.0.0.1:9050" // прокси сервер tor
       ]
     }
   ]
