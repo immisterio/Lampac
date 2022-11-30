@@ -106,9 +106,9 @@ namespace Lampac.Controllers.Ebalovo
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
                 {
                     string duration = new Regex(" data-eb=\"([^;\"]+);", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    var img = new Regex("(class=\"thumb\") src=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
+                    var img = new Regex("( )src=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
-                        img = new Regex("(data-srcset|data-src)=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
+                        img = new Regex("(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
 
                     playlists.Add(new PlaylistItem()
                     {

@@ -2,12 +2,13 @@
 {
     public class TrackerSettings
     {
-        public TrackerSettings(string host, bool enable = true, bool useproxy = false, LoginSettings login = null)
+        public TrackerSettings(string host, bool enable = true, bool useproxy = false, LoginSettings login = null, string priority = null)
         {
             this.host = host;
             this.enable = enable;
             this.useproxy = useproxy;
             this.login = login;
+            this.priority = priority;
         }
 
 

@@ -14,9 +14,17 @@ namespace Lampac
 {
     public class AppInit
     {
-        public static AppInit conf = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+        #region AppInit
+        public static AppInit conf = new AppInit();
 
         public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
+
+        static AppInit()
+        {
+            if (File.Exists("init.conf"))
+                conf = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+        }
+        #endregion
 
 
         public int listenport = 9118;
@@ -43,11 +51,11 @@ namespace Lampac
         public JacConf jac = new JacConf();
 
 
-        public TrackerSettings Rutor = new TrackerSettings("http://rutor.info");
+        public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", priority: "torrent");
 
         public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip");
 
-        public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by");
+        public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by", priority: "torrent");
 
         public TrackerSettings Kinozal = new TrackerSettings("http://kinozal.tv");
 
@@ -57,11 +65,11 @@ namespace Lampac
 
         public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", enable: false);
 
-        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", enable: false);
+        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", enable: false, priority: "torrent");
 
         public TrackerSettings Underverse = new TrackerSettings("https://underver.se", enable: false);
 
-        public TrackerSettings Selezen = new TrackerSettings("https://selezen.net", enable: false);
+        public TrackerSettings Selezen = new TrackerSettings("https://selezen.org", enable: false, priority: "torrent");
 
         public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv");
 
@@ -115,7 +123,7 @@ namespace Lampac
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 
-        public OnlinesSettings Zetflix = new OnlinesSettings("https://8nov.zetfix.online");
+        public OnlinesSettings Zetflix = new OnlinesSettings("https://zetfix.online");
 
         public OnlinesSettings VideoDB = new OnlinesSettings(null);
 
@@ -128,9 +136,9 @@ namespace Lampac
 
         public IframeVideoSettings IframeVideo = new IframeVideoSettings("https://iframe.video", "https://videoframe.space");
 
-        public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "");
+        public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "5e2fe4c70bafd9a7414c4f170ee1b192");
 
-        public OnlinesSettings Seasonvar = new OnlinesSettings("http://seasonvar.ru", apihost: "http://api.seasonvar.ru");
+        public OnlinesSettings Seasonvar = new OnlinesSettings(null, apihost: "http://api.seasonvar.ru");
 
         public KinoPubSettings KinoPub = new KinoPubSettings("https://api.service-kp.com");
 
@@ -141,7 +149,7 @@ namespace Lampac
         public KodikSettings Kodik = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
 
 
-        public OnlinesSettings AnilibriaOnline = new OnlinesSettings("https://www.anilibria.tv");
+        public OnlinesSettings AnilibriaOnline = new OnlinesSettings("https://www.anilibria.tv", apihost: "https://api.anilibria.tv");
 
         public OnlinesSettings AniMedia = new OnlinesSettings("https://online.animedia.tv");
 
@@ -154,6 +162,13 @@ namespace Lampac
 
         public ProxySettings proxy = new ProxySettings();
 
-        public List<ProxySettings> globalproxy = new List<ProxySettings>();
+        public List<ProxySettings> globalproxy = new List<ProxySettings>() 
+        {
+            new ProxySettings() 
+            {
+                pattern = "\\.onion",
+                list = new List<string>() { "socks5://127.0.0.1:9050" }
+            }
+        };
     }
 }
