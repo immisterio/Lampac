@@ -53,6 +53,19 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 1. Добавить плагин "http://IP:9118/tmdbproxy.js" 
 2. В настройках TMDB включить проксирование
 
+# Доступ к доменам .onion
+1. Запустить tor на порту 9050
+2. В init.conf указать onion домен в host
+
+# Media Station X
+1. Settings -> Start Parameter -> Setup
+2. Enter current ip address and port "IP:9118"
+
+Убрать/Добавить адреса можно в msx.json
+
+# Виджеты
+1. Для Samsung "IP:9118/samsung.wgt"
+
 # Параметры init.conf
 * xdb - Выводит платные источники с sisi.am
 * cachetype - Место хранения кеша "file", "mem" 
@@ -79,15 +92,49 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * emptycache - true
 * multiaccess - true
 
-# Доступ к доменам .onion
-1. Запустить tor на порту 9050
-2. В init.conf указать onion домен в host
+# Пример init.conf
+* Список всех параметров, а так же значения по умолчанию смотреть в example.conf 
+* В init.conf нужно указывать только те параметры, которые хотите изменить
 
-# Media Station X
-1. Settings -> Start Parameter -> Setup
-2. Enter current ip address and port "IP:9118"
-
-Убрать/Добавить адреса можно в msx.json
-
-# Виджеты
-1. Для Samsung "IP:9118/samsung.wgt"
+```
+{
+  "listenport": 9120, // изменили порт
+  "jac": {
+	"cachetype": "mem", // изменили место хранения кеша
+	"apikey": "1"       // запретили доступ без ключа авторизации
+  },
+  "dlna": {
+	"downloadSpeed": 25000000 // ограничили скорость загрузки до 200 Mbit/s
+  },
+  "sisi": {
+    "xdb": true // вывели доп. источники с sisi.am
+  },
+  "Rutracker": {
+    "enable": true, // включили rutracker указав данные для авторизации 
+	"login": {
+      "u": "megachel",
+      "p": "iegoher"
+    }
+  },
+  "NNMClub": { // изменили домен на адрес из сети tor 
+    "host": "http://nnmclub2vvjqzjne6q4rrozkkkdmlvnrcsyes2bbkm7e5ut2aproy4id.onion"
+  },
+  "Rezka": {
+	"streamproxy": true // отправили видеопоток через "http://IP:9118/proxy/{uri}" 
+  },
+  "Filmix": {
+	"token": "protoken" // добавили токен от PRO аккаунта
+  },
+  "PornHub": {
+    "enable": false // отключили PornHub
+  },
+  "globalproxy": [
+	{
+      "pattern": "\\.onion",  // запросы на домены .onion отправить через прокси
+      "list": [
+		"socks5://127.0.0.1:9050" // прокси сервер tor
+      ]
+    }
+  ]
+}
+```
