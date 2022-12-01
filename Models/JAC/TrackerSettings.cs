@@ -7,7 +7,10 @@
             this.host = host;
             this.enable = enable;
             this.useproxy = useproxy;
-            this.login = login;
+
+            if (login != null)
+                this.login = login;
+
             this.priority = priority;
         }
 
@@ -20,6 +23,6 @@
 
         public bool useproxy { get; set; }
 
-        public LoginSettings login { get; set; }
+        public LoginSettings login { get; set; } = new LoginSettings();
     }
 }
