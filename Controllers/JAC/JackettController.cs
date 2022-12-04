@@ -77,7 +77,7 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region Jackett
-        [Route("api/v2.0/indexers/all/results")]
+        [Route("api/v2.0/indexers/{status}/results")]
         async public Task<ActionResult> Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
             var torrents = await Torrents(query, title, title_original, year, is_serial, category);
@@ -370,7 +370,7 @@ namespace Lampac.Controllers.JAC
                     SelezenController.parsePage(host, temptorrents, search),
                     AniLibriaController.parsePage(host, temptorrents, search),
                     AnimeLayerController.parsePage(host, temptorrents, search),
-
+                    BitruController.parsePage(host, temptorrents, search, null),
                 });
                 #endregion
             }

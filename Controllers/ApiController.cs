@@ -42,7 +42,8 @@ namespace Lampac.Controllers
             using (SHA512 sha = SHA512.Create())
             {
                 string hash = Convert.ToBase64String(sha.ComputeHash(IO.File.ReadAllBytes("widgets/samsung/publish/loader.js")));
-                digestValue = hash.Remove(76) + "\n" + hash.Remove(0, 76);
+                //digestValue = hash.Remove(76) + "\n" + hash.Remove(0, 76);
+                digestValue = hash;
             }
 
             string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
