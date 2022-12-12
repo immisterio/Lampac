@@ -49,7 +49,7 @@ namespace Lampac.Engine.CORE
 
 
         #region GetLocation
-        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null)
+        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1)
         {
             try
             {
@@ -71,7 +71,12 @@ namespace Lampac.Engine.CORE
                             client.DefaultRequestHeaders.Add(item.name, item.val);
                     }
 
-                    using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+                    var req = new HttpRequestMessage(HttpMethod.Get, url)
+                    {
+                        Version = new Version(httpversion, 0)
+                    };
+
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead))
                     {
                         string location = ((int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307) ? response.Headers.Location?.ToString() : response.RequestMessage.RequestUri?.ToString();
                         location = Uri.EscapeUriString(System.Web.HttpUtility.UrlDecode(location ?? ""));

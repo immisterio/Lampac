@@ -69,7 +69,7 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query)}&cat={cat}", encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.Megapeer.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
+                string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.Megapeer.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null && html.Contains("id=\"logo\""))
                 {

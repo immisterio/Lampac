@@ -38,19 +38,28 @@ namespace Lampac.Controllers
             string loader = IO.File.ReadAllText("widgets/samsung/loader.js");
             IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", AppInit.Host(HttpContext)));
 
-            string digestValue = string.Empty;
-            using (SHA512 sha = SHA512.Create())
+            IO.File.Copy("widgets/samsung/icon.png", "widgets/samsung/publish/icon.png", overwrite: true);
+            IO.File.Copy("widgets/samsung/config.xml", "widgets/samsung/publish/config.xml", overwrite: true);
+
+            string gethash(string file)
             {
-                string hash = Convert.ToBase64String(sha.ComputeHash(IO.File.ReadAllBytes("widgets/samsung/publish/loader.js")));
-                //digestValue = hash.Remove(76) + "\n" + hash.Remove(0, 76);
-                digestValue = hash;
+                using (SHA512 sha = SHA512.Create())
+                {
+                    return Convert.ToBase64String(sha.ComputeHash(IO.File.ReadAllBytes(file)));
+                    //digestValue = hash.Remove(76) + "\n" + hash.Remove(0, 76);
+                }
             }
 
+            string loaderhashsha512 = gethash("widgets/samsung/publish/loader.js");
+            string iconhashsha512 = gethash("widgets/samsung/publish/icon.png");
+
             string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
-            IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1.Replace("loaderhashsha512", digestValue));
+            sigxml1 = sigxml1.Replace("loaderhashsha512", loaderhashsha512).Replace("iconhashsha512", iconhashsha512);
+            IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1);
 
             string author_sigxml = IO.File.ReadAllText("widgets/samsung/author-signature.xml");
-            IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml.Replace("loaderhashsha512", digestValue));
+            author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("iconhashsha512", iconhashsha512);
+            IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml);
 
             ZipFile.CreateFromDirectory("widgets/samsung/publish/", wgt);
 
@@ -146,15 +155,15 @@ namespace Lampac.Controllers
         [Route("lifeevents")]
         public ActionResult LifeEvents(int id)
         {
-            string json = string.Empty;
+            string json = null;
 
             if (memoryCache.TryGetValue($"ApiController:checkOnlineSearch:{id}", out (bool ready, int tasks, string online) res))
             {
-                string online = res.online.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite");
+                string online = res.online?.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite") ?? string.Empty;
                 json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{Regex.Replace(online, ",$", "")}]" + "}";
             }
 
-            return Content(json, contentType: "application/javascript; charset=utf-8");
+            return Content(json ?? "{\"ready\":false,\"tasks\":0,\"online\":[]}", contentType: "application/javascript; charset=utf-8");
         }
 
         [HttpGet]
@@ -268,11 +277,12 @@ namespace Lampac.Controllers
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
+                    string host = AppInit.Host(HttpContext);
                     var match = Regex.Match(online, "(\\{\"name\":\"[^\"]+\",\"url\":\"\\{localhost\\}/([^\"]+)\"\\},)");
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            tasks.Add(checkSearch(links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
+                            tasks.Add(checkSearch(host, links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
 
                         match = match.NextMatch();
                     }
@@ -302,10 +312,10 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string code, string uri,
+        async Task checkSearch(string host, ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string code, string uri,
                                int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
-            string res = await HttpClient.Get($"{AppInit.Host(HttpContext)}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{host}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
             links.Add((code.Replace("},", $",\"index\":{index},\"show\":{work.ToString().ToLower()}" + "},"), index, work));
