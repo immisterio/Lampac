@@ -14,8 +14,13 @@ source ~/.bashrc
 # Download zip
 mkdir $DEST -p && cd $DEST
 wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
-unzip publish.zip
+unzip -o publish.zip
 rm -f publish.zip
+
+# automatic updates
+curl -s https://raw.githubusercontent.com/immisterio/lampac/main/update.sh > $DEST/update.sh
+chmod 755 $DEST/update.sh
+crontab -l | { cat; echo "10 2 * * * /bin/bash $DEST/update.sh"; } | crontab -
 
 # Create service
 echo ""
