@@ -51,14 +51,44 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
+            #region getSizeInfo
+            long getSizeInfo(string sizeName)
+            {
+                if (string.IsNullOrWhiteSpace(sizeName))
+                    return 0;
+
+                try
+                {
+                    double size = 0.1;
+                    var gsize = Regex.Match(sizeName, "([0-9\\.,]+) (Mb|МБ|GB|ГБ|TB|ТБ)", RegexOptions.IgnoreCase).Groups;
+                    if (!string.IsNullOrWhiteSpace(gsize[2].Value))
+                    {
+                        if (double.TryParse(gsize[1].Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out size) && size != 0)
+                        {
+                            if (gsize[2].Value.ToLower() is "gb" or "гб")
+                                size *= 1024;
+
+                            if (gsize[2].Value.ToLower() is "tb" or "тб")
+                                size *= 1048576;
+
+                            return (long)(size * 1048576);
+                        }
+                    }
+                }
+                catch { }
+
+                return 0;
+            }
+            #endregion
+
             var torrents = await Torrents(search, null, null, 0, 0, null);
 
-            return Json(torrents.Take(5_000).Select(i => new
+            return Json(torrents.Select(i => new
             {
                 tracker = i.trackerName,
                 url = i.url != null && i.url.StartsWith("http") ? i.url : null,
                 i.title,
-                size = (long)(i.size * 1048576),
+                size = getSizeInfo(i.sizeName),
                 i.sizeName,
                 i.createTime,
                 i.sid,

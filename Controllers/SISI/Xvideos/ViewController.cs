@@ -45,7 +45,7 @@ namespace Lampac.Controllers.Xvideos
                 if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("hls-"))
                     continue;
 
-                string hls = $"{Regex.Replace(cache.stream_link.Replace("https:", "http:"), "/hls.m3u8.*", "")}/{line}";
+                string hls = $"{Regex.Replace(cache.stream_link, "/hls.m3u8.*", "")}/{line}";
                 playlists.Add(new PlaylistItem()
                 {
                     name = new Regex("hls-([0-9]+)p").Match(line).Groups[1].Value,
