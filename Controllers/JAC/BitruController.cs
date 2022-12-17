@@ -88,7 +88,7 @@ namespace Lampac.Controllers.JAC
 
             foreach (string row in cread.html.Split("<div class=\"b-title\"").Skip(1))
             {
-                if (row.Contains(">Аниме</a>") || row.Contains(">Мульт"))
+                if (row.Contains(">Аниме</a>"))
                     continue;
 
                 #region Локальный метод - Match
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.JAC
                 }
                 else
                 {
-                    createTime = tParse.ParseCreateTime(Match("<div class=\"ellips\"><span>([0-9]{2} [^ ]+ [0-9]{4}) в [0-9]{2}:[0-9]{2} от <a"), "dd.MM.yyyy");
+                    createTime = tParse.ParseCreateTime(Match("<div class=\"ellips\">(<i [^>]+></i>)?<span>([0-9]{2} [^ ]+ [0-9]{4}) в [0-9]{2}:[0-9]{2} от <a", 2), "dd.MM.yyyy");
                 }
 
                 //if (createTime == default)
@@ -134,6 +134,9 @@ namespace Lampac.Controllers.JAC
                 string sizeName = Match("title=\"Размер\">([^<]+)</td>");
 
                 if (string.IsNullOrWhiteSpace(cat) || string.IsNullOrWhiteSpace(newsid) || string.IsNullOrWhiteSpace(title))
+                    continue;
+
+                if (!title.ToLower().Contains(query.ToLower()))
                     continue;
 
                 url = $"{AppInit.conf.Bitru.host}/{url}";
