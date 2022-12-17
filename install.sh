@@ -6,7 +6,8 @@ DEST="/home/lampac"
 apt-get update && apt-get install -y wget unzip ffmpeg
 
 # Install .NET
-wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && chmod 755 dotnet-install.sh && ./dotnet-install.sh
+wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && chmod 755 dotnet-install.sh
+./dotnet-install.sh --channel 6.0.1xx
 echo "export DOTNET_ROOT=\$HOME/.dotnet" >> ~/.bashrc
 echo "export PATH=\$PATH:\$HOME/.dotnet:\$HOME/.dotnet/tools" >> ~/.bashrc
 source ~/.bashrc
