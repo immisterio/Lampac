@@ -431,6 +431,21 @@ namespace Lampac.Controllers.PLUGINS
                         await manager.StartAsync();
                         await manager.WaitForMetadataAsync();
                     }
+
+                    #region overideindexs
+                    if (indexs != null && indexs.Length > 0)
+                    {
+                        var overideindexs = new List<int>();
+
+                        for (int i = 0; i < manager.Files.Count; i++)
+                        {
+                            if (indexs.Contains(i) || manager.Files[i].Priority != Priority.DoNotDownload)
+                                overideindexs.Add(i);
+                        }
+
+                        indexs = overideindexs.ToArray();
+                    }
+                    #endregion
                 }
                 else
                 {
@@ -450,6 +465,21 @@ namespace Lampac.Controllers.PLUGINS
 
                     await manager.StartAsync();
                     await manager.WaitForMetadataAsync();
+
+                    #region overideindexs
+                    if (indexs != null && indexs.Length > 0)
+                    {
+                        var overideindexs = new List<int>();
+
+                        for (int i = 0; i < manager.Files.Count; i++)
+                        {
+                            if (indexs.Contains(i) || IO.File.Exists(manager.Files[i].FullPath))
+                                overideindexs.Add(i);
+                        }
+
+                        indexs = overideindexs.ToArray();
+                    }
+                    #endregion
 
                     #region TorrentStateChanged
                     manager.TorrentStateChanged += async (s, e) =>
@@ -487,6 +517,15 @@ namespace Lampac.Controllers.PLUGINS
                 if (indexs == null || indexs.Length == 0)
                 {
                     await manager.SetFilePriorityAsync(manager.Files[0], Priority.High);
+
+                    if (manager.Files.Count > 1)
+                    {
+                        foreach (var file in manager.Files.Skip(1))
+                        {
+                            if (file.Priority != Priority.Normal)
+                                await manager.SetFilePriorityAsync(file, Priority.Normal);
+                        }
+                    }
                 }
                 else
                 {
