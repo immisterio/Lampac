@@ -73,6 +73,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * priority - Отдавать торрент в виде magnet ссылки, либо torrent файл (magnet|torrent)
 * timeoutSeconds - Максимальное время ожидания ответа от трекера
 * litejac - Включить Jackett в Lampa Lite
+* search_lang - Язык поиска на трекерах "title_original - en", "title - ru", "query - настройки lampa" 
 * fileCacheInactiveDay - Время хранения резервного кеша на диске
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа

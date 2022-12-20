@@ -14,6 +14,8 @@
 
         public string apikey = null;
 
+        public string search_lang = "title_original";
+
         public bool litejac = true;
     }
 }

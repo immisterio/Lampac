@@ -222,11 +222,18 @@ namespace Lampac.Controllers.JAC
         {
             var torrents = new ConcurrentBag<TorrentDetails>();
             var temptorrents = new ConcurrentBag<TorrentDetails>();
-            string search = title_original ?? title ?? query;
             string host = AppInit.Host(HttpContext);
 
+            #region search
+            string search = AppInit.conf.jac.search_lang == "query" ? query : AppInit.conf.jac.search_lang == "title" ? title : title_original;
+
             if (string.IsNullOrWhiteSpace(search))
-                goto end;
+            {
+                search = title_original ?? title ?? query;
+                if (string.IsNullOrWhiteSpace(search))
+                    goto end;
+            }
+            #endregion
 
             #region Запрос с NUM
             if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original))
@@ -241,7 +248,7 @@ namespace Lampac.Controllers.JAC
                     title_original = g[2].Value;
                     year = int.Parse(g[3].Value);
 
-                    search = title_original;
+                    search = AppInit.conf.jac.search_lang == "query" ? query : AppInit.conf.jac.search_lang == "title" ? title : title_original;
                 }
             }
             #endregion
