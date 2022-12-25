@@ -10,18 +10,35 @@ using System.Collections.Generic;
 using Lampac.Models.DLNA;
 using Lampac.Models.AppConf;
 using System.Text.RegularExpressions;
+using System;
 
 namespace Lampac
 {
     public class AppInit
     {
         #region AppInit
-        public static AppInit conf = new AppInit();
+        static (AppInit, DateTime) cacheconf;
 
-        static AppInit()
-        {
-            if (File.Exists("init.conf"))
-                conf = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+        public static AppInit conf 
+        { 
+            get 
+            {
+                if (cacheconf.Item1 == null)
+                {
+                    if (!File.Exists("init.conf"))
+                        return new AppInit();
+                }
+
+                var lastWriteTime = File.GetLastWriteTime("init.conf");
+
+                if (cacheconf.Item2 != lastWriteTime)
+                {
+                    cacheconf.Item2 = lastWriteTime;
+                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+                }
+
+                return cacheconf.Item1;
+            } 
         }
 
         public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
