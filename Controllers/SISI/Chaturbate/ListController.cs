@@ -56,7 +56,7 @@ namespace Lampac.Controllers.Chaturbate
                     name = g[3].Value.Trim(),
                     quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
                     video = $"{AppInit.Host(HttpContext)}/chu/potok.m3u8?baba={HttpUtility.UrlEncode(g[1].Value)}",
-                    picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.sisi.heightPicture}/{img}"
+                    picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img)
                 });
             }
 

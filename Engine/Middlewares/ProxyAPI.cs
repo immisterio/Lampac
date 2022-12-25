@@ -9,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Net;
 using System.Linq;
 using System.Text;
+using System.Web;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -40,6 +41,25 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
+                string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
+                servUri = Regex.Replace(servUri, "(\\?|&)account_email=([^&]+)", "", RegexOptions.IgnoreCase);
+
+                if (AppInit.conf.accsdb.enable)
+                {
+                    if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.accounts.Contains(HttpUtility.UrlDecode(account_email)))
+                    {
+                        httpContext.Response.StatusCode = 401;
+                        return;
+                    }
+                }
+
+                string validArgs(string uri)
+                {
+                    if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.enable)
+                        return uri.Replace("//", "/");
+
+                    return uri.Replace("//", "/") + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
+                }
 
                 HttpClientHandler handler = new HttpClientHandler()
                 {
@@ -54,9 +74,9 @@ namespace Lampac.Engine.Middlewares
                     var request = CreateProxyHttpRequest(httpContext, new Uri(servUri));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
-                    if ((int)response.StatusCode is 301 or 302 || response.Headers.Location != null)
+                    if ((int)response.StatusCode is 301 or 302 or 303 || response.Headers.Location != null)
                     {
-                        httpContext.Response.Redirect($"{AppInit.Host(httpContext)}/proxy/{response.Headers.Location.AbsoluteUri}");
+                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{response.Headers.Location.AbsoluteUri}"));
                         return;
                     }
 
@@ -69,7 +89,7 @@ namespace Lampac.Engine.Middlewares
                                 string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
                                 string m3u8 = Regex.Replace(Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync()), "(https?://[^\n\r\"\\# ]+)", m =>
                                 {
-                                    return $"{proxyhost}/{m.Groups[1].Value}";
+                                    return validArgs($"{proxyhost}/{m.Groups[1].Value}");
                                 });
 
                                 string hlshost = Regex.Match(servUri, "(https?://[^/]+)/").Groups[1].Value;
@@ -91,7 +111,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + $"{proxyhost}/{uri}";
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{uri}");
                                 });
 
                                 m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
@@ -110,7 +130,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + $"{proxyhost}/{uri}";
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{uri}");
                                 });
 
                                 httpContext.Response.ContentType = contentType.First();

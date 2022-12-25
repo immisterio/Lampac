@@ -55,11 +55,13 @@ namespace Lampac.Controllers.JAC
                     client.DefaultRequestHeaders.Add("sec-fetch-user", "?1");
                     client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
-                    var postParams = new Dictionary<string, string>();
-                    postParams.Add("login_username", AppInit.conf.Underverse.login.u);
-                    postParams.Add("login_password", AppInit.conf.Underverse.login.p);
-                    postParams.Add("autologin", "1");
-                    postParams.Add("login", "Вход");
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "login_username", AppInit.conf.Underverse.login.u },
+                        { "login_password", AppInit.conf.Underverse.login.p },
+                        { "autologin", "1" },
+                        { "login", "Вход" }
+                    };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {

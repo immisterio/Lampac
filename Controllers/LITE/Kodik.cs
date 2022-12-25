@@ -227,7 +227,7 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in streams)
             {
-                string hls = AppInit.conf.Kodik.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l.url}" : l.url;
+                string hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Kodik.streamproxy, l.url);
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 

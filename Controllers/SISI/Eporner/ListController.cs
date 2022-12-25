@@ -123,7 +123,7 @@ namespace Lampac.Controllers.Eporner
                     {
                         name = g[2].Value,
                         video = $"{AppInit.Host(HttpContext)}/epr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.sisi.heightPicture}/{img}",
+                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
                         quality = quality,
                         time = duration,
                         json = true

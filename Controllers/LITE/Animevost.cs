@@ -8,6 +8,7 @@ using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Lampac.Models.LITE.AniLibria;
 
 namespace Lampac.Controllers.LITE
 {
@@ -137,7 +138,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, mp4, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
-            return Redirect($"{AppInit.Host(HttpContext)}/proxy/{mp4}");
+            return Redirect(AppInit.HostStreamProxy(HttpContext, true, mp4));
         }
         #endregion
     }

@@ -41,8 +41,7 @@ namespace Lampac.Controllers.Eporner
             var match = new Regex("\"src\": +\"(https?://[^/]+/[^\"]+-([0-9]+p).mp4)\",").Match(json);
             while (match.Success)
             {
-                string hls = match.Groups[1].Value.Replace("https:", "http:");
-                stream_links.TryAdd(match.Groups[2].Value, AppInit.conf.Eporner.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
+                stream_links.TryAdd(match.Groups[2].Value, AppInit.HostStreamProxy(HttpContext, AppInit.conf.Eporner.streamproxy, match.Groups[1].Value));
                 match = match.NextMatch();
             }
 

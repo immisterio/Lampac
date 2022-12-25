@@ -59,16 +59,14 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
 
-                        string l = AppInit.conf.AnilibriaOnline.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{f.url}" : f.url;
-                        streansquality += $"\"{f.quality}\":\"" + l + "\",";
+                        streansquality += $"\"{f.quality}\":\"" + AppInit.HostStreamProxy(HttpContext, AppInit.conf.AnilibriaOnline.streamproxy, f.url) + "\",";
                     }
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                     #endregion
 
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
-                    hls = $"https://{root.player.host}{hls}";
-                    hls = AppInit.conf.AnilibriaOnline.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
+                    hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.AnilibriaOnline.streamproxy, $"https://{root.player.host}{hls}");
 
                     string season = string.IsNullOrWhiteSpace(code) || (root.names.ru?.ToLower() == title.ToLower()) ? "1"  : "0";
 

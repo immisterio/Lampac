@@ -14,19 +14,9 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey))
-            {
-                if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(api/v2.0/indexers|api/v1.0/torrents|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria)"))
-                {
-                    if (AppInit.conf.jac.apikey != Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)apikey=([^&]+)").Groups[2].Value)
-                        return Task.CompletedTask;
-                }
-            }
-
             httpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Accept, Content-Type");
             httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET");
             httpContext.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-
 
             if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|tracks|dlna)\\.js"))
             {

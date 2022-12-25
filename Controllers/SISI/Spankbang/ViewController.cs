@@ -44,7 +44,7 @@ namespace Lampac.Controllers.Spankbang
             while (match.Success)
             {
                 string hls = match.Groups[3].Value.Replace("https:", "http:");
-                stream_links.TryAdd($"{match.Groups[1].Value}{match.Groups[2].Value}", AppInit.conf.Spankbang.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
+                stream_links.TryAdd($"{match.Groups[1].Value}{match.Groups[2].Value}", AppInit.HostStreamProxy(HttpContext, AppInit.conf.Spankbang.streamproxy, hls));
                 match = match.NextMatch();
             }
             #endregion

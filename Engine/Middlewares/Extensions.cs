@@ -9,6 +9,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<ModHeaders>();
         }
 
+        public static IApplicationBuilder UseAccsdb(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<Accsdb>();
+        }
+
         public static IApplicationBuilder UseFindKP(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<FindKP>();

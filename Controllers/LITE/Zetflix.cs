@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        link = AppInit.conf.Zetflix.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Zetflix.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
@@ -130,7 +130,7 @@ namespace Lampac.Controllers.LITE
                             if (string.IsNullOrEmpty(link))
                                 continue;
 
-                            link = AppInit.conf.Zetflix.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                            link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Zetflix.streamproxy, link);
 
                             streams.Add((link, $"{quality}p"));
                             streansquality += $"\"{quality}p\":\"" + link + "\",";

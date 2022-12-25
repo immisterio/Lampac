@@ -9,6 +9,7 @@ using Lampac.Models.LITE.HDVB;
 using System.Collections.Generic;
 using Lampac.Models.DLNA;
 using Lampac.Models.AppConf;
+using System.Text.RegularExpressions;
 
 namespace Lampac
 {
@@ -17,12 +18,29 @@ namespace Lampac
         #region AppInit
         public static AppInit conf = new AppInit();
 
-        public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
-
         static AppInit()
         {
             if (File.Exists("init.conf"))
                 conf = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+        }
+
+        public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
+
+        public static string HostStreamProxy(HttpContext httpContext, bool streamproxy, string uri) 
+        {
+            if (streamproxy)
+            {
+                string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
+                if (conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
+                    uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
+            }
+
+            return streamproxy ? $"{Host(httpContext)}/proxy/{uri}" : uri;
+        }
+
+        public static string HostImgProxy(HttpContext httpContext, int width, int height, string uri)
+        {
+            return $"{Host(httpContext)}/proxyimg:{width}:{height}/{uri}";
         }
         #endregion
 
@@ -47,6 +65,8 @@ namespace Lampac
         public SisiConf sisi = new SisiConf() { heightPicture = 200 };
 
         public OnlineConf online = new OnlineConf() { findkp = "alloha", checkOnlineSearch = true };
+
+        public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf" };
 
         public JacConf jac = new JacConf();
 

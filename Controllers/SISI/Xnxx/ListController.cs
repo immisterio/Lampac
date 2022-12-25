@@ -75,7 +75,7 @@ namespace Lampac.Controllers.Xnxx
                     {
                         name = g[2].Value,
                         video = $"{AppInit.Host(HttpContext)}/xnx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.sisi.heightPicture}/{img}",
+                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
                         json = true

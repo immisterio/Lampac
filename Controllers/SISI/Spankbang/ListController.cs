@@ -114,7 +114,7 @@ namespace Lampac.Controllers.Spankbang
                         name = title,
                         video = $"{AppInit.Host(HttpContext)}/sbg/vidosik?goni={HttpUtility.UrlEncode(link)}",
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
-                        picture = $"{AppInit.Host(HttpContext)}/proxyimg:0:{AppInit.conf.sisi.heightPicture}/{img}",
+                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
                         time = duration,
                         json = true
                     });

@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                         {
-                            string suburl = AppInit.conf.Eneyida.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{match.Groups[2].Value}" : match.Groups[2].Value;
+                            string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Eneyida.streamproxy, match.Groups[2].Value);
                             subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
                         }
 
@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
                 subtitles = Regex.Replace(subtitles, ",$", "");
                 #endregion
 
-                hls = AppInit.conf.Eneyida.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
+                hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Eneyida.streamproxy, hls);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                                 {
                                     if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                                     {
-                                        string suburl = AppInit.conf.Eneyida.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{match.Groups[2].Value}" : match.Groups[2].Value;
+                                        string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Eneyida.streamproxy, match.Groups[2].Value);
                                         subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
                                     }
 
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                             subtitles = Regex.Replace(subtitles, ",$", "");
                             #endregion
 
-                            string file = AppInit.conf.Eneyida.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{episode.file}" : episode.file;
+                            string file = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Eneyida.streamproxy, episode.file);
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
                             firstjson = false;
                         }

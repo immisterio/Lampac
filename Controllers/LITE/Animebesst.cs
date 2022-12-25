@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
-            return Redirect($"{AppInit.Host(HttpContext)}/proxy/{hls}");
+            return Redirect(AppInit.HostStreamProxy(HttpContext, true, hls));
         }
         #endregion
     }

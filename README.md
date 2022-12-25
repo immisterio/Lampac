@@ -47,6 +47,8 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 1. Добавить плагин "http://IP:9118/tracks.js" 
 2. В init.conf заменить значение "ffprobe" на один из вариантов "win.exe", "linux"
 
+Для отключения оставьте значение "ffprobe" пустым
+
 # Плагин TmdbProxy.js
 Проксирование постеров для сайта TMDB
 
@@ -77,6 +79,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * fileCacheInactiveDay - Время хранения резервного кеша на диске
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа
+* accsdb - Доступ к API через авторизацию (для jackett используется apikey)
 * useproxy - Парсит источник через прокси указанные в "proxy"
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
 * disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"

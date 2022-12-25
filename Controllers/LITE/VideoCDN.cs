@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         link = $"http://{link}.mp4";
-                        link = AppInit.conf.VCDN.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VCDN.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
@@ -180,7 +180,7 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             file = $"http://{file}.mp4";
-                            file = AppInit.conf.VCDN.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{file}" : file;
+                            file = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VCDN.streamproxy, file);
 
                             streams.Add((file, $"{quality}p"));
                         }

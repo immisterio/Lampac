@@ -50,7 +50,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Redirect($"{AppInit.Host(HttpContext)}/proxy/{hls}");
+            return Redirect(AppInit.HostStreamProxy(HttpContext, true, hls));
         }
 
 

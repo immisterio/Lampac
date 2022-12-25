@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                     continue;
 
                 link = $"http://{link}";
-                link = AppInit.conf.VideoAPI.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VideoAPI.streamproxy, link);
 
                 streams.Add((link, $"{quality}p"));
                 streansquality += $"\"{quality}p\":\"" + link + "\",";

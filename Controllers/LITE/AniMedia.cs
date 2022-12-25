@@ -130,7 +130,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = AppInit.conf.AniMedia.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{l.uri}" : l.uri;
+                        string link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.AniMedia.streamproxy, l.uri);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name.ToLower()})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }

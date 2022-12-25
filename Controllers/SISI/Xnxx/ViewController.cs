@@ -45,7 +45,7 @@ namespace Lampac.Controllers.Xnxx
                     continue;
 
                 hls = $"{Regex.Replace(cache.stream_link, "/hls\\.m3u.*", "")}/{hls}".Replace("https:", "http:");
-                stream_links.Add($"{quality}p", AppInit.conf.Xnxx.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls);
+                stream_links.Add($"{quality}p", AppInit.HostStreamProxy(HttpContext, AppInit.conf.Xnxx.streamproxy, hls));
             }
 
             if (stream_links.Count == 0)

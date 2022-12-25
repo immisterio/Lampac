@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        link = AppInit.conf.CDNmovies.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.CDNmovies.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";

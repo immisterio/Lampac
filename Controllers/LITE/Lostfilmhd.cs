@@ -85,7 +85,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
-            return Content("{\"method\":\"play\",\"url\":\"" + $"{AppInit.Host(HttpContext)}/proxy/{urim3u8}" + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + AppInit.HostStreamProxy(HttpContext, true, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 

@@ -8,6 +8,7 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
+using Lampac.Models.LITE.AniLibria;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -78,7 +79,7 @@ namespace Lampac.Controllers.Porntrex
                 memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
-            return Redirect(AppInit.conf.Porntrex.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{location}" : location);
+            return Redirect(AppInit.HostStreamProxy(HttpContext, AppInit.conf.Porntrex.streamproxy, location));
         }
     }
 }

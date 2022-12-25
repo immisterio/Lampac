@@ -134,7 +134,7 @@ namespace Lampac.Controllers
             return Json(new
             {
                 title = "sisi",
-                channels = channels
+                channels
             });
         }
     }

@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        link = AppInit.conf.VideoDB.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VideoDB.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
                             if (string.IsNullOrWhiteSpace(cc) || !cc.EndsWith(".srt"))
                                 continue;
 
-                            string suburl = AppInit.conf.VideoDB.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{cc}" : cc;
+                            string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VideoDB.streamproxy, cc);
                             subtitles += "{\"label\": \"" + $"sub #{subx}" + "\",\"url\": \"" + suburl + "\"},";
                             subx++;
                         }
@@ -150,7 +150,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                link = AppInit.conf.VideoDB.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link;
+                                link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VideoDB.streamproxy, link);
 
                                 streams.Add((link, $"{quality}p"));
                                 streansquality += $"\"{quality}p\":\"" + link + "\",";

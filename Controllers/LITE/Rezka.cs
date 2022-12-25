@@ -187,7 +187,7 @@ namespace Lampac.Controllers.LITE
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
                         string suburl = m.Groups[2].Value.Replace("https:", "http:");
-                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (AppInit.conf.Rezka.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{suburl}" : suburl) + "\"},";
+                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (AppInit.HostStreamProxy(HttpContext, AppInit.conf.Rezka.streamproxy, suburl)) + "\"},";
                     }
 
                     m = m.NextMatch();
@@ -272,7 +272,7 @@ namespace Lampac.Controllers.LITE
                 links.Add(new ApiModel()
                 {
                     title = q.Contains("p") ? q : $"{q}p",
-                    stream_url = AppInit.conf.Rezka.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{link}" : link
+                    stream_url = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Rezka.streamproxy, link)
                 });
             }
             #endregion

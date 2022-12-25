@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
                 {
                     foreach (var cc in JsonConvert.DeserializeObject<List<Cc>>(Regex.Match(content, "cc: +(\\[[^\n\r]+\\]),").Groups[1].Value))
                     {
-                        string suburl = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{cc.url.Replace("https:", "http:")}" : cc.url.Replace("https:", "http:");
+                        string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, cc.url);
                         subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + suburl + "\"},";
                     }
                 }
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
                 voicename = Regex.Replace(voicename, "[, ]+$", "");
 
-                hls = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{hls}" : hls;
+                hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, hls);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
                 #endregion
             }
@@ -102,7 +102,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 foreach (var cc in episode.cc)
                                 {
-                                    string suburl = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{cc.url.Replace("https:", "http:")}" : cc.url.Replace("https:", "http:");
+                                    string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, cc.url);
                                     subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + suburl + "\"},";
                                 }
                             }
@@ -110,7 +110,7 @@ namespace Lampac.Controllers.LITE
                             subtitles = Regex.Replace(subtitles, ",$", "");
                             #endregion
 
-                            string file = AppInit.conf.Collaps.streamproxy ? $"{AppInit.Host(HttpContext)}/proxy/{episode.hls.Replace("https:", "http:")}" : episode.hls.Replace("https:", "http:");
+                            string file = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, episode.hls);
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>";
                             firstjson = false;
                         }
