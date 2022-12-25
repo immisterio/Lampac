@@ -280,11 +280,12 @@ namespace Lampac.Controllers
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
+                    string host = AppInit.Host(HttpContext);
                     var match = Regex.Match(online, "(\\{\"name\":\"[^\"]+\",\"url\":\"\\{localhost\\}/([^\"]+)\"\\},)");
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            tasks.Add(checkSearch(links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
+                            tasks.Add(checkSearch(host, links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
 
                         match = match.NextMatch();
                     }
@@ -314,10 +315,11 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string code, string uri,
+        async Task checkSearch(string host, ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string code, string uri,
                                int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
-            string res = await HttpClient.Get("http://127.0.0.1:" + AppInit.conf.listenport + $"/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}", timeoutSeconds: 10);
+            string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
+            string res = await HttpClient.Get($"{host}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={account_email}", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
             links.Add((code.Replace("},", $",\"index\":{index},\"show\":{work.ToString().ToLower()}" + "},"), index, work));
