@@ -14,8 +14,8 @@ namespace Lampac.Engine.CORE
             {
                 if (AppInit.conf.jac.cachetype == "mem")
                 {
-                    if (Startup.memoryCache.TryGetValue(key, out string html))
-                        return (true, false, html);
+                    if (Startup.memoryCache.TryGetValue(key, out byte[] html))
+                        return (true, false, BrotliTo.Decompress(html));
 
                     return (false, false, null);
                 }
@@ -24,7 +24,7 @@ namespace Lampac.Engine.CORE
                 bool cache = Startup.memoryCache.TryGetValue(key, out _);
 
                 if (File.Exists(pathfile))
-                    return (cache, false, await File.ReadAllTextAsync(pathfile));
+                    return (cache, false, BrotliTo.Decompress(await File.ReadAllBytesAsync(pathfile)));
                 else
                     return (false, cache, null);
             }
@@ -41,11 +41,11 @@ namespace Lampac.Engine.CORE
             {
                 if (AppInit.conf.jac.cachetype == "mem")
                 {
-                    Startup.memoryCache.Set(key, html, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
+                    Startup.memoryCache.Set(key, BrotliTo.Compress(html), DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
                 }
                 else
                 {
-                    await File.WriteAllTextAsync(getFolder(key), html);
+                    await File.WriteAllBytesAsync(getFolder(key), BrotliTo.Compress(html));
                     Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
                 }
             }
