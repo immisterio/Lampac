@@ -22,7 +22,7 @@ namespace Lampac.Engine.CRON
                         if (conf.day == 0)
                             continue;
 
-                        foreach (string infile in Directory.GetFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
+                        foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
                         {
                             var fileinfo = new FileInfo(infile);
                             if (DateTime.Now > fileinfo.LastWriteTime.AddDays(conf.day))
