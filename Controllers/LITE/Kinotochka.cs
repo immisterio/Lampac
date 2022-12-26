@@ -9,7 +9,6 @@ using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.SignalR;
 
 namespace Lampac.Controllers.LITE
 {

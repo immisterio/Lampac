@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/animedia")]
-        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1)
+        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, string account_email = null)
         {
             if (!AppInit.conf.AniMedia.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}");
+                    return LocalRedirect($"/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 foreach (var res in catalog)
                 {

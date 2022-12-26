@@ -39,11 +39,17 @@ namespace Lampac.Controllers.PLUGINS
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
                 process.StartInfo.FileName = AppInit.conf.ffprobe == "linux" ? "ffprobe" : $"ffprobe/{AppInit.conf.ffprobe}";
-                process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams '{media}'";
+                process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {media}";
                 process.Start();
 
                 outPut = await process.StandardOutput.ReadToEndAsync();
                 await process.WaitForExitAsync();
+
+                if (outPut == null)
+                    outPut = string.Empty;
+
+                if (Regex.Replace(outPut, "[\n\r\t ]+", "") == "{}")
+                    outPut = string.Empty;
 
                 memoryCache.Set(memKey, outPut, DateTime.Now.AddHours(1));
             }

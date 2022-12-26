@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string title, string uri, int s)
+        async public Task<ActionResult> Index(string title, string uri, int s, string account_email)
         {
             if (!AppInit.conf.Animebesst.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}");
+                    return LocalRedirect($"/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 foreach (var res in catalog)
                 {
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in links)
                 {
-                    string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}";
+                    string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&account_email={HttpUtility.UrlEncode(account_email)}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
                     firstjson = true;

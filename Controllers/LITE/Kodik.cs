@@ -123,10 +123,10 @@ namespace Lampac.Controllers.LITE
         #region Video - API
         [HttpGet]
         [Route("lite/kodik/video")]
-        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode)
+        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, string account_email)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.secret_token))
-                return LocalRedirect($"/lite/kodik/videoparse?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}");
+                return LocalRedirect($"/lite/kodik/videoparse?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&account_email={HttpUtility.UrlEncode(account_email)}");
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
             if (AppInit.conf.Kodik.localip)

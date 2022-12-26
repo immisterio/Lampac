@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/animego")]
-        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
+        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, string account_email)
         {
             if (!AppInit.conf.AnimeGo.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={catalog[0].pid}&s={catalog[0].s}");
+                    return LocalRedirect($"/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={catalog[0].pid}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 foreach (var res in catalog)
                 {
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in cache.links)
                 {
-                    string hls = $"{host}/lite/animego/{l.uri}&t={t ?? cache.translation}";
+                    string hls = $"{host}/lite/animego/{l.uri}&t={t ?? cache.translation}&account_email={HttpUtility.UrlEncode(account_email)}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
                     firstjson = true;

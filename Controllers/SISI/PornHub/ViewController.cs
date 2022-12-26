@@ -47,6 +47,7 @@ namespace Lampac.Controllers.PornHub
                 if (string.IsNullOrWhiteSpace(hls))
                     return OnError("hls");
 
+                hls = hls.Replace("///", "//");
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 

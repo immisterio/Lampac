@@ -17,7 +17,7 @@ namespace Lampac
     public class AppInit
     {
         #region AppInit
-        static (AppInit, DateTime) cacheconf;
+        static (AppInit, DateTime) cacheconf = default;
 
         public static AppInit conf 
         { 
@@ -33,8 +33,8 @@ namespace Lampac
 
                 if (cacheconf.Item2 != lastWriteTime)
                 {
-                    cacheconf.Item2 = lastWriteTime;
                     cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+                    cacheconf.Item2 = lastWriteTime;
                 }
 
                 return cacheconf.Item1;

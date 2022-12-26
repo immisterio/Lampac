@@ -4,7 +4,7 @@ using System.IO;
 using Lampac.Engine.CORE;
 using NetVips;
 using System.Text.RegularExpressions;
-using System.Web;
+using System.Collections.Generic;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -62,7 +62,12 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.proxytoproxyimg);
+                List<(string name, string val)> headers = new List<(string name, string val)>();
+
+                if (href.Contains("cdntrex."))
+                    headers.Add(("referer", AppInit.conf.Porntrex.host));
+
+                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.proxytoproxyimg, addHeaders: headers);
                 if (array == null)
                 {
                     httpContext.Response.Redirect(href);
