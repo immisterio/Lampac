@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrWhiteSpace(g[1].Value))
                                     continue;
 
-                                links.Add((g[3].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/kinoprofi?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={g[4].Value}&newsuri={HttpUtility.UrlEncode(g[1].Value)}&session={session_id}"));
+                                links.Add((g[3].Value.ToLower(), $"{host}/lite/kinoprofi?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={g[4].Value}&newsuri={HttpUtility.UrlEncode(g[1].Value)}&session={session_id}"));
                             }
                         }
 
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = AppInit.HostStreamProxy(HttpContext, true, l.uri);
+                        string link = HostStreamProxy(true, l.uri);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -155,7 +155,7 @@ namespace Lampac.Controllers.LITE
                     memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
 
-                file = AppInit.HostStreamProxy(HttpContext, true, file);
+                file = HostStreamProxy(true, file);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }

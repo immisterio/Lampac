@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Porntrex
                 var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
                 while (match.Success)
                 {
-                    stream_links.TryAdd(match.Groups[2].Value, $"{AppInit.Host(HttpContext)}/ptx/strem?link={HttpUtility.UrlEncode(match.Groups[1].Value)}");
+                    stream_links.TryAdd(match.Groups[2].Value, $"{host}/ptx/strem?link={HttpUtility.UrlEncode(match.Groups[1].Value)}");
                     match = match.NextMatch();
                     //break;
                 }
@@ -41,7 +41,7 @@ namespace Lampac.Controllers.Porntrex
                 {
                     string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)").Groups[1].Value;
                     if (!string.IsNullOrWhiteSpace(link))
-                        stream_links.TryAdd("auto", $"{AppInit.Host(HttpContext)}/ptx/strem?link={HttpUtility.UrlEncode(link)}");
+                        stream_links.TryAdd("auto", $"{host}/ptx/strem?link={HttpUtility.UrlEncode(link)}");
                 }
 
                 if (stream_links.Count == 0)
@@ -79,7 +79,7 @@ namespace Lampac.Controllers.Porntrex
                 memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
-            return Redirect(AppInit.HostStreamProxy(HttpContext, AppInit.conf.Porntrex.streamproxy, location));
+            return Redirect(HostStreamProxy(AppInit.conf.Porntrex.streamproxy, location));
         }
     }
 }

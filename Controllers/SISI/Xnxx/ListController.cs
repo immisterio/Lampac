@@ -47,7 +47,7 @@ namespace Lampac.Controllers.Xnxx
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/xnx",
+                        playlist_url = $"{host}/xnx",
                     }
                 },
                 list = playlists
@@ -74,8 +74,8 @@ namespace Lampac.Controllers.Xnxx
                     playlists.Add(new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{AppInit.Host(HttpContext)}/xnx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        video = $"{host}/xnx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
                         json = true

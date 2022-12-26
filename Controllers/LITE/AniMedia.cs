@@ -55,7 +55,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var res in catalog)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}";
+                    string link = $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
                     firstjson = false;
@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
                         while (match.Success)
                         {
                             if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                                links.Add((match.Groups[2].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}"));
+                                links.Add((match.Groups[2].Value.ToLower(), $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}"));
 
                             match = match.NextMatch();
                         }
@@ -130,7 +130,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.AniMedia.streamproxy, l.uri);
+                        string link = HostStreamProxy(AppInit.conf.AniMedia.streamproxy, l.uri);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name.ToLower()})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }

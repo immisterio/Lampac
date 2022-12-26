@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrWhiteSpace(g[1].Value))
                                     continue;
 
-                                links.Add((g[4].Value.ToLower(), $"{AppInit.Host(HttpContext)}/lite/kinokrad?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={g[5].Value}&newsuri={HttpUtility.UrlEncode(g[1].Value)}"));
+                                links.Add((g[4].Value.ToLower(), $"{host}/lite/kinokrad?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={g[5].Value}&newsuri={HttpUtility.UrlEncode(g[1].Value)}"));
                             }
                         }
 
@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = AppInit.HostStreamProxy(HttpContext, true, l.uri);
+                        string link = HostStreamProxy(true, l.uri);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
                     string hls = new Regex($"\\[{quality}p\\]" + "(https?://[^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content).Groups[1].Value;
                     if (!string.IsNullOrEmpty(hls))
                     {
-                        hls = AppInit.HostStreamProxy(HttpContext, true, hls);
+                        hls = HostStreamProxy(true, hls);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                         firstjson = true;
                     }

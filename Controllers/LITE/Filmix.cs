@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
-                        l = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Filmix.streamproxy, l);
+                        l = HostStreamProxy(AppInit.conf.Filmix.streamproxy, l);
 
                         if (link == null)
                             link = l;
@@ -101,7 +101,7 @@ namespace Lampac.Controllers.LITE
                     #region Сезоны
                     foreach (var season in root.player_links.playlist)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
+                        string link = $"{host}/lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -115,7 +115,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var translation in root.player_links.playlist[s.ToString()])
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
+                        string link = $"{host}/lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
                         string active = t == indexTranslate ? "active" : "";
 
                         indexTranslate++;
@@ -137,7 +137,7 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
-                            l = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Filmix.streamproxy, l);
+                            l = HostStreamProxy(AppInit.conf.Filmix.streamproxy, l);
 
                             streams.Add((l, $"{lq}p"));
                             streansquality += $"\"{lq}p\":\"" + l + "\",";

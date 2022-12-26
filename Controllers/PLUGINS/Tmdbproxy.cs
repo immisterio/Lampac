@@ -10,7 +10,7 @@ namespace Lampac.Controllers.PLUGINS
         public ActionResult Tracks()
         {
             string file = System.IO.File.ReadAllText("plugins/tmdbproxy.js");
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            file = file.Replace("{localhost}", host);
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }

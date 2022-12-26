@@ -222,7 +222,6 @@ namespace Lampac.Controllers.JAC
         {
             var torrents = new ConcurrentBag<TorrentDetails>();
             var temptorrents = new ConcurrentBag<TorrentDetails>();
-            string host = AppInit.Host(HttpContext);
 
             #region search
             string search = AppInit.conf.jac.search_lang == "query" ? query : AppInit.conf.jac.search_lang == "title" ? title : title_original;

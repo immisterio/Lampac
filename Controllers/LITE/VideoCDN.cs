@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         link = $"http://{link}.mp4";
-                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VCDN.streamproxy, link);
+                        link = HostStreamProxy(AppInit.conf.VCDN.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
@@ -180,7 +180,7 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             file = $"http://{file}.mp4";
-                            file = AppInit.HostStreamProxy(HttpContext, AppInit.conf.VCDN.streamproxy, file);
+                            file = HostStreamProxy(AppInit.conf.VCDN.streamproxy, file);
 
                             streams.Add((file, $"{quality}p"));
                         }
@@ -239,7 +239,7 @@ namespace Lampac.Controllers.LITE
                 for (int i = 0; i < serialmedia.Count; i++)
                 {
                     var voice = serialmedia[i];
-                    string link = $"{AppInit.Host(HttpContext)}/lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
+                    string link = $"{host}/lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
                     html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + voice.title + "</div>";
                 }
 
@@ -254,7 +254,7 @@ namespace Lampac.Controllers.LITE
                     for (int i = 0; i < serialmedia[t].submenu.Count; i++)
                     {
                         var season = serialmedia[t].submenu[i];
-                        string link = $"{AppInit.Host(HttpContext)}/lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={Regex.Match(season.title, "^([0-9]+)").Groups[1].Value}&sid={i}";
+                        string link = $"{host}/lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={Regex.Match(season.title, "^([0-9]+)").Groups[1].Value}&sid={i}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>";
                         firstjson = false;

@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
             if (!memoryCache.TryGetValue(memkey, out JArray results) || quality == -1)
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.Host(HttpContext)}/api/v2.0/indexers/all/results?apikey={AppInit.conf.jac.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11);
+                var root = await HttpClient.Get<JObject>($"{host}/api/v2.0/indexers/all/results?apikey={AppInit.conf.jac.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11);
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
 
             foreach (int q in qualitys.OrderByDescending(i => i))
             {
-                string link = $"{AppInit.Host(HttpContext)}/lite/jac?year={year}&serial={serial}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&quality={q}";
+                string link = $"{host}/lite/jac?year={year}&serial={serial}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&quality={q}";
 
                 string active = q == quality ? "active" : "";
 

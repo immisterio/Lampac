@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
 
                     if (AppInit.conf.KinoPub.filetype == "hls4")
                     {
-                        string hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, v.files[0].url.hls4);
+                        string hls = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, v.files[0].url.hls4);
                         html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
                     }
                     else
@@ -115,7 +115,7 @@ namespace Lampac.Controllers.LITE
                         {
                             foreach (var sub in v.subtitles)
                             {
-                                string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, sub.url);
+                                string suburl = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, sub.url);
                                 subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
                             }
 
@@ -128,14 +128,14 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var f in v.files)
                         {
-                            string l = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, f.url.http);
+                            string l = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, f.url.http);
                             streansquality += $"\"{f.quality}\":\"" + l + "\",";
                         }
 
                         streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                         #endregion
 
-                        string mp4 = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, v.files[0].url.http);
+                        string mp4 = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, v.files[0].url.http);
                         html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
                     }
                 }
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                     #region Сезоны
                     foreach (var season in root.item.seasons)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/kinopub?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.number}";
+                        string link = $"{host}/lite/kinopub?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.number}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.number} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -181,7 +181,7 @@ namespace Lampac.Controllers.LITE
 
                         if (AppInit.conf.KinoPub.filetype == "hls4")
                         {
-                            string hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, episode.files[0].url.hls4);
+                            string hls = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, episode.files[0].url.hls4);
 
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
                             firstjson = false;
@@ -195,7 +195,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 foreach (var sub in episode.subtitles)
                                 {
-                                    string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, sub.url);
+                                    string suburl = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, sub.url);
                                     subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
                                 }
 
@@ -208,14 +208,14 @@ namespace Lampac.Controllers.LITE
 
                             foreach (var f in episode.files)
                             {
-                                string l = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, f.url.http);
+                                string l = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, f.url.http);
                                 streansquality += $"\"{f.quality}\":\"" + l + "\",";
                             }
 
                             streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                             #endregion
 
-                            string mp4 = AppInit.HostStreamProxy(HttpContext, AppInit.conf.KinoPub.streamproxy, episode.files[0].url.http);
+                            string mp4 = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, episode.files[0].url.http);
 
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
                             firstjson = false;

@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
             {
                 if (!string.IsNullOrWhiteSpace(match.Groups[1].Value))
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/iframevideo/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&type={frame.type}&cid={frame.cid}&token={match.Groups[1].Value}";
+                    string link = $"{host}/lite/iframevideo/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&type={frame.type}&cid={frame.cid}&token={match.Groups[1].Value}";
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + match.Groups[2].Value + "</div></div>";
                     firstjson = false;
                 }
@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
                     return Content(string.Empty);
 
                 string voice = string.IsNullOrWhiteSpace(_v) ? "По умолчанию" : _v;
-                string link = $"{AppInit.Host(HttpContext)}/lite/iframevideo/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&type={frame.type}&cid={frame.cid}&token={token}";
+                string link = $"{host}/lite/iframevideo/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&type={frame.type}&cid={frame.cid}&token={token}";
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
             }
 
@@ -88,7 +88,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            string url = AppInit.HostStreamProxy(HttpContext, AppInit.conf.IframeVideo.streamproxy, urim3u8);
+            string url = HostStreamProxy(AppInit.conf.IframeVideo.streamproxy, urim3u8);
             return Content("{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion

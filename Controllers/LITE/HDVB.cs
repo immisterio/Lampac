@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 foreach (var m in data)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={HttpUtility.UrlEncode(m.Value<string>("iframe_url"))}";
+                    string link = $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={HttpUtility.UrlEncode(m.Value<string>("iframe_url"))}";
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Value<string>("translator") + "</div></div>";
                     firstjson = false;
                 }
@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
                 #region Перевод
                 for (int i = 0; i < data.Count; i++)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
+                    string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
 
                     html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + data[i].Value<string>("translator") + "</div>";
                 }
@@ -63,7 +63,7 @@ namespace Lampac.Controllers.LITE
 
                     for (int i = 0; i < serial_episodes.Count; i++)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
+                        string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{serial_episodes[i].Value<int>("season_number")} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
                         string translator = HttpUtility.UrlEncode(data[t].Value<string>("translator"));
                         int season = data[t].Value<JArray>("serial_episodes")[s].Value<int>("season_number");
 
-                        string link = $"{AppInit.Host(HttpContext)}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={season}&e={episode}";
+                        string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={season}&e={episode}";
 
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + season + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
                         firstjson = false;

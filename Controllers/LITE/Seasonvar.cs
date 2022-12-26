@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
                 #region Сезоны
                 foreach (var season in await getSeason(seasonid))
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/seasonvar?seasonid={season.Value}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
+                    string link = $"{host}/lite/seasonvar?seasonid={season.Value}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
                     firstjson = false;
@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(t))
                         t = perevod;
 
-                    string link = $"{AppInit.Host(HttpContext)}/lite/seasonvar?seasonid={seasonid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
+                    string link = $"{host}/lite/seasonvar?seasonid={seasonid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
                     string active = t == perevod ? "active" : "";
 
                     html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>";

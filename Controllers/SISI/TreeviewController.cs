@@ -37,7 +37,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "pornhub.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/phub"
+                    playlist_url = $"{host}/phub"
                 });
             }
 
@@ -46,7 +46,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "hqporner.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/hqr"
+                    playlist_url = $"{host}/hqr"
                 });
             }
 
@@ -55,7 +55,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "spankbang.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/sbg"
+                    playlist_url = $"{host}/sbg"
                 });
             }
 
@@ -64,7 +64,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "eporner.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/epr"
+                    playlist_url = $"{host}/epr"
                 });
             }
 
@@ -73,7 +73,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "porntrex.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/ptx"
+                    playlist_url = $"{host}/ptx"
                 });
             }
 
@@ -82,7 +82,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "ebalovo.porn",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/elo"
+                    playlist_url = $"{host}/elo"
                 });
             }
 
@@ -91,7 +91,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "xhamster.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/xmr"
+                    playlist_url = $"{host}/xmr"
                 });
             }
 
@@ -100,7 +100,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "xvideos.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/xds"
+                    playlist_url = $"{host}/xds"
                 });
             }
 
@@ -109,7 +109,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "xnxx.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/xnx"
+                    playlist_url = $"{host}/xnx"
                 });
             }
 
@@ -118,7 +118,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "bongacams.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/bgs"
+                    playlist_url = $"{host}/bgs"
                 });
             }
 
@@ -127,7 +127,7 @@ namespace Lampac.Controllers
                 channels.Add(new
                 {
                     title = "chaturbate.com",
-                    playlist_url = $"{AppInit.Host(HttpContext)}/chu"
+                    playlist_url = $"{host}/chu"
                 });
             }
 

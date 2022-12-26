@@ -52,8 +52,8 @@ namespace Lampac.Controllers.Xvideos
                     playlists.Add(new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{AppInit.Host(HttpContext)}/xds/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        video = $"{host}/xds/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
                         time = duration,
                         json = true
@@ -72,7 +72,7 @@ namespace Lampac.Controllers.Xvideos
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/xds",
+                        playlist_url = $"{host}/xds",
                     }
                 },
                 list = playlists

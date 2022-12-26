@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/rezka/movie?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
+                        string link = $"{host}/lite/rezka/movie?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
                         string voice = m.Groups[2].Value.Trim();
                         if (voice == "-")
                             voice = "Оригинал";
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(activTranslate))
                             activTranslate = m.Groups[1].Value;
 
-                        string link = $"{AppInit.Host(HttpContext)}/lite/rezka?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
+                        string link = $"{host}/lite/rezka?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
 
                         string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == m.Groups[1].Value ? "active" : "");
 
@@ -92,7 +92,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={m.Groups[1].Value}";
+                        string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={m.Groups[1].Value}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + m.Groups[3].Value + "</div></div></div>";
                         firstjson = false;
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
             {
                 if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/rezka/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={m.Groups[1].Value}";
+                    string link = $"{host}/lite/rezka/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={m.Groups[1].Value}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[3].Value + "</div></div>";
                     firstjson = false;
@@ -187,7 +187,7 @@ namespace Lampac.Controllers.LITE
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
                         string suburl = m.Groups[2].Value.Replace("https:", "http:");
-                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (AppInit.HostStreamProxy(HttpContext, AppInit.conf.Rezka.streamproxy, suburl)) + "\"},";
+                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (HostStreamProxy(AppInit.conf.Rezka.streamproxy, suburl)) + "\"},";
                     }
 
                     m = m.NextMatch();
@@ -272,7 +272,7 @@ namespace Lampac.Controllers.LITE
                 links.Add(new ApiModel()
                 {
                     title = q.Contains("p") ? q : $"{q}p",
-                    stream_url = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Rezka.streamproxy, link)
+                    stream_url = HostStreamProxy(AppInit.conf.Rezka.streamproxy, link)
                 });
             }
             #endregion

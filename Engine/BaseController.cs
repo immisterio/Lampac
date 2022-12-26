@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,8 @@ namespace Lampac.Engine
         IServiceScope serviceScope;
 
         public IMemoryCache memoryCache { get; private set; }
+
+        public string host => AppInit.Host(HttpContext);
 
         public BaseController()
         {
@@ -40,6 +43,23 @@ namespace Lampac.Engine
             }
 
             return userIp;
+        }
+
+        public string HostImgProxy( int width, int height, string uri)
+        {
+            return $"{host}/proxyimg:{width}:{height}/{uri}";
+        }
+
+        public string HostStreamProxy(bool streamproxy, string uri)
+        {
+            if (streamproxy)
+            {
+                string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
+                if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
+                    uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
+            }
+
+            return streamproxy ? $"{host}/proxy/{uri}" : uri;
         }
 
         public new void Dispose()

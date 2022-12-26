@@ -60,7 +60,7 @@ namespace Lampac.Controllers.Xhamster
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/xmr",
+                        playlist_url = $"{host}/xmr",
                     },
                     new MenuItem()
                     {
@@ -71,17 +71,17 @@ namespace Lampac.Controllers.Xhamster
                             new MenuItem()
                             {
                                 title = "В тренде",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/xmr?sort=trend"
+                                playlist_url = $"{host}/xmr?sort=trend"
                             },
                             new MenuItem()
                             {
                                 title = "Самые новые",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/xmr?sort=newest"
+                                playlist_url = $"{host}/xmr?sort=newest"
                             },
                             new MenuItem()
                             {
                                 title = "Лучшие видео",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/xmr?sort=best"
+                                playlist_url = $"{host}/xmr?sort=best"
                             }
                         }
                     }
@@ -114,8 +114,8 @@ namespace Lampac.Controllers.Xhamster
                     playlists.Add(new PlaylistItem()
                     {
                         name = g[4].Value,
-                        video = $"{AppInit.Host(HttpContext)}/xmr/vidosik.m3u8?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        video = $"{host}/xmr/vidosik.m3u8?goni={HttpUtility.UrlEncode(g[1].Value)}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         //quality = row.Contains("_icon--hd") ? "HD" : row.Contains("_icon--uhd") ? "4K" : null,
                         time = duration
                     });

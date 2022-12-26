@@ -59,7 +59,7 @@ namespace Lampac.Controllers.Ebalovo
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/elo",
+                        playlist_url = $"{host}/elo",
                     },
                     new MenuItem()
                     {
@@ -70,17 +70,17 @@ namespace Lampac.Controllers.Ebalovo
                             new MenuItem()
                             {
                                 title = "Новинки",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/elo"
+                                playlist_url = $"{host}/elo"
                             },
                             new MenuItem()
                             {
                                 title = "Лучшее",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/elo?sort=porno-online"
+                                playlist_url = $"{host}/elo?sort=porno-online"
                             },
                             new MenuItem()
                             {
                                 title = "Популярное",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/elo?sort=xxx-top"
+                                playlist_url = $"{host}/elo?sort=xxx-top"
                             }
                         }
                     }
@@ -113,8 +113,8 @@ namespace Lampac.Controllers.Ebalovo
                     playlists.Add(new PlaylistItem()
                     {
                         name = title,
-                        video = $"{AppInit.Host(HttpContext)}/elo/vidosik?goni={HttpUtility.UrlEncode(link)}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img[2].Value),
+                        video = $"{host}/elo/vidosik?goni={HttpUtility.UrlEncode(link)}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img[2].Value),
                         time = duration
                     });
                 }

@@ -61,7 +61,7 @@ namespace Lampac.Controllers.PornHub
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/phub",
+                        playlist_url = $"{host}/phub",
                     },
                     new MenuItem()
                     {
@@ -72,22 +72,22 @@ namespace Lampac.Controllers.PornHub
                             new MenuItem()
                             {
                                 title = "Недавно в избранном",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/phub"
+                                playlist_url = $"{host}/phub"
                             },
                             new MenuItem()
                             {
                                 title = "Новейшее",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/phub?sort=cm"
+                                playlist_url = $"{host}/phub?sort=cm"
                             },
                             new MenuItem()
                             {
                                 title = "Самые горячие",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/phub?sort=ht"
+                                playlist_url = $"{host}/phub?sort=ht"
                             },
                             new MenuItem()
                             {
                                 title = "Лучшие",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/phub?sort=tr"
+                                playlist_url = $"{host}/phub?sort=tr"
                             }
                         }
                     }
@@ -119,8 +119,8 @@ namespace Lampac.Controllers.PornHub
                     playlists.Add(new PlaylistItem()
                     {
                         name = title,
-                        video = $"{AppInit.Host(HttpContext)}/phub/vidosik.m3u8?goni={vkey}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        video = $"{host}/phub/vidosik.m3u8?goni={vkey}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         time = duration
                     });
                 }

@@ -34,12 +34,12 @@ namespace Lampac.Controllers
             if (!IO.File.Exists("widgets/samsung/loader.js"))
                 return Content(string.Empty);
 
-            string wgt = $"widgets/{CrypTo.md5(AppInit.Host(HttpContext))}.wgt";
+            string wgt = $"widgets/{CrypTo.md5(host)}.wgt";
             if (IO.File.Exists(wgt))
                 return File(IO.File.OpenRead(wgt), "application/octet-stream");
 
             string loader = IO.File.ReadAllText("widgets/samsung/loader.js");
-            IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", AppInit.Host(HttpContext)));
+            IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", host));
 
             IO.File.Copy("widgets/samsung/icon.png", "widgets/samsung/publish/icon.png", overwrite: true);
             IO.File.Copy("widgets/samsung/config.xml", "widgets/samsung/publish/config.xml", overwrite: true);
@@ -81,7 +81,7 @@ namespace Lampac.Controllers
                 memoryCache.Set("ApiController:msx.json", file, DateTime.Now.AddMinutes(5));
             }
 
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            file = file.Replace("{localhost}", host);
             return Content(file, contentType: "application/json; charset=utf-8");
         }
         #endregion
@@ -97,8 +97,8 @@ namespace Lampac.Controllers
                 memoryCache.Set($"ApiController:lampainit.js:{lite}", file, DateTime.Now.AddMinutes(5));
             }
 
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
-            file = file.Replace("{jachost}", AppInit.Host(HttpContext).Replace("https://", "").Replace("http://", ""));
+            file = file.Replace("{localhost}", host);
+            file = file.Replace("{jachost}", host.Replace("https://", "").Replace("http://", ""));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -115,7 +115,7 @@ namespace Lampac.Controllers
                 memoryCache.Set("ApiController:sisi.js", file, DateTime.Now.AddMinutes(5));
             }
 
-            file = file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/sisi");
+            file = file.Replace("{localhost}", $"{host}/sisi");
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
@@ -131,8 +131,8 @@ namespace Lampac.Controllers
                 memoryCache.Set("ApiController:online.js", file, DateTime.Now.AddMinutes(5));
             }
 
-            file = file.Replace("http://127.0.0.1:9118", AppInit.Host(HttpContext));
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            file = file.Replace("http://127.0.0.1:9118", host);
+            file = file.Replace("{localhost}", host);
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -149,7 +149,7 @@ namespace Lampac.Controllers
                 memoryCache.Set("ApiController:lite.js", file, DateTime.Now.AddMinutes(5));
             }
 
-            return Content(file.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite"), contentType: "application/javascript; charset=utf-8");
+            return Content(file.Replace("{localhost}", $"{host}/lite"), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -162,7 +162,7 @@ namespace Lampac.Controllers
 
             if (memoryCache.TryGetValue($"ApiController:checkOnlineSearch:{id}", out (bool ready, int tasks, string online) res))
             {
-                string online = res.online?.Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite") ?? string.Empty;
+                string online = res.online?.Replace("{localhost}", $"{host}/lite") ?? string.Empty;
                 json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{Regex.Replace(online, ",$", "")}]" + "}";
             }
 
@@ -280,7 +280,6 @@ namespace Lampac.Controllers
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
-                    string host = AppInit.Host(HttpContext);
                     var match = Regex.Match(online, "(\\{\"name\":\"[^\"]+\",\"url\":\"\\{localhost\\}/([^\"]+)\"\\},)");
                     while (match.Success)
                     {
@@ -309,7 +308,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            return Content($"[{Regex.Replace(online, ",$", "").Replace("{localhost}", $"{AppInit.Host(HttpContext)}/lite")}]", contentType: "application/javascript; charset=utf-8");
+            return Content($"[{Regex.Replace(online, ",$", "").Replace("{localhost}", $"{host}/lite")}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

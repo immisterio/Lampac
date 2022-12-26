@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Zetflix.streamproxy, link);
+                        link = HostStreamProxy(AppInit.conf.Zetflix.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
@@ -79,7 +79,7 @@ namespace Lampac.Controllers.LITE
 
                     for (int i = 1; i <= number_of_seasons; i++)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={i}";
+                        string link = $"{host}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={i}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{i} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(t))
                             t = perevod;
 
-                        string link = $"{AppInit.Host(HttpContext)}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
+                        string link = $"{host}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
                         string active = t == perevod ? "active" : "";
 
                         html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>";
@@ -130,7 +130,7 @@ namespace Lampac.Controllers.LITE
                             if (string.IsNullOrEmpty(link))
                                 continue;
 
-                            link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Zetflix.streamproxy, link);
+                            link = HostStreamProxy(AppInit.conf.Zetflix.streamproxy, link);
 
                             streams.Add((link, $"{quality}p"));
                             streansquality += $"\"{quality}p\":\"" + link + "\",";

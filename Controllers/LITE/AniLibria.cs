@@ -59,14 +59,14 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
 
-                        streansquality += $"\"{f.quality}\":\"" + AppInit.HostStreamProxy(HttpContext, AppInit.conf.AnilibriaOnline.streamproxy, f.url) + "\",";
+                        streansquality += $"\"{f.quality}\":\"" + HostStreamProxy(AppInit.conf.AnilibriaOnline.streamproxy, f.url) + "\",";
                     }
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                     #endregion
 
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
-                    hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.AnilibriaOnline.streamproxy, $"https://{root.player.host}{hls}");
+                    hls = HostStreamProxy(AppInit.conf.AnilibriaOnline.streamproxy, $"https://{root.player.host}{hls}");
 
                     string season = string.IsNullOrWhiteSpace(code) || (root.names.ru?.ToLower() == title.ToLower()) ? "1"  : "0";
 
@@ -80,7 +80,7 @@ namespace Lampac.Controllers.LITE
                 #region Поиск
                 foreach (var root in result)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/anilibria?title={HttpUtility.UrlEncode(title)}&code={root.code}";
+                    string link = $"{host}/lite/anilibria?title={HttpUtility.UrlEncode(title)}&code={root.code}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{root.names.ru ?? root.names.en} ({root.season.year})" + "</div></div></div>";
                     firstjson = false;

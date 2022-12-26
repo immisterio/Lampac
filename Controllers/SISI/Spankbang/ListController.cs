@@ -59,7 +59,7 @@ namespace Lampac.Controllers.Spankbang
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/sbg",
+                        playlist_url = $"{host}/sbg",
                     },
                     new MenuItem()
                     {
@@ -70,17 +70,17 @@ namespace Lampac.Controllers.Spankbang
                             new MenuItem()
                             {
                                 title = "Новое",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/sbg"
+                                playlist_url = $"{host}/sbg"
                             },
                             new MenuItem()
                             {
                                 title = "Трендовое",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/sbg?sort=trending_videos"
+                                playlist_url = $"{host}/sbg?sort=trending_videos"
                             },
                             new MenuItem()
                             {
                                 title = "Популярное",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/sbg?sort=most_popular"
+                                playlist_url = $"{host}/sbg?sort=most_popular"
                             }
                         }
                     }
@@ -112,9 +112,9 @@ namespace Lampac.Controllers.Spankbang
                     playlists.Add(new PlaylistItem()
                     {
                         name = title,
-                        video = $"{AppInit.Host(HttpContext)}/sbg/vidosik?goni={HttpUtility.UrlEncode(link)}",
+                        video = $"{host}/sbg/vidosik?goni={HttpUtility.UrlEncode(link)}",
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         time = duration,
                         json = true
                     });

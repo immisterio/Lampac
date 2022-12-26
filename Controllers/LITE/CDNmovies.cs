@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             #region Перевод html
             for (int i = 0; i < voices.Count; i++)
             {
-                string link = $"{AppInit.Host(HttpContext)}/lite/cdnmovies?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
+                string link = $"{host}/lite/cdnmovies?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
 
                 html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + voices[i].title + "</div>";
             }
@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
                 for (int i = 0; i < voices[t].folder.Count; i++)
                 {
                     string season = Regex.Match(voices[t].folder[i].title, "([0-9]+)$").Groups[1].Value;
-                    string link = $"{AppInit.Host(HttpContext)}/lite/cdnmovies?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={season}&sid={i}";
+                    string link = $"{host}/lite/cdnmovies?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={season}&sid={i}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season} сезон" + "</div></div></div>";
                     firstjson = false;
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         link = Regex.Replace(link, "^https?://[^/]+", "https://s1.cdnmovies.nl");
-                        link = AppInit.HostStreamProxy(HttpContext, AppInit.conf.CDNmovies.streamproxy, link);
+                        link = HostStreamProxy(AppInit.conf.CDNmovies.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
                         streansquality += $"\"{quality}p\":\"" + link + "\",";

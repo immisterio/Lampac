@@ -63,7 +63,7 @@ namespace Lampac.Controllers.Porntrex
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/ptx",
+                        playlist_url = $"{host}/ptx",
                     },
                     new MenuItem()
                     {
@@ -74,12 +74,12 @@ namespace Lampac.Controllers.Porntrex
                             new MenuItem()
                             {
                                 title = "Новинки",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/ptx"
+                                playlist_url = $"{host}/ptx"
                             },
                             new MenuItem()
                             {
                                 title = "Топ просмотров",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/ptx?sort=most-popular"
+                                playlist_url = $"{host}/ptx?sort=most-popular"
                             }
                         }
                     }
@@ -109,9 +109,9 @@ namespace Lampac.Controllers.Porntrex
 
                     playlists.Add(new PlaylistItem()
                     {
-                        video = $"{AppInit.Host(HttpContext)}/ptx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
+                        video = $"{host}/ptx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
                         name = g[2].Value,
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, $"https://{img[2].Value}"),
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, $"https://{img[2].Value}"),
                         quality = !string.IsNullOrEmpty(quality) ? quality : null,
                         time = duration,
                         json = true

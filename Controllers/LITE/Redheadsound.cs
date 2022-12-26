@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrEmpty(hls))
                 {
                     hls = $"{Regex.Match(content.iframeUri, "^(https?://[^/]+)").Groups[1].Value}/{hls}";
-                    hls = AppInit.HostStreamProxy(HttpContext, true, hls);
+                    hls = HostStreamProxy(true, hls);
                         
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                     firstjson = true;

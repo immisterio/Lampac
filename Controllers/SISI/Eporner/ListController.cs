@@ -60,7 +60,7 @@ namespace Lampac.Controllers.Eporner
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/epr",
+                        playlist_url = $"{host}/epr",
                     },
                     new MenuItem()
                     {
@@ -71,27 +71,27 @@ namespace Lampac.Controllers.Eporner
                             new MenuItem()
                             {
                                 title = "Новинки",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/epr"
+                                playlist_url = $"{host}/epr"
                             },
                             new MenuItem()
                             {
                                 title = "Топ просмотра",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/epr?sort=most-viewed"
+                                playlist_url = $"{host}/epr?sort=most-viewed"
                             },
                             new MenuItem()
                             {
                                 title = "Топ рейтинга",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/epr?sort=top-rated"
+                                playlist_url = $"{host}/epr?sort=top-rated"
                             },
                             new MenuItem()
                             {
                                 title = "Длинные ролики",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/epr?sort=longest"
+                                playlist_url = $"{host}/epr?sort=longest"
                             },
                             new MenuItem()
                             {
                                 title = "Короткие ролики",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/epr?sort=shortest"
+                                playlist_url = $"{host}/epr?sort=shortest"
                             }
                         }
                     }
@@ -122,8 +122,8 @@ namespace Lampac.Controllers.Eporner
                     playlists.Add(new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{AppInit.Host(HttpContext)}/epr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        video = $"{host}/epr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         quality = quality,
                         time = duration,
                         json = true

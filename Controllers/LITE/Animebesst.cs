@@ -61,7 +61,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var res in catalog)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
+                    string link = $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
                     firstjson = false;
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in links)
                 {
-                    string link = $"{AppInit.Host(HttpContext)}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}";
+                    string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
                     firstjson = true;
@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
-            return Redirect(AppInit.HostStreamProxy(HttpContext, true, hls));
+            return Redirect(HostStreamProxy(true, hls));
         }
         #endregion
     }

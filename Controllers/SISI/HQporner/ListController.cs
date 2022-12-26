@@ -65,8 +65,8 @@ namespace Lampac.Controllers.HQporner
                     playlists.Add(new PlaylistItem()
                     {
                         name = g[2].Value.Trim(),
-                        video = $"{AppInit.Host(HttpContext)}/hqr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                        video = $"{host}/hqr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                         time = duration, 
                         json = true
                     });
@@ -84,7 +84,7 @@ namespace Lampac.Controllers.HQporner
                     {
                         title = "Поиск",
                         search_on = "search_on",
-                        playlist_url = $"{AppInit.Host(HttpContext)}/hqr",
+                        playlist_url = $"{host}/hqr",
                     },
                     new MenuItem()
                     {
@@ -95,17 +95,17 @@ namespace Lampac.Controllers.HQporner
                             new MenuItem()
                             {
                                 title = "Самые новые",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/hqr"
+                                playlist_url = $"{host}/hqr"
                             },
                             new MenuItem()
                             {
                                 title = "Топ недели",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/hqr?sort=week"
+                                playlist_url = $"{host}/hqr?sort=week"
                             },
                             new MenuItem()
                             {
                                 title = "Топ месяца",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/hqr?sort=month"
+                                playlist_url = $"{host}/hqr?sort=month"
                             }
                         }
                     }

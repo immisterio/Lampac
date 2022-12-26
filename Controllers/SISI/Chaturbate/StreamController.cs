@@ -19,7 +19,7 @@ namespace Lampac.Controllers.Chaturbate
 
             string memKey = $"chaturbate:stream:{baba}";
             if (memoryCache.TryGetValue(memKey, out string hls))
-                return Redirect(AppInit.HostStreamProxy(HttpContext, AppInit.conf.Chaturbate.streamproxy, hls));
+                return Redirect(HostStreamProxy(AppInit.conf.Chaturbate.streamproxy, hls));
 
             string html = await HttpClient.Get($"{AppInit.conf.Chaturbate.host}/{baba}/", useproxy: AppInit.conf.Chaturbate.useproxy);
             if (html == null)
@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Chaturbate
             hls = hls.Replace("\\u002D", "-").Replace("\\", "");
             memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
 
-            return Redirect(AppInit.HostStreamProxy(HttpContext, AppInit.conf.Chaturbate.streamproxy, hls));
+            return Redirect(HostStreamProxy(AppInit.conf.Chaturbate.streamproxy, hls));
         }
     }
 }

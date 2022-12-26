@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
                     string link = data.Value<string>("link");
                     string voice = data.Value<JObject>("translation").Value<string>("title");
 
-                    string url = $"{AppInit.Host(HttpContext)}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}";
+                    string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({voice})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
                     firstjson = false;
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(activTranslate))
                         activTranslate = translation;
 
-                    string link = $"{AppInit.Host(HttpContext)}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(translation)}";
+                    string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(translation)}";
 
                     string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == translation ? "active" : "");
 
@@ -90,7 +90,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         int season = item.Value<int>("last_season");
-                        string link = $"{AppInit.Host(HttpContext)}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(activTranslate)}&s={season}&kid={item.Value<string>("id")}";
+                        string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(activTranslate)}&s={season}&kid={item.Value<string>("id")}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var episode in item.Value<JObject>("seasons").ToObject<Dictionary<string, Season>>().First().Value.episodes)
                         {
-                            string url = $"{AppInit.Host(HttpContext)}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
+                            string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
 
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                             firstjson = false;
@@ -227,7 +227,7 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in streams)
             {
-                string hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Kodik.streamproxy, l.url);
+                string hls = HostStreamProxy(AppInit.conf.Kodik.streamproxy, l.url);
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 

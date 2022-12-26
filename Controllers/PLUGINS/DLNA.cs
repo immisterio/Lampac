@@ -178,7 +178,7 @@ namespace Lampac.Controllers.PLUGINS
         public ActionResult Plugin()
         {
             string file = IO.File.ReadAllText("plugins/dlna.js");
-            file = file.Replace("{localhost}", AppInit.Host(HttpContext));
+            file = file.Replace("{localhost}", host);
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -197,7 +197,7 @@ namespace Lampac.Controllers.PLUGINS
             {
                 string pathimage = $"thumbs/{CrypTo.md5(name)}.jpg";
                 if (IO.File.Exists("dlna/" + pathimage))
-                    return $"{AppInit.Host(HttpContext)}/dlna/stream?path={HttpUtility.UrlEncode(pathimage)}";
+                    return $"{host}/dlna/stream?path={HttpUtility.UrlEncode(pathimage)}";
 
                 return null;
             }
@@ -214,7 +214,7 @@ namespace Lampac.Controllers.PLUGINS
                 {
                     type = "folder",
                     name = Path.GetFileName(folder),
-                    uri = $"{AppInit.Host(HttpContext)}/dlna?path={HttpUtility.UrlEncode(folder.Replace("dlna/", ""))}",
+                    uri = $"{host}/dlna?path={HttpUtility.UrlEncode(folder.Replace("dlna/", ""))}",
                     img = getImage(Path.GetFileName(folder)),
                     path = folder.Replace("dlna/", ""),
                     length = Directory.GetFiles(folder).Length,
@@ -234,7 +234,7 @@ namespace Lampac.Controllers.PLUGINS
                 {
                     type = "file",
                     name = name,
-                    uri = $"{AppInit.Host(HttpContext)}/dlna/stream?path={HttpUtility.UrlEncode(file.Replace("dlna/", ""))}",
+                    uri = $"{host}/dlna/stream?path={HttpUtility.UrlEncode(file.Replace("dlna/", ""))}",
                     img = getImage(name),
                     subtitles = new List<Subtitle>(),
                     path = file.Replace("dlna/", ""),
@@ -247,7 +247,7 @@ namespace Lampac.Controllers.PLUGINS
                     dlnaModel.subtitles.Add(new Subtitle()
                     {
                         label = "Sub #1",
-                        url = $"{AppInit.Host(HttpContext)}/dlna/stream?path={HttpUtility.UrlEncode($"{path}/{Path.GetFileNameWithoutExtension(file)}.srt")}"
+                        url = $"{host}/dlna/stream?path={HttpUtility.UrlEncode($"{path}/{Path.GetFileNameWithoutExtension(file)}.srt")}"
                     });
                 }
 

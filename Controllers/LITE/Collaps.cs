@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
                 {
                     foreach (var cc in JsonConvert.DeserializeObject<List<Cc>>(Regex.Match(content, "cc: +(\\[[^\n\r]+\\]),").Groups[1].Value))
                     {
-                        string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, cc.url);
+                        string suburl = HostStreamProxy(AppInit.conf.Collaps.streamproxy, cc.url);
                         subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + suburl + "\"},";
                     }
                 }
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
                 voicename = Regex.Replace(voicename, "[, ]+$", "");
 
-                hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, hls);
+                hls = HostStreamProxy(AppInit.conf.Collaps.streamproxy, hls);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
                 #endregion
             }
@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                     {
                         foreach (var season in root.AsEnumerable().Reverse())
                         {
-                            string link = $"{AppInit.Host(HttpContext)}/lite/collaps?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.season}";
+                            string link = $"{host}/lite/collaps?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.season}";
 
                             html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.season} сезон" + "</div></div></div>";
                             firstjson = false;
@@ -102,7 +102,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 foreach (var cc in episode.cc)
                                 {
-                                    string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, cc.url);
+                                    string suburl = HostStreamProxy(AppInit.conf.Collaps.streamproxy, cc.url);
                                     subtitles += "{\"label\": \"" + cc.name + "\",\"url\": \"" + suburl + "\"},";
                                 }
                             }
@@ -110,7 +110,7 @@ namespace Lampac.Controllers.LITE
                             subtitles = Regex.Replace(subtitles, ",$", "");
                             #endregion
 
-                            string file = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Collaps.streamproxy, episode.hls);
+                            string file = HostStreamProxy(AppInit.conf.Collaps.streamproxy, episode.hls);
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>";
                             firstjson = false;
                         }

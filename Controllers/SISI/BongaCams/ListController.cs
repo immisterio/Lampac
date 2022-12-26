@@ -64,8 +64,8 @@ namespace Lampac.Controllers.BongaCams
                 {
                     name = model.display_name,
                     quality = model.hd_plus == 1 ? "HD+" : model.hd_cam == 1 ? "HD" : null,
-                    video = $"{AppInit.Host(HttpContext)}/bgs/potok.m3u8?baba={HttpUtility.UrlEncode(model.username)}",
-                    picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img),
+                    video = $"{host}/bgs/potok.m3u8?baba={HttpUtility.UrlEncode(model.username)}",
+                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
                 });
             }
 
@@ -82,27 +82,27 @@ namespace Lampac.Controllers.BongaCams
                             new MenuItem()
                             {
                                 title = "Новые",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/bgs"
+                                playlist_url = $"{host}/bgs"
                             },
                             new MenuItem()
                             {
                                 title = "Пары",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/bgs?sort=couples"
+                                playlist_url = $"{host}/bgs?sort=couples"
                             },
                             new MenuItem()
                             {
                                 title = "Девушки",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/bgs?sort=female"
+                                playlist_url = $"{host}/bgs?sort=female"
                             },
                             new MenuItem()
                             {
                                 title = "Парни",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/bgs?sort=male"
+                                playlist_url = $"{host}/bgs?sort=male"
                             },
                             new MenuItem()
                             {
                                 title = "Транссексуалы",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/bgs?sort=transsexual"
+                                playlist_url = $"{host}/bgs?sort=transsexual"
                             }
                         }
                     }

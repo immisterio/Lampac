@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                         {
-                            string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Ashdi.streamproxy, match.Groups[2].Value);
+                            string suburl = HostStreamProxy(AppInit.conf.Ashdi.streamproxy, match.Groups[2].Value);
                             subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
                         }
 
@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 subtitles = Regex.Replace(subtitles, ",$", "");
                 #endregion
 
-                hls = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Ashdi.streamproxy, hls);
+                hls = HostStreamProxy(AppInit.conf.Ashdi.streamproxy, hls);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }
@@ -71,7 +71,7 @@ namespace Lampac.Controllers.LITE
                     #region Перевод
                     for (int i = 0; i < root.Count; i++)
                     {
-                        string link = $"{AppInit.Host(HttpContext)}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
+                        string link = $"{host}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
 
                         html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + root[i].title + "</div>";
                     }
@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                     {
                         for (int i = 0; i < root[t].folder.Count; i++)
                         {
-                            string link = $"{AppInit.Host(HttpContext)}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
+                            string link = $"{host}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
 
                             html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + root[t].folder[i].title + "</div></div></div>";
                             firstjson = false;
@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
                                 {
                                     if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                                     {
-                                        string suburl = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Ashdi.streamproxy, match.Groups[2].Value);
+                                        string suburl = HostStreamProxy(AppInit.conf.Ashdi.streamproxy, match.Groups[2].Value);
                                         subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
                                     }
 
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
                             subtitles = Regex.Replace(subtitles, ",$", "");
                             #endregion
 
-                            string file = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Ashdi.streamproxy, episode.file);
+                            string file = HostStreamProxy(AppInit.conf.Ashdi.streamproxy, episode.file);
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
                             firstjson = false;
                         }

@@ -42,23 +42,6 @@ namespace Lampac
         }
 
         public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
-
-        public static string HostStreamProxy(HttpContext httpContext, bool streamproxy, string uri) 
-        {
-            if (streamproxy)
-            {
-                string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
-                if (conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
-                    uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
-            }
-
-            return streamproxy ? $"{Host(httpContext)}/proxy/{uri}" : uri;
-        }
-
-        public static string HostImgProxy(HttpContext httpContext, int width, int height, string uri)
-        {
-            return $"{Host(httpContext)}/proxyimg:{width}:{height}/{uri}";
-        }
         #endregion
 
 

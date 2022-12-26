@@ -55,8 +55,8 @@ namespace Lampac.Controllers.Chaturbate
                 {
                     name = g[3].Value.Trim(),
                     quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
-                    video = $"{AppInit.Host(HttpContext)}/chu/potok.m3u8?baba={HttpUtility.UrlEncode(g[1].Value)}",
-                    picture = AppInit.HostImgProxy(HttpContext, 0, AppInit.conf.sisi.heightPicture, img)
+                    video = $"{host}/chu/potok.m3u8?baba={HttpUtility.UrlEncode(g[1].Value)}",
+                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img)
                 });
             }
 
@@ -76,27 +76,27 @@ namespace Lampac.Controllers.Chaturbate
                             new MenuItem()
                             {
                                 title = "Лучшие",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/chu"
+                                playlist_url = $"{host}/chu"
                             },
                             new MenuItem()
                             {
                                 title = "Девушки",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/chu?sort=female-cams"
+                                playlist_url = $"{host}/chu?sort=female-cams"
                             },
                             new MenuItem()
                             {
                                 title = "Пары",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/chu?sort=couple-cams"
+                                playlist_url = $"{host}/chu?sort=couple-cams"
                             },
                             new MenuItem()
                             {
                                 title = "Парни",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/chu?sort=male-cams"
+                                playlist_url = $"{host}/chu?sort=male-cams"
                             },
                             new MenuItem()
                             {
                                 title = "Транссексуалы",
-                                playlist_url = $"{AppInit.Host(HttpContext)}/chu?sort=trans-cams"
+                                playlist_url = $"{host}/chu?sort=trans-cams"
                             }
                         }
                     }

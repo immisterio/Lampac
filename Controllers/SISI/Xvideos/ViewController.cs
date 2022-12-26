@@ -49,7 +49,7 @@ namespace Lampac.Controllers.Xvideos
                 playlists.Add(new PlaylistItem()
                 {
                     name = new Regex("hls-([0-9]+)p").Match(line).Groups[1].Value,
-                    video = AppInit.HostStreamProxy(HttpContext, AppInit.conf.Xvideos.streamproxy, hls)
+                    video = HostStreamProxy(AppInit.conf.Xvideos.streamproxy, hls)
                 });
             }
 

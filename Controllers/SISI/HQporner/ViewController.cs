@@ -41,7 +41,7 @@ namespace Lampac.Controllers.HQporner
                 if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value) && !match.Groups[2].Value.Contains("Default"))
                 {
                     string hls = "http://" + match.Groups[1].Value;
-                    stream_links.TryAdd(match.Groups[2].Value, AppInit.HostStreamProxy(HttpContext, AppInit.conf.HQporner.streamproxy, hls));
+                    stream_links.TryAdd(match.Groups[2].Value, HostStreamProxy(AppInit.conf.HQporner.streamproxy, hls));
                 }
 
                 match = match.NextMatch();
