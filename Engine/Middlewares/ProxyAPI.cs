@@ -44,21 +44,12 @@ namespace Lampac.Engine.Middlewares
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
                 servUri = Regex.Replace(servUri, "(\\?|&)account_email=([^&]+)", "", RegexOptions.IgnoreCase);
 
-                if (AppInit.conf.accsdb.enable)
-                {
-                    if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.accounts.Contains(HttpUtility.UrlDecode(account_email)))
-                    {
-                        httpContext.Response.StatusCode = 401;
-                        return;
-                    }
-                }
-
                 string validArgs(string uri)
                 {
                     if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.enable)
-                        return uri.Replace("//", "/");
+                        return uri;
 
-                    return uri.Replace("//", "/") + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
+                    return uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
                 }
 
                 HttpClientHandler handler = new HttpClientHandler()

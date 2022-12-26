@@ -29,8 +29,7 @@ namespace Lampac.Engine.Middlewares
 
             if (AppInit.conf.accsdb.enable)
             {
-                if (httpContext.Request.Path.Value != "/" && httpContext.Connection.RemoteIpAddress.ToString() != "127.0.0.1" &&
-                    !Regex.IsMatch(httpContext.Request.Path.Value, jacpattern) && 
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, jacpattern) && 
                     !Regex.IsMatch(httpContext.Request.Path.Value, "^/(sisi|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value);
@@ -38,8 +37,15 @@ namespace Lampac.Engine.Middlewares
 
                     if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.accounts.Contains(account_email))
                     {
+                        if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
+                        {
+                            httpContext.Response.StatusCode = 404;
+                            httpContext.Response.ContentType = "application/octet-stream";
+                            return Task.CompletedTask;
+                        }
+
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
-                        return httpContext.Response.WriteAsync("{{\"accsdb\":true,\"msg\":\"" + msg + "\"}}");
+                        return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}");
                     }
                 }
             }
