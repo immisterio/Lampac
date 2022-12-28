@@ -97,8 +97,37 @@ namespace Lampac.Controllers
                 memoryCache.Set($"ApiController:lampainit.js:{lite}", file, DateTime.Now.AddMinutes(5));
             }
 
+            string initiale = string.Empty;
+
+            if (lite)
+            {
+                if (AppInit.conf.LampaWeb.initPlugins.online)
+                    initiale += "\"{localhost}/lite.js\",";
+
+                if (AppInit.conf.LampaWeb.initPlugins.sisi)
+                    initiale += "\"{localhost}/sisi.js\",";
+            }
+            else
+            {
+                if (AppInit.conf.LampaWeb.initPlugins.dlna)
+                    initiale += "{\"url\": \"{localhost}/dlna.js\",\"status\": 1,\"name\": \"DLNA\",\"author\": \"lampac\"},";
+
+                if (AppInit.conf.LampaWeb.initPlugins.tracks)
+                    initiale += "{\"url\": \"{localhost}/tracks.js\",\"status\": 1,\"name\": \"Tracks.js\",\"author\": \"lampac\"},";
+
+                if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
+                    initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
+
+                if (AppInit.conf.LampaWeb.initPlugins.online)
+                    initiale += "{\"url\": \"{localhost}/online.js\",\"status\": 1,\"name\": \"Онлайн\",\"author\": \"lampac\"},";
+
+                if (AppInit.conf.LampaWeb.initPlugins.sisi)
+                    initiale += "{\"url\": \"{localhost}/sisi.js\",\"status\": 1,\"name\": \"Клубничка\",\"author\": \"lampac\"},";
+            }
+
+            file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
             file = file.Replace("{localhost}", host);
-            file = file.Replace("{jachost}", host.Replace("https://", "").Replace("http://", ""));
+            file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
