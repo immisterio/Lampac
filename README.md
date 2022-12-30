@@ -140,6 +140,14 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
         "socks5://127.0.0.1:9050" // прокси сервер tor
       ]
     }
+  ],
+  "overrideResponse": [ // Заменили ответ на данные из файла myfile.json
+    {
+      "pattern": "/msx/start.json",
+      "action": "file",
+	  "type": "application/json; charset=utf-8",
+	  "val": "myfile.json"
+    }
   ]
 }
 ```
