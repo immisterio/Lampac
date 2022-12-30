@@ -190,5 +190,30 @@ namespace Lampac
                 list = new List<string>() { "socks5://127.0.0.1:9050" }
             }
         };
+
+
+        public List<OverrideResponse> overrideResponse = new List<OverrideResponse>()
+        {
+            new OverrideResponse()
+            {
+                pattern = "/over/text",
+                action = "html",
+                type = "text/plain; charset=utf-8",
+                val = "text"
+            },
+            new OverrideResponse()
+            {
+                pattern = "/over/online.js",
+                action = "file",
+                type = "application/javascript; charset=utf-8",
+                val = "plugins/online.js"
+            },
+            new OverrideResponse()
+            {
+                pattern = "/over/gogoole",
+                action = "redirect",
+                val = "https://www.google.com/"
+            }
+        };
     }
 }

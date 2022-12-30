@@ -9,6 +9,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<ModHeaders>();
         }
 
+        public static IApplicationBuilder UseOverrideResponse(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<OverrideResponse>();
+        }
+
         public static IApplicationBuilder UseAccsdb(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<Accsdb>();

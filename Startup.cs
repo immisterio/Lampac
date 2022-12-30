@@ -70,6 +70,7 @@ namespace Lampac
             app.UseModHeaders();
             app.UseStaticFiles();
             app.UseAccsdb();
+            app.UseOverrideResponse();
             app.UseFindKP();
             app.UseProxyIMG();
             app.UseProxyAPI();
