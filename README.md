@@ -145,8 +145,8 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
     {
       "pattern": "/msx/start.json",
       "action": "file",
-	  "type": "application/json; charset=utf-8",
-	  "val": "myfile.json"
+      "type": "application/json; charset=utf-8",
+      "val": "myfile.json"
     }
   ]
 }
