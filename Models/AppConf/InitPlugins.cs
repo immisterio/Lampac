@@ -2,14 +2,14 @@
 {
     public class InitPlugins
     {
-        public bool dlna { get; set; }
+        public bool dlna { get; set; } = true;
 
-        public bool tracks { get; set; }
+        public bool tracks { get; set; } = true;
 
-        public bool tmdbProxy { get; set; }
+        public bool tmdbProxy { get; set; } = true;
 
-        public bool online { get; set; }
+        public bool online { get; set; } = true;
 
-        public bool sisi { get; set; }
+        public bool sisi { get; set; } = true;
     }
 }

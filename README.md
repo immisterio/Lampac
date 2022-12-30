@@ -93,6 +93,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * cachetype - file
 * htmlCacheToMinutes - 20
 * torrentCacheToMinutes - 40
+* fileCacheInactiveDay - html 3, img 1, torrent 5
 * emptycache - true
 * multiaccess - true
 
