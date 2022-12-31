@@ -19,6 +19,7 @@ unzip -o publish.zip
 rm -f publish.zip
 
 # automatic updates
+curl -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/update.sh > $DEST/update.sh
 chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "10 2 * * * /bin/bash $DEST/update.sh"; } | crontab -
