@@ -28,14 +28,22 @@ namespace Lampac.Engine.Middlewares
                             case "html":
                                 {
                                     httpContext.Response.ContentType = over.type;
-                                    await httpContext.Response.WriteAsync(over.val);
+                                    await httpContext.Response.WriteAsync(over.val.Replace("{localhost}", AppInit.Host(httpContext)));
                                     return;
                                 }
                             case "file":
                                 {
                                     httpContext.Response.ContentType = over.type;
-                                    using (var fs = new FileStream(over.val, FileMode.Open))
-                                        await fs.CopyToAsync(httpContext.Response.Body);
+                                    if (Regex.IsMatch(over.val, "\\.(html|txt|css|js|json|xml)$", RegexOptions.IgnoreCase))
+                                    {
+                                        string val = File.ReadAllText(over.val);
+                                        await httpContext.Response.WriteAsync(val.Replace("{localhost}", AppInit.Host(httpContext)));
+                                    }
+                                    else
+                                    {
+                                        using (var fs = new FileStream(over.val, FileMode.Open))
+                                            await fs.CopyToAsync(httpContext.Response.Body);
+                                    }
                                     return;
                                 }
                             case "redirect":
