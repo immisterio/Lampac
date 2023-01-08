@@ -221,6 +221,11 @@ namespace Lampac.Controllers.JAC
                 if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(title))
                     continue;
 
+                if (Regex.IsMatch(row, "Разрешение: ?</strong>1920x1080"))
+                    title += " [1080p]";
+                else if (Regex.IsMatch(row, "Разрешение: ?</strong>1280x720"))
+                    title += " [720p]";
+
                 url = $"{AppInit.conf.Animelayer.host}/{url}/";
                 #endregion
 

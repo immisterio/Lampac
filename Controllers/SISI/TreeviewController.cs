@@ -27,6 +27,12 @@ namespace Lampac.Controllers
 
                 channels.Add(new
                 {
+                    title = "pornhubpremium.com",
+                    playlist_url = "http://vi.sisi.am/xdb?sites=pornhub"
+                });
+
+                channels.Add(new
+                {
                     title = "bang.com",
                     playlist_url = "http://vi.sisi.am/xdb?sites=bang"
                 });
