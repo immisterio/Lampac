@@ -144,7 +144,7 @@ namespace Lampac.Controllers.JAC
             var fullNews = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: Cookie, timeoutSeconds: 10);
             if (fullNews != null)
             {
-                string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"med magnet-link\"").Groups[1].Value;
+                string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"(med )?med magnet-link\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(magnet))
                 {
                     await TorrentCache.Write(key, magnet);
