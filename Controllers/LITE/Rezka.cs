@@ -92,7 +92,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                     {
-                        string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={m.Groups[1].Value}";
+                        string link = $"{host}/lite/rezka/serial?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={m.Groups[1].Value}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + m.Groups[3].Value + "</div></div></div>";
                         firstjson = false;
@@ -110,7 +110,7 @@ namespace Lampac.Controllers.LITE
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(string title, string original_title, string t, int s)
+        async public Task<ActionResult> Serial(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s)
         {
             if (!AppInit.conf.Rezka.enable)
                 return Content(string.Empty);
@@ -131,7 +131,40 @@ namespace Lampac.Controllers.LITE
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
-            var m = Regex.Match(StringConvert.FindLastText(content, "name=\"episode\"", "</select>"), "<option value=\"([^\"]+)\"([^>]+)?>([^<]+)</option>");
+            #region Перевод
+            string activTranslate = t;
+
+            var m = Regex.Match(content, "<option data-token=\"([^\"]+)\" [^>]+>([^<]+)</option>");
+            while (m.Success)
+            {
+                if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
+                {
+                    if (string.IsNullOrWhiteSpace(activTranslate))
+                        activTranslate = m.Groups[1].Value;
+
+                    string link = $"{host}/lite/rezka?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
+
+                    string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == m.Groups[1].Value ? "active" : "");
+
+                    string voice = m.Groups[2].Value.Trim();
+                    if (voice != "-")
+                    {
+                        html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + voice + "</div>";
+                        firstjson = false;
+                    }
+                }
+
+                m = m.NextMatch();
+            }
+
+            html += "</div>";
+            #endregion
+
+            #region Серии
+            firstjson = true;
+            html += "<div class=\"videos__line\">";
+
+            m = Regex.Match(StringConvert.FindLastText(content, "name=\"episode\"", "</select>"), "<option value=\"([^\"]+)\"([^>]+)?>([^<]+)</option>");
             while (m.Success)
             {
                 if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
@@ -144,6 +177,7 @@ namespace Lampac.Controllers.LITE
 
                 m = m.NextMatch();
             }
+            #endregion
 
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
