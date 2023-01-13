@@ -12,6 +12,7 @@ using System.Globalization;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Lampac.Controllers.CRON;
 
 namespace Lampac.Controllers.JAC
 {
@@ -386,6 +387,7 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
                     AniLibriaController.parsePage(host, temptorrents, animesearch),
                     AnimeLayerController.parsePage(host, temptorrents, animesearch),
+                    AnifilmController.parsePage(host, temptorrents, animesearch),
 
                 });
                 #endregion
@@ -404,9 +406,10 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, search, null),
                     UnderverseController.parsePage(temptorrents, search, null),
                     SelezenController.parsePage(host, temptorrents, search),
+                    BitruController.parsePage(host, temptorrents, search, null),
                     AniLibriaController.parsePage(host, temptorrents, search),
                     AnimeLayerController.parsePage(host, temptorrents, search),
-                    BitruController.parsePage(host, temptorrents, search, null),
+                    AnifilmController.parsePage(host, temptorrents, search),
                 });
                 #endregion
             }

@@ -95,6 +95,7 @@ namespace Lampac
 
         public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
 
+        public TrackerSettings Anifilm = new TrackerSettings("https://anifilm.tv");
 
 
         public SisiSettings BongaCams = new SisiSettings("https://rt.bongacams.com");

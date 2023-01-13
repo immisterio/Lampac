@@ -302,7 +302,7 @@ namespace Lampac.Controllers
             if (AppInit.conf.online.checkOnlineSearch && id > 0)
             {
                 string memkey = $"ApiController:checkOnlineSearch:{id}";
-                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache))
+                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !AppInit.conf.multiaccess)
                 {
                     memoryCache.Set(memkey, string.Empty, DateTime.Now.AddSeconds(15));
 
