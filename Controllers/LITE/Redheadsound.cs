@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
                 string link = null;
                 foreach (string row in search.Split("card d-flex").Skip(1))
                 {
-                    if (Regex.Match(row, "<span>Год выпуска:</span> ?<a [^>]+>([0-9]{4})</a>").Groups[1].Value == year.ToString())
+                    if (row.ToLower().Contains($">{title.ToLower()}<") && Regex.Match(row, "<span>Год выпуска:</span> ?<a [^>]+>([0-9]{4})</a>").Groups[1].Value == year.ToString())
                     {
                         link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
                         if (!string.IsNullOrWhiteSpace(link))

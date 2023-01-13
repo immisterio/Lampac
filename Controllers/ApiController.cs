@@ -347,7 +347,7 @@ namespace Lampac.Controllers
                                int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
-            string res = await HttpClient.Get("http://127.0.0.1:" + AppInit.conf.listenport + $"/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={account_email}", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{host}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={account_email}", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
             links.Add((code.Replace("},", $",\"index\":{index},\"show\":{work.ToString().ToLower()}" + "},"), index, work));

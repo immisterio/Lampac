@@ -91,6 +91,8 @@ namespace Lampac
 
         public TrackerSettings Selezen = new TrackerSettings("https://selezen.org", enable: false, priority: "torrent");
 
+        public TrackerSettings Lostfilm = new TrackerSettings("https://www.lostfilm.tv", enable: false);
+
         public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv");
 
         public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
