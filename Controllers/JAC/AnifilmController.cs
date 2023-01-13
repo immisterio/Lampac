@@ -19,7 +19,7 @@ namespace Lampac.Controllers.CRON
         #region parseMagnet
         static string TorrentFileMemKey(string tid) => $"anifilm:parseMagnet:{tid}";
 
-        async public Task<ActionResult> parseMagnet(string tid)
+        async public Task<ActionResult> parseMagnet(string tid, bool usecache)
         {
             if (!AppInit.conf.Anifilm.enable)
                 return Content("disable");
@@ -28,6 +28,14 @@ namespace Lampac.Controllers.CRON
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
+            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            {
+                if (await TorrentCache.Read(key) is var tc && tc.cache)
+                    return File(tc.torrent, "application/x-bittorrent");
+
+                return Content("error");
+            }
+
             _t = await HttpClient.Download($"{AppInit.conf.Anifilm.host}/{tid}", referer: $"{AppInit.conf.Anifilm.host}/", timeoutSeconds: 10, useproxy: AppInit.conf.Anifilm.useproxy);
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
@@ -35,10 +43,11 @@ namespace Lampac.Controllers.CRON
                 Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
                 return File(_t, "application/x-bittorrent");
             }
-            else if (await TorrentCache.Read(key) is var tcache && tcache.cache)
-            {
+            else if (AppInit.conf.jac.emptycache)
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+
+            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
-            }
 
             return Content("error");
         }

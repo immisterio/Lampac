@@ -42,9 +42,11 @@ namespace Lampac.Controllers.JAC
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
-                    var postParams = new Dictionary<string, string>();
-                    postParams.Add("login", AppInit.conf.Animelayer.login.u);
-                    postParams.Add("password", AppInit.conf.Animelayer.login.p);
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "login", AppInit.conf.Animelayer.login.u },
+                        { "password", AppInit.conf.Animelayer.login.p }
+                    };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {

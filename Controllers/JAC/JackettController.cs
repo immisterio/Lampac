@@ -336,6 +336,7 @@ namespace Lampac.Controllers.JAC
                     RutrackerController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
                     UnderverseController.parsePage(temptorrents, search, new string[] { "serial", "docuserial" }),
                     BitruController.parsePage(host, temptorrents, search, new string[] { "serial" }),
+                    LostfilmController.parsePage(host, temptorrents, search),
 
                 });
                 #endregion
@@ -410,6 +411,7 @@ namespace Lampac.Controllers.JAC
                     AniLibriaController.parsePage(host, temptorrents, search),
                     AnimeLayerController.parsePage(host, temptorrents, search),
                     AnifilmController.parsePage(host, temptorrents, search),
+                    LostfilmController.parsePage(host, temptorrents, search),
                 });
                 #endregion
             }
