@@ -65,6 +65,7 @@ namespace Lampac.Controllers
             IO.File.WriteAllText("widgets/samsung/publish/app.js", app.Replace("{localhost}", overwritehost ?? host));
 
             IO.File.Copy("widgets/samsung/icon.png", "widgets/samsung/publish/icon.png", overwrite: true);
+            IO.File.Copy("widgets/samsung/logo_appname_fg.png", "widgets/samsung/publish/logo_appname_fg.png", overwrite: true);
             IO.File.Copy("widgets/samsung/config.xml", "widgets/samsung/publish/config.xml", overwrite: true);
 
             string gethash(string file)
@@ -80,16 +81,19 @@ namespace Lampac.Controllers
             string apphashsha512 = gethash("widgets/samsung/publish/app.js");
             string confighashsha512 = gethash("widgets/samsung/publish/config.xml");
             string iconhashsha512 = gethash("widgets/samsung/publish/icon.png");
+            string logohashsha512 = gethash("widgets/samsung/publish/logo_appname_fg.png");
 
             string author_sigxml = IO.File.ReadAllText("widgets/samsung/author-signature.xml");
-            author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512).Replace("confighashsha512", confighashsha512).Replace("iconhashsha512", iconhashsha512);
+            author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
+                                         .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512)
+                                         .Replace("confighashsha512", confighashsha512);
             IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml);
 
             string authorsignaturehashsha512 = gethash("widgets/samsung/publish/author-signature.xml");
             string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
             sigxml1 = sigxml1.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
                              .Replace("confighashsha512", confighashsha512).Replace("authorsignaturehashsha512", authorsignaturehashsha512)
-                             .Replace("iconhashsha512", iconhashsha512);
+                             .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512);
             IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1);
 
             ZipFile.CreateFromDirectory("widgets/samsung/publish/", wgt);
