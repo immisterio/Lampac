@@ -26,20 +26,43 @@ namespace Lampac.Controllers
             return Content("api work", contentType: "text/plain; charset=utf-8");
         }
 
+        #region app.min.js
+        [Route("lampa-{type}/app.min.js")]
+        public ActionResult LampaApp(string type)
+        {
+            if (!memoryCache.TryGetValue($"ApiController:{type}:app.min.js", out string file))
+            {
+                file = IO.File.ReadAllText($"wwwroot/lampa-{type}/app.min.js");
+                memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
+            }
+
+            file = file.Replace("http://lite.lampa.mx", $"{host}/lampa-{type}");
+            file = file.Replace("https://yumata.github.io/lampa-lite", $"{host}/lampa-{type}");
+
+            file = file.Replace("http://lampa.mx", $"{host}/lampa-{type}");
+            file = file.Replace("https://yumata.github.io/lampa", $"{host}/lampa-{type}");
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+        #endregion
+
         #region samsung.wgt
         [HttpGet]
         [Route("samsung.wgt")]
-        public ActionResult SamsWgt()
+        public ActionResult SamsWgt(string overwritehost)
         {
             if (!IO.File.Exists("widgets/samsung/loader.js"))
                 return Content(string.Empty);
 
-            string wgt = $"widgets/{CrypTo.md5(host)}.wgt";
+            string wgt = $"widgets/{CrypTo.md5(overwritehost ?? host + "v2")}.wgt";
             if (IO.File.Exists(wgt))
                 return File(IO.File.OpenRead(wgt), "application/octet-stream");
 
             string loader = IO.File.ReadAllText("widgets/samsung/loader.js");
-            IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", host));
+            IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", overwritehost ?? host));
+
+            string app = IO.File.ReadAllText("widgets/samsung/app.js");
+            IO.File.WriteAllText("widgets/samsung/publish/app.js", app.Replace("{localhost}", overwritehost ?? host));
 
             IO.File.Copy("widgets/samsung/icon.png", "widgets/samsung/publish/icon.png", overwrite: true);
             IO.File.Copy("widgets/samsung/config.xml", "widgets/samsung/publish/config.xml", overwrite: true);
@@ -54,15 +77,20 @@ namespace Lampac.Controllers
             }
 
             string loaderhashsha512 = gethash("widgets/samsung/publish/loader.js");
+            string apphashsha512 = gethash("widgets/samsung/publish/app.js");
+            string confighashsha512 = gethash("widgets/samsung/publish/config.xml");
             string iconhashsha512 = gethash("widgets/samsung/publish/icon.png");
 
-            string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
-            sigxml1 = sigxml1.Replace("loaderhashsha512", loaderhashsha512).Replace("iconhashsha512", iconhashsha512);
-            IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1);
-
             string author_sigxml = IO.File.ReadAllText("widgets/samsung/author-signature.xml");
-            author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("iconhashsha512", iconhashsha512);
+            author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512).Replace("confighashsha512", confighashsha512).Replace("iconhashsha512", iconhashsha512);
             IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml);
+
+            string authorsignaturehashsha512 = gethash("widgets/samsung/publish/author-signature.xml");
+            string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
+            sigxml1 = sigxml1.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
+                             .Replace("confighashsha512", confighashsha512).Replace("authorsignaturehashsha512", authorsignaturehashsha512)
+                             .Replace("iconhashsha512", iconhashsha512);
+            IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1);
 
             ZipFile.CreateFromDirectory("widgets/samsung/publish/", wgt);
 
