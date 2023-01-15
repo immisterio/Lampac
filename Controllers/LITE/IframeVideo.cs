@@ -97,6 +97,9 @@ namespace Lampac.Controllers.LITE
         #region iframe
         async ValueTask<(string content, string type, int cid, string path)> iframe(string imdb_id, long kinopoisk_id)
         {
+            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                return (null, null, 0, null);
+
             string memKey = $"iframevideo:view:{imdb_id}:{kinopoisk_id}";
 
             if (!memoryCache.TryGetValue(memKey, out (string content, string type, int cid, string path) res))

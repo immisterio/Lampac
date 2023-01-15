@@ -130,6 +130,9 @@ namespace Lampac.Controllers.LITE
         #region embed
         async ValueTask<string> embed(string imdb_id, long kinopoisk_id)
         {
+            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                return null;
+
             string memKey = $"collaps:view:{imdb_id}:{kinopoisk_id}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))

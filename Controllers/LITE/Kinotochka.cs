@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinotochka")]
         async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, int s = -1)
         {
-            if (!AppInit.conf.Kinotochka.enable)
+            if (!AppInit.conf.Kinotochka.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
 
             bool firstjson = true;

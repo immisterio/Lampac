@@ -233,6 +233,12 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<int> search(string title, string imdb_id, long kinopoisk_id)
         {
+            if (string.IsNullOrWhiteSpace(title))
+                return 0;
+
+            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                return 0;
+
             string memKey = $"kinopub:search:{title}:{imdb_id}:{kinopoisk_id}";
             if (!memoryCache.TryGetValue(memKey, out JArray items))
             {

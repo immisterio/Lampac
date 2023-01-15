@@ -20,9 +20,6 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Redheadsound.enable)
                 return Content(string.Empty);
 
-            if (year == 0)
-                return Content(string.Empty);
-
             var content = await embed(clarification == 1 ? title : (original_title ?? title), year);
             if (content.iframe == null)
                 return Content(string.Empty);
@@ -53,6 +50,9 @@ namespace Lampac.Controllers.LITE
         #region embed
         async ValueTask<(string iframe, string iframeUri)> embed(string title, int year)
         {
+            if (string.IsNullOrWhiteSpace(title) || year == 0)
+                return (null, null);
+
             string memKey = $"redheadsound:view:{title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out (string iframe, string iframeUri) cache))

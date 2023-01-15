@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinobase")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
-            if (year == 0 || !AppInit.conf.Kinobase.enable)
+            if (!AppInit.conf.Kinobase.enable)
                 return Content(string.Empty);
 
             string content = await embed(title, year);
@@ -170,6 +170,9 @@ namespace Lampac.Controllers.LITE
         #region embed
         async ValueTask<string> embed(string title, int year)
         {
+            if (string.IsNullOrWhiteSpace(title) || year == 0)
+                return null;
+
             string memKey = $"kinobase:view:{title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))

@@ -160,7 +160,7 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<int> search(string title, int year)
         {
-            if (year == 0)
+            if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return 0;
 
             string memKey = $"filmix:search:{title}:{year}";

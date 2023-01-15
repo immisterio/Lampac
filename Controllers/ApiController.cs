@@ -217,7 +217,7 @@ namespace Lampac.Controllers
         #region events
         [HttpGet]
         [Route("lifeevents")]
-        public ActionResult LifeEvents(int id)
+        public ActionResult LifeEvents(long id)
         {
             string json = null;
 
@@ -232,7 +232,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false)
         {
             string online = string.Empty;
             bool isanime = original_language == "ja";
@@ -376,7 +376,7 @@ namespace Lampac.Controllers
 
         #region checkSearch
         async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string code, string uri,
-                               int id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
+                               long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
             string res = await HttpClient.Get($"{host}/lite/{uri}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={account_email}", timeoutSeconds: 10);

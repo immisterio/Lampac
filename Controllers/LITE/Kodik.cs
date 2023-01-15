@@ -24,6 +24,9 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 return Content(string.Empty);
 
+            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                return Content(string.Empty);
+
             JToken results = await search(imdb_id, kinopoisk_id);
             if (results == null)
                 return Content(string.Empty);

@@ -24,5 +24,7 @@
         public bool useproxy { get; set; }
 
         public LoginSettings login { get; set; } = new LoginSettings();
+
+        public string cookie { get; set; }
     }
 }

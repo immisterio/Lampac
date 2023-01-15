@@ -18,8 +18,14 @@ namespace Lampac.Controllers.CRON
     public class LostfilmController : BaseController
     {
         #region TakeLogin
-        static string TakeLogin()
+        async static Task<string> TakeLogin()
         {
+            string authKey = "lostfilm:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out _))
+                return null;
+
+            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
@@ -47,7 +53,7 @@ namespace Lampac.Controllers.CRON
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = client.PostAsync($"{AppInit.conf.Lostfilm.host}/ajaxik.users.php", postContent).Result)
+                        using (var response = await client.PostAsync($"{AppInit.conf.Lostfilm.host}/ajaxik.users.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -76,10 +82,20 @@ namespace Lampac.Controllers.CRON
         #endregion
 
         #region LostfilmController
-        static System.Net.Http.HttpClient cloudHttp;
+        static System.Net.Http.HttpClient cloudHttp = null;
 
-        static LostfilmController() 
+        async static Task<bool> createHttp() 
         {
+            string cookie = AppInit.conf.Lostfilm.cookie;
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                return false;
+
+                cookie = await TakeLogin();
+                if (string.IsNullOrWhiteSpace(cookie))
+                    return false;
+            }
+
             //var handler = new ClearanceHandler("http://ip:8191/")
             //{
             //    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
@@ -90,7 +106,7 @@ namespace Lampac.Controllers.CRON
             cloudHttp.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.torrentCacheToMinutes);
             cloudHttp.MaxResponseContentBufferSize = 10_000_000;
             cloudHttp.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36");
-            cloudHttp.DefaultRequestHeaders.Add("cookie", TakeLogin());
+            cloudHttp.DefaultRequestHeaders.Add("cookie", cookie);
             cloudHttp.DefaultRequestHeaders.Add("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
             cloudHttp.DefaultRequestHeaders.Add("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
             cloudHttp.DefaultRequestHeaders.Add("cache-control", "no-cache");
@@ -103,6 +119,8 @@ namespace Lampac.Controllers.CRON
             cloudHttp.DefaultRequestHeaders.Add("sec-fetch-site", "none");
             cloudHttp.DefaultRequestHeaders.Add("sec-fetch-user", "?1");
             cloudHttp.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
+
+            return true;
         }
         #endregion
 
@@ -167,6 +185,9 @@ namespace Lampac.Controllers.CRON
                 return Content("error");
             }
 
+            if (cloudHttp == null && await createHttp() == false)
+                return Content("TakeLogin");
+
             _t = await getTorrent(episodeid);
             if (_t != null)
             {
@@ -189,6 +210,9 @@ namespace Lampac.Controllers.CRON
         async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
             if (!AppInit.conf.Lostfilm.enable)
+                return false;
+
+            if (cloudHttp == null && await createHttp() == false)
                 return false;
 
             #region Кеш html

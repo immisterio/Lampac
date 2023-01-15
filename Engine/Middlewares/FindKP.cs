@@ -19,38 +19,64 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
-            if (httpContext.Request.QueryString.Value.Contains("&source=tmdb") && !httpContext.Request.QueryString.Value.Contains("&kinopoisk_id="))
+            if (httpContext.Request.QueryString.Value.Contains("&source=tmdb") && httpContext.Request.Path.Value.StartsWith("/lite/events"))
             {
-                if (Regex.IsMatch(httpContext.Request.Path.Value, "^/lite/(hdvb|bazon|ashdi|zetflix|cdnmovies)"))
+                if (!httpContext.Request.QueryString.Value.Contains("&imdb_id="))
                 {
-                    string imdb = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)imdb_id=([^&]+)").Groups[2].Value;
-                    if (string.IsNullOrWhiteSpace(imdb))
-                        return;
-
-                    string memkey = $"Middlewares:FindKP:{imdb}";
-                    if (!mem.TryGetValue(memkey, out string kpid))
+                    string tmdb_id = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)id=([0-9]+)").Groups[2].Value;
+                    if (!string.IsNullOrWhiteSpace(tmdb_id))
                     {
-                        switch (AppInit.conf.online.findkp ?? "alloha")
+                        string memkey = $"Middlewares:FindKP:{tmdb_id}";
+                        if (!mem.TryGetValue(memkey, out string imdb_id))
                         {
-                            case "alloha":
-                                kpid = await getAlloha(imdb);
-                                break;
-                            case "vsdn":
-                                kpid = await getVSDN(imdb);
-                                break;
-                            case "tabus":
-                                kpid = await getTabus(imdb);
-                                break;
+                            string cat = httpContext.Request.QueryString.Value.Contains("&serial=1") ? "tv" : "movie";
+                            string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{tmdb_id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 5);
+                            if (!string.IsNullOrWhiteSpace(json))
+                            {
+                                imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                                if (!string.IsNullOrWhiteSpace(imdb_id))
+                                    mem.Set(memkey, imdb_id);
+                            }
                         }
 
-                        if (string.IsNullOrWhiteSpace(kpid) || kpid == "0" || kpid == "null")
+                        if (!string.IsNullOrWhiteSpace(imdb_id))
+                        {
+                            httpContext.Response.Redirect(httpContext.Request.Path.Value + httpContext.Request.QueryString.Value + $"&imdb_id={imdb_id}");
                             return;
-
-                        mem.Set(memkey, kpid);
+                        }
                     }
+                }
+                else if (!httpContext.Request.QueryString.Value.Contains("&kinopoisk_id="))
+                {
+                    string imdb = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)imdb_id=([^&]+)").Groups[2].Value;
+                    if (!string.IsNullOrWhiteSpace(imdb))
+                    {
+                        string memkey = $"Middlewares:FindKP:{imdb}";
+                        if (!mem.TryGetValue(memkey, out string kpid))
+                        {
+                            switch (AppInit.conf.online.findkp ?? "alloha")
+                            {
+                                case "alloha":
+                                    kpid = await getAlloha(imdb);
+                                    break;
+                                case "vsdn":
+                                    kpid = await getVSDN(imdb);
+                                    break;
+                                case "tabus":
+                                    kpid = await getTabus(imdb);
+                                    break;
+                            }
 
-                    httpContext.Response.Redirect(httpContext.Request.Path.Value + httpContext.Request.QueryString.Value + $"&kinopoisk_id={kpid}");
-                    return;
+                            if (!string.IsNullOrWhiteSpace(kpid) && kpid != "0" && kpid != "null")
+                                mem.Set(memkey, kpid);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(kpid) && kpid != "0" && kpid != "null")
+                        {
+                            httpContext.Response.Redirect(httpContext.Request.Path.Value + httpContext.Request.QueryString.Value + $"&kinopoisk_id={kpid}");
+                            return;
+                        }
+                    }
                 }
             }
 
@@ -59,7 +85,7 @@ namespace Lampac.Engine.Middlewares
 
         async ValueTask<string> getAlloha(string imdb)
         {
-            string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 8);
+            string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 5);
             if (json == null)
                 return null;
 
@@ -68,7 +94,7 @@ namespace Lampac.Engine.Middlewares
 
         async ValueTask<string> getVSDN(string imdb)
         {
-            string json = await HttpClient.Get("http://cdn.svetacdn.in/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 8);
+            string json = await HttpClient.Get("http://cdn.svetacdn.in/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
             if (json == null)
                 return null;
 
@@ -77,7 +103,7 @@ namespace Lampac.Engine.Middlewares
 
         async ValueTask<string> getTabus(string imdb)
         {
-            string json = await HttpClient.Get("https://api.bhcesh.me/list?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb, timeoutSeconds: 8);
+            string json = await HttpClient.Get("https://api.bhcesh.me/list?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb, timeoutSeconds: 5);
             if (json == null)
                 return null;
 

@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnmovies")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1)
         {
-            if (!AppInit.conf.CDNmovies.enable)
+            if (!AppInit.conf.CDNmovies.enable || kinopoisk_id == 0)
                 return Content(string.Empty);
 
             var voices = await embed(kinopoisk_id);

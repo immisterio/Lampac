@@ -274,6 +274,9 @@ namespace Lampac.Controllers.JAC
                 }
                 #endregion
 
+                if (string.IsNullOrWhiteSpace(name))
+                    name = Regex.Split(title, "(\\[|\\/|\\(|\\|)", RegexOptions.IgnoreCase)[0].Trim();
+
                 if (!string.IsNullOrWhiteSpace(name) || cat == "0")
                 {
                     #region types

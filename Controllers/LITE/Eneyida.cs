@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/eneyida")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int t, int s = -1)
         {
-            if (year == 0 || !AppInit.conf.Eneyida.enable || string.IsNullOrWhiteSpace(original_title))
+            if (!AppInit.conf.Eneyida.enable)
                 return Content(string.Empty);
 
             string content = await embed(original_title, year);
@@ -137,6 +137,9 @@ namespace Lampac.Controllers.LITE
         #region embed
         async ValueTask<string> embed(string original_title, int year)
         {
+            if (string.IsNullOrWhiteSpace(original_title) || year == 0)
+                return null;
+
             string memKey = $"eneyida:view:{original_title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
