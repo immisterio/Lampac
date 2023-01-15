@@ -219,7 +219,7 @@ namespace Lampac.Controllers.JAC
                     }
                     #endregion
                 }
-                else if (cat == "5" || cat == "6" || cat == "4" || cat == "humor")
+                else if (cat == "5" || cat == "6" || cat == "4" || cat == "12")
                 {
                     #region Мультфильмы / Аниме / Телевизор / Юмор
                     if (title.Contains(" / "))

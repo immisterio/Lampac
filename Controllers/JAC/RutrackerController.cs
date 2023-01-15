@@ -257,7 +257,7 @@ namespace Lampac.Controllers.JAC
                 int relased = 0;
                 string name = null, originalname = null;
 
-                if (tracker is "22" or "1666" or "941" or "1950" or "1950" or "2090" or "2221" or "2091" or "2092" or "2093" or "2200" or "2540" or "934" or "505" or "124" or "1457"
+                if (tracker is "22" or "1666" or "941" or "252" or "1950" or "1950" or "2090" or "2221" or "2091" or "2092" or "2093" or "2200" or "2540" or "934" or "505" or "124" or "1457"
                                 or "2199" or "313" or "312" or "1247" or "2201" or "2339" or "140" or "2343" or "930" or "2365" or "208" or "539" or "209" or "709")
                 {
                     #region Фильмы
@@ -443,6 +443,7 @@ namespace Lampac.Controllers.JAC
                         case "2201":
                         case "2339":
                         case "140":
+                        case "252":
                             types = new string[] { "movie" };
                             break;
                         case "2343":
@@ -544,6 +545,102 @@ namespace Lampac.Controllers.JAC
                         case "532":
                         case "827":
                             types = new string[] { "tvshow" };
+                            break;
+                        case "2103":
+                        case "2522":
+                        case "2485":
+                        case "2486":
+                        case "2479":
+                        case "2089":
+                        case "1794":
+                        case "845":
+                        case "2312":
+                        case "343":
+                        case "2111":
+                        case "1527":
+                        case "2069":
+                        case "1323":
+                        case "2009":
+                        case "2000":
+                        case "2010":
+                        case "2006":
+                        case "2007":
+                        case "2005":
+                        case "259":
+                        case "2004":
+                        case "1999":
+                        case "2001":
+                        case "2002":
+                        case "283":
+                        case "1997":
+                        case "2003":
+                        case "1608":
+                        case "1609":
+                        case "2294":
+                        case "1229":
+                        case "1693":
+                        case "2532":
+                        case "136":
+                        case "592":
+                        case "2533":
+                        case "1952":
+                        case "1621":
+                        case "2075":
+                        case "1668":
+                        case "1613":
+                        case "1614":
+                        case "1623":
+                        case "1615":
+                        case "1630":
+                        case "2425":
+                        case "2514":
+                        case "1616":
+                        case "2014":
+                        case "1442":
+                        case "1491":
+                        case "1987":
+                        case "1617":
+                        case "1620":
+                        case "1998":
+                        case "1343":
+                        case "751":
+                        case "1697":
+                        case "255":
+                        case "260":
+                        case "261":
+                        case "256":
+                        case "1986":
+                        case "660":
+                        case "1551":
+                        case "626":
+                        case "262":
+                        case "1326":
+                        case "978":
+                        case "1287":
+                        case "1188":
+                        case "1667":
+                        case "1675":
+                        case "257":
+                        case "875":
+                        case "263":
+                        case "2073":
+                        case "550":
+                        case "2124":
+                        case "1470":
+                        case "528":
+                        case "486":
+                        case "854":
+                        case "2079":
+                        case "1336":
+                        case "2171":
+                        case "1339":
+                        case "2455":
+                        case "1434":
+                        case "2350":
+                        case "1472":
+                        case "2068":
+                        case "2016":
+                            types = new string[] { "sport" };
                             break;
                     }
 

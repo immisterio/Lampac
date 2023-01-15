@@ -101,16 +101,19 @@ namespace Lampac.Controllers.CRON
             string url = Match("<a href=\"/(releases/[^\"]+)\"");
             string name = Match("class=\"release__title-primary\" itemprop=\"name\">([^<]+)</h1>");
             string originalname = Match("itemprop=\"alternativeHeadline\">([^<]+)</span>");
-            string episodes = Match("([0-9]+-[0-9]+) из [0-9]+ эп.,");
+            string episodes = Match("([0-9]+(-[0-9]+)?) из [0-9]+ эп.,");
 
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(originalname) || string.IsNullOrWhiteSpace(episodes))
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(originalname))
                 return false;
 
             if (!int.TryParse(Match("<a href=\"/releases/releases/[^\"]+\">([0-9]{4})</a> г\\."), out int relased) || relased == 0)
                 return false;
 
             url = $"{AppInit.conf.Anifilm.host}/{url}";
-            string title = $"{name} / {originalname} ({episodes})";
+            string title = $"{name} / {originalname}";
+
+            if (!string.IsNullOrWhiteSpace(episodes))
+                title += $" ({episodes})";
             #endregion
 
             string tid = null;

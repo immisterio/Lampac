@@ -200,9 +200,9 @@ namespace Lampac.Controllers.JAC
                         relased = _yer;
                     #endregion
                 }
-                else if (cat == "12" || cat == "6" || cat == "7" || parsecat == "7" || cat == "10" || parsecat == "10")
+                else if (cat == "12" || cat == "6" || cat == "7" || parsecat == "7" || cat == "10" || parsecat == "10" || cat == "15" || cat == "13")
                 {
-                    #region Научно-популярные фильмы / Телевизор / Мультипликация / Аниме
+                    #region Научно-популярные фильмы / Телевизор / Мультипликация / Аниме / Юмор / Спорт и Здоровье
                     if (title.Contains(" / "))
                     {
                         if (title.Contains("[") && title.Contains("]"))
@@ -294,6 +294,7 @@ namespace Lampac.Controllers.JAC
                             types = new string[] { "docuserial", "documovie" };
                             break;
                         case "6":
+                        case "15":
                             types = new string[] { "tvshow" };
                             break;
                         case "7":
@@ -301,6 +302,9 @@ namespace Lampac.Controllers.JAC
                             break;
                         case "10":
                             types = new string[] { "anime" };
+                            break;
+                        case "13":
+                            types = new string[] { "sport" };
                             break;
                     }
                     #endregion
