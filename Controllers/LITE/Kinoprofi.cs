@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
 
                         links = new List<(string, string)>();
 
-                        foreach (string row in Regex.Replace(search, "[\n\r\t]+", "").Split("sh-block ns").Skip(1).Reverse())
+                        foreach (string row in Regex.Replace(search, "[\n\r\t]+", "").Split("sh-block").Skip(1).Reverse())
                         {
                             var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\" itemprop=\"url\">([^<]+) \\((([0-9]+) сезон)\\)", RegexOptions.IgnoreCase).Groups;
                             if (g[2].Value.Trim().ToLower() == title.ToLower())
@@ -124,7 +124,7 @@ namespace Lampac.Controllers.LITE
                         return Content(string.Empty);
 
                     string keyid = null;
-                    foreach (string row in Regex.Replace(search, "[\n\r\t]+", "").Split("sh-block ns").Skip(1))
+                    foreach (string row in Regex.Replace(search, "[\n\r\t]+", "").Split("sh-block").Skip(1))
                     {
                         if (Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value.ToLower() != title.ToLower())
                             continue;
