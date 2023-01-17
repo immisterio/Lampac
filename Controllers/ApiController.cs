@@ -214,6 +214,99 @@ namespace Lampac.Controllers
         }
         #endregion
 
+
+        #region externalids
+        [Route("externalids")]
+        async public Task<ActionResult> Externalids(long id, string imdb_id, int serial)
+        {
+            #region getAlloha / getVSDN / getTabus
+            async ValueTask<string> getAlloha(string imdb)
+            {
+                string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 5);
+                if (json == null)
+                    return null;
+
+                return Regex.Match(json, "\"id_kp\":([0-9]+),").Groups[1].Value;
+            }
+
+            async ValueTask<string> getVSDN(string imdb)
+            {
+                string json = await HttpClient.Get("http://cdn.svetacdn.in/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
+                if (json == null)
+                    return null;
+
+                return Regex.Match(json, "\"kp_id\":\"([0-9]+)\"").Groups[1].Value;
+            }
+
+            async ValueTask<string> getTabus(string imdb)
+            {
+                string json = await HttpClient.Get("https://api.bhcesh.me/list?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb, timeoutSeconds: 5);
+                if (json == null)
+                    return null;
+
+                return Regex.Match(json, "\"kinopoisk_id\":\"([0-9]+)\"").Groups[1].Value;
+            }
+            #endregion
+
+            #region get imdb_id
+            if (string.IsNullOrWhiteSpace(imdb_id))
+            {
+                string path = $"cache/externalids/{id}";
+                if (IO.File.Exists(path))
+                {
+                    imdb_id = IO.File.ReadAllText(path);
+                }
+                else
+                {
+                    string cat = serial == 1 ? "tv" : "movie";
+                    string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 5);
+                    if (!string.IsNullOrWhiteSpace(json))
+                    {
+                        imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                        if (!string.IsNullOrWhiteSpace(imdb_id))
+                            IO.File.WriteAllText(path, imdb_id);
+                    }
+                }
+            }
+            #endregion
+
+            #region get kinopoisk_id
+            string kinopoisk_id = null;
+
+            if (!string.IsNullOrWhiteSpace(imdb_id))
+            {
+                string path = $"cache/externalids/{imdb_id}";
+                if (IO.File.Exists(path))
+                {
+                    kinopoisk_id = IO.File.ReadAllText(path);
+                }
+                else
+                {
+                    switch (AppInit.conf.online.findkp ?? "alloha")
+                    {
+                        case "alloha":
+                            kinopoisk_id = await getAlloha(imdb_id);
+                            break;
+                        case "vsdn":
+                            kinopoisk_id = await getVSDN(imdb_id);
+                            break;
+                        case "tabus":
+                            kinopoisk_id = await getTabus(imdb_id);
+                            break;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(kinopoisk_id) && kinopoisk_id != "0" && kinopoisk_id != "null")
+                        IO.File.WriteAllText(path, kinopoisk_id);
+                    else
+                        kinopoisk_id = null;
+                }
+            }
+            #endregion
+
+            return Json(new { imdb_id, kinopoisk_id });
+        }
+        #endregion
+
         #region events
         [HttpGet]
         [Route("lifeevents")]
