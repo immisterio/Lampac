@@ -134,7 +134,7 @@ namespace Lampac.Engine.CORE
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
                 #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && useproxy)
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
                 {
                     handler.UseProxy = true;
                     handler.Proxy = proxy ?? webProxy();
@@ -237,7 +237,7 @@ namespace Lampac.Engine.CORE
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
                 #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && useproxy)
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
                 {
                     handler.UseProxy = true;
                     handler.Proxy = proxy ?? webProxy();
@@ -350,7 +350,7 @@ namespace Lampac.Engine.CORE
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
                 #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && useproxy)
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
                 {
                     handler.UseProxy = true;
                     handler.Proxy = proxy ?? webProxy();
