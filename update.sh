@@ -9,9 +9,9 @@ if [[ "$gitver" -gt "$ver" ]]
     systemctl stop lampac
 
     echo -n $gitver > vers.txt
-    wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
-    unzip -o publish.zip
-    rm -f publish.zip
+    wget https://github.com/immisterio/Lampac/releases/latest/download/update.zip
+    unzip -o update.zip
+    rm -f update.zip
 
     systemctl start lampac
 fi
