@@ -9,7 +9,6 @@ using Lampac.Models.LITE.HDVB;
 using System.Collections.Generic;
 using Lampac.Models.DLNA;
 using Lampac.Models.AppConf;
-using System.Text.RegularExpressions;
 using System;
 
 namespace Lampac
@@ -23,11 +22,8 @@ namespace Lampac
         { 
             get 
             {
-                if (cacheconf.Item1 == null)
-                {
-                    if (!File.Exists("init.conf"))
-                        return new AppInit();
-                }
+                if (!File.Exists("init.conf"))
+                    return new AppInit();
 
                 var lastWriteTime = File.GetLastWriteTime("init.conf");
 
@@ -44,6 +40,8 @@ namespace Lampac
         public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
         #endregion
 
+
+        public string listenip = "any";
 
         public int listenport = 9118;
 

@@ -10,6 +10,6 @@ namespace Lampac.Models.AppConf
 
         public string denyMesage { get; set; }
 
-        public List<string> accounts { get; set; } = new List<string>();
+        public HashSet<string> accounts { get; set; } = new HashSet<string>();
     }
 }

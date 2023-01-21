@@ -72,7 +72,7 @@ namespace Lampac.Controllers.LITE
                     if (pl.Value<string>("perevod") != t)
                         continue;
 
-                    string link = pl.Value<string>("link");
+                    string link = HostStreamProxy(AppInit.conf.Seasonvar.streamproxy, pl.Value<string>("link"));
                     string name = pl.Value<string>("name");
 
                     string subtitles = pl.Value<string>("subtitles");
