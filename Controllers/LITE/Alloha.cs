@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Lampac.Models.LITE.Alloha;
 
 namespace Lampac.Controllers.LITE
 {
@@ -44,34 +45,12 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                #region Перевод
-                string activTranslate = t;
-
-                foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
-                {
-                    if (string.IsNullOrWhiteSpace(activTranslate))
-                        activTranslate = translation.Key;
-
-                    string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={translation.Key}";
-
-                    string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == translation.Key ? "active" : "");
-
-                    html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value["name"].ToString() + "</div>";
-                    firstjson = false;
-                }
-
-                html += "</div>";
-                #endregion
-
                 #region Сериал
-                firstjson = true;
-                html += "<div class=\"videos__line\">";
-
                 if (s == -1)
                 {
                     foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
                     {
-                        string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={season.Key}";
+                        string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -79,8 +58,37 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    foreach (var episode in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, object>>().Reverse())
+                    #region Перевод
+                    string activTranslate = t;
+
+                    foreach (var episodes in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Select(i => i.Value.translation))
                     {
+                        foreach (var translation in episodes)
+                        {
+                            if (string.IsNullOrWhiteSpace(activTranslate))
+                                activTranslate = translation.Key;
+
+                            if (html.Contains(translation.Value.translation))
+                                continue;
+
+                            string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={translation.Key}";
+
+                            string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == translation.Key ? "active" : "");
+
+                            html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value.translation + "</div>";
+                            firstjson = false;
+                        }
+                    }
+
+                    firstjson = true;
+                    html += "</div><div class=\"videos__line\">";
+                    #endregion
+
+                    foreach (var episode in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Reverse())
+                    {
+                        if (!string.IsNullOrWhiteSpace(activTranslate) && !episode.Value.translation.ContainsKey(activTranslate))
+                            continue;
+
                         string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={episode.Key}";
 
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
@@ -155,6 +163,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out JToken data))
             {
+                Console.WriteLine($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}");
                 var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("data"))
                     return null;
