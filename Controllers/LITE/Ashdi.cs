@@ -9,6 +9,7 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Ashdi;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/ashdi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1)
         {
             if (kinopoisk_id == 0 || !AppInit.conf.Ashdi.enable)
                 return Content(string.Empty);
@@ -68,32 +69,43 @@ namespace Lampac.Controllers.LITE
                 {
                     var root = JsonConvert.DeserializeObject<List<Voice>>(new Regex("file:'([^\n\r]+)',").Match(content).Groups[1].Value);
 
-                    #region Перевод
-                    for (int i = 0; i < root.Count; i++)
-                    {
-                        string link = $"{host}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
-
-                        html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + root[i].title + "</div>";
-                    }
-
-                    html += "</div><div class=\"videos__line\">";
-                    #endregion
-
                     if (s == -1)
                     {
-                        for (int i = 0; i < root[t].folder.Count; i++)
+                        foreach (var voice in root)
                         {
-                            string link = $"{host}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
+                            foreach (var season in voice.folder)
+                            {
+                                if (html.Contains(season.title))
+                                    continue;
 
-                            html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + root[t].folder[i].title + "</div></div></div>";
-                            firstjson = false;
+                                string numberseason = Regex.Match(season.title, "([0-9]+)$").Groups[1].Value;
+                                string link = $"{host}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={numberseason}";
+
+                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>";
+                                firstjson = false;
+                            }
                         }
                     }
                     else
                     {
-                        string nameseason = Regex.Match(root[t].folder[s].title, "([0-9]+)$").Groups[1].Value;
+                        #region Перевод
+                        for (int i = 0; i < root.Count; i++)
+                        {
+                            if (root[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
+                                continue;
 
-                        foreach (var episode in root[t].folder[s].folder)
+                            if (t == -1)
+                                t = i;
+
+                            string link = $"{host}/lite/ashdi?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={i}";
+
+                            html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + root[i].title + "</div>";
+                        }
+
+                        html += "</div><div class=\"videos__line\">";
+                        #endregion
+
+                        foreach (var episode in root[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
                         {
                             #region subtitle
                             string subtitles = string.Empty;
@@ -117,7 +129,7 @@ namespace Lampac.Controllers.LITE
                             #endregion
 
                             string file = HostStreamProxy(AppInit.conf.Ashdi.streamproxy, episode.file);
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
                             firstjson = false;
                         }
                     }
