@@ -65,22 +65,18 @@ namespace Lampac.Controllers.LITE
                     {
                         foreach (var translation in episodes)
                         {
+                            if (html.Contains(translation.Value.translation) || translation.Value.translation.ToLower().Contains("субтитры"))
+                                continue;
+
                             if (string.IsNullOrWhiteSpace(activTranslate))
                                 activTranslate = translation.Key;
 
-                            if (html.Contains(translation.Value.translation))
-                                continue;
-
                             string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={translation.Key}";
 
-                            string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == translation.Key ? "active" : "");
-
-                            html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value.translation + "</div>";
-                            firstjson = false;
+                            html += "<div class=\"videos__button selector " + (activTranslate == translation.Key ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value.translation + "</div>";
                         }
                     }
 
-                    firstjson = true;
                     html += "</div><div class=\"videos__line\">";
                     #endregion
 
@@ -89,7 +85,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrWhiteSpace(activTranslate) && !episode.Value.translation.ContainsKey(activTranslate))
                             continue;
 
-                        string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={episode.Key}";
+                        string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={s}&e={episode.Key}";
 
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                         firstjson = false;
@@ -144,14 +140,14 @@ namespace Lampac.Controllers.LITE
                         return Content(string.Empty);
                 }
 
-                _cache.subtitle = Regex.Match(json.Replace("\\", ""), "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;
+                string subtitle = Regex.Match(json.Replace("\\", ""), "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(subtitle) && subtitle.Contains(".vtt"))
+                    _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 
                 memoryCache.Set(memKey, _cache, TimeSpan.FromMinutes(10));
             }
 
-            string subtitles = "{\"label\": \"По умолчанию\",\"url\": \"" + _cache.subtitle + "\"},";
-
-            return Content("{\"method\":\"play\",\"url\":\"" + _cache.m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + Regex.Replace(subtitles, ",$", "") + "]}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + _cache.m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -163,7 +159,6 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out JToken data))
             {
-                Console.WriteLine($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}");
                 var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("data"))
                     return null;

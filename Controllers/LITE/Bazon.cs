@@ -74,40 +74,14 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                #region Перевод
-                string activTranslate = t;
-
-                foreach (var item in results)
-                {
-                    string translation = item.Value<string>("translation");
-                    if (string.IsNullOrWhiteSpace(activTranslate))
-                        activTranslate = translation;
-
-                    string link = $"{host}/lite/bazon?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(translation)}";
-
-                    string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == translation ? "active" : "");
-
-                    html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation + "</div>";
-                    firstjson = false;
-                }
-
-                html += "</div>";
-                #endregion
-
                 #region Сериал
-                firstjson = true;
-                html += "<div class=\"videos__line\">";
-
                 if (s == -1)
                 {
                     foreach (var item in results)
                     {
-                        if (item.Value<string>("translation") != activTranslate)
-                            continue;
-
                         foreach (var season in item.Value<JObject>("playlists").ToObject<Dictionary<string, object>>())
                         {
-                            string link = $"{host}/lite/bazon?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(activTranslate)}&s={season.Key}";
+                            string link = $"{host}/lite/bazon?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
 
                             html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
                             firstjson = false;
@@ -118,9 +92,27 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
+                    #region Перевод
+                    string activTranslate = t;
+
                     foreach (var item in results)
                     {
-                        if (item.Value<string>("translation") != activTranslate)
+                        string translation = item?.Value<string>("studio") ?? item.Value<string>("translation");
+                        if (string.IsNullOrWhiteSpace(activTranslate))
+                            activTranslate = translation;
+
+                        string link = $"{host}/lite/bazon?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(translation)}";
+
+                        html += "<div class=\"videos__button selector " + (activTranslate == translation ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation + "</div>";
+                    }
+
+                    firstjson = true;
+                    html += "</div><div class=\"videos__line\">";
+                    #endregion
+
+                    foreach (var item in results)
+                    {
+                        if ((item?.Value<string>("studio") ?? item.Value<string>("translation")) != activTranslate)
                             continue;
 
                         foreach (var episode in item.Value<JObject>("playlists").GetValue(s.ToString()).ToObject<Dictionary<string, Dictionary<string, string>>>())
@@ -130,8 +122,8 @@ namespace Lampac.Controllers.LITE
 
                             foreach (var link in episode.Value.Reverse())
                             {
-                                streams.Add((link.Value.Replace("https:", "http:"), $"{link.Key}p"));
-                                streansquality += $"\"{link.Key}p\":\"" + link.Value.Replace("https:", "http:") + "\",";
+                                streams.Add((link.Value, $"{link.Key}p"));
+                                streansquality += $"\"{link.Key}p\":\"" + link.Value + "\",";
                             }
 
                             streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
