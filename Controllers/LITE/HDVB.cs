@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/hdvb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, int t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, int t = -1, int s = -1)
         {
             if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 return Content(string.Empty);
@@ -42,44 +42,51 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                #region Перевод
-                for (int i = 0; i < data.Count; i++)
-                {
-                    string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
-
-                    html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + data[i].Value<string>("translator") + "</div>";
-                }
-
-                html += "</div>";
-                #endregion
-
                 #region Сериал
-                firstjson = true;
-                html += "<div class=\"videos__line\">";
-
                 if (s == -1)
                 {
-                    var serial_episodes = data[t].Value<JArray>("serial_episodes");
-
-                    for (int i = 0; i < serial_episodes.Count; i++)
+                    foreach (var voice in data)
                     {
-                        string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={i}";
+                        foreach (var season in voice.Value<JArray>("serial_episodes"))
+                        {
+                            string season_name = $"{season.Value<int>("season_number")} сезон";
+                            if (html.Contains(season_name))
+                                continue;
 
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{serial_episodes[i].Value<int>("season_number")} сезон" + "</div></div></div>";
-                        firstjson = false;
+                            string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Value<int>("season_number")}";
+
+                            html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season_name + "</div></div></div>";
+                            firstjson = false;
+                        }
                     }
                 }
                 else
                 {
-                    foreach (int episode in data[t].Value<JArray>("serial_episodes")[s].Value<JArray>("episodes").ToObject<List<int>>())
+                    #region Перевод
+                    for (int i = 0; i < data.Count; i++)
                     {
-                        string iframe = HttpUtility.UrlEncode(data[t].Value<string>("iframe_url"));
-                        string translator = HttpUtility.UrlEncode(data[t].Value<string>("translator"));
-                        int season = data[t].Value<JArray>("serial_episodes")[s].Value<int>("season_number");
+                        if (data[i].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s) == null)
+                            continue;
 
-                        string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={season}&e={episode}";
+                        if (t == -1)
+                            t = i;
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + season + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
+                        string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={i}";
+
+                        html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + data[i].Value<string>("translator") + "</div>";
+                    }
+
+                    html += "</div><div class=\"videos__line\">";
+                    #endregion
+
+                    string iframe = HttpUtility.UrlEncode(data[t].Value<string>("iframe_url"));
+                    string translator = HttpUtility.UrlEncode(data[t].Value<string>("translator"));
+
+                    foreach (int episode in data[t].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s).Value<JArray>("episodes").ToObject<List<int>>())
+                    {
+                        string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={s}&e={episode}";
+
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
                         firstjson = false;
                     }
                 }
