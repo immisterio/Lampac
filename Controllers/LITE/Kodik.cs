@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string kid, string t, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string kid, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
                 return Content(string.Empty);
@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return Content(string.Empty);
 
-            JToken results = await search(imdb_id, kinopoisk_id);
+            JToken results = await search(imdb_id, kinopoisk_id, s);
             if (results == null)
                 return Content(string.Empty);
 
@@ -51,49 +51,16 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                #region Перевод hash
-                HashSet<string> translations = new HashSet<string>();
-
-                foreach (var item in results)
-                {
-                    string translation = item.Value<JObject>("translation").Value<string>("title");
-                    if (!string.IsNullOrWhiteSpace(translation))
-                        translations.Add(translation);
-                }
-                #endregion
-
-                #region Перевод html
-                string activTranslate = t;
-
-                foreach (var translation in translations)
-                {
-                    if (string.IsNullOrWhiteSpace(activTranslate))
-                        activTranslate = translation;
-
-                    string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(translation)}";
-
-                    string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == translation ? "active" : "");
-
-                    html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation + "</div>";
-                    firstjson = false;
-                }
-
-                html += "</div>";
-                #endregion
-
                 #region Сериал
-                firstjson = true;
-                html += "<div class=\"videos__line\">";
-
                 if (s == -1)
                 {
                     foreach (var item in results.Reverse())
                     {
-                        if (item.Value<JObject>("translation").Value<string>("title") != activTranslate)
-                            continue;
-
                         int season = item.Value<int>("last_season");
-                        string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={HttpUtility.UrlEncode(activTranslate)}&s={season}&kid={item.Value<string>("id")}";
+                        string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season}";
+
+                        if (html.Contains($"{season} сезон"))
+                            continue;
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -101,20 +68,30 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
+                    #region Перевод
                     foreach (var item in results)
                     {
-                        if (item.Value<string>("id") != kid)
+                        string id = item.Value<string>("id");
+                        if (string.IsNullOrWhiteSpace(id))
                             continue;
 
-                        foreach (var episode in item.Value<JObject>("seasons").ToObject<Dictionary<string, Season>>().First().Value.episodes)
-                        {
-                            string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
+                        if (string.IsNullOrWhiteSpace(kid))
+                            kid = id;
 
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
-                            firstjson = false;
-                        }
+                        string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&kid={id}";
 
-                        break;
+                        html += "<div class=\"videos__button selector " + (kid == id ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + (item.Value<JObject>("translation").Value<string>("title") ?? "оригинал") + "</div>";
+                    }
+
+                    html += "</div><div class=\"videos__line\">";
+                    #endregion
+
+                    foreach (var episode in results.First(i => i.Value<string>("id") == kid).Value<JObject>("seasons").ToObject<Dictionary<string, Season>>()[s.ToString()].episodes)
+                    {
+                        string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
+
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
+                        firstjson = false;
                     }
                 }
                 #endregion
@@ -244,9 +221,9 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<JToken> search(string imdb_id, long kinopoisk_id)
+        async ValueTask<JToken> search(string imdb_id, long kinopoisk_id, int s)
         {
-            string memKey = $"kodik:view:{kinopoisk_id}:{imdb_id}";
+            string memKey = $"kodik:view:{kinopoisk_id}:{imdb_id}:{s}";
 
             if (!memoryCache.TryGetValue(memKey, out JToken results))
             {
@@ -256,6 +233,9 @@ namespace Lampac.Controllers.LITE
 
                 if (!string.IsNullOrWhiteSpace(imdb_id))
                     url += $"&imdb_id={imdb_id}";
+
+                if (s > 0)
+                    url += $"&season={s}";
 
                 var root = await HttpClient.Get<JObject>(url, timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("results"))
