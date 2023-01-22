@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Lampac.Models.DLNA;
 using Lampac.Models.AppConf;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Lampac
 {
@@ -29,7 +30,12 @@ namespace Lampac
 
                 if (cacheconf.Item2 != lastWriteTime)
                 {
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+                    string init = File.ReadAllText("init.conf");
+
+                    // fix tracks.js
+                    init = Regex.Replace(init, "\"ffprobe\": ?\"([^\"]+)?\"[^\n\r]+", "");
+
+                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(init);
                     cacheconf.Item2 = lastWriteTime;
                 }
 
@@ -45,7 +51,7 @@ namespace Lampac
 
         public int listenport = 9118;
 
-        public string ffprobe = "linux";
+        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = "linux" };
 
         public bool disableserverproxy = false;
 

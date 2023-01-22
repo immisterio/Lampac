@@ -13,7 +13,7 @@ namespace Lampac.Controllers.PLUGINS
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.ffprobe) || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
+            if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
                 return Content(string.Empty);
 
             if (media.Contains("/dlna/stream"))
@@ -25,6 +25,9 @@ namespace Lampac.Controllers.PLUGINS
             {
                 media = Regex.Replace(media, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&]+", "", RegexOptions.IgnoreCase);
                 media = Regex.Replace(media, "^(https?://[a-z0-9_:\\-\\.]+/stream/)[^\\?]+", "$1", RegexOptions.IgnoreCase);
+
+                if (!string.IsNullOrWhiteSpace(AppInit.conf.ffprobe.tsuri))
+                    media = Regex.Replace(media, "^https?://[^/]+", AppInit.conf.ffprobe.tsuri, RegexOptions.IgnoreCase);
             }
             else
             {
@@ -38,7 +41,7 @@ namespace Lampac.Controllers.PLUGINS
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                process.StartInfo.FileName = AppInit.conf.ffprobe == "linux" ? "ffprobe" : $"ffprobe/{AppInit.conf.ffprobe}";
+                process.StartInfo.FileName = AppInit.conf.ffprobe.os == "linux" ? "ffprobe" : $"ffprobe/{AppInit.conf.ffprobe.os}.exe";
                 process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {media}";
                 process.Start();
 
