@@ -5,6 +5,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
+using System.Linq;
 
 namespace Lampac.Controllers.PLUGINS
 {
@@ -18,8 +20,12 @@ namespace Lampac.Controllers.PLUGINS
 
             if (media.Contains("/dlna/stream"))
             {
-                if (!System.IO.File.Exists("dlna/" + Regex.Replace(media, "^https?://[a-z0-9_:\\-\\.]+/dlna/stream\\?path=", "", RegexOptions.IgnoreCase)))
+                string path = Regex.Match(media, "\\?path=([^&]+)").Groups[1].Value;
+                if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
                     return Content(string.Empty);
+
+                string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
+                media = $"{host}/dlna/stream?path={path}&account_email={HttpUtility.UrlEncode(account_email)}";
             }
             else if (media.Contains("/stream/"))
             {
