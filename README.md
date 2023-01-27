@@ -67,7 +67,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Виджеты
 1. Для Samsung "IP:9118/samsung.wgt"
 
-# Установка на Android через Termux
+# Android через Termux
 https://github.com/bbk14/TermuxDebian/blob/main/README.md
 
 # Параметры init.conf
