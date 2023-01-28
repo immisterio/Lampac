@@ -10,6 +10,9 @@ using System;
 using System.Linq;
 using System.Text.Json.Serialization;
 using Lampac.Engine.Middlewares;
+using Lampac.Engine.CORE;
+using Newtonsoft.Json.Linq;
+using System.Text;
 
 namespace Lampac
 {
@@ -61,6 +64,24 @@ namespace Lampac
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
+            {
+                try
+                {
+                    var root = HttpClient.Get<JObject>($"{AppInit.conf.KinoPub.apihost}/v1/device/info?access_token={AppInit.conf.KinoPub.token}", timeoutSeconds: 5).Result;
+                    if (root != null && root.ContainsKey("device"))
+                    {
+                        long? device_id = root.Value<JObject>("device")?.Value<long>("id");
+                        if (device_id > 0)
+                        {
+                            string data = "{\"supportSsl\": " + AppInit.conf.KinoPub.ssl.ToString().ToLower() + ", \"support4k\": " + AppInit.conf.KinoPub.uhd.ToString().ToLower() + ", \"supportHevc\": " + AppInit.conf.KinoPub.hevc.ToString().ToLower() + ", \"supportHdr\": " + AppInit.conf.KinoPub.hdr.ToString().ToLower() + "}";
+                            _= HttpClient.Post($"{AppInit.conf.KinoPub.apihost}/v1/device/{device_id}/settings?access_token={AppInit.conf.KinoPub.token}", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/json"));
+                        }
+                    }
+                }
+                catch { }
+            }    
 
             //AppInit.conf.Toloka.login = new Models.JAC.LoginSettings() { u = "user", p = "passwd" };
             //System.IO.File.WriteAllText("example.conf", Newtonsoft.Json.JsonConvert.SerializeObject(AppInit.conf, Newtonsoft.Json.Formatting.Indented));

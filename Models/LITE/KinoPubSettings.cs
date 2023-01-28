@@ -15,5 +15,14 @@
         public string filetype { get; set; }
 
         public bool streamproxy { get; set; }
+
+
+        public bool ssl { get; set; }
+
+        public bool hevc { get; set; }
+
+        public bool hdr { get; set; }
+
+        public bool uhd { get; set; }
     }
 }

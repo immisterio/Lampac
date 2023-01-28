@@ -167,7 +167,7 @@ namespace Lampac
 
         public OnlinesSettings Seasonvar = new OnlinesSettings(null, apihost: "http://api.seasonvar.ru");
 
-        public KinoPubSettings KinoPub = new KinoPubSettings("https://api.service-kp.com");
+        public KinoPubSettings KinoPub = new KinoPubSettings("https://api.service-kp.com") { uhd = true };
 
         public BazonSettings Bazon = new BazonSettings("https://bazon.cc", "", true);
 
