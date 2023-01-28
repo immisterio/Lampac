@@ -51,7 +51,7 @@ namespace Lampac.Controllers.Xhamster
             if (cache.hls != null)
                 return Content(cache.hls, "application/vnd.apple.mpegurl");
 
-            return Redirect(cache.stream_link);
+            return Redirect(HostStreamProxy(AppInit.conf.Xhamster.streamproxy, cache.stream_link));
         }
     }
 }

@@ -165,7 +165,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region sisi.js
+        #region sisi.js / modification.js
         [HttpGet]
         [Route("sisi.js")]
         public ActionResult Sisi()
@@ -177,6 +177,23 @@ namespace Lampac.Controllers
             }
 
             file = file.Replace("{localhost}", $"{host}/sisi");
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+
+        [HttpGet]
+        [Route("sisi/plugins/modification.js")]
+        public ActionResult SisiModification()
+        {
+            if (!memoryCache.TryGetValue("ApiController:sisimodification.js", out string file))
+            {
+                file = IO.File.ReadAllText("wwwroot/sisi/plugins/modification.js");
+                memoryCache.Set("ApiController:sisimodification.js", file, DateTime.Now.AddMinutes(5));
+            }
+
+            if (!AppInit.conf.sisi.xdb)
+                file = file.Replace("addId();", "");
+
+            file = Regex.Replace(file, "\\{localhost\\}/?", $"{host}/sisi");
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion

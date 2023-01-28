@@ -8,7 +8,6 @@ using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
-using Lampac.Models.LITE.AniLibria;
 
 namespace Lampac.Controllers.Porntrex
 {

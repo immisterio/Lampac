@@ -19,9 +19,9 @@ namespace Lampac
         #region AppInit
         static (AppInit, DateTime) cacheconf = default;
 
-        public static AppInit conf 
-        { 
-            get 
+        public static AppInit conf
+        {
+            get
             {
                 if (!File.Exists("init.conf"))
                     return new AppInit();
@@ -40,10 +40,10 @@ namespace Lampac
                 }
 
                 return cacheconf.Item1;
-            } 
+            }
         }
 
-        public static string Host(HttpContext httpContext) => $"http://{httpContext.Request.Host.Value}";
+        public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{httpContext.Request.Host.Value}";
         #endregion
 
 
@@ -118,7 +118,7 @@ namespace Lampac
 
         public SisiSettings Spankbang = new SisiSettings("https://ru.spankbang.com");
 
-        public SisiSettings Xhamster = new SisiSettings("https://ru.xhamster.com");
+        public SisiSettings Xhamster = new SisiSettings("https://ru.xhamster.com") { streamproxy = true };
 
         public SisiSettings Xnxx = new SisiSettings("https://www.xnxx.com");
 

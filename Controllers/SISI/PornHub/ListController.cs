@@ -101,7 +101,7 @@ namespace Lampac.Controllers.PornHub
         List<PlaylistItem> getTubes(string html)
         {
             var playlists = new List<PlaylistItem>();
-            html = StringConvert.FindLastText(html, "id=\"videoCategory\"");
+            html = StringConvert.FindLastText(html, "id=\"videoCategory\"") ?? StringConvert.FindLastText(html, "id=\"videoSearchResult\"");
 
             foreach (string row in html.Split("pcVideoListItem "))
             {
