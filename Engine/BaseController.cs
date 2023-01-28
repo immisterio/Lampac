@@ -54,12 +54,15 @@ namespace Lampac.Engine
         {
             if (streamproxy)
             {
+                uri = ProxyLink.Encrypt(uri);
                 string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
                 if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
                     uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
+
+                return $"{host}/proxy/{uri}";
             }
 
-            return streamproxy ? $"{host}/proxy/{uri}" : uri;
+            return uri;
         }
 
         public new void Dispose()

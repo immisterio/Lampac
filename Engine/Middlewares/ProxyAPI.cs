@@ -9,7 +9,6 @@ using System.Net.Http.Headers;
 using System.Net;
 using System.Linq;
 using System.Text;
-using System.Web;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -43,6 +42,13 @@ namespace Lampac.Engine.Middlewares
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
                 servUri = Regex.Replace(servUri, "(\\?|&)account_email=([^&]+)", "", RegexOptions.IgnoreCase);
+                servUri = CORE.ProxyLink.Decrypt(servUri);
+
+                if (string.IsNullOrWhiteSpace(servUri))
+                {
+                    httpContext.Response.StatusCode = 404;
+                    return;
+                }
 
                 string validArgs(string uri)
                 {
@@ -67,7 +73,7 @@ namespace Lampac.Engine.Middlewares
 
                     if ((int)response.StatusCode is 301 or 302 or 303 || response.Headers.Location != null)
                     {
-                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{response.Headers.Location.AbsoluteUri}"));
+                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri)}"));
                         return;
                     }
 
@@ -80,7 +86,7 @@ namespace Lampac.Engine.Middlewares
                                 string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
                                 string m3u8 = Regex.Replace(Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync()), "(https?://[^\n\r\"\\# ]+)", m =>
                                 {
-                                    return validArgs($"{proxyhost}/{m.Groups[1].Value}");
+                                    return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value)}");
                                 });
 
                                 string hlshost = Regex.Match(servUri, "(https?://[^/]+)/").Groups[1].Value;
@@ -102,7 +108,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{uri}");
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri)}");
                                 });
 
                                 m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
@@ -121,7 +127,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{uri}");
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri)}");
                                 });
 
                                 httpContext.Response.ContentType = contentType.First();
@@ -159,7 +165,7 @@ namespace Lampac.Engine.Middlewares
 
             foreach (var header in request.Headers)
             {
-                if (header.Key.ToLower() is "origin" or "user-agent" or "referer")
+                if (header.Key.ToLower() is "origin" or "user-agent" or "referer" or "content-disposition")
                     continue;
 
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
