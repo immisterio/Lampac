@@ -20,6 +20,8 @@ namespace Lampac.Engine.CORE
                 hash += ".ts";
             else if (uri.Contains(".mp4"))
                 hash += ".mp4";
+            else if (uri.Contains(".jpg") || uri.Contains(".jpeg") || uri.Contains(".png") || uri.Contains(".webp"))
+                hash += ".jpg";
 
             if (!links.ContainsKey(hash))
                 links.AddOrUpdate(hash, (DateTime.Now, uri) , (d,u) => (DateTime.Now, uri));
