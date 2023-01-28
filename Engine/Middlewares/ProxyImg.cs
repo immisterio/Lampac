@@ -23,8 +23,8 @@ namespace Lampac.Engine.Middlewares
         static string getFolder(string href)
         {
             string md5key = CrypTo.md5(href);
-            Directory.CreateDirectory($"cache/img/{md5key[0]}");
-            return $"cache/img/{md5key[0]}/{md5key}";
+            Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+            return $"cache/img/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
         }
         #endregion
 

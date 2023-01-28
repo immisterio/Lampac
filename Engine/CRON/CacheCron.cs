@@ -24,9 +24,13 @@ namespace Lampac.Engine.CRON
 
                         foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
                         {
-                            var fileinfo = new FileInfo(infile);
-                            if (DateTime.Now > fileinfo.LastWriteTime.AddDays(conf.day))
-                                fileinfo.Delete();
+                            try
+                            {
+                                var fileinfo = new FileInfo(infile);
+                                if (DateTime.Now > fileinfo.LastWriteTime.AddDays(conf.day))
+                                    fileinfo.Delete();
+                            }
+                            catch { }
                         }
                     }
                     catch { }
