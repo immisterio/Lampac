@@ -32,7 +32,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
-                if (AppInit.conf.disableserverproxy)
+                if (!AppInit.conf.serverproxy.enable || (!AppInit.conf.serverproxy.allow_tmdb && httpContext.Request.Path.Value.Contains(".tmdb.org")))
                 {
                     httpContext.Response.StatusCode = 403;
                     return;
@@ -76,7 +76,7 @@ namespace Lampac.Engine.Middlewares
                 if (href.Contains("cdntrex."))
                     headers.Add(("referer", AppInit.conf.Porntrex.host));
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.proxytoproxyimg, addHeaders: headers);
+                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.serverproxy.useproxy, addHeaders: headers);
                 if (array == null)
                 {
                     httpContext.Response.Redirect(href);

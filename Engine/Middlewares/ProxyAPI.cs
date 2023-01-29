@@ -27,7 +27,13 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
-                if (AppInit.conf.disableserverproxy)
+                if (!AppInit.conf.serverproxy.enable)
+                {
+                    httpContext.Response.StatusCode = 403;
+                    return;
+                }
+
+                if (!AppInit.conf.serverproxy.allow_tmdb && (httpContext.Request.Path.Value.Contains(".themoviedb.org") || httpContext.Request.Path.Value.Contains(".tmdb.org")))
                 {
                     httpContext.Response.StatusCode = 403;
                     return;

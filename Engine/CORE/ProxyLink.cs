@@ -10,6 +10,9 @@ namespace Lampac.Engine.CORE
 
         public static string Encrypt(string uri)
         {
+            if (!AppInit.conf.serverproxy.encrypt)
+                return uri;
+
             string hash = CrypTo.md5(uri);
             if (string.IsNullOrWhiteSpace(hash))
                 return string.Empty;
@@ -31,6 +34,9 @@ namespace Lampac.Engine.CORE
 
         public static string Decrypt(string hash)
         {
+            if (!AppInit.conf.serverproxy.encrypt)
+                return hash;
+
             if (links.TryGetValue(hash, out (DateTime upd, string uri) val))
                 return val.uri;
 

@@ -137,7 +137,7 @@ namespace Lampac.Controllers
                     initiale += "\"{localhost}/lite.js\",";
 
                 if (AppInit.conf.LampaWeb.initPlugins.sisi)
-                    initiale += "\"{localhost}/sisi.js\",";
+                    initiale += "\"{localhost}/sisi.js?lite=true\",";
             }
             else
             {
@@ -168,12 +168,12 @@ namespace Lampac.Controllers
         #region sisi.js / modification.js
         [HttpGet]
         [Route("sisi.js")]
-        public ActionResult Sisi()
+        public ActionResult Sisi(bool lite)
         {
-            if (!memoryCache.TryGetValue("ApiController:sisi.js", out string file))
+            if (!memoryCache.TryGetValue($"ApiController:sisi.js:{lite}", out string file))
             {
-                file = IO.File.ReadAllText("plugins/sisi.js");
-                memoryCache.Set("ApiController:sisi.js", file, DateTime.Now.AddMinutes(5));
+                file = IO.File.ReadAllText("plugins/" + (lite ? "sisi.lite.js" : "sisi.js"));
+                memoryCache.Set($"ApiController:sisi.js:{lite}", file, DateTime.Now.AddMinutes(5));
             }
 
             file = file.Replace("{localhost}", $"{host}/sisi");

@@ -53,14 +53,12 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = "linux" };
 
-        public bool disableserverproxy = false;
-
-        public bool proxytoproxyimg = false;
+        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, allow_tmdb = true };
 
         public bool multiaccess = false;
 
 
-        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 10, img = 1, torrent = 20 };
+        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 3, img = 1, torrent = 10 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true };
 
