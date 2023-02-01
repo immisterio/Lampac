@@ -65,19 +65,30 @@ namespace Lampac.Controllers.LITE
                 if (search == null)
                     return (null, null);
 
-                string link = null;
+                string link = null, reservedlink = null;
                 foreach (string row in search.Split("card d-flex").Skip(1))
                 {
-                    if (row.ToLower().Contains($">{title.ToLower()}<") && Regex.Match(row, "<span>Год выпуска:</span> ?<a [^>]+>([0-9]{4})</a>").Groups[1].Value == year.ToString())
+                    if (row.ToLower().Contains($">{title.ToLower()}<"))
                     {
-                        link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                        if (!string.IsNullOrWhiteSpace(link))
+                        reservedlink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            continue;
+
+                        if (Regex.Match(row, "<span>Год выпуска:</span> ?<a [^>]+>([0-9]{4})</a>").Groups[1].Value == year.ToString())
+                        {
+                            link = reservedlink;
                             break;
+                        }
                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(link))
-                    return (null, null);
+                {
+                    if (string.IsNullOrWhiteSpace(reservedlink))
+                        return (null, null);
+
+                    link = reservedlink;
+                }
 
                 string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (news == null)

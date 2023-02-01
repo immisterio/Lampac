@@ -179,7 +179,7 @@ namespace Lampac.Controllers.LITE
                     return item.Value<int>("id");
             }
 
-            return 0;
+            return root.First.Value<int>("id");
         }
         #endregion
     }

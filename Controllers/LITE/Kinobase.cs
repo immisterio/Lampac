@@ -185,7 +185,7 @@ namespace Lampac.Controllers.LITE
                 if (search == null)
                     return null;
 
-                string link = null;
+                string link = null, reservedlink = null;
                 foreach (string row in search.Split("<div class=\"col-xs-2 item\">").Skip(1))
                 {
                     if (row.Contains(">Трейлер</span>"))
@@ -193,16 +193,27 @@ namespace Lampac.Controllers.LITE
 
                     var g = Regex.Match(row, "class=\"link\" alt=\"([^\"]+) \\(([0-9]{4})\\)\"").Groups;
 
-                    if (g[2].Value == year.ToString() && g[1].Value.ToLower().Trim() == title.ToLower())
+                    if (g[1].Value.ToLower().Trim() == title.ToLower())
                     {
-                        link = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
-                        if (!string.IsNullOrWhiteSpace(link))
+                        reservedlink = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            continue;
+
+                        if (g[2].Value == year.ToString())
+                        {
+                            link = reservedlink;
                             break;
+                        }
                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(link))
-                    return null;
+                {
+                    if (string.IsNullOrWhiteSpace(reservedlink))
+                        return null;
+
+                    link = reservedlink;
+                }
 
                 string news = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/{link}", timeoutSeconds: 8, proxy: proxy);
                 if (news == null)

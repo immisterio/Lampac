@@ -131,21 +131,32 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return Content(string.Empty);
 
-                    string link = null;
+                    string link = null, reservedlink = null;
                     foreach (string row in search.Split("sres-wrap clearfix").Skip(1))
                     {
                         var g = Regex.Match(row, "<h2>([^\\(]+) \\(([0-9]{4})\\)</h2>").Groups;
 
-                        if (g[2].Value == year.ToString() && g[1].Value.ToLower().Trim() == title.ToLower())
+                        if (g[1].Value.ToLower().Trim() == title.ToLower())
                         {
-                            link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                            if (!string.IsNullOrWhiteSpace(link))
+                            reservedlink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                            if (string.IsNullOrWhiteSpace(reservedlink))
+                                continue;
+
+                            if (g[2].Value == year.ToString())
+                            {
+                                link = reservedlink;
                                 break;
+                            }
                         }
                     }
 
                     if (string.IsNullOrWhiteSpace(link))
-                        return Content(string.Empty);
+                    {
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            return Content(string.Empty);
+
+                        link = reservedlink;
+                    }
 
                     string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                     if (news == null)

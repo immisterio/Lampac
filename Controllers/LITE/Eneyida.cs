@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
                 if (search == null)
                     return null;
 
-                string link = null;
+                string link = null, reservedlink = null;
                 foreach (string row in search.Split("<article ").Skip(1))
                 {
                     if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
@@ -171,16 +171,27 @@ namespace Lampac.Controllers.LITE
 
                     var g = Regex.Match(row, "class=\"short_subtitle\"><a [^>]+>([0-9]{4})</a> &bull; ([^<]+)</div>").Groups;
 
-                    if (g[1].Value == year.ToString() && g[2].Value.ToLower().Trim() == original_title.ToLower())
+                    if (g[2].Value.ToLower().Trim() == original_title.ToLower())
                     {
-                        link = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                        if (!string.IsNullOrWhiteSpace(link))
+                        reservedlink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            continue;
+
+                        if (g[1].Value == year.ToString())
+                        {
+                            link = reservedlink;
                             break;
+                        }
                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(link))
-                    return null;
+                {
+                    if (string.IsNullOrWhiteSpace(reservedlink))
+                        return null;
+
+                    link = reservedlink;
+                }
 
                 string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (news == null)

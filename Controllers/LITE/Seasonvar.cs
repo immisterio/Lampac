@@ -120,7 +120,7 @@ namespace Lampac.Controllers.LITE
                 return int.Parse(item.Value<string>("id"));
             }
 
-            return 0;
+            return int.Parse(root.First.Value<string>("id"));
         }
         #endregion
 

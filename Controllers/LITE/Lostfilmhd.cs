@@ -105,22 +105,32 @@ namespace Lampac.Controllers.LITE
                 if (search == null)
                     return (null, null);
 
-                string link = null;
+                string link = null, reservedlink = null;
                 foreach (string row in search.Split("<div id=\"entryID").Skip(1))
                 {
                     string href = Regex.Match(row, "href=\"/(publ/serialy/[^\"]+)\"").Groups[1].Value;
                     string vent = Regex.Match(row, "<strong>Выпущено</strong>: ([^\n\r<]+)").Groups[1].Value;
                     string eTitle = Regex.Match(row, "class=\"eTitle\"[^>]+><a [^>]+>([^<]+) ([0-9,\\-]+) сезон").Groups[1].Value;
 
-                    if (vent.Contains(year.ToString()) && !string.IsNullOrWhiteSpace(href) && eTitle.ToLower().Trim() == title.ToLower())
+                    if (!string.IsNullOrWhiteSpace(href) && eTitle.ToLower().Trim() == title.ToLower())
                     {
-                        link = href;
-                        break;
+                        reservedlink = href;
+
+                        if (vent.Contains(year.ToString()))
+                        {
+                            link = href;
+                            break;
+                        }
                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(link))
-                    return (null, null);
+                {
+                    if (string.IsNullOrWhiteSpace(reservedlink))
+                        return (null, null);
+
+                    link = reservedlink;
+                }
 
                 string news = await HttpClient.Get($"{AppInit.conf.Lostfilmhd.host}/{link}", timeoutSeconds: 8, proxy: proxy);
                 if (news == null)

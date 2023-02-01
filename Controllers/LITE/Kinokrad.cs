@@ -120,21 +120,32 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return Content(string.Empty);
 
-                    string link = null;
+                    string link = null, reservedlink = null;
                     foreach (string row in search.Split("searchitem").Skip(1))
                     {
                         var g = Regex.Match(row, "<h3><a href=\"(https?://[^/]+/[^\"]+\\.html)\"([^>]+)?>([^\\(]+) \\(([0-9]{4})\\)</a></h3>").Groups;
 
-                        if (g[4].Value == year.ToString() && g[3].Value.ToLower().Trim() == title.ToLower())
+                        if (g[3].Value.ToLower().Trim() == title.ToLower())
                         {
-                            link = g[1].Value;
-                            if (!string.IsNullOrWhiteSpace(link))
+                            reservedlink = g[1].Value;
+                            if (string.IsNullOrWhiteSpace(reservedlink))
+                                continue;
+
+                            if (g[4].Value == year.ToString())
+                            {
+                                link = reservedlink;
                                 break;
+                            }
                         }
                     }
 
                     if (string.IsNullOrWhiteSpace(link))
-                        return Content(string.Empty);
+                    {
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            return Content(string.Empty);
+
+                        link = reservedlink;
+                    }
 
                     string news = await HttpClient.Get(link, timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
                     if (news == null)

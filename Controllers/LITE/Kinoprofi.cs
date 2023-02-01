@@ -123,22 +123,30 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return Content(string.Empty);
 
-                    string keyid = null;
+                    string keyid = null, reservedlink = null;
                     foreach (string row in Regex.Replace(search, "[\n\r\t]+", "").Split("sh-block").Skip(1))
                     {
                         if (Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value.ToLower() != title.ToLower())
                             continue;
 
+                        reservedlink = Regex.Match(row, "href=\"https?://[^/]+/([0-9]+)-[^\"]+\" itemprop=\"url\"").Groups[1].Value;
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            continue;
+
                         if (Regex.Match(row, "<b>Год</b> ?<i>([0-9]{4})</i>").Groups[1].Value == year.ToString())
                         {
-                            keyid = Regex.Match(row, "href=\"https?://[^/]+/([0-9]+)-[^\"]+\" itemprop=\"url\"").Groups[1].Value;
-                            if (!string.IsNullOrWhiteSpace(keyid))
-                                break;
+                            keyid = reservedlink;
+                            break;
                         }
                     }
 
                     if (string.IsNullOrWhiteSpace(keyid))
-                        return Content(string.Empty);
+                    {
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            return Content(string.Empty);
+
+                        keyid = reservedlink;
+                    }
 
                     string session_id = Regex.Match(search, "var session_id += '([^']+)'").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(session_id))
