@@ -25,7 +25,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(authKey, out _))
                 return false;
 
-            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
 
             try
             {

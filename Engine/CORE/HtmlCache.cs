@@ -39,14 +39,17 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                if (AppInit.conf.jac.cachetype == "mem")
+                if (AppInit.conf.jac.htmlCacheToMinutes > 0)
                 {
-                    Startup.memoryCache.Set(key, BrotliTo.Compress(html), DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
-                }
-                else
-                {
-                    await File.WriteAllBytesAsync(getFolder(key), BrotliTo.Compress(html));
-                    Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
+                    if (AppInit.conf.jac.cachetype == "mem")
+                    {
+                        Startup.memoryCache.Set(key, BrotliTo.Compress(html), DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
+                    }
+                    else
+                    {
+                        await File.WriteAllBytesAsync(getFolder(key), BrotliTo.Compress(html));
+                        Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
+                    }
                 }
             }
             catch { }
@@ -57,7 +60,7 @@ namespace Lampac.Engine.CORE
         public static void EmptyCache(string key)
         {
             if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(AppInit.conf.jac.htmlCacheToMinutes));
+                Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.htmlCacheToMinutes)));
         }
         #endregion
 

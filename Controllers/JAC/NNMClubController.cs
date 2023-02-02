@@ -27,7 +27,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(authKey, out _))
                 return;
 
-            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
 
             try
             {
@@ -49,12 +49,14 @@ namespace Lampac.Controllers.JAC
                     client.DefaultRequestHeaders.Add("referer", $"{AppInit.conf.NNMClub.host}/");
                     client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
-                    var postParams = new Dictionary<string, string>();
-                    postParams.Add("redirect", "%2F");
-                    postParams.Add("username", AppInit.conf.NNMClub.login.u);
-                    postParams.Add("password", AppInit.conf.NNMClub.login.p);
-                    postParams.Add("autologin", "on");
-                    postParams.Add("login", "%C2%F5%EE%E4");
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "redirect", "%2F" },
+                        { "username", AppInit.conf.NNMClub.login.u },
+                        { "password", AppInit.conf.NNMClub.login.p },
+                        { "autologin", "on" },
+                        { "login", "%C2%F5%EE%E4" }
+                    };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
@@ -128,7 +130,7 @@ namespace Lampac.Controllers.JAC
             if (html == null || !html.Contains("NNM-Club</title>") || string.IsNullOrWhiteSpace(magnet))
             {
                 if (AppInit.conf.jac.emptycache)
-                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -150,7 +152,7 @@ namespace Lampac.Controllers.JAC
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
                         await TorrentCache.Write(keydownload, _t);
-                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                         return File(_t, "application/x-bittorrent");
                     }
                 }
@@ -158,7 +160,7 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             await TorrentCache.Write(keymagnet, magnet);
-            Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+            Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
             return Redirect(magnet);
         }
         #endregion

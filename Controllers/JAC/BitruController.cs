@@ -40,11 +40,11 @@ namespace Lampac.Controllers.JAC
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                 return File(_t, "application/x-bittorrent");
             }
             else if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");

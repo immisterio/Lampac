@@ -24,7 +24,7 @@ namespace Lampac.Controllers.CRON
             if (Startup.memoryCache.TryGetValue(authKey, out _))
                 return null;
 
-            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
 
             try
             {
@@ -103,7 +103,7 @@ namespace Lampac.Controllers.CRON
             //};
 
             cloudHttp = new System.Net.Http.HttpClient(); // handler
-            cloudHttp.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.torrentCacheToMinutes);
+            cloudHttp.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
             cloudHttp.MaxResponseContentBufferSize = 10_000_000;
             cloudHttp.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36");
             cloudHttp.DefaultRequestHeaders.Add("cookie", cookie);
@@ -192,11 +192,11 @@ namespace Lampac.Controllers.CRON
             if (_t != null)
             {
                 await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                 return File(_t, "application/x-bittorrent");
             }
             else if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");

@@ -45,7 +45,8 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                await File.WriteAllBytesAsync(getFolder(key), torrent);
+                if (AppInit.conf.jac.torrentCacheToMinutes > 0)
+                    await File.WriteAllBytesAsync(getFolder(key), torrent);
             }
             catch { }
         }
@@ -54,7 +55,8 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                await File.WriteAllTextAsync(getFolder($"{key}:magnet"), torrent);
+                if (AppInit.conf.jac.torrentCacheToMinutes > 0)
+                    await File.WriteAllTextAsync(getFolder($"{key}:magnet"), torrent);
             }
             catch { }
         }

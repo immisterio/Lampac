@@ -26,7 +26,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(authKey, out _))
                 return false;
 
-            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
 
             try
             {
@@ -42,10 +42,12 @@ namespace Lampac.Controllers.JAC
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
-                    var postParams = new Dictionary<string, string>();
-                    postParams.Add("login_username", AppInit.conf.Rutracker.login.u);
-                    postParams.Add("login_password", AppInit.conf.Rutracker.login.p);
-                    postParams.Add("login", "Вход");
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "login_username", AppInit.conf.Rutracker.login.u },
+                        { "login_password", AppInit.conf.Rutracker.login.p },
+                        { "login", "Вход" }
+                    };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
@@ -134,7 +136,7 @@ namespace Lampac.Controllers.JAC
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
                     await TorrentCache.Write(keydownload, _t);
-                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                     return File(_t, "application/x-bittorrent");
                 }
             }
@@ -148,14 +150,14 @@ namespace Lampac.Controllers.JAC
                 if (!string.IsNullOrWhiteSpace(magnet))
                 {
                     await TorrentCache.Write(key, magnet);
-                    Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                    Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                     return Redirect(magnet);
                 }
             }
             #endregion
 
             if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)

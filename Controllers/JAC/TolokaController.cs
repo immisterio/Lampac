@@ -26,7 +26,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(authKey, out _))
                 return false;
 
-            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
 
             try
             {
@@ -42,13 +42,15 @@ namespace Lampac.Controllers.JAC
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
-                    var postParams = new Dictionary<string, string>();
-                    postParams.Add("username", AppInit.conf.Toloka.login.u);
-                    postParams.Add("password", AppInit.conf.Toloka.login.p);
-                    postParams.Add("autologin", "on");
-                    postParams.Add("ssl", "on");
-                    postParams.Add("redirect", "index.php?");
-                    postParams.Add("login", "Вхід");
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "username", AppInit.conf.Toloka.login.u },
+                        { "password", AppInit.conf.Toloka.login.p },
+                        { "autologin", "on" },
+                        { "ssl", "on" },
+                        { "redirect", "index.php?" },
+                        { "login", "Вхід" }
+                    };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
@@ -124,11 +126,11 @@ namespace Lampac.Controllers.JAC
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                 return File(_t, "application/x-bittorrent");
             }
             else if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");

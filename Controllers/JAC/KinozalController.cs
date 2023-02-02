@@ -26,7 +26,7 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(authKey, out _))
                 return;
 
-            Startup.memoryCache.Set(authKey, 0, TimeSpan.FromMinutes(2));
+            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
 
             try
             {
@@ -48,10 +48,12 @@ namespace Lampac.Controllers.JAC
                     client.DefaultRequestHeaders.Add("referer", $"{AppInit.conf.Kinozal.host}/");
                     client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
-                    var postParams = new Dictionary<string, string>();
-                    postParams.Add("username", AppInit.conf.Kinozal.login.u);
-                    postParams.Add("password", AppInit.conf.Kinozal.login.p);
-                    postParams.Add("returnto", "");
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "username", AppInit.conf.Kinozal.login.u },
+                        { "password", AppInit.conf.Kinozal.login.p },
+                        { "returnto", "" }
+                    };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
@@ -125,7 +127,7 @@ namespace Lampac.Controllers.JAC
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
                     await TorrentCache.Write(keydownload, _t);
-                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                    Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                     return File(_t, "application/x-bittorrent");
                 }
             }
@@ -140,14 +142,14 @@ namespace Lampac.Controllers.JAC
                 {
                     string magnet = $"magnet:?xt=urn:btih:{torrentHash}";
                     await TorrentCache.Write(keymagnet, magnet);
-                    Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                    Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
                     return Redirect(magnet);
                 }
             }
             #endregion
 
             if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(AppInit.conf.jac.torrentCacheToMinutes));
+                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
