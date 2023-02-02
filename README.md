@@ -98,9 +98,11 @@ https://github.com/bbk14/TermuxDebian/blob/main/README.md
 * emptycache - true
 * multiaccess - true
 
-В Lampac.runtimeconfig.json убрать ограничения
+В Lampac.runtimeconfig.json убрать или увеличить лимит потребления памяти 
+```
 "System.GC.HeapCount": 16,
-"System.GC.HeapHardLimit": 209715200
+"System.GC.HeapHardLimit": 209715200 // ~200mb
+```
 
 # Пример init.conf
 * Список всех параметров, а так же значения по умолчанию смотреть в example.conf 
