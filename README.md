@@ -95,9 +95,12 @@ https://github.com/bbk14/TermuxDebian/blob/main/README.md
 * cachetype - file
 * htmlCacheToMinutes - 20
 * torrentCacheToMinutes - 40
-* fileCacheInactiveDay - html 3, img 1, torrent 5
 * emptycache - true
 * multiaccess - true
+
+В Lampac.runtimeconfig.json убрать ограничения
+"System.GC.HeapCount": 16,
+"System.GC.HeapHardLimit": 209715200
 
 # Пример init.conf
 * Список всех параметров, а так же значения по умолчанию смотреть в example.conf 
