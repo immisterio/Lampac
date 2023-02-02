@@ -32,12 +32,12 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int postid, int t, int s = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int s = -1)
         {
             if (!AppInit.conf.Filmix.enable)
                 return Content(string.Empty);
 
-            postid = postid == 0 ? await search(title ?? original_title, year) : postid;
+            postid = postid == 0 ? await search(title, original_title, clarification, year) : postid;
             if (postid == 0)
                 return Content(string.Empty);
 
@@ -158,28 +158,40 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<int> search(string title, int year)
+        async ValueTask<int> search(string title, string original_title, int clarification, int year)
         {
-            if (string.IsNullOrWhiteSpace(title) || year == 0)
+            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return 0;
 
-            string memKey = $"filmix:search:{title}:{year}";
+            string memKey = $"filmix:search:{title}:{original_title}:{clarification}:{year}";
             if (!memoryCache.TryGetValue(memKey, out JArray root))
             {
-                root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.host}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, useproxy: AppInit.conf.Filmix.useproxy);
+                root = await HttpClient.Get<JArray>($"{AppInit.conf.Filmix.host}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 8, useproxy: AppInit.conf.Filmix.useproxy);
                 if (root == null || root.Count == 0)
                     return 0;
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
+            int reservedid = 0;
             foreach (var item in root)
             {
-                if (item.Value<int>("year") == year && item.Value<string>("title").ToLower() == title.ToLower())
-                    return item.Value<int>("id");
+                if (!string.IsNullOrWhiteSpace(title) && item.Value<string>("title").ToLower() == title.ToLower())
+                {
+                    reservedid = item.Value<int>("id");
+                    if (item.Value<int>("year") == year)
+                        return reservedid;
+                }
+
+                if (!string.IsNullOrWhiteSpace(original_title) && item.Value<string>("original_title")?.ToLower() == original_title.ToLower())
+                {
+                    reservedid = item.Value<int>("id");
+                    if (item.Value<int>("year") == year)
+                        return reservedid;
+                }
             }
 
-            return root.First.Value<int>("id");
+            return reservedid;
         }
         #endregion
     }

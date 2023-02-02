@@ -48,7 +48,7 @@ namespace Lampac.Engine.Middlewares
                 href = Regex.Replace(href, "(\\?|&)account_email=([^&]+)", "", RegexOptions.IgnoreCase);
 
                 if (!href.Contains("image.tmdb.org"))
-                    href = ProxyLink.Decrypt(href);
+                    href = ProxyLink.Decrypt(href, httpContext.Connection.RemoteIpAddress.ToString());
 
                 if (string.IsNullOrWhiteSpace(href))
                 {

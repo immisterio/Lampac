@@ -105,22 +105,25 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
+            int reservedid = 0;
             foreach (var item in root)
             {
                 string name = item.Value<string>("name");
                 string name_original = item.Value<string>("name_original");
                 string y = item.Value<string>("year");
 
-                if (year.ToString() != y)
-                    continue;
-
                 if (title != name && title != name_original)
                     continue;
 
-                return int.Parse(item.Value<string>("id"));
+                reservedid = int.Parse(item.Value<string>("id"));
+
+                if (year.ToString() != y)
+                    continue;
+
+                return reservedid;
             }
 
-            return int.Parse(root.First.Value<string>("id"));
+            return reservedid;
         }
         #endregion
 

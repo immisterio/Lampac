@@ -47,7 +47,7 @@ namespace Lampac.Engine
 
         public string HostImgProxy( int width, int height, string uri)
         {
-            uri = ProxyLink.Encrypt(uri);
+            uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString());
             string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
             if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
                 uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
@@ -59,7 +59,7 @@ namespace Lampac.Engine
         {
             if (streamproxy)
             {
-                uri = ProxyLink.Encrypt(uri);
+                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString());
                 string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
                 if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
                     uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
