@@ -35,6 +35,13 @@ namespace Lampac.Controllers.PLUGINS
                 if (!string.IsNullOrWhiteSpace(AppInit.conf.ffprobe.tsuri))
                     media = Regex.Replace(media, "^https?://[^/]+", AppInit.conf.ffprobe.tsuri, RegexOptions.IgnoreCase);
             }
+            else if (media.Contains("/proxy/") && media.Contains(".mkv"))
+            {
+                string hash = Regex.Match(media, "/([a-z0-9]+\\.mkv)").Groups[1].Value;
+                media = Engine.CORE.ProxyLink.Decrypt(hash, null);
+                if (string.IsNullOrWhiteSpace(media))
+                    return Content(string.Empty);
+            }
             else
             {
                 return Content(string.Empty);

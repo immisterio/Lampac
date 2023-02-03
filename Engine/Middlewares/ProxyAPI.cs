@@ -49,7 +49,7 @@ namespace Lampac.Engine.Middlewares
                 string reqip = httpContext.Connection.RemoteIpAddress.ToString();
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
-                servUri = Regex.Replace(servUri, "(\\?|&)account_email=([^&]+)", "", RegexOptions.IgnoreCase);
+                servUri = Regex.Replace(servUri, "(\\?|&)account_email=([^&]+)?", "", RegexOptions.IgnoreCase);
 
                 if (!servUri.Contains("api.themoviedb.org"))
                     servUri = CORE.ProxyLink.Decrypt(servUri, reqip);

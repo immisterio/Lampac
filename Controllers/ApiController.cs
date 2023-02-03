@@ -350,6 +350,9 @@ namespace Lampac.Controllers
             if (!life && AppInit.conf.jac.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.VoKino.token) && (serial == -1 || serial == 0))
+                online += "{\"name\":\"VoKino\",\"url\":\"{localhost}/vokino\"},";
+
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 online += "{\"name\":\"KinoPub\",\"url\":\"{localhost}/kinopub\"},";
 

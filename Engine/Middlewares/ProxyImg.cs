@@ -45,7 +45,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
-                href = Regex.Replace(href, "(\\?|&)account_email=([^&]+)", "", RegexOptions.IgnoreCase);
+                href = Regex.Replace(href, "(\\?|&)account_email=([^&]+)?", "", RegexOptions.IgnoreCase);
 
                 if (!href.Contains("image.tmdb.org"))
                     href = ProxyLink.Decrypt(href, httpContext.Connection.RemoteIpAddress.ToString());

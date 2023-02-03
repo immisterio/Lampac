@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
                 if (root?.player_links == null)
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
             }
 
             bool firstjson = true;

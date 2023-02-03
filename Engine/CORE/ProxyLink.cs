@@ -23,6 +23,8 @@ namespace Lampac.Engine.CORE
                 hash += ".ts";
             else if (uri.Contains(".mp4"))
                 hash += ".mp4";
+            else if (uri.Contains(".mkv"))
+                hash += ".mkv";
             else if (uri.Contains(".jpg") || uri.Contains(".jpeg") || uri.Contains(".png") || uri.Contains(".webp"))
                 hash += ".jpg";
 
@@ -39,7 +41,7 @@ namespace Lampac.Engine.CORE
 
             if (links.TryGetValue(hash, out (DateTime upd, string reqip, string uri) val))
             {
-                if (reqip == val.reqip)
+                if (reqip == null || reqip == val.reqip)
                     return val.uri;
             }
 
