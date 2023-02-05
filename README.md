@@ -24,7 +24,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. В "Основной источник" выбрать "CUB"
 
 # Источники 
-* Filmix, Kinobase, HDRezka (Voidboost), VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, VideoAPI (ENG), Bazon, Alloha, Seasonvar, KinoPub, VoKino
+* Filmix, Kinobase, Voidboost, VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, VideoAPI (ENG), Bazon, Alloha, Seasonvar, KinoPub, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (UKR), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 

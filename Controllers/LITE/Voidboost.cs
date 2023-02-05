@@ -12,13 +12,13 @@ using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Rezka : BaseController
+    public class Voidboost : BaseController
     {
         [HttpGet]
-        [Route("lite/rezka")]
+        [Route("lite/voidboost")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t)
         {
-            if (!AppInit.conf.Rezka.enable)
+            if (!AppInit.conf.Voidboost.enable)
                 return Content(string.Empty);
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
-                        string link = $"{host}/lite/rezka/movie?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
+                        string link = $"{host}/lite/voidboost/movie?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
                         string voice = m.Groups[2].Value.Trim();
                         if (voice == "-")
                             voice = "Оригинал";
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(activTranslate))
                             activTranslate = m.Groups[1].Value;
 
-                        string link = $"{host}/lite/rezka?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
+                        string link = $"{host}/lite/voidboost?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
 
                         string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == m.Groups[1].Value ? "active" : "");
 
@@ -92,7 +92,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                     {
-                        string link = $"{host}/lite/rezka/serial?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={m.Groups[1].Value}";
+                        string link = $"{host}/lite/voidboost/serial?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={m.Groups[1].Value}";
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + m.Groups[3].Value + "</div></div></div>";
                         firstjson = false;
@@ -109,18 +109,18 @@ namespace Lampac.Controllers.LITE
 
         #region Serial
         [HttpGet]
-        [Route("lite/rezka/serial")]
+        [Route("lite/voidboost/serial")]
         async public Task<ActionResult> Serial(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s)
         {
-            if (!AppInit.conf.Rezka.enable)
+            if (!AppInit.conf.Voidboost.enable)
                 return Content(string.Empty);
 
             #region Кеш запроса
-            string memKey = $"rezka:view:serial:{t}:{s}";
+            string memKey = $"voidboost:view:serial:{t}:{s}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                content = await HttpClient.Get($"{AppInit.conf.Rezka.host}/serial/{t}/iframe?s={s}", timeoutSeconds: 8, useproxy: AppInit.conf.Rezka.useproxy, MaxResponseContentBufferSize: 20_000_000);
+                content = await HttpClient.Get($"{AppInit.conf.Voidboost.host}/serial/{t}/iframe?s={s}", timeoutSeconds: 8, useproxy: AppInit.conf.Voidboost.useproxy, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
                     return Content(string.Empty);
 
@@ -142,7 +142,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(activTranslate))
                         activTranslate = m.Groups[1].Value;
 
-                    string link = $"{host}/lite/rezka?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
+                    string link = $"{host}/lite/voidboost?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={m.Groups[1].Value}";
 
                     string active = string.IsNullOrWhiteSpace(t) ? (firstjson ? "active" : "") : (t == m.Groups[1].Value ? "active" : "");
 
@@ -169,7 +169,7 @@ namespace Lampac.Controllers.LITE
             {
                 if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                 {
-                    string link = $"{host}/lite/rezka/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={m.Groups[1].Value}";
+                    string link = $"{host}/lite/voidboost/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={m.Groups[1].Value}";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[3].Value + "</div></div>";
                     firstjson = false;
@@ -185,11 +185,11 @@ namespace Lampac.Controllers.LITE
 
         #region Movie / Episode
         [HttpGet]
-        [Route("lite/rezka/movie")]
-        [Route("lite/rezka/episode")]
+        [Route("lite/voidboost/movie")]
+        [Route("lite/voidboost/episode")]
         async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e)
         {
-            if (!AppInit.conf.Rezka.enable)
+            if (!AppInit.conf.Voidboost.enable)
                 return Content(string.Empty);
 
             #region Кеш запроса
@@ -197,9 +197,9 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string uri = $"{AppInit.conf.Rezka.host}/movie/{t}/iframe";
+                string uri = $"{AppInit.conf.Voidboost.host}/movie/{t}/iframe";
                 if (s > 0 || e > 0)
-                    uri = $"{AppInit.conf.Rezka.host}/serial/{t}/iframe?s={s}&e={e}";
+                    uri = $"{AppInit.conf.Voidboost.host}/serial/{t}/iframe?s={s}&e={e}";
 
                 content = await HttpClient.Get(uri, timeoutSeconds: 8, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
@@ -219,10 +219,7 @@ namespace Lampac.Controllers.LITE
                 while (m.Success)
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
-                    {
-                        string suburl = m.Groups[2].Value.Replace("https:", "http:");
-                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (HostStreamProxy(AppInit.conf.Rezka.streamproxy, suburl)) + "\"},";
-                    }
+                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (HostStreamProxy(AppInit.conf.Voidboost.streamproxy, m.Groups[2].Value)) + "\"},";
 
                     m = m.NextMatch();
                 }
@@ -292,7 +289,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(link) || !Regex.IsMatch(link, "^[a-z0-9/\\-:\\.\\=]+$", RegexOptions.IgnoreCase))
                     return null;
 
-                return link.Replace("https:", "http:");
+                return link;
             }
             #endregion
 
@@ -306,7 +303,7 @@ namespace Lampac.Controllers.LITE
                 links.Add(new ApiModel()
                 {
                     title = q.Contains("p") ? q : $"{q}p",
-                    stream_url = HostStreamProxy(AppInit.conf.Rezka.streamproxy, link)
+                    stream_url = HostStreamProxy(AppInit.conf.Voidboost.streamproxy, link)
                 });
             }
             #endregion
@@ -320,21 +317,21 @@ namespace Lampac.Controllers.LITE
         #region embed
         async ValueTask<string> embed(string imdb_id, long kinopoisk_id, string t)
         {
-            string memKey = $"rezka:view:{kinopoisk_id}:{imdb_id}:{t}";
+            string memKey = $"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}";
 
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
-                string uri = $"{AppInit.conf.Rezka.host}/embed/";
+                string uri = $"{AppInit.conf.Voidboost.host}/embed/";
                 if (kinopoisk_id > 0 && !string.IsNullOrWhiteSpace(imdb_id))
                     uri += $"{imdb_id},{kinopoisk_id}";
                 else
                     uri += (kinopoisk_id > 0 ? kinopoisk_id.ToString() : imdb_id);
 
                 if (!string.IsNullOrWhiteSpace(t))
-                    uri = $"{AppInit.conf.Rezka.host}/serial/{t}/iframe";
+                    uri = $"{AppInit.conf.Voidboost.host}/serial/{t}/iframe";
 
                 // Получаем html
-                content = await HttpClient.Get(uri, timeoutSeconds: 8, useproxy: AppInit.conf.Rezka.useproxy, MaxResponseContentBufferSize: 20_000_000);
+                content = await HttpClient.Get(uri, timeoutSeconds: 8, useproxy: AppInit.conf.Voidboost.useproxy, MaxResponseContentBufferSize: 20_000_000);
                 if (content == null)
                     return null;
 

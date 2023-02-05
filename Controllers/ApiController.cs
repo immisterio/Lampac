@@ -374,8 +374,8 @@ namespace Lampac.Controllers
             if (AppInit.conf.Zetflix.enable)
                 online += "{\"name\":\"Zetflix\",\"url\":\"{localhost}/zetflix\"},";
 
-            if (AppInit.conf.Rezka.enable)
-                online += "{\"name\":\"HDRezka\",\"url\":\"{localhost}/rezka\"},";
+            if (AppInit.conf.Voidboost.enable)
+                online += "{\"name\":\"Voidboost\",\"url\":\"{localhost}/voidboost\"},";
 
             if (AppInit.conf.VCDN.enable)
                 online += "{\"name\":\"VideoCDN\",\"url\":\"{localhost}/vcdn\"},";

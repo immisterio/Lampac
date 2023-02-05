@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var link in playlists)
                         {
-                            streansquality += $"\"{link.Key}p\":\"" + link.Value.Replace("https:", "http:") + "\",";
+                            streansquality += $"\"{link.Key}p\":\"" + link.Value + "\",";
                         }
 
                         return "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
