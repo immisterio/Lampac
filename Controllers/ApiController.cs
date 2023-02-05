@@ -365,6 +365,9 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
                 online += "{\"name\":\"Alloha\",\"url\":\"{localhost}/alloha\"},";
 
+            if (AppInit.conf.Rezka.enable)
+                online += "{\"name\":\"Rezka\",\"url\":\"{localhost}/rezka\"},";
+
             if (AppInit.conf.VideoDB.enable)
                 online += "{\"name\":\"VideoDB\",\"url\":\"{localhost}/videodb\"},";
 
