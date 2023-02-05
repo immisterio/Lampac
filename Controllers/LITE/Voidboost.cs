@@ -121,7 +121,7 @@ namespace Lampac.Controllers.LITE
             if (!memoryCache.TryGetValue(memKey, out string content))
             {
                 content = await HttpClient.Get($"{AppInit.conf.Voidboost.host}/serial/{t}/iframe?s={s}", timeoutSeconds: 8, useproxy: AppInit.conf.Voidboost.useproxy, MaxResponseContentBufferSize: 20_000_000);
-                if (content == null)
+                if (content == null || !content.Contains("name=\"episode\""))
                     return Content(string.Empty);
 
                 memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
@@ -202,7 +202,7 @@ namespace Lampac.Controllers.LITE
                     uri = $"{AppInit.conf.Voidboost.host}/serial/{t}/iframe?s={s}&e={e}";
 
                 content = await HttpClient.Get(uri, timeoutSeconds: 8, MaxResponseContentBufferSize: 20_000_000);
-                if (content == null)
+                if (content == null || !Regex.IsMatch(content, "'file': ?'([^']+)'"))
                     return Content(string.Empty);
 
                 memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
