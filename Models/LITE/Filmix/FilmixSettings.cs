@@ -13,6 +13,8 @@
 
         public bool enable { get; set; }
 
+        public bool pro { get; set; }
+
         public string token { get; set; }
 
         public bool useproxy { get; set; }

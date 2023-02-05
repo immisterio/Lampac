@@ -359,20 +359,20 @@ namespace Lampac.Controllers
             if (AppInit.conf.Filmix.enable)
                 online += "{\"name\":\"Filmix\",\"url\":\"{localhost}/filmix\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
-                online += "{\"name\":\"Alloha\",\"url\":\"{localhost}/alloha\"},";
-
             if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
                 online += "{\"name\":\"Bazon\",\"url\":\"{localhost}/bazon\"},";
+
+            if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
+                online += "{\"name\":\"Alloha\",\"url\":\"{localhost}/alloha\"},";
 
             if (AppInit.conf.VideoDB.enable)
                 online += "{\"name\":\"VideoDB\",\"url\":\"{localhost}/videodb\"},";
 
-            if (AppInit.conf.Zetflix.enable)
-                online += "{\"name\":\"Zetflix\",\"url\":\"{localhost}/zetflix\"},";
-
             if (AppInit.conf.Kinobase.enable)
                 online += "{\"name\":\"Kinobase\",\"url\":\"{localhost}/kinobase\"},";
+
+            if (AppInit.conf.Zetflix.enable)
+                online += "{\"name\":\"Zetflix\",\"url\":\"{localhost}/zetflix\"},";
 
             if (AppInit.conf.Rezka.enable)
                 online += "{\"name\":\"HDRezka\",\"url\":\"{localhost}/rezka\"},";

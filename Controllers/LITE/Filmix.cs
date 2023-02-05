@@ -24,7 +24,9 @@ namespace Lampac.Controllers.LITE
 
             string html = "1. Откройте <a href='https://filmix.ac/consoles'>https://filmix.ac/consoles</a> <br>";
             html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";
-            html += $"3. В init.conf укажите token <b>{token_request.Value<string>("code")}</b>";
+            html += $"<br><br>В init.conf<br>";
+            html += $"1. Укажите token <b>{token_request.Value<string>("code")}</b>";
+            html += $"2. Измените \"pro\": false, на \"pro\": true,</b>";
 
             return Content(html, "text/html; charset=utf-8");
         }
@@ -71,7 +73,10 @@ namespace Lampac.Controllers.LITE
                         if (!v.link.Contains($"{q},"))
                             continue;
 
-                        if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && q > 720)
+                        if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && q > 480)
+                            continue;
+
+                        if (!AppInit.conf.Filmix.pro && q > 720)
                             continue;
 
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
@@ -133,7 +138,10 @@ namespace Lampac.Controllers.LITE
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
-                            if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && lq > 720)
+                            if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && lq > 480)
+                                continue;
+
+                            if (!AppInit.conf.Filmix.pro && lq > 720)
                                 continue;
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
