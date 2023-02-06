@@ -146,7 +146,7 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{AppInit.conf.Rezka.host}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
                 string data = $"id={id}&translator_id={t}&action=get_episodes";
 
-                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 8);
+                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10);
                 if (root == null || !root.ContainsKey("episodes"))
                     return Content(string.Empty);
 
@@ -250,7 +250,7 @@ namespace Lampac.Controllers.LITE
                     data = $"id={id}&translator_id={t}&season={s}&episode={e}&action=get_stream";
                 }
 
-                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 8);
+                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10);
                 if (root == null || !root.ContainsKey("url"))
                     return Content(string.Empty);
 

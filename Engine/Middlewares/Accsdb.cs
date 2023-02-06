@@ -1,4 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -9,9 +12,12 @@ namespace Lampac.Engine.Middlewares
     public class Accsdb
     {
         private readonly RequestDelegate _next;
-        public Accsdb(RequestDelegate next)
+        IMemoryCache memoryCache;
+
+        public Accsdb(RequestDelegate next, IMemoryCache mem)
         {
             _next = next;
+            memoryCache = mem;
         }
 
         public Task Invoke(HttpContext httpContext)
@@ -32,10 +38,11 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, jacpattern) && 
                     !Regex.IsMatch(httpContext.Request.Path.Value, "^/(lite/(filmixpro|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
+                    bool limitip = false;
                     string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower();
-                    string msg = string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.cubMesage : AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
 
-                    if (string.IsNullOrWhiteSpace(account_email) || AppInit.conf.accsdb.accounts.FirstOrDefault(i => i.ToLower() == account_email) == null)
+                    if (string.IsNullOrWhiteSpace(account_email) || AppInit.conf.accsdb.accounts.FirstOrDefault(i => i.ToLower() == account_email) == null || 
+                        IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
@@ -44,6 +51,10 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
+                        string msg = string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.cubMesage : AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
+                        if (limitip)
+                            msg = $"Превышено допустимое количество ip. Разбан через {60 - DateTime.Now.Minute} мин.";
+
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}");
                     }
@@ -51,6 +62,33 @@ namespace Lampac.Engine.Middlewares
             }
 
             return _next(httpContext);
+        }
+
+
+
+        bool IsLockHostOrUser(string account_email, string userip, out bool islock)
+        {
+            string memKeyLocIP = $"Accsdb:IsLockHostOrUser:{account_email}:{DateTime.Now.Hour}";
+
+            if (memoryCache.TryGetValue(memKeyLocIP, out HashSet<string> ips))
+            {
+                ips.Add(userip);
+                memoryCache.Set(memKeyLocIP, ips, DateTime.Now.AddHours(1));
+
+                if (ips.Count > AppInit.conf.accsdb.maxiptohour)
+                {
+                    islock = true;
+                    return islock;
+                }
+            }
+            else
+            {
+                ips = new HashSet<string>() { userip };
+                memoryCache.Set(memKeyLocIP, ips, DateTime.Now.AddHours(1));
+            }
+
+            islock = false;
+            return islock;
         }
     }
 }

@@ -68,7 +68,7 @@ namespace Lampac
 
         public OnlineConf online = new OnlineConf() { findkp = "alloha", checkOnlineSearch = true };
 
-        public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf" };
+        public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf", maxiptohour = 10 };
 
         public JacConf jac = new JacConf();
 
