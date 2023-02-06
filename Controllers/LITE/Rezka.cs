@@ -146,11 +146,16 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{AppInit.conf.Rezka.host}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
                 string data = $"id={id}&translator_id={t}&action=get_episodes";
 
-                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10);
+                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10, addHeaders: new List<(string name, string val)>
+                {
+                    ("X-App-Hdrezka-App", "1"),
+                    ("Cookie", AppInit.conf.Rezka.сookie)
+                });
+
                 if (root == null || !root.ContainsKey("episodes"))
                     return Content(string.Empty);
 
-                string episodes = root.Value<object>("episodes") as string;
+                string episodes = root.Value<object>("episodes")?.ToString();
                 if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
                     return Content(string.Empty);
 
@@ -226,7 +231,7 @@ namespace Lampac.Controllers.LITE
         #region Episode
         [HttpGet]
         [Route("lite/rezka/episode")]
-        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director, int s = -1, int e = -1)
+        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1)
         {
             if (!AppInit.conf.Rezka.enable)
                 return Content(string.Empty);
@@ -241,20 +246,23 @@ namespace Lampac.Controllers.LITE
 
                 if (s == -1)
                 {
-                    data = $"id={id}&translator_id={t}&action=get_movie";
-                    if (director == 1)
-                        data += "&is_director=1";
+                    data = $"id={id}&translator_id={t}&is_camrip=0&is_ads=0&is_director={director}&action=get_movie";
                 }
                 else
                 {
                     data = $"id={id}&translator_id={t}&season={s}&episode={e}&action=get_stream";
                 }
 
-                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10);
+                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10, addHeaders: new List<(string name, string val)> 
+                { 
+                    ("X-App-Hdrezka-App", "1"),
+                    ("Cookie", AppInit.conf.Rezka.сookie)
+                });
+                
                 if (root == null || !root.ContainsKey("url"))
                     return Content(string.Empty);
 
-                string url = root.Value<object>("url") as string;
+                string url = root.Value<object>("url")?.ToString();
                 if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
                     return Content(string.Empty);
 
@@ -265,7 +273,7 @@ namespace Lampac.Controllers.LITE
             #region subtitle
             string subtitles = string.Empty;
 
-            string subtitlehtml = root.Value<object>("subtitle") as string;
+            string subtitlehtml = root.Value<object>("subtitle")?.ToString();
             if (!string.IsNullOrWhiteSpace(subtitlehtml))
             {
                 var m = Regex.Match(subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");

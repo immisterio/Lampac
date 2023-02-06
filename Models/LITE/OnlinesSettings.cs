@@ -20,6 +20,8 @@
 
         public string token { get; set; }
 
+        public string сookie { get; set; }
+
         public bool useproxy { get; set; }
 
         public bool streamproxy { get; set; }

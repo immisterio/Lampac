@@ -128,7 +128,7 @@ namespace Lampac
 
         public OnlinesSettings Kinobase = new OnlinesSettings("https://kinobase.org");
 
-        public OnlinesSettings Rezka = new OnlinesSettings("https://rezka.ag");
+        public OnlinesSettings Rezka = new OnlinesSettings("https://hdrezkarfv.org");
 
         public OnlinesSettings Voidboost = new OnlinesSettings("https://voidboost.net");
 
