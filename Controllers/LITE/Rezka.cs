@@ -150,6 +150,10 @@ namespace Lampac.Controllers.LITE
                 if (root == null || !root.ContainsKey("episodes"))
                     return Content(string.Empty);
 
+                string episodes = root.Value<object>("episodes") as string;
+                if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
+                    return Content(string.Empty);
+
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
             #endregion
@@ -250,6 +254,10 @@ namespace Lampac.Controllers.LITE
                 if (root == null || !root.ContainsKey("url"))
                     return Content(string.Empty);
 
+                string url = root.Value<object>("url") as string;
+                if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
+                    return Content(string.Empty);
+
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
             #endregion
@@ -257,14 +265,14 @@ namespace Lampac.Controllers.LITE
             #region subtitle
             string subtitles = string.Empty;
 
-            string subtitlehtml = root.Value<string>("subtitle");
+            string subtitlehtml = root.Value<object>("subtitle") as string;
             if (!string.IsNullOrWhiteSpace(subtitlehtml))
             {
                 var m = Regex.Match(subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");
                 while (m.Success)
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
-                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + (HostStreamProxy(AppInit.conf.Rezka.streamproxy, m.Groups[2].Value)) + "\"},";
+                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + HostStreamProxy(AppInit.conf.Rezka.streamproxy, m.Groups[2].Value) + "\"},";
 
                     m = m.NextMatch();
                 }

@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                     return Content(string.Empty);
 
                 results = root.GetValue("results");
-                memoryCache.Set(memKey, results, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, results, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
             bool firstjson = true;
