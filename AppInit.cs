@@ -11,13 +11,14 @@ using Lampac.Models.DLNA;
 using Lampac.Models.AppConf;
 using System;
 using System.Text.RegularExpressions;
+using Lampac.Models.Merchant;
 
 namespace Lampac
 {
     public class AppInit
     {
         #region AppInit
-        static (AppInit, DateTime) cacheconf = default;
+        public static(AppInit, DateTime) cacheconf = default;
 
         public static AppInit conf
         {
@@ -37,6 +38,23 @@ namespace Lampac
 
                     cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(init);
                     cacheconf.Item2 = lastWriteTime;
+
+                    if (File.Exists("merchant/users.txt"))
+                    {
+                        long utc = DateTime.UtcNow.ToFileTimeUtc();
+                        foreach (string line in File.ReadLines("merchant/users.txt"))
+                        {
+                            if (string.IsNullOrWhiteSpace(line) && !line.Contains("@"))
+                                continue;
+
+                            var data = line.Split(',');
+                            if (data.Length > 1)
+                            {
+                                if (long.TryParse(data[1], out long ex) && ex > utc)
+                                    cacheconf.Item1.accsdb.accounts.Add(data[0].Trim().ToLower());
+                            }
+                        }
+                    }
                 }
 
                 return cacheconf.Item1;
@@ -69,6 +87,8 @@ namespace Lampac
         public OnlineConf online = new OnlineConf() { findkp = "alloha", checkOnlineSearch = true };
 
         public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf", maxiptohour = 10 };
+
+        public MerchantsModel Merchant = new MerchantsModel();
 
         public JacConf jac = new JacConf();
 

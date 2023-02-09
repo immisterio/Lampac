@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using Lampac.Engine.CRON;
 using Lampac.Engine.CORE;
+using Lampac.Controllers.LITE;
 
 namespace Lampac
 {
@@ -20,6 +21,7 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
+            ThreadPool.QueueUserWorkItem(async _ => await Litecoin.ChekTransactions());
 
             CreateHostBuilder(args).Build().Run();
         }
