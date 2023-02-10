@@ -119,8 +119,8 @@ namespace Lampac.Controllers.LITE
                 res.cid = item.Value<int>("cid");
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");
-                res.content = await HttpClient.Get(res.path, timeoutSeconds: 8);
 
+                res.content = await HttpClient.Get(res.path, referer: "https://kinoplayer.online/", timeoutSeconds: 8);
                 if (res.content == null)
                     return (null, null, 0, null);
 

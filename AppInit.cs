@@ -90,6 +90,8 @@ namespace Lampac
 
         public MerchantsModel Merchant = new MerchantsModel();
 
+        public HashSet<Known> KnownProxies { get; set; }
+
         public JacConf jac = new JacConf();
 
 

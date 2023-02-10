@@ -12,6 +12,8 @@
         }
 
 
+        public string displayname { get; set; }
+
         public string host { get; set; }
 
         public string apihost { get; set; }

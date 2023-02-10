@@ -9,6 +9,8 @@
         }
 
 
+        public string displayname { get; set; }
+
         public string host { get; set; }
 
         public bool enable { get; set; }

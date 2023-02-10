@@ -10,6 +10,8 @@
         }
 
 
+        public string displayname { get; set; }
+
         public string apihost { get; set; }
 
         public string token { get; set; }

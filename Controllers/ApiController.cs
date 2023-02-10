@@ -347,110 +347,112 @@ namespace Lampac.Controllers
             string online = string.Empty;
             bool isanime = original_language == "ja";
 
-            if (!life && AppInit.conf.jac.litejac)
+            var conf = AppInit.conf;
+
+            if (!life && conf.jac.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.VoKino.token) && (serial == -1 || serial == 0))
-                online += "{\"name\":\"VoKino\",\"url\":\"{localhost}/vokino\"},";
+            if (!string.IsNullOrWhiteSpace(conf.VoKino.token) && (serial == -1 || serial == 0))
+                online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
-                online += "{\"name\":\"KinoPub\",\"url\":\"{localhost}/kinopub\"},";
+            if (!string.IsNullOrWhiteSpace(conf.KinoPub.token))
+                online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";
 
-            if (AppInit.conf.Filmix.enable)
-                online += "{\"name\":\"Filmix\",\"url\":\"{localhost}/filmix\"},";
+            if (conf.Filmix.enable)
+                online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
-                online += "{\"name\":\"Bazon\",\"url\":\"{localhost}/bazon\"},";
+            if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
+                online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
-                online += "{\"name\":\"Alloha\",\"url\":\"{localhost}/alloha\"},";
+            if (!string.IsNullOrWhiteSpace(conf.Alloha.token))
+                online += "{\"name\":\"" + (conf.Alloha.displayname ?? "Alloha") + "\",\"url\":\"{localhost}/alloha\"},";
 
-            if (AppInit.conf.Rezka.enable)
-                online += "{\"name\":\"Rezka\",\"url\":\"{localhost}/rezka\"},";
+            if (conf.Rezka.enable)
+                online += "{\"name\":\"" + (conf.Rezka.displayname ?? "Rezka") + "\",\"url\":\"{localhost}/rezka\"},";
 
-            if (AppInit.conf.VideoDB.enable)
-                online += "{\"name\":\"VideoDB\",\"url\":\"{localhost}/videodb\"},";
+            if (conf.VideoDB.enable)
+                online += "{\"name\":\"" + (conf.VideoDB.displayname ?? "VideoDB") + "\",\"url\":\"{localhost}/videodb\"},";
 
-            if (AppInit.conf.Kinobase.enable)
-                online += "{\"name\":\"Kinobase\",\"url\":\"{localhost}/kinobase\"},";
+            if (conf.Kinobase.enable)
+                online += "{\"name\":\"" + (conf.Kinobase.displayname ?? "Kinobase") + "\",\"url\":\"{localhost}/kinobase\"},";
 
-            if (AppInit.conf.Zetflix.enable)
-                online += "{\"name\":\"Zetflix\",\"url\":\"{localhost}/zetflix\"},";
+            if (conf.Zetflix.enable)
+                online += "{\"name\":\"" + (conf.Zetflix.displayname ?? "Zetflix") + "\",\"url\":\"{localhost}/zetflix\"},";
 
-            if (AppInit.conf.Voidboost.enable)
-                online += "{\"name\":\"Voidboost\",\"url\":\"{localhost}/voidboost\"},";
+            if (conf.Voidboost.enable)
+                online += "{\"name\":\"" + (conf.Voidboost.displayname ?? "Voidboost") + "\",\"url\":\"{localhost}/voidboost\"},";
 
-            if (AppInit.conf.VCDN.enable)
-                online += "{\"name\":\"VideoCDN\",\"url\":\"{localhost}/vcdn\"},";
+            if (conf.VCDN.enable)
+                online += "{\"name\":\"" + (conf.VCDN.displayname ?? "VideoCDN") + "\",\"url\":\"{localhost}/vcdn\"},";
 
-            if (AppInit.conf.Ashdi.enable)
-                online += "{\"name\":\"Ashdi (UKR)\",\"url\":\"{localhost}/ashdi\"},";
+            if (conf.Ashdi.enable)
+                online += "{\"name\":\"" + (conf.Ashdi.displayname ?? "Ashdi (UKR)") + "\",\"url\":\"{localhost}/ashdi\"},";
 
-            if (AppInit.conf.Eneyida.enable)
-                online += "{\"name\":\"Eneyida (UKR)\",\"url\":\"{localhost}/eneyida\"},";
+            if (conf.Eneyida.enable)
+                online += "{\"name\":\"" + (conf.Eneyida.displayname ?? "Eneyida (UKR)") + "\",\"url\":\"{localhost}/eneyida\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
-                online += "{\"name\":\"Kodik\",\"url\":\"{localhost}/kodik\"},";
+            if (!string.IsNullOrWhiteSpace(conf.Kodik.token))
+                online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token) && (serial == -1 || serial == 1))
-                online += "{\"name\":\"Seasonvar\",\"url\":\"{localhost}/seasonvar\"},";
+            if (!string.IsNullOrWhiteSpace(conf.Seasonvar.token) && (serial == -1 || serial == 1))
+                online += "{\"name\":\"" + (conf.Seasonvar.displayname ?? "Seasonvar") + "\",\"url\":\"{localhost}/seasonvar\"},";
 
-            if (AppInit.conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
-                online += "{\"name\":\"LostfilmHD\",\"url\":\"{localhost}/lostfilmhd\"},";
+            if (conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
+                online += "{\"name\":\"" + (conf.Lostfilmhd.displayname ?? "LostfilmHD") + "\",\"url\":\"{localhost}/lostfilmhd\"},";
 
-            if (AppInit.conf.Collaps.enable)
-                online += "{\"name\":\"Collaps\",\"url\":\"{localhost}/collaps\"},";
+            if (conf.Collaps.enable)
+                online += "{\"name\":\"" + (conf.Collaps.displayname ?? "Collaps") + "\",\"url\":\"{localhost}/collaps\"},";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
-                online += "{\"name\":\"HDVB\",\"url\":\"{localhost}/hdvb\"},";
+            if (!string.IsNullOrWhiteSpace(conf.HDVB.token))
+                online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
 
-            if (AppInit.conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
-                online += "{\"name\":\"CDNmovies\",\"url\":\"{localhost}/cdnmovies\"},";
+            if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
+                online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
 
             if (serial == -1 || isanime)
             {
-                if (AppInit.conf.AnilibriaOnline.enable)
-                    online += "{\"name\":\"Anilibria\",\"url\":\"{localhost}/anilibria\"},";
+                if (conf.AnilibriaOnline.enable)
+                    online += "{\"name\":\"" + (conf.AnilibriaOnline.displayname ?? "Anilibria") + "\",\"url\":\"{localhost}/anilibria\"},";
 
-                if (AppInit.conf.Animevost.enable)
-                    online += "{\"name\":\"Animevost\",\"url\":\"{localhost}/animevost\"},";
+                if (conf.Animevost.enable)
+                    online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
 
-                if (AppInit.conf.Animebesst.enable)
-                    online += "{\"name\":\"Animebesst\",\"url\":\"{localhost}/animebesst\"},";
+                if (conf.Animebesst.enable)
+                    online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
 
-                if (AppInit.conf.AnimeGo.enable)
-                    online += "{\"name\":\"AnimeGo\",\"url\":\"{localhost}/animego\"},";
+                if (conf.AnimeGo.enable)
+                    online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
 
-                if (AppInit.conf.AniMedia.enable)
-                    online += "{\"name\":\"AniMedia\",\"url\":\"{localhost}/animedia\"},";
+                if (conf.AniMedia.enable)
+                    online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
             }
 
-            if (AppInit.conf.Kinotochka.enable)
-                online += "{\"name\":\"Kinotochka\",\"url\":\"{localhost}/kinotochka\"},";
+            if (conf.Kinotochka.enable)
+                online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";
 
             if (serial == -1 || serial == 0 || (serial == 1 && !isanime))
             {
-                if (AppInit.conf.Kinokrad.enable)
-                    online += "{\"name\":\"Kinokrad\",\"url\":\"{localhost}/kinokrad\"},";
+                if (conf.Kinokrad.enable)
+                    online += "{\"name\":\"" + (conf.Kinokrad.displayname ?? "Kinokrad") + "\",\"url\":\"{localhost}/kinokrad\"},";
 
-                if (AppInit.conf.Kinoprofi.enable)
-                    online += "{\"name\":\"Kinoprofi\",\"url\":\"{localhost}/kinoprofi\"},";
+                if (conf.Kinoprofi.enable)
+                    online += "{\"name\":\"" + (conf.Kinoprofi.displayname ?? "Kinoprofi") + "\",\"url\":\"{localhost}/kinoprofi\"},";
 
-                if (AppInit.conf.Redheadsound.enable && (serial == -1 || serial == 0))
-                    online += "{\"name\":\"Redheadsound\",\"url\":\"{localhost}/redheadsound\"},";
+                if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
+                    online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
 
-                if (!string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token) && (serial == -1 || serial == 0))
-                    online += "{\"name\":\"VideoAPI (ENG)\",\"url\":\"{localhost}/videoapi\"},";
+                if (!string.IsNullOrWhiteSpace(conf.VideoAPI.token) && (serial == -1 || serial == 0))
+                    online += "{\"name\":\"" + (conf.VideoAPI.displayname ?? "VideoAPI (ENG)") + "\",\"url\":\"{localhost}/videoapi\"},";
             }
 
-            if (AppInit.conf.IframeVideo.enable && (serial == -1 || serial == 0))
-                online += "{\"name\":\"IframeVideo\",\"url\":\"{localhost}/iframevideo\"},";
+            if (conf.IframeVideo.enable && (serial == -1 || serial == 0))
+                online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
 
             #region checkOnlineSearch
-            if (AppInit.conf.online.checkOnlineSearch && id > 0)
+            if (conf.online.checkOnlineSearch && id > 0)
             {
                 string memkey = $"ApiController:checkOnlineSearch:{id}";
-                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !AppInit.conf.multiaccess)
+                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
                 {
                     memoryCache.Set(memkey, string.Empty, DateTime.Now.AddSeconds(15));
 

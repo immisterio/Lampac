@@ -13,6 +13,7 @@ using Lampac.Engine.Middlewares;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using System.Net;
 
 namespace Lampac
 {
@@ -60,11 +61,22 @@ namespace Lampac
             ApplicationServices = app.ApplicationServices;
             app.UseDeveloperExceptionPage();
 
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            #region UseForwardedHeaders
+            var forwarded = new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-            });
+            };
 
+            if (AppInit.conf.KnownProxies != null && AppInit.conf.KnownProxies.Count > 0)
+            {
+                foreach (var k in AppInit.conf.KnownProxies)
+                    forwarded.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(k.ip), k.prefixLength));
+            }
+
+            app.UseForwardedHeaders(forwarded);
+            #endregion
+
+            #region Update KinoPub device
             if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
             {
                 try
@@ -81,7 +93,8 @@ namespace Lampac
                     }
                 }
                 catch { }
-            }    
+            }
+            #endregion
 
             //AppInit.conf.Toloka.login = new Models.JAC.LoginSettings() { u = "user", p = "passwd" };
             //System.IO.File.WriteAllText("example.conf", Newtonsoft.Json.JsonConvert.SerializeObject(AppInit.conf, Newtonsoft.Json.Formatting.Indented));
