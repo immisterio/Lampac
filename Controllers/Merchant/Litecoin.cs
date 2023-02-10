@@ -116,7 +116,8 @@ namespace Lampac.Controllers.LITE
                             string email = System.IO.File.ReadAllText($"merchant/invoice/litecoin/{trans.address}.ltc");
                             System.IO.File.WriteAllText($"merchant/invoice/litecoin/{trans.txid}.txid", $"{email}\n{trans.address}");
 
-                            int addday = (int)((trans.amount * kurs) / (AppInit.conf.Merchant.accessCost / 366));
+                            double cost = (double)AppInit.conf.Merchant.accessCost / (double)366;
+                            int addday = (int)((trans.amount * kurs) / cost);
 
                             await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email},{DateTime.UtcNow.AddDays(addday).ToFileTimeUtc()},litecoin\n");
 
