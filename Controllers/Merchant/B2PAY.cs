@@ -6,6 +6,9 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Http;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -55,12 +58,25 @@ namespace Lampac.Controllers.LITE
 
         [HttpPost]
         [Route("b2pay/callback")]
-        async public Task<ActionResult> Callback(string orderNumber)
+        async public Task<ActionResult> Callback()
         {
-            if (!AppInit.conf.Merchant.B2PAY.enable || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
+            if (!AppInit.conf.Merchant.B2PAY.enable)
                 return StatusCode(403);
 
-            await System.IO.File.AppendAllTextAsync("merchant/log/b2pay.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
+            string orderNumber = string.Empty;
+            if (HttpContext.Request.Method == HttpMethods.Post && HttpContext.Request.ContentLength > 0)
+            {
+                var buffer = new byte[Convert.ToInt32(HttpContext.Request.ContentLength)];
+                await HttpContext.Request.Body.ReadAsync(buffer, 0, buffer.Length);
+               
+                var requestContent = Encoding.UTF8.GetString(buffer);
+                await System.IO.File.AppendAllTextAsync("merchant/log/b2pay.txt", requestContent + "\n\n\n");
+
+                orderNumber = Regex.Match(requestContent, "\"orderNumber\":\"([^\"]+)\"").Groups[1].Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(orderNumber) || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
+                return StatusCode(403);
 
             var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
             await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},b2pay\n");

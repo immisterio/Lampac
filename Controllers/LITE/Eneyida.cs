@@ -17,29 +17,49 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/eneyida")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int t = -1, int s = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int t = -1, int s = -1, string href = null)
         {
             if (!AppInit.conf.Eneyida.enable)
                 return Content(string.Empty);
 
-            string content = await embed(original_title, year);
-            if (content == null)
-                return Content(string.Empty);
+            if (original_language != "en")
+                clarification = 1;
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
-            if (!content.Contains("file:'[{"))
+            #region embed
+            var result = await embed(clarification == 1 ? title : original_title, year, href);
+            if (result.content == null)
+            {
+                if (string.IsNullOrWhiteSpace(href) && result.similar != null && result.similar.Count > 0)
+                {
+                    foreach (var similar in result.similar)
+                    {
+                        string link = $"{host}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+
+                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>";
+                        firstjson = false;
+                    }
+
+                    return Content(html + "</div>", "text/html; charset=utf-8");
+                }
+
+                return Content(string.Empty);
+            }
+            #endregion
+
+            if (!result.content.Contains("file:'[{"))
             {
                 #region Фильм
-                string hls = Regex.Match(content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
+                string hls = Regex.Match(result.content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                     return Content(string.Empty);
 
                 #region subtitle
                 string subtitles = string.Empty;
 
-                string subtitle = new Regex("\"subtitle\":\"([^\"]+)\"").Match(content).Groups[1].Value;
+                string subtitle = new Regex("\"subtitle\":\"([^\"]+)\"").Match(result.content).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(subtitle))
                 {
                     var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
@@ -67,7 +87,7 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 try
                 {
-                    var root = JsonConvert.DeserializeObject<List<Voice>>(new Regex("file:'([^\n\r]+)',").Match(content).Groups[1].Value);
+                    var root = JsonConvert.DeserializeObject<List<Voice>>(new Regex("file:'([^\n\r]+)',").Match(result.content).Groups[1].Value);
 
                     if (s == -1)
                     {
@@ -79,7 +99,7 @@ namespace Lampac.Controllers.LITE
                                     continue;
 
                                 string numberseason = Regex.Match(season.title, "([0-9]+)$").Groups[1].Value;
-                                string link = $"{host}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&s={numberseason}";
+                                string link = $"{host}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(href)}&s={numberseason}";
 
                                 html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>";
                                 firstjson = false;
@@ -97,7 +117,7 @@ namespace Lampac.Controllers.LITE
                             if (t == -1)
                                 t = i;
 
-                            string link = $"{host}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&s={s}&t={i}";
+                            string link = $"{host}/lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(href)}&s={s}&t={i}";
 
                             html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + root[i].title + "</div>";
                         }
@@ -146,69 +166,80 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async ValueTask<string> embed(string original_title, int year)
+        async ValueTask<(string content, List<(string title, string href)> similar)> embed(string original_title, int year, string href)
         {
-            if (string.IsNullOrWhiteSpace(original_title) || year == 0)
-                return null;
+            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
+                return (null, null);
 
-            string memKey = $"eneyida:view:{original_title}:{year}";
+            string memKey = $"eneyida:view:{original_title}:{year}:{href}";
 
-            if (!memoryCache.TryGetValue(memKey, out string content))
+            if (!memoryCache.TryGetValue(memKey, out (string content, List<(string title, string href)> similar) result))
             {
                 System.Net.WebProxy proxy = null;
                 if (AppInit.conf.Eneyida.useproxy)
                     proxy = HttpClient.webProxy();
 
-                string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}", timeoutSeconds: 8, proxy: proxy);
-                if (search == null)
-                    return null;
-
-                string link = null, reservedlink = null;
-                foreach (string row in search.Split("<article ").Skip(1))
-                {
-                    if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
-                        continue;
-
-                    var g = Regex.Match(row, "class=\"short_subtitle\"><a [^>]+>([0-9]{4})</a> &bull; ([^<]+)</div>").Groups;
-
-                    if (g[2].Value.ToLower().Trim() == original_title.ToLower())
-                    {
-                        reservedlink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                        if (string.IsNullOrWhiteSpace(reservedlink))
-                            continue;
-
-                        if (g[1].Value == year.ToString())
-                        {
-                            link = reservedlink;
-                            break;
-                        }
-                    }
-                }
+                string link = href, reservedlink = null;
 
                 if (string.IsNullOrWhiteSpace(link))
                 {
-                    if (string.IsNullOrWhiteSpace(reservedlink))
-                        return null;
+                    string search = await HttpClient.Post($"{AppInit.conf.Eneyida.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}", timeoutSeconds: 8, proxy: proxy);
+                    if (search == null)
+                        return (null, null);
 
-                    link = reservedlink;
+                    foreach (string row in search.Split("<article ").Skip(1))
+                    {
+                        if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
+                            continue;
+
+                        string newslink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                        if (string.IsNullOrWhiteSpace(newslink))
+                            continue;
+
+                        var g = Regex.Match(row, "class=\"short_subtitle\"><a [^>]+>([0-9]{4})</a> &bull; ([^<]+)</div>").Groups;
+
+                        string name = g[2].Value.ToLower().Trim();
+                        if (result.similar == null)
+                            result.similar = new List<(string title, string href)>();
+
+                        result.similar.Add(($"{name} {g[1].Value}", newslink));
+
+                        if (name == original_title.ToLower())
+                        {
+                            if (g[1].Value == year.ToString())
+                            {
+                                reservedlink = newslink;
+                                link = reservedlink;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(link))
+                    {
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            return (null, result.similar);
+
+                        link = reservedlink;
+                    }
                 }
 
                 string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (news == null)
-                    return null;
+                    return (null, null);
 
                 string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(iframeUri))
-                    return null;
+                    return (null, null);
 
-                content = await HttpClient.Get(iframeUri, timeoutSeconds: 8, proxy: proxy);
-                if (content == null || !content.Contains("file:"))
-                    return null;
+                result.content = await HttpClient.Get(iframeUri, timeoutSeconds: 8, proxy: proxy);
+                if (result.content == null || !result.content.Contains("file:"))
+                    return (null, null);
 
-                memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, result, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
-            return content;
+            return result;
         }
         #endregion
     }

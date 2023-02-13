@@ -39,10 +39,11 @@ namespace Lampac.Engine.Middlewares
                     !Regex.IsMatch(httpContext.Request.Path.Value, "^/(((b2pay|cryptocloud|freekassa|litecoin)/)|lite/(filmixpro|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
+                    HashSet<string> ips = null;
                     string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower();
 
                     if (string.IsNullOrWhiteSpace(account_email) || AppInit.conf.accsdb.accounts.FirstOrDefault(i => i.ToLower() == account_email) == null || 
-                        IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip))
+                        IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip, out ips))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
@@ -53,7 +54,7 @@ namespace Lampac.Engine.Middlewares
 
                         string msg = string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.cubMesage : AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
                         if (limitip)
-                            msg = $"Превышено допустимое количество ip. Разбан через {60 - DateTime.Now.Minute} мин.";
+                            msg = $"Превышено допустимое количество ip. Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}";
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}");
@@ -66,11 +67,11 @@ namespace Lampac.Engine.Middlewares
 
 
 
-        bool IsLockHostOrUser(string account_email, string userip, out bool islock)
+        bool IsLockHostOrUser(string account_email, string userip, out bool islock, out HashSet<string> ips)
         {
             string memKeyLocIP = $"Accsdb:IsLockHostOrUser:{account_email}:{DateTime.Now.Hour}";
 
-            if (memoryCache.TryGetValue(memKeyLocIP, out HashSet<string> ips))
+            if (memoryCache.TryGetValue(memKeyLocIP, out ips))
             {
                 ips.Add(userip);
                 memoryCache.Set(memKeyLocIP, ips, DateTime.Now.AddHours(1));

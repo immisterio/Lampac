@@ -16,10 +16,13 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/seasonvar")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, int seasonid, string t, int s = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, string original_language, int seasonid, string t, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
                 return Content(string.Empty);
+
+            if (original_language != "en")
+                clarification = 1;
 
             seasonid = seasonid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), year) : seasonid;
             if (seasonid == 0)

@@ -132,7 +132,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 string link = $"{host}/lite/kinobase?title={HttpUtility.UrlEncode(title)}&year={year}&s={i}";
 
-                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.comment + "</div></div></div>";
+                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + (season.comment ?? season.title) + "</div></div></div>";
                                 firstjson = false;
                             }
                             else
@@ -140,18 +140,18 @@ namespace Lampac.Controllers.LITE
                                 if (season.file == null)
                                     continue;
 
-                                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + Regex.Match(season.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(season.file) + "\",\"title\":\"" + title + "\", \"subtitles\": [" + getSubtitle(season.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + season.comment + "</div></div>";
+                                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + Regex.Match(season.comment ?? season.title, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(season.file) + "\",\"title\":\"" + title + "\", \"subtitles\": [" + getSubtitle(season.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (season.comment ?? season.title) + "</div></div>";
                                 firstjson = false;
                             }
                         }
                     }
                     else
                     {
-                        string nameseason = Regex.Match(root[s].comment, "^([0-9]+)").Groups[1].Value;
+                        string nameseason = Regex.Match(root[s].comment ?? root[s].title, "^([0-9]+)").Groups[1].Value;
 
                         foreach (var episode in root[s].playlist)
                         {
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(episode.file) + "\",\"title\":\"" + $"{title} ({episode.comment})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.comment + "</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment ?? episode.title, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + getStreamLink(episode.file) + "\",\"title\":\"" + $"{title} ({episode.comment ?? episode.title})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (episode.comment ?? episode.title) + "</div></div>";
                             firstjson = false;
                         }
                     }

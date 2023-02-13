@@ -18,17 +18,37 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int s = -1, string href = null)
         {
             if (!AppInit.conf.Rezka.enable)
                 return Content(string.Empty);
 
-            var result = await embed(title, original_title, clarification, year);
-            if (result.content == null)
-                return Content(string.Empty);
+            if (original_language != "en")
+                clarification = 1;
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
+
+            #region embed
+            var result = await embed(title, original_title, clarification, year, href);
+            if (result.content == null)
+            {
+                if (string.IsNullOrWhiteSpace(href) && result.similar != null && result.similar.Count > 0)
+                {
+                    foreach (var similar in result.similar)
+                    {
+                        string link = $"{host}/lite/rezka?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+
+                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>";
+                        firstjson = false;
+                    }
+
+                    return Content(html + "</div>", "text/html; charset=utf-8");
+                }
+
+                return Content(string.Empty);
+            }
+            #endregion
 
             if (!result.content.Contains("data-season_id="))
             {
@@ -82,7 +102,7 @@ namespace Lampac.Controllers.LITE
                     while (match.Success)
                     {
                         string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                        string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&id={result.id}&t={match.Groups[1].Value}";
+                        string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(href)}&id={result.id}&t={match.Groups[1].Value}";
 
                         html += "<div class=\"videos__button selector " + (match.Groups[1].Value == trs ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>";
 
@@ -101,7 +121,7 @@ namespace Lampac.Controllers.LITE
                         #region Сезоны
                         if (!string.IsNullOrEmpty(m.Groups[2].Value) && !html.Contains($"{m.Groups[2].Value} сезон"))
                         {
-                            string link = $"{host}/lite/rezka?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&t={trs}&s={m.Groups[2].Value}";
+                            string link = $"{host}/lite/rezka?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(href)}&t={trs}&s={m.Groups[2].Value}";
 
                             html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{m.Groups[2].Value} сезон" + "</div></div></div>";
                             firstjson = false;
@@ -133,7 +153,7 @@ namespace Lampac.Controllers.LITE
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(string title, string original_title, int clarification, int year, long id, int t, int s = -1)
+        async public Task<ActionResult> Serial(string title, string original_title, int clarification, int year, string href, long id, int t, int s = -1)
         {
             if (!AppInit.conf.Rezka.enable)
                 return Content(string.Empty);
@@ -168,7 +188,7 @@ namespace Lampac.Controllers.LITE
 
             #region Перевод
             {
-                var result = await embed(title, original_title, clarification, year);
+                var result = await embed(title, original_title, clarification, year, href);
                 if (result.content != null)
                 {
                     if (result.content.Contains("data-translator_id="))
@@ -177,7 +197,7 @@ namespace Lampac.Controllers.LITE
                         while (match.Success)
                         {
                             string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                            string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&id={id}&t={match.Groups[1].Value}";
+                            string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(href)}&id={id}&t={match.Groups[1].Value}";
 
                             html += "<div class=\"videos__button selector " + (match.Groups[1].Value == t.ToString() ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>";
 
@@ -196,7 +216,7 @@ namespace Lampac.Controllers.LITE
                 var match = new Regex("data-tab_id=\"([0-9]+)\">([^<]+)</li>").Match(root.Value<string>("seasons"));
                 while (match.Success)
                 {
-                    string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&id={id}&t={t}&s={match.Groups[1].Value}";
+                    string link = $"{host}/lite/rezka/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(href)}&id={id}&t={t}&s={match.Groups[1].Value}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{match.Groups[1].Value} сезон" + "</div></div></div>";
                     firstjson = false;
@@ -375,54 +395,64 @@ namespace Lampac.Controllers.LITE
 
 
         #region embed
-        async ValueTask<(string content, string id)> embed(string title, string original_title, int clarification, int year)
+        async ValueTask<(string content, string id, List<(string title, string href)> similar)> embed(string title, string original_title, int clarification, int year, string href)
         {
-            if (string.IsNullOrWhiteSpace(title) || year == 0)
-                return (null, null);
+            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
+                return (null, null, null);
 
-            string memKey = $"rezka:view:{title}:{year}";
+            string memKey = $"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}";
 
-            if (!memoryCache.TryGetValue(memKey, out (string content, string id) result))
+            if (!memoryCache.TryGetValue(memKey, out (string content, string id, List<(string title, string href)> similar) result))
             {
                 System.Net.WebProxy proxy = null;
                 if (AppInit.conf.Rezka.useproxy)
                     proxy = HttpClient.webProxy();
 
-                string search = await HttpClient.Get($"{AppInit.conf.Rezka.host}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}", timeoutSeconds: 8, proxy: proxy);
-                if (search == null)
-                    return (null, null);
-
-                string link = null, reservedlink = null;
-                foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
-                {
-                    var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
-
-                    string name = g[2].Value.ToLower().Trim();
-                    if ((name.Contains(" / ") && name.Contains(title.ToLower())) || name == title.ToLower())
-                    {
-                        reservedlink = g[1].Value;
-                        if (string.IsNullOrWhiteSpace(reservedlink))
-                            continue;
-
-                        if (g[3].Value == year.ToString())
-                        {
-                            link = reservedlink;
-                            break;
-                        }
-                    }
-                }
+                string link = href, reservedlink = null;
 
                 if (string.IsNullOrWhiteSpace(link))
                 {
-                    if (string.IsNullOrWhiteSpace(reservedlink))
-                        return (null, null);
-                    link = reservedlink;
+                    string search = await HttpClient.Get($"{AppInit.conf.Rezka.host}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}", timeoutSeconds: 8, proxy: proxy);
+                    if (search == null)
+                        return (null, null, null);
+
+                    foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
+                    {
+                        var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
+
+                        if (string.IsNullOrWhiteSpace(g[1].Value))
+                            continue;
+
+                        string name = g[2].Value.ToLower().Trim();
+                        if (result.similar == null)
+                            result.similar = new List<(string title, string href)>();
+
+                        result.similar.Add(($"{name} {g[3].Value}", g[1].Value));
+
+                        if ((name.Contains(" / ") && name.Contains(title.ToLower())) || name == title.ToLower())
+                        {
+                            if (g[3].Value == year.ToString())
+                            {
+                                reservedlink = g[1].Value;
+                                link = reservedlink;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(link))
+                    {
+                        if (string.IsNullOrWhiteSpace(reservedlink))
+                            return (null, null, result.similar);
+
+                        link = reservedlink;
+                    }
                 }
 
                 result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
                 result.content = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (result.content == null || string.IsNullOrWhiteSpace(result.id))
-                    return (null, null);
+                    return (null, null, null);
 
                 memoryCache.Set(memKey, result, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
