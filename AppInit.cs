@@ -12,6 +12,7 @@ using Lampac.Models.AppConf;
 using System;
 using System.Text.RegularExpressions;
 using Lampac.Models.Merchant;
+using Lampac.Models.Module;
 
 namespace Lampac
 {
@@ -62,6 +63,23 @@ namespace Lampac
         }
 
         public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{httpContext.Request.Host.Value}";
+        #endregion
+
+        #region Modules
+        static List<RootModule> _modules;
+
+        public static List<RootModule> modules
+        {
+            get
+            {
+                if (!File.Exists("module/manifest.json"))
+                    return null;
+
+                _modules = JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json"));
+
+                return _modules;
+            }
+        }
         #endregion
 
 

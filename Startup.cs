@@ -14,6 +14,7 @@ using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Net;
+using System.Reflection;
 
 namespace Lampac
 {
@@ -46,10 +47,20 @@ namespace Lampac
                 options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/vnd.apple.mpegurl", "image/svg+xml" });
             });
 
-            services.AddControllersWithViews().AddJsonOptions(options => {
+            #region mvcBuilder
+            IMvcBuilder mvcBuilder = services.AddControllersWithViews();
+
+            if (AppInit.modules != null)
+            {
+                foreach (var mod in AppInit.modules)
+                    mvcBuilder.AddApplicationPart(Assembly.LoadFile($"{Environment.CurrentDirectory}/module/{mod.dll}"));
+            }
+
+            mvcBuilder.AddJsonOptions(options => {
                 //options.JsonSerializerOptions.IgnoreNullValues = true;
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
             });
+            #endregion
         }
         #endregion
 

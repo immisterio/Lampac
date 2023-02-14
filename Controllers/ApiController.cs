@@ -349,6 +349,15 @@ namespace Lampac.Controllers
 
             var conf = AppInit.conf;
 
+            if (AppInit.modules != null)
+            {
+                foreach (var mod in AppInit.modules)
+                {
+                    if (serial == -1 || isanime && mod.@event.anime || serial == 1 && mod.@event.serial || serial == 0 && mod.@event.movie)
+                        online += "{\"name\":\"" + mod.@event.name + "\",\"url\":\"" + mod.@event.url + "\"},";
+                }
+            }
+
             if (!life && conf.jac.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 

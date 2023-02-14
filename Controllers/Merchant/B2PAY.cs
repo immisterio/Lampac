@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.accsdb.accounts.Contains(invoice["custom_field"].ToLower()))
                 AppInit.cacheconf.Item2 = default;
 
-            return StatusCode(200);
+            return Content("YES");
         }
     }
 }
