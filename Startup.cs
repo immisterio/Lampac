@@ -15,6 +15,7 @@ using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Net;
 using System.Reflection;
+using System.IO;
 
 namespace Lampac
 {
@@ -53,7 +54,10 @@ namespace Lampac
             if (AppInit.modules != null)
             {
                 foreach (var mod in AppInit.modules)
-                    mvcBuilder.AddApplicationPart(Assembly.LoadFile($"{Environment.CurrentDirectory}/module/{mod.dll}"));
+                {
+                    string path = File.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
+                    mvcBuilder.AddApplicationPart(Assembly.LoadFile(path));
+                }
             }
 
             mvcBuilder.AddJsonOptions(options => {
