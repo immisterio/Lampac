@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.Filmix
+﻿namespace Lampac.Models.LITE
 {
     public class FilmixSettings
     {

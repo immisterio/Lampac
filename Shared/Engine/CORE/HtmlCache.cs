@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Shared;
 using System;
 using System.IO;
 using System.Threading.Tasks;

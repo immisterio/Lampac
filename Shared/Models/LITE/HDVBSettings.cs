@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.HDVB
+﻿namespace Lampac.Models.LITE
 {
     public class HDVBSettings
     {

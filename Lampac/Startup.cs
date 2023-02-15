@@ -26,8 +26,6 @@ namespace Lampac
 
         public static IMemoryCache memoryCache { get; private set; }
 
-        public static IServiceProvider ApplicationServices { get; private set; }
-
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -72,8 +70,8 @@ namespace Lampac
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory)
         {
             memoryCache = memory;
+            Shared.Startup.Configure(app, memory);
 
-            ApplicationServices = app.ApplicationServices;
             app.UseDeveloperExceptionPage();
 
             #region UseForwardedHeaders
