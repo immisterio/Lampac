@@ -44,7 +44,7 @@ namespace Lampac.Controllers.LITE
                         if (voice == "-")
                             voice = "Оригинал";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
                         firstjson = false;
                     }
 
@@ -171,7 +171,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string link = $"{host}/lite/voidboost/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={s}&e={m.Groups[1].Value}";
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[3].Value + "</div></div>";
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[3].Value + "</div></div>";
                     firstjson = false;
                 }
 
@@ -187,7 +187,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/voidboost/movie")]
         [Route("lite/voidboost/episode")]
-        async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e)
+        async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e, bool play)
         {
             if (!AppInit.conf.Voidboost.enable)
                 return Content(string.Empty);
@@ -231,6 +231,9 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in links)
                 streansquality += $"\"{l.title}\":\"" + l.stream_url + "\",";
+
+            if (play)
+                return Redirect(links[0].stream_url);
 
             return Content("{\"method\":\"play\",\"url\":\"" + links[0].stream_url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}, \"subtitles\": [" + Regex.Replace(subtitles, ",$", "") + "]}", "application/json; charset=utf-8");
         }

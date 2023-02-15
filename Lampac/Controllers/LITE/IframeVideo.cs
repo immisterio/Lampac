@@ -33,7 +33,9 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrWhiteSpace(match.Groups[1].Value))
                 {
                     string link = $"{host}/lite/iframevideo/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&type={frame.type}&cid={frame.cid}&token={match.Groups[1].Value}";
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + match.Groups[2].Value + "</div></div>";
+                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + match.Groups[2].Value + "</div></div>";
                     firstjson = false;
                 }
                 match = match.NextMatch();
@@ -51,16 +53,20 @@ namespace Lampac.Controllers.LITE
 
                 string voice = string.IsNullOrWhiteSpace(_v) ? "По умолчанию" : _v;
                 string link = $"{host}/lite/iframevideo/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&type={frame.type}&cid={frame.cid}&token={token}";
-                html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
+                string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+
+                html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
             }
 
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
+
         #region Video
         [HttpGet]
         [Route("lite/iframevideo/video")]
-        async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title)
+        [Route("lite/iframevideo/video.m3u8")]
+        async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
             if (!AppInit.conf.IframeVideo.enable)
                 return Content(string.Empty);
@@ -89,10 +95,12 @@ namespace Lampac.Controllers.LITE
             }
 
             string url = HostStreamProxy(AppInit.conf.IframeVideo.streamproxy, urim3u8);
+            if (play)
+                return Redirect(url);
+
             return Content("{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
-
 
         #region iframe
         async ValueTask<(string content, string type, int cid, string path)> iframe(string imdb_id, long kinopoisk_id)

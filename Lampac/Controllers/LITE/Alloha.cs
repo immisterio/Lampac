@@ -38,7 +38,9 @@ namespace Lampac.Controllers.LITE
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
                     string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={translation.Key}";
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\", \"voice_name\":\"" + translation.Value["quality"].ToString() + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + translation.Value["name"].ToString() + "</div></div>";
+                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"voice_name\":\"" + translation.Value["quality"].ToString() + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + translation.Value["name"].ToString() + "</div></div>";
                     firstjson = false;
                 }
                 #endregion
@@ -86,8 +88,9 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={s}&e={episode.Key}";
+                        string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                         firstjson = false;
                     }
                 }
@@ -97,10 +100,12 @@ namespace Lampac.Controllers.LITE
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
+
         #region Video
         [HttpGet]
         [Route("lite/alloha/video")]
-        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e)
+        [Route("lite/alloha/video.m3u8")]
+        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
                 return Content(string.Empty);
@@ -147,10 +152,12 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, _cache, TimeSpan.FromMinutes(10));
             }
 
+            if (play)
+                return Redirect(_cache.m3u8);
+
             return Content("{\"method\":\"play\",\"url\":\"" + _cache.m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
         }
         #endregion
-
 
         #region search
         async ValueTask<JToken> search(string imdb_id, long kinopoisk_id)

@@ -43,8 +43,9 @@ namespace Lampac.Controllers.LITE
                     string voice = data.Value<JObject>("translation").Value<string>("title");
 
                     string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}";
+                    string streamlink = $"{url.Replace("/video", "/video.m3u8")}&play=true";
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({voice})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({voice})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
                     firstjson = false;
                 }
                 #endregion
@@ -89,8 +90,9 @@ namespace Lampac.Controllers.LITE
                     foreach (var episode in results.First(i => i.Value<string>("id") == kid).Value<JObject>("seasons").ToObject<Dictionary<string, Season>>()[s.ToString()].episodes)
                     {
                         string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
+                        string streamlink = $"{url.Replace("/video", "/video.m3u8")}&play=true";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                         firstjson = false;
                     }
                 }
@@ -103,10 +105,14 @@ namespace Lampac.Controllers.LITE
         #region Video - API
         [HttpGet]
         [Route("lite/kodik/video")]
-        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, string account_email)
+        [Route("lite/kodik/video.m3u8")]
+        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, string account_email, bool play)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.secret_token))
-                return LocalRedirect($"/lite/kodik/videoparse?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&account_email={HttpUtility.UrlEncode(account_email)}");
+            {
+                string uri = play ? "videoparse.m3u8" : "videoparse";
+                return LocalRedirect($"/lite/kodik/{uri}?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&account_email={HttpUtility.UrlEncode(account_email)}&play={play}");
+            }
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
             if (AppInit.conf.Kodik.localip)
@@ -142,11 +148,17 @@ namespace Lampac.Controllers.LITE
 
             string streansquality = string.Empty;
             foreach (var l in streams)
-                streansquality += $"\"{l.q}\":\"" + l.url + "\",";
+            {
+                string hls = HostStreamProxy(AppInit.conf.Kodik.streamproxy, l.url);
+                streansquality += $"\"{l.q}\":\"" + hls + "\",";
+            }
 
             string name = title ?? original_title;
             if (episode > 0)
                 name += $" ({episode} серия)";
+
+            if (play)
+                return Redirect(streams[0].url);
 
             return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }
@@ -155,7 +167,8 @@ namespace Lampac.Controllers.LITE
         #region Video - Parse
         [HttpGet]
         [Route("lite/kodik/videoparse")]
-        async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode)
+        [Route("lite/kodik/videoparse.m3u8")]
+        async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             string memKey = $"kodik:view:VideoParse:{link}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
@@ -214,6 +227,9 @@ namespace Lampac.Controllers.LITE
             string name = title ?? original_title;
             if (episode > 0)
                 name += $" ({episode} серия)";
+
+            if (play)
+                return Redirect(streams[0].url);
 
             return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }

@@ -353,8 +353,11 @@ namespace Lampac.Controllers
             {
                 foreach (var mod in AppInit.modules)
                 {
-                    if (serial == -1 || isanime && mod.@event.anime || serial == 1 && mod.@event.serial || serial == 0 && mod.@event.movie)
-                        online += "{\"name\":\"" + mod.@event.name + "\",\"url\":\"" + mod.@event.url + "\"},";
+                    if (mod.@event.enable)
+                    {
+                        if (serial == -1 || isanime && mod.@event.anime || serial == 1 && mod.@event.serial || serial == 0 && mod.@event.movie)
+                            online += "{\"name\":\"" + mod.@event.name + "\",\"url\":\"" + mod.@event.url + "\"},";
+                    }
                 }
             }
 

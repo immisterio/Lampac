@@ -49,8 +49,9 @@ namespace Lampac.Controllers.LITE
                     foreach (var episode in jb.ToObject<Dictionary<string, Dictionary<string, object>>>())
                     {
                         string link = $"{host}/lite/lostfilmhd/video?title={HttpUtility.UrlEncode(title)}&iframe={HttpUtility.UrlEncode(content.iframe_src)}&s={s}&e={episode.Key}&v={episode.Value.First().Key.Split('#')[0]}";
+                        string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
                         firstjson = false;
                     }
                 }
@@ -63,10 +64,12 @@ namespace Lampac.Controllers.LITE
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
+
         #region Video
         [HttpGet]
         [Route("lite/lostfilmhd/video")]
-        async public Task<ActionResult> Video(string iframe, int s, int e, int v, string title, string original_title)
+        [Route("lite/lostfilmhd/video.m3u8")]
+        async public Task<ActionResult> Video(string iframe, int s, int e, int v, string title, string original_title, bool play)
         {
             if (!AppInit.conf.Lostfilmhd.enable)
                 return Content(string.Empty);
@@ -85,10 +88,12 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
+            if (play)
+                return Redirect(HostStreamProxy(true, urim3u8));
+
             return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(true, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
-
 
         #region embed
         async ValueTask<(Dictionary<string, object> seasons, string iframe_src)> embed(string title, int year)

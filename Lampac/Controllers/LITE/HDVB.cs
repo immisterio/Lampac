@@ -35,7 +35,9 @@ namespace Lampac.Controllers.LITE
                 foreach (var m in data)
                 {
                     string link = $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={HttpUtility.UrlEncode(m.Value<string>("iframe_url"))}";
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Value<string>("translator") + "</div></div>";
+                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Value<string>("translator") + "</div></div>";
                     firstjson = false;
                 }
                 #endregion
@@ -85,8 +87,9 @@ namespace Lampac.Controllers.LITE
                     foreach (int episode in data[t].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s).Value<JArray>("episodes").ToObject<List<int>>())
                     {
                         string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={s}&e={episode}";
+                        string streamlink = $"{link.Replace("/serial", "/serial.m3u8")}&play=true";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
                         firstjson = false;
                     }
                 }
@@ -96,10 +99,12 @@ namespace Lampac.Controllers.LITE
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
+
         #region Video
         [HttpGet]
         [Route("lite/hdvb/video")]
-        async public Task<ActionResult> Video(string iframe, string title, string original_title)
+        [Route("lite/hdvb/video.m3u8")]
+        async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 return Content(string.Empty);
@@ -142,6 +147,9 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
+            if (play)
+                return Redirect(urim3u8);
+
             return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
@@ -149,7 +157,8 @@ namespace Lampac.Controllers.LITE
         #region Serial
         [HttpGet]
         [Route("lite/hdvb/serial")]
-        async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title)
+        [Route("lite/hdvb/serial.m3u8")]
+        async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
                 return Content(string.Empty);
@@ -206,10 +215,12 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
+            if (play)
+                return Redirect(urim3u8);
+
             return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
-
 
         #region search
         async ValueTask<JArray> search(long kinopoisk_id)

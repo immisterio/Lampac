@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
                             if (match.Groups[2].Value.Contains("data-director=\"1\""))
                                 link += "&director=1";
 
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
                             firstjson = false;
                         }
 
@@ -134,8 +134,8 @@ namespace Lampac.Controllers.LITE
                         if (m.Groups[2].Value == s.ToString() && !html.Contains(m.Groups[4].Value))
                         {
                             string link = $"{host}/lite/rezka/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&id={result.id}&t={trs}&s={s}&e={m.Groups[3].Value}";
-
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[3].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[4].Value + "</div></div>";
+                            
+                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[3].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[4].Value + "</div></div>";
                             firstjson = false;
                         }
                         #endregion
@@ -235,7 +235,7 @@ namespace Lampac.Controllers.LITE
                     {
                         string link = $"{host}/lite/rezka/episode?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&id={id}&t={t}&s={s}&e={m.Groups[1].Value}";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[2].Value + "</div></div>";
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[2].Value + "</div></div>";
                         firstjson = false;
                     }
 
@@ -251,7 +251,7 @@ namespace Lampac.Controllers.LITE
         #region Episode
         [HttpGet]
         [Route("lite/rezka/episode")]
-        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1)
+        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, bool play = false)
         {
             if (!AppInit.conf.Rezka.enable)
                 return Content(string.Empty);
@@ -308,6 +308,9 @@ namespace Lampac.Controllers.LITE
             #endregion
 
             var links = getStreamLink(root.Value<string>("url"), isfilm: true);
+
+            if (play)
+                return Redirect(links[0].stream_url);
 
             string streansquality = string.Empty;
             foreach (var l in links)
