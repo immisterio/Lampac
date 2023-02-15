@@ -11,6 +11,7 @@ using System;
 using System.Text.RegularExpressions;
 using Lampac.Models.Merchant;
 using Lampac.Models.Module;
+using System.Reflection;
 
 namespace Lampac
 {
@@ -73,7 +74,20 @@ namespace Lampac
                 if (!File.Exists("module/manifest.json"))
                     return null;
 
-                _modules = JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json"));
+                _modules = new List<RootModule>();
+
+                foreach (var mod in JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json")))
+                {
+                    if (!mod.enable)
+                        continue;
+
+                    string path = File.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
+                    if (File.Exists(path))
+                    {
+                        mod.assembly = Assembly.LoadFile(path);
+                        _modules.Add(mod);
+                    }
+                }
 
                 return _modules;
             }
@@ -184,7 +198,7 @@ namespace Lampac
 
         public OnlinesSettings Kinoprofi = new OnlinesSettings("https://kinoprofi.vip", apihost: "https://api.kinoprofi.vip");
 
-        public OnlinesSettings Lostfilmhd = new OnlinesSettings("http://www.lostfilmhd.ru");
+        public OnlinesSettings Lostfilmhd = new OnlinesSettings("http://www.disneylove.ru");
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 

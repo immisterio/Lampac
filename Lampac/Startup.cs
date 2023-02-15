@@ -52,10 +52,7 @@ namespace Lampac
             if (AppInit.modules != null)
             {
                 foreach (var mod in AppInit.modules)
-                {
-                    string path = File.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
-                    mvcBuilder.AddApplicationPart(Assembly.LoadFile(path));
-                }
+                    mvcBuilder.AddApplicationPart(mod.assembly);
             }
 
             mvcBuilder.AddJsonOptions(options => {

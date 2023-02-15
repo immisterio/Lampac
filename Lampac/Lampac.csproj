@@ -21,11 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\Jackett\Jackett.csproj" />
+    <ProjectReference Include="..\Merchant\Merchant.csproj" />
+    <ProjectReference Include="..\Online\Online.csproj" />
     <ProjectReference Include="..\Shared\Shared.csproj" />
+    <ProjectReference Include="..\SISI\SISI.csproj" />
   </ItemGroup>
 
 </Project>

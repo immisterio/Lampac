@@ -5,7 +5,15 @@ VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lampac", "Lampac\Lampac.csproj", "{6EC456A8-9B61-4F88-992B-972BE6E66C96}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{7A19617E-61AF-4741-B901-CB24D1565CA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared", "Shared\Shared.csproj", "{7A19617E-61AF-4741-B901-CB24D1565CA4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Online", "Online\Online.csproj", "{DD693EB2-48C4-49D0-BFEE-B25B534CE6B4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jackett", "Jackett\Jackett.csproj", "{83FBB32F-D92A-4074-A039-B7E0B53C4E4F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SISI", "SISI\SISI.csproj", "{DF3D53D6-647F-42A3-9764-BE9B4ACA3235}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Merchant", "Merchant\Merchant.csproj", "{0C2B4AF5-F6CA-4465-8D53-BB8B245DE4A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +29,22 @@ Global
 		{7A19617E-61AF-4741-B901-CB24D1565CA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A19617E-61AF-4741-B901-CB24D1565CA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A19617E-61AF-4741-B901-CB24D1565CA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD693EB2-48C4-49D0-BFEE-B25B534CE6B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD693EB2-48C4-49D0-BFEE-B25B534CE6B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD693EB2-48C4-49D0-BFEE-B25B534CE6B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD693EB2-48C4-49D0-BFEE-B25B534CE6B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83FBB32F-D92A-4074-A039-B7E0B53C4E4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83FBB32F-D92A-4074-A039-B7E0B53C4E4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83FBB32F-D92A-4074-A039-B7E0B53C4E4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83FBB32F-D92A-4074-A039-B7E0B53C4E4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF3D53D6-647F-42A3-9764-BE9B4ACA3235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF3D53D6-647F-42A3-9764-BE9B4ACA3235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF3D53D6-647F-42A3-9764-BE9B4ACA3235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF3D53D6-647F-42A3-9764-BE9B4ACA3235}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C2B4AF5-F6CA-4465-8D53-BB8B245DE4A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C2B4AF5-F6CA-4465-8D53-BB8B245DE4A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C2B4AF5-F6CA-4465-8D53-BB8B245DE4A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C2B4AF5-F6CA-4465-8D53-BB8B245DE4A6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
