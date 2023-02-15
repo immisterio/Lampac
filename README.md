@@ -101,8 +101,8 @@ https://github.com/bbk14/TermuxDebian/blob/main/README.md
 
 В Lampac.runtimeconfig.json убрать или увеличить лимит потребления памяти 
 ```
-"System.GC.HeapCount": 16,
-"System.GC.HeapHardLimit": 209715200 // ~200mb
+"System.GC.HeapCount": 30,
+"System.GC.HeapHardLimit": 309715200, // ~300mb
 ```
 
 # Пример init.conf
