@@ -9,12 +9,20 @@ using System;
 using System.Text.RegularExpressions;
 using Lampac.Models.Merchant.LtcWallet;
 using Shared;
+using System.Threading;
 
 namespace Lampac.Controllers.LITE
 {
     public class Litecoin : BaseController
     {
         #region Litecoin
+        static Litecoin()
+        {
+            ThreadPool.QueueUserWorkItem(async _ => await ChekTransactions());
+        }
+        #endregion
+
+        #region LtcKurs
         async static ValueTask<double> LtcKurs()
         {
             if (!Startup.memoryCache.TryGetValue("Litecoin:kurs:ltc", out double kurs))
@@ -81,7 +89,8 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async public static Task ChekTransactions()
+        #region ChekTransactions
+        async static Task ChekTransactions()
         {
             while (true)
             {
@@ -131,5 +140,6 @@ namespace Lampac.Controllers.LITE
                 catch { }
             }
         }
+        #endregion
     }
 }

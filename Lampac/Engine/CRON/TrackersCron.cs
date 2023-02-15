@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CRON
@@ -12,8 +13,13 @@ namespace Lampac.Engine.CRON
         {
             while (true)
             {
+                await Task.Delay(TimeSpan.FromHours(2));
+
                 try
                 {
+                    if (AppInit.modules == null || AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) == null)
+                        continue;
+
                     if (AppInit.conf.dlna.enable && AppInit.conf.dlna.autoupdatetrackers)
                     {
                         HashSet<string> trackers = new HashSet<string>();
@@ -59,8 +65,6 @@ namespace Lampac.Engine.CRON
                     }
                 }
                 catch { }
-
-                await Task.Delay(TimeSpan.FromHours(2));
             }
         }
     }
