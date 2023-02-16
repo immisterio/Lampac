@@ -168,12 +168,15 @@ namespace Lampac.Controllers
 
             if (AppInit.modules != null)
             {
-                foreach (var mod in AppInit.modules)
+                foreach (var item in AppInit.modules)
                 {
-                    if (mod.online.enable)
+                    foreach (var mod in item.online)
                     {
-                        if (serial == -1 || isanime && mod.online.anime || serial == 1 && mod.online.serial || serial == 0 && mod.online.movie)
-                            online += "{\"name\":\"" + mod.online.name + "\",\"url\":\"" + mod.online.url + "\"},";
+                        if (mod.enable)
+                        {
+                            if (serial == -1 || isanime && mod.anime || serial == 1 && mod.serial || serial == 0 && mod.movie)
+                                online += "{\"name\":\"" + mod.name + "\",\"url\":\"" + mod.url + "\"},";
+                        }
                     }
                 }
             }

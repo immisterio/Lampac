@@ -279,30 +279,35 @@ namespace Jackett
             }
             #endregion
 
-            #region Парсим торренты
+            #region modpars
             void modpars(List<Task> tasks, string cat)
             {
                 if (AppInit.modules != null && AppInit.modules.Count > 0)
                 {
-                    foreach (var mod in AppInit.modules)
+                    foreach (var item in AppInit.modules)
                     {
-                        if (mod.jac.enable)
+                        foreach (var mod in item.jac)
                         {
-                            try
+                            if (mod.enable)
                             {
-                                if (mod.assembly.GetType(mod.jac.@namespace) is Type t && t.GetMethod("parsePage") is MethodInfo m)
+                                try
                                 {
-                                    var task = (Task)m.Invoke(null, new object[] { host, torrents, search, cat });
-                                    if (task != null)
-                                        tasks.Add(task);
+                                    if (item.assembly.GetType(mod.@namespace) is Type t && t.GetMethod("parsePage") is MethodInfo m)
+                                    {
+                                        var task = (Task)m.Invoke(null, new object[] { host, torrents, search, cat });
+                                        if (task != null)
+                                            tasks.Add(task);
+                                    }
                                 }
+                                catch { }
                             }
-                            catch { }
                         }
                     }
                 }
             }
+            #endregion
 
+            #region Парсим торренты
             if (is_serial == 1)
             {
                 #region Фильм

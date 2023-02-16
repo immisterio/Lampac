@@ -15,17 +15,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MonoTorrent" Version="2.0.6" />
     <PackageReference Include="NetVips" Version="2.2.0" />
     <PackageReference Include="NetVips.Native" Version="8.13.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Jackett\Jackett.csproj" />
-    <ProjectReference Include="..\Merchant\Merchant.csproj" />
-    <ProjectReference Include="..\Online\Online.csproj" />
     <ProjectReference Include="..\Shared\Shared.csproj" />
-    <ProjectReference Include="..\SISI\SISI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.HeapCount" Value="30" />
+    <RuntimeHostConfigurationOption Include="System.GC.HeapHardLimit" Value="309715200" />
   </ItemGroup>
 
 </Project>

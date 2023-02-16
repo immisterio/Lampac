@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Reflection;
 
 namespace Lampac.Models.Module
 {
@@ -8,12 +9,14 @@ namespace Lampac.Models.Module
 
         public string dll { get; set; }
 
+        public string initspace { get; set; }
+
         public Assembly assembly { get; set; }
 
-        public OnlineMod online { get; set; } = new OnlineMod();
+        public List<OnlineMod> online { get; set; } = new List<OnlineMod>();
 
-        public SisiMod sisi { get; set; } = new SisiMod();
+        public List<SisiMod> sisi { get; set; } = new List<SisiMod>();
 
-        public JacMod jac { get; set; } = new JacMod();
+        public List<JacMod> jac { get; set; } = new List<JacMod>();
     }
 }

@@ -82,15 +82,18 @@ namespace SISI
 
             if (AppInit.modules != null)
             {
-                foreach (var mod in AppInit.modules)
+                foreach (var item in AppInit.modules)
                 {
-                    if (mod.sisi.enable)
+                    foreach (var mod in item.sisi)
                     {
-                        channels.Add(new
+                        if (mod.enable)
                         {
-                            title = mod.sisi.name,
-                            playlist_url = mod.sisi.url.Replace("{localhost}", host)
-                        });
+                            channels.Add(new
+                            {
+                                title = mod.name,
+                                playlist_url = mod.url.Replace("{localhost}", host)
+                            });
+                        }
                     }
                 }
             }

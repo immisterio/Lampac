@@ -17,8 +17,8 @@ namespace Lampac
 {
     public class AppInit
     {
-        #region AppInit
-        public static(AppInit, DateTime) cacheconf = default;
+        #region conf
+        public static (AppInit, DateTime) cacheconf = default;
 
         public static AppInit conf
         {
@@ -64,17 +64,14 @@ namespace Lampac
         public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{httpContext.Request.Host.Value}";
         #endregion
 
-        #region Modules
-        static List<RootModule> _modules;
+        #region AppInit
+        public static List<RootModule> modules;
 
-        public static List<RootModule> modules
+        static AppInit()
         {
-            get
+            if (File.Exists("module/manifest.json"))
             {
-                if (!File.Exists("module/manifest.json"))
-                    return null;
-
-                _modules = new List<RootModule>();
+                modules = new List<RootModule>();
 
                 foreach (var mod in JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json")))
                 {
@@ -85,11 +82,17 @@ namespace Lampac
                     if (File.Exists(path))
                     {
                         mod.assembly = Assembly.LoadFile(path);
-                        _modules.Add(mod);
+
+                        try
+                        {
+                            if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
+                                m.Invoke(null, new object[] { });
+                        }
+                        catch { }
+
+                        modules.Add(mod);
                     }
                 }
-
-                return _modules;
             }
         }
         #endregion

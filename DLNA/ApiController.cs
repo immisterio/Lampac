@@ -380,7 +380,7 @@ namespace Lampac.Controllers
                 #region trackers
                 string trackers = string.Empty;
 
-                foreach (string line in IO.File.ReadLines("trackers.txt"))
+                foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
                 {
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
@@ -456,7 +456,7 @@ namespace Lampac.Controllers
                     manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, "dlna/") : await torrentEngine.AddAsync(tlink, "dlna/");
 
                     #region AddTrackerAsync
-                    foreach (string line in IO.File.ReadLines("trackers.txt"))
+                    foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
                     {
                         if (string.IsNullOrWhiteSpace(line))
                             continue;
