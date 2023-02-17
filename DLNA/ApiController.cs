@@ -175,15 +175,18 @@ namespace Lampac.Controllers
         #region Plugin
         [HttpGet]
         [Route("dlna.js")]
-        public ActionResult Plugin()
+        async public Task<ActionResult> Plugin()
         {
             if (!AppInit.conf.dlna.enable)
                 return Content(string.Empty);
 
-            string file = IO.File.ReadAllText("plugins/dlna.js");
-            file = file.Replace("{localhost}", host);
+            if (!memoryCache.TryGetValue("ApiController:dlna.js", out string file))
+            {
+                file = await IO.File.ReadAllTextAsync("plugins/dlna.js");
+                memoryCache.Set("ApiController:dlna.js", file, DateTime.Now.AddMinutes(5));
+            }
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

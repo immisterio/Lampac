@@ -76,15 +76,18 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("tracks.js")]
-        public ActionResult Tracks()
+        async public Task<ActionResult> Tracks()
         {
             if (!AppInit.conf.ffprobe.enable)
                 return Content(string.Empty);
 
-            string file = System.IO.File.ReadAllText("plugins/tracks.js");
-            file = file.Replace("{localhost}", host);
+            if (!memoryCache.TryGetValue("ApiController:tracks.js", out string file))
+            {
+                file = await System.IO.File.ReadAllTextAsync("plugins/tracks.js");
+                memoryCache.Set("ApiController:tracks.js", file, DateTime.Now.AddMinutes(5));
+            }
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
     }
 }

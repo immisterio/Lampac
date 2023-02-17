@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DLNA", "DLNA\DLNA.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tracks", "Tracks\Tracks.csproj", "{E0036073-200D-4E60-8F6A-9C428E49442E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JacRed", "JacRed\JacRed.csproj", "{DB36397B-76E7-44EF-9F2E-21DDCBF6A836}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JacRed", "JacRed\JacRed.csproj", "{DB36397B-76E7-44EF-9F2E-21DDCBF6A836}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
