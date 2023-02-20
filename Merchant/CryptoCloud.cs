@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
                 ["shop_id"] = AppInit.conf.Merchant.CryptoCloud.SHOPID,
                 //["currency"] = "USD",
                 //["order_id"] = CrypTo.md5(DateTime.Now.ToBinary().ToString()),
-                ["email"] = email
+                ["email"] = email.ToLower().Trim()
             };
 
             var root = await HttpClient.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), addHeaders: new List<(string name, string val)>()
@@ -65,11 +65,15 @@ namespace Lampac.Controllers.LITE
             if (root == null || root.Value<string>("status") != "success" || root.Value<string>("status_invoice") != "paid")
                 return StatusCode(403);
 
-            var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/cryptocloud/{invoice_id}"));
-            await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["email"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},cryptocloud\n");
+            string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");
 
-            if (!AppInit.conf.accsdb.accounts.Contains(invoice["email"].ToLower())) 
-                AppInit.cacheconf.Item2 = default;
+            if (!users.Contains($",cryptocloud,{invoice_id}"))
+            {
+                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/cryptocloud/{invoice_id}"));
+                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["email"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
+
+                AppInit.conf.accsdb.accounts.Add(invoice["email"]);
+            }
 
             return StatusCode(200);
         }

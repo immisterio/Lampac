@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
                 ["order_number"] = CrypTo.md5(DateTime.Now.ToBinary().ToString()),
                 ["type_payment"] = "merchant",
                 ["usr"] = "new",
-                ["custom_field"] = email,
+                ["custom_field"] = email.ToLower().Trim(),
                 ["callback_url"] = CrypTo.Base64($"{AppInit.Host(HttpContext)}/b2pay/callback"),
                 ["success_url"] = CrypTo.Base64($"{AppInit.Host(HttpContext)}/buy/success.html"),
                 ["error_url"] = CrypTo.Base64($"{AppInit.Host(HttpContext)}/buy/error.html")
@@ -63,7 +63,7 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Merchant.B2PAY.enable)
                 return StatusCode(403);
 
-            string orderNumber = string.Empty;
+            string orderNumber = string.Empty, status = string.Empty;
             if (HttpContext.Request.Method == HttpMethods.Post && HttpContext.Request.ContentLength > 0)
             {
                 var buffer = new byte[Convert.ToInt32(HttpContext.Request.ContentLength)];
@@ -72,17 +72,22 @@ namespace Lampac.Controllers.LITE
                 var requestContent = Encoding.UTF8.GetString(buffer);
                 await System.IO.File.AppendAllTextAsync("merchant/log/b2pay.txt", requestContent + "\n\n\n");
 
+                status = Regex.Match(requestContent, "\"status\":\"([^\"]+)\"").Groups[1].Value;
                 orderNumber = Regex.Match(requestContent, "\"orderNumber\":\"([^\"]+)\"").Groups[1].Value;
             }
 
-            if (string.IsNullOrWhiteSpace(orderNumber) || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
+            if (status != "approved" || string.IsNullOrWhiteSpace(orderNumber) || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
                 return StatusCode(403);
 
-            var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
-            await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},b2pay\n");
+            string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");
 
-            if (!AppInit.conf.accsdb.accounts.Contains(invoice["custom_field"].ToLower()))
-                AppInit.cacheconf.Item2 = default;
+            if (!users.Contains($",b2pay,{orderNumber}"))
+            {
+                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
+                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},b2pay,{orderNumber}\n");
+
+                AppInit.conf.accsdb.accounts.Add(invoice["custom_field"]);
+            }
 
             return Content("YES");
         }

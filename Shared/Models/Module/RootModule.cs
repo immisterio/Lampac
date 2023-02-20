@@ -13,7 +13,7 @@ namespace Lampac.Models.Module
 
         public Assembly assembly { get; set; }
 
-        public List<OnlineMod> online { get; set; } = new List<OnlineMod>();
+        public OnlineMod online { get; set; } = new OnlineMod();
 
         public List<SisiMod> sisi { get; set; } = new List<SisiMod>();
 

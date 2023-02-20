@@ -131,8 +131,7 @@ namespace Lampac.Controllers.LITE
 
                             await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email},{DateTime.UtcNow.AddDays(addday).ToFileTimeUtc()},litecoin\n");
 
-                            if (!AppInit.conf.accsdb.accounts.Contains(email))
-                                AppInit.cacheconf.Item2 = default;
+                            AppInit.conf.accsdb.accounts.Add(email);
                         }
                         catch { }
                     }

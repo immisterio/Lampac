@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
 
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
 
-            await System.IO.File.WriteAllTextAsync($"merchant/invoice/freekassa/{transid}", email);
+            await System.IO.File.WriteAllTextAsync($"merchant/invoice/freekassa/{transid}", email.ToLower().Trim());
 
             string hash = CrypTo.md5($"{AppInit.conf.Merchant.FreeKassa.shop_id}:{AppInit.conf.Merchant.accessCost}:{AppInit.conf.Merchant.FreeKassa.secret}:USD:{transid}");
             return Redirect("https://pay.freekassa.ru/" + $"?m={AppInit.conf.Merchant.FreeKassa.shop_id}&oa={AppInit.conf.Merchant.accessCost}&o={transid}&s={hash}&currency=USD");
@@ -39,11 +39,15 @@ namespace Lampac.Controllers.LITE
 
             if (CrypTo.md5($"{AppInit.conf.Merchant.FreeKassa.shop_id}:{AMOUNT}:{AppInit.conf.Merchant.FreeKassa.secret}:{MERCHANT_ORDER_ID}") == SIGN)
             {
-                string email = await System.IO.File.ReadAllTextAsync($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}");
-                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email.ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},freekassa\n");
+                string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");
 
-                if (!AppInit.conf.accsdb.accounts.Contains(email.ToLower()))
-                    AppInit.cacheconf.Item2 = default;
+                if (!users.Contains($",freekassa,{MERCHANT_ORDER_ID}"))
+                {
+                    string email = await System.IO.File.ReadAllTextAsync($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}");
+                    await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email.ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},freekassa,{MERCHANT_ORDER_ID}\n");
+
+                    AppInit.conf.accsdb.accounts.Add(email);
+                }
 
                 return Content("YES");
             }

@@ -18,7 +18,7 @@ namespace Lampac
     public class AppInit
     {
         #region conf
-        public static (AppInit, DateTime) cacheconf = default;
+        static (AppInit, DateTime) cacheconf = default;
 
         public static AppInit conf
         {

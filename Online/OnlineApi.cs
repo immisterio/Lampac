@@ -10,6 +10,7 @@ using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using IO = System.IO;
+using System.Reflection;
 
 namespace Lampac.Controllers
 {
@@ -159,7 +160,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
             string online = string.Empty;
             bool isanime = original_language == "ja";
@@ -170,13 +171,18 @@ namespace Lampac.Controllers
             {
                 foreach (var item in AppInit.modules)
                 {
-                    foreach (var mod in item.online)
+                    if (item.online.enable)
                     {
-                        if (mod.enable)
+                        try
                         {
-                            if (serial == -1 || isanime && mod.anime || serial == 1 && mod.serial || serial == 0 && mod.movie)
-                                online += "{\"name\":\"" + mod.name + "\",\"url\":\"" + mod.url + "\"},";
+                            if (item.assembly.GetType(item.online.@namespace) is Type t && t.GetMethod("Events") is MethodInfo m)
+                            {
+                                string result = (string)m.Invoke(null, new object[] { host, account_email, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial });
+                                if (!string.IsNullOrWhiteSpace(result))
+                                    online += result;
+                            }
                         }
+                        catch { }
                     }
                 }
             }
@@ -187,7 +193,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrWhiteSpace(conf.VoKino.token) && (serial == -1 || serial == 0))
                 online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.KinoPub.token))
+            if (conf.KinoPub.enable)
                 online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";
 
             if (conf.Filmix.enable)
