@@ -60,23 +60,23 @@ namespace Lampac.Controllers.LITE
         [Route("b2pay/callback")]
         async public Task<ActionResult> Callback()
         {
-            if (!AppInit.conf.Merchant.B2PAY.enable)
-                return StatusCode(403);
+            if (!AppInit.conf.Merchant.B2PAY.enable || HttpContext.Request.Method != HttpMethods.Post || HttpContext.Request.ContentLength == 0)
+                return StatusCode(404);
 
-            string orderNumber = string.Empty, status = string.Empty;
-            if (HttpContext.Request.Method == HttpMethods.Post && HttpContext.Request.ContentLength > 0)
-            {
-                var buffer = new byte[Convert.ToInt32(HttpContext.Request.ContentLength)];
-                await HttpContext.Request.Body.ReadAsync(buffer, 0, buffer.Length);
-               
-                var requestContent = Encoding.UTF8.GetString(buffer);
-                await System.IO.File.AppendAllTextAsync("merchant/log/b2pay.txt", requestContent + "\n\n\n");
+            var buffer = new byte[Convert.ToInt32(HttpContext.Request.ContentLength)];
+            await HttpContext.Request.Body.ReadAsync(buffer, 0, buffer.Length);
 
-                status = Regex.Match(requestContent, "\"status\":\"([^\"]+)\"").Groups[1].Value;
-                orderNumber = Regex.Match(requestContent, "\"orderNumber\":\"([^\"]+)\"").Groups[1].Value;
-            }
+            var requestContent = Encoding.UTF8.GetString(buffer);
+            await System.IO.File.AppendAllTextAsync("merchant/log/b2pay.txt", requestContent + "\n\n\n");
 
-            if (status != "approved" || string.IsNullOrWhiteSpace(orderNumber) || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
+            JObject result = JsonConvert.DeserializeObject<JObject>(requestContent);
+            string signature = CrypTo.Base64(CrypTo.md5binary($"{result.Value<string>("amount")}:{result.Value<string>("currency")}:{result.Value<string>("gatewayAmount")}:{result.Value<string>("gatewayCurrency")}:{result.Value<string>("gatewayRate")}:{result.Value<string>("orderNumber")}:{result.Value<string>("pay_id")}:{result.Value<string>("sanitizedMask")}:{result.Value<string>("status")}:{result.Value<string>("token")}:pay:{AppInit.conf.Merchant.B2PAY.encryption_password}"));
+
+            if (result.Value<string>("sign") != signature)
+                return StatusCode(401);
+
+            string orderNumber = result.Value<string>("orderNumber");
+            if (result.Value<string>("status") != "approved" || string.IsNullOrWhiteSpace(orderNumber) || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
                 return StatusCode(403);
 
             string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");

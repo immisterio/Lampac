@@ -370,7 +370,15 @@ namespace JacRed.Controllers
                                 magnet += $"&dn={HttpUtility.UrlEncode(t.Name)}";
 
                             if (t.AnnounceUrls.Count > 0)
-                                magnet += $"&tr={string.Join("&tr=", t.AnnounceUrls)}";
+                            {
+                                foreach (string announce in t.AnnounceUrls)
+                                {
+                                    string tr = announce.Contains("/") || announce.Contains(":") ? HttpUtility.UrlEncode(announce) : announce;
+
+                                    if (!magnet.Contains(tr))
+                                        magnet += $"&tr={tr}";
+                                }
+                            }
 
                             t.torrent.magnet= magnet ;
                         }

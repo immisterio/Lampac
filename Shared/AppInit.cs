@@ -42,7 +42,7 @@ namespace Lampac
                     if (File.Exists("merchant/users.txt"))
                     {
                         long utc = DateTime.UtcNow.ToFileTimeUtc();
-                        foreach (string line in File.ReadLines("merchant/users.txt"))
+                        foreach (string line in File.ReadAllLines("merchant/users.txt"))
                         {
                             if (string.IsNullOrWhiteSpace(line) && !line.Contains("@"))
                                 continue;

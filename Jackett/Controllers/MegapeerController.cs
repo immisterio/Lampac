@@ -12,6 +12,7 @@ using Lampac.Models.JAC;
 using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.JAC
 {
@@ -70,7 +71,17 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.Megapeer.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
+                string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.Megapeer.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds, addHeaders: new List<(string name, string val)>()
+                {
+                    ("dnt", "1"),
+                    ("pragma", "no-cache"),
+                    ("referer", $"{AppInit.conf.Megapeer.host}"),
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("sec-fetch-user", "?1"),
+                    ("upgrade-insecure-requests", "1")
+                });
 
                 if (html != null && html.Contains("id=\"logo\""))
                 {
