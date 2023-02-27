@@ -76,12 +76,16 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(id))
                             continue;
 
+                        string name = item.Value<JObject>("translation").Value<string>("title") ?? "оригинал";
+                        if (html.Contains(name) || !results.First(i => i.Value<string>("id") == id).Value<JObject>("seasons").ToObject<Dictionary<string, Season>>().ContainsKey(s.ToString()))
+                            continue;
+
                         if (string.IsNullOrWhiteSpace(kid))
                             kid = id;
 
                         string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&kid={id}";
 
-                        html += "<div class=\"videos__button selector " + (kid == id ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + (item.Value<JObject>("translation").Value<string>("title") ?? "оригинал") + "</div>";
+                        html += "<div class=\"videos__button selector " + (kid == id ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>";
                     }
 
                     html += "</div><div class=\"videos__line\">";
