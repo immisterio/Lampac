@@ -40,7 +40,21 @@ namespace Lampac.Controllers.Spankbang
             string memKey = $"Spankbang:list:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out string html))
             {
-                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy);
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy, httpversion: 2, addHeaders: new List<(string name, string val)>()
+                {
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("pragma", "no-cache"),
+                    ("sec-ch-ua", "\"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "none"),
+                    ("sec-fetch-user", "?1"),
+                    ("upgrade-insecure-requests", "1")
+                });
+
                 if (html == null || !html.Contains("<div class=\"video-item"))
                     return OnError("html");
 

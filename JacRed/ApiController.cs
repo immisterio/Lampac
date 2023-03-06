@@ -615,6 +615,8 @@ namespace JacRed.Controllers
                 query = query.Where(i => i.seasons.Contains((int)season));
             #endregion
 
+            query = query.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName));
+
             return Json(query.Take(2_000).Select(i => new
             {
                 tracker = i.trackerName,

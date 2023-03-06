@@ -43,7 +43,7 @@ namespace Lampac.Controllers.Chaturbate
 
             var playlists = new List<PlaylistItem>();
 
-            foreach (string row in html.Split("class=\"room_list_room\"").Skip(1))
+            foreach (string row in html.Split("class=\"room_list_room").Skip(1))
             {
                 var g = new Regex("data-room=\"([^\"]+)\"([^>]+)?>([^<]+)</a>", RegexOptions.IgnoreCase).Match(row).Groups;
                 if (row.Contains(">Private</li>") || string.IsNullOrWhiteSpace(g[1].Value) || string.IsNullOrWhiteSpace(g[3].Value))

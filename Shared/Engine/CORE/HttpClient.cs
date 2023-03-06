@@ -220,12 +220,12 @@ namespace Lampac.Engine.CORE
 
 
         #region Post
-        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null)
+        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
         {
-            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useproxy: useproxy, proxy: proxy);
+            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useproxy: useproxy, proxy: proxy, httpversion: httpversion);
         }
 
-        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null)
+        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
         {
             try
             {
@@ -275,7 +275,13 @@ namespace Lampac.Engine.CORE
                             client.DefaultRequestHeaders.Add(item.name, item.val);
                     }
 
-                    using (HttpResponseMessage response = await client.PostAsync(url, data))
+                    var req = new HttpRequestMessage(HttpMethod.Post, url)
+                    {
+                        Version = new Version(httpversion, 0),
+                        Content = data
+                    };
+
+                    using (HttpResponseMessage response = await client.SendAsync(req))
                     {
                         if (response.StatusCode != HttpStatusCode.OK)
                             return null;

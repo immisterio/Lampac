@@ -20,27 +20,35 @@ namespace Lampac.Controllers.Spankbang
                 return OnError("disable");
 
             string memKey = $"Spankbang:vidosik:{goni}";
-            if (!memoryCache.TryGetValue(memKey, out string json))
+            if (!memoryCache.TryGetValue(memKey, out string stream_data))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10/*, useproxy: AppInit.conf.Spankbang.useproxy*/);
-                if (html == null)
-                    return OnError("html");
+                string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10, httpversion: 2, addHeaders: new List<(string name, string val)>()
+                {
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("pragma", "no-cache"),
+                    ("sec-ch-ua", "\"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "none"),
+                    ("sec-fetch-user", "?1"),
+                    ("upgrade-insecure-requests", "1")
+                });
 
-                #region Получаем ссылки на mp4
-                string csrf_session = await getCsrfSession();
-                string streamkey = new Regex("data-streamkey=\"([^\"]+)\"").Match(html).Groups[1].Value;
-                json = await HttpClient.Post($"{AppInit.conf.Spankbang.host}/api/videos/stream", $"&id={streamkey}&data=0&sb_csrf_session={csrf_session}", timeoutSeconds: 8);
-                if (json == null)
-                    return OnError("json");
-                #endregion
+                stream_data = StringConvert.FindLastText(html ?? "", "stream_data", "</script>");
 
-                memoryCache.Set(memKey, json, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                if (string.IsNullOrWhiteSpace(stream_data))
+                    return OnError("stream_data");
+
+                memoryCache.Set(memKey, stream_data, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
             #region Достаем ссылки на поток
             var stream_links = new Dictionary<string, string>();
 
-            var match = new Regex("\"([0-9]+)(p|k)\":\\[\"(https?://[^\"]+)\"").Match(json);
+            var match = new Regex("'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'").Match(stream_data);
             while (match.Success)
             {
                 string hls = match.Groups[3].Value.Replace("https:", "http:");

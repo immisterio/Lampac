@@ -66,7 +66,6 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        link = Regex.Replace(link, "^https?://[^/]+", "https://s1.cdnmovies.nl");
                         link = HostStreamProxy(AppInit.conf.CDNmovies.streamproxy, link);
 
                         streams.Add((link, $"{quality}p"));
