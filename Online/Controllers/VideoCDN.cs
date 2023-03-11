@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             if (!memoryCache.TryGetValue(memKey, out List<(string translation_id, string translation, string code)> cache))
             {
                 string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-                string content = await HttpClient.Get($"{AppInit.conf.VCDN.apihost}?{args}", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
+                string content = await HttpClient.Get($"{AppInit.conf.VCDN.apihost}?{args}", referer: "https://kinogo.biz/53104-avatar-2-2022.html", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
                 if (content == null)
                     return Content(string.Empty);
 
@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
                 if (content.Contains("</option>"))
                 {
                     #region Несколько озвучек
-                    var match = new Regex("<option +value=\"([0-9]+)\" [^>]+>([^<]+)</option>").Match(Regex.Replace(content, "[\n\r\t]+", ""));
+                    var match = new Regex("<option +value=\"([0-9]+)\"[^>]+>([^<]+)</option>").Match(Regex.Replace(content, "[\n\r\t]+", ""));
                     while (match.Success)
                     {
                         string translation_id = match.Groups[1].Value;
@@ -48,11 +48,14 @@ namespace Lampac.Controllers.LITE
 
                         if (!string.IsNullOrWhiteSpace(translation))
                         {
-                            string code = Regex.Match(content, "&quot;" + translation_id + "&quot;:&quot;([^\n\r]+\\}\\]&quot;|[^\n\r]+&quot;,&quot;|[^\n\r]+&quot;}\">)").Groups[1].Value;
+                            string code = Regex.Match(content, "\"" + translation_id + "\":\"([^\"]+)\"").Groups[1].Value;
+                            if (string.IsNullOrWhiteSpace(code))
+                            {
+                                code = Regex.Match(content, "\"" + translation_id + "\":(\\[\\{[^\n\r]+\\}\\])(,|\\}'>)").Groups[1].Value;
+                                code = Regex.Split(code, ",\"[0-9]+\"")[0];
+                            }
+
                             code = code.Replace("&quot;", "\"").Replace("\\\"", "\"").Replace("\\\\\\", "\\").Replace("\\\\", "\\");
-                            code = Regex.Split(code, "\",\"[0-9]+\"")[0];
-                            code = code.Replace("\"}\">", "");
-                            code = Regex.Replace(code, "\"$", "");
 
                             if (!string.IsNullOrWhiteSpace(code))
                                 cache.Add((translation_id, translation, code));
@@ -65,10 +68,8 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     #region Одна озвучка
-                    string code = Regex.Match(content, ":&quot;([^\n\r]+)&quot;").Groups[1].Value;
+                    string code = Regex.Match(content, "id=\"files\" value='([^\n\r]+)'>").Groups[1].Value;
                     code = code.Replace("&quot;", "\"").Replace("\\\"", "\"").Replace("\\\\\\", "\\").Replace("\\\\", "\\");
-                    code = Regex.Split(code, "\",\"[0-9]+\"")[0];
-                    code = code.Replace("\"}\">", "");
 
                     string translation_id = null;
                     string translation = "По умолчанию";
@@ -99,7 +100,7 @@ namespace Lampac.Controllers.LITE
                     string streansquality = string.Empty;
                     List<(string link, string quality)> streams = new List<(string, string)>();
 
-                    foreach (var quality in new List<string> { "720", "480", "360" })
+                    foreach (var quality in new List<string> { "1080", "720", "480", "360" })
                     {
                         string link = new Regex($"//([^/]+/([^/:]+:[0-9]+/)?(movies|animes)/[^\n\r\t, ]+/{quality})").Match(voice.code.Replace("\\", "")).Groups[1].Value;
                         if (string.IsNullOrEmpty(link))
@@ -112,8 +113,8 @@ namespace Lampac.Controllers.LITE
                         streansquality += $"\"{quality}p\":\"" + link + "\",";
                     }
 
-                    if (streams.Count > 0 && streams[0].quality == "720p")
-                        streansquality = $"\"1080p\":\"" + streams[0].link.Replace("/720.mp4", "/1080.mp4") + "\"," + streansquality;
+                    //if (streams.Count > 0 && streams[0].quality == "720p")
+                    //    streansquality = $"\"1080p\":\"" + streams[0].link.Replace("/720.mp4", "/1080.mp4") + "\"," + streansquality;
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
 
@@ -173,7 +174,7 @@ namespace Lampac.Controllers.LITE
                     List<(string link, string quality)> getStreamLink(string _data)
                     {
                         var streams = new List<(string link, string quality)>();
-                        foreach (var quality in new List<string> { "720", "480", "360", "240" })
+                        foreach (var quality in new List<string> { "1080", "720", "480", "360", "240" })
                         {
                             string file = new Regex($"//([^/]+/([^/:]+:[0-9]+/)?(tvseries|animetvseries|showtvseries)/[^\n\r\t, ]+/{quality})").Match(_data).Groups[1].Value;
                             if (string.IsNullOrEmpty(file))

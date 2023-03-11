@@ -218,7 +218,7 @@ namespace Lampac
 
         public OnlinesSettings VoKino = new OnlinesSettings("http://api.vokino.tv") { streamproxy = true };
 
-        public OnlinesSettings VideoAPI = new OnlinesSettings("http://5100.svetacdn.in", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O");
+        public OnlinesSettings VideoAPI = new OnlinesSettings("https://videoapi.tv", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O");
 
         public IframeVideoSettings IframeVideo = new IframeVideoSettings("https://iframe.video", "https://videoframe.space");
 

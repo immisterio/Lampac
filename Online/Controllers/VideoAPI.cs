@@ -63,14 +63,12 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(iframe_src))
                         return null;
 
-                    string iframe = await HttpClient.Get(iframe_src, timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
+                    string iframe = await HttpClient.Get(iframe_src, referer: "https://kinogo.biz/53104-avatar-2-2022.html", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
                     if (iframe == null)
                         return null;
 
-                    code = Regex.Match(iframe, ":&quot;([^\n\r]+)&quot;").Groups[1].Value;
+                    code = Regex.Match(iframe, "id=\"files\" value='([^\n\r]+)'>").Groups[1].Value;
                     code = code.Replace("&quot;", "\"").Replace("\\\"", "\"").Replace("\\\\\\", "\\").Replace("\\\\", "\\");
-                    code = Regex.Split(code, "\",\"[0-9]+\"")[0];
-                    code = code.Replace("\"}\">", "");
                     code = code.Replace("\\", "");
 
                     if (string.IsNullOrWhiteSpace(code))
