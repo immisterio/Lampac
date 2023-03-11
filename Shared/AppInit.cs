@@ -108,6 +108,8 @@ namespace Lampac
 
         public bool multiaccess = false;
 
+        public string anticaptchakey;
+
 
         public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 3, img = 1, torrent = 10 };
 

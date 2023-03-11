@@ -10,6 +10,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Kinobase;
 using System.Linq;
+using Shared.Engine.reCAPTCHA;
 
 namespace Lampac.Controllers.LITE
 {
@@ -181,12 +182,39 @@ namespace Lampac.Controllers.LITE
                 if (AppInit.conf.Kinobase.useproxy)
                     proxy = HttpClient.webProxy();
 
-                string search = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/search?query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
-                if (search == null)
+                var sresult = await HttpClient.BaseGetAsync($"{AppInit.conf.Kinobase.host}/search?query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                if (sresult.content == null)
+                {
+                    if ((int)sresult.response.StatusCode is 301 or 302)
+                    {
+                        string location = sresult.response.Headers.Location?.ToString();
+                        if (location != null && location.Contains("/check") && !string.IsNullOrWhiteSpace(AppInit.conf.anticaptchakey))
+                        {
+                            reCAPTCHAv2 api = new reCAPTCHAv2
+                            {
+                                ClientKey = AppInit.conf.anticaptchakey,
+                                WebsiteUrl = new Uri($"{AppInit.conf.Kinobase.host}/check"),
+                                WebsiteKey = "6Ld5MCUTAAAAALXvmUFVUdqxSgy9a8Kf3zeVvGEJ"
+                            };
+
+                            if (!api.CreateTask())
+                                return "API v2 send failed. " + api.ErrorMessage;
+                            else if (!api.WaitForResult())
+                                return "Could not solve the captcha.";
+                            else
+                            {
+                                string googleReCaptchaResponse = api.GetTaskSolution().GRecaptchaResponse;
+                                if (googleReCaptchaResponse != null)
+                                    await HttpClient.Post($"{AppInit.conf.Kinobase.host}/check", $"g-recaptcha-response={googleReCaptchaResponse}&return_uri=%2F", timeoutSeconds: 8, proxy: proxy);
+                            }
+                        }
+                    }
+
                     return null;
+                }
 
                 string link = null, reservedlink = null;
-                foreach (string row in search.Split("<div class=\"col-xs-2 item\">").Skip(1))
+                foreach (string row in sresult.content.Split("<div class=\"col-xs-2 item\">").Skip(1))
                 {
                     if (row.Contains(">Трейлер</span>"))
                         continue;
