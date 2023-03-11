@@ -59,6 +59,9 @@ namespace Lampac.Controllers.LITE
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
+            var filmixservtime = DateTime.UtcNow.AddHours(2).Hour; // Киев
+            bool hidefree720 = string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && filmixservtime > 19 && filmixservtime < 23;
+
             if (root.player_links.movie != null && root.player_links.movie.Count > 0)
             {
                 #region Фильм
@@ -76,7 +79,7 @@ namespace Lampac.Controllers.LITE
                         if (!v.link.Contains($"{q},"))
                             continue;
 
-                        if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && q > 480)
+                        if (hidefree720 && q > 480)
                             continue;
 
                         if (!AppInit.conf.Filmix.pro && q > 720)
@@ -141,7 +144,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
-                            if (string.IsNullOrWhiteSpace(AppInit.conf.Filmix.token) && lq > 480)
+                            if (hidefree720 && lq > 480)
                                 continue;
 
                             if (!AppInit.conf.Filmix.pro && lq > 720)
