@@ -63,7 +63,7 @@ namespace SISI
 
                 channels.Add(new
                 {
-                    title = "xhamster.com/gold",
+                    title = "faphouse.com",
                     playlist_url = "http://vi.sisi.am/xdb?sites=faphouse"
                 });
 

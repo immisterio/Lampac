@@ -168,6 +168,40 @@ namespace Lampac.Controllers.LITE
         }
 
 
+        [HttpGet]
+        [Route("lite/kinobase/check")]
+        async public Task<ActionResult> Check()
+        {
+            if (string.IsNullOrWhiteSpace(AppInit.conf.anticaptchakey))
+                return Content("anticaptchakey");
+
+            string location = await HttpClient.GetLocation("https://kinobase.org/films");
+            if (location == null || !location.Contains("/check"))
+                return Content("location ok");
+
+            reCAPTCHAv2 api = new reCAPTCHAv2
+            {
+                ClientKey = AppInit.conf.anticaptchakey,
+                WebsiteUrl = new Uri($"{AppInit.conf.Kinobase.host}/check"),
+                WebsiteKey = "6Ld5MCUTAAAAALXvmUFVUdqxSgy9a8Kf3zeVvGEJ"
+            };
+
+            if (!api.CreateTask())
+                return Content("API v2 send failed. " + api.ErrorMessage);
+            else if (!api.WaitForResult())
+                return Content("Could not solve the captcha.");
+            else
+            {
+                string result = null;
+                string googleReCaptchaResponse = api.GetTaskSolution().GRecaptchaResponse;
+                if (googleReCaptchaResponse != null)
+                    result = await HttpClient.Post($"{AppInit.conf.Kinobase.host}/check", $"g-recaptcha-response={googleReCaptchaResponse}&return_uri=%2F", timeoutSeconds: 8);
+
+                return Content(result ?? "null");
+            }
+        }
+
+
         #region embed
         async ValueTask<string> embed(string title, int year)
         {
@@ -182,39 +216,10 @@ namespace Lampac.Controllers.LITE
                 if (AppInit.conf.Kinobase.useproxy)
                     proxy = HttpClient.webProxy();
 
-                var sresult = await HttpClient.BaseGetAsync($"{AppInit.conf.Kinobase.host}/search?query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
-                if (sresult.content == null)
-                {
-                    if ((int)sresult.response.StatusCode is 301 or 302)
-                    {
-                        string location = sresult.response.Headers.Location?.ToString();
-                        if (location != null && location.Contains("/check") && !string.IsNullOrWhiteSpace(AppInit.conf.anticaptchakey))
-                        {
-                            reCAPTCHAv2 api = new reCAPTCHAv2
-                            {
-                                ClientKey = AppInit.conf.anticaptchakey,
-                                WebsiteUrl = new Uri($"{AppInit.conf.Kinobase.host}/check"),
-                                WebsiteKey = "6Ld5MCUTAAAAALXvmUFVUdqxSgy9a8Kf3zeVvGEJ"
-                            };
-
-                            if (!api.CreateTask())
-                                return "API v2 send failed. " + api.ErrorMessage;
-                            else if (!api.WaitForResult())
-                                return "Could not solve the captcha.";
-                            else
-                            {
-                                string googleReCaptchaResponse = api.GetTaskSolution().GRecaptchaResponse;
-                                if (googleReCaptchaResponse != null)
-                                    await HttpClient.Post($"{AppInit.conf.Kinobase.host}/check", $"g-recaptcha-response={googleReCaptchaResponse}&return_uri=%2F", timeoutSeconds: 8, proxy: proxy);
-                            }
-                        }
-                    }
-
-                    return null;
-                }
+                content = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/search?query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
 
                 string link = null, reservedlink = null;
-                foreach (string row in sresult.content.Split("<div class=\"col-xs-2 item\">").Skip(1))
+                foreach (string row in content.Split("<div class=\"col-xs-2 item\">").Skip(1))
                 {
                     if (row.Contains(">Трейлер</span>"))
                         continue;
