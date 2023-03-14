@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
             if (original_language != "en")
                 clarification = 1;
 
-            postid = postid == 0 ? await search(title, original_title, clarification, year) : postid;
+            postid = postid == 0 ? await search(memoryCache, title, original_title, clarification, year) : postid;
             if (postid == 0)
                 return Content(string.Empty);
 
@@ -172,7 +172,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<int> search(string title, string original_title, int clarification, int year)
+        async public static ValueTask<int> search(IMemoryCache memoryCache, string title, string original_title, int clarification, int year)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return 0;

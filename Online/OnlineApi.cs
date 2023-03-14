@@ -199,6 +199,9 @@ namespace Lampac.Controllers
             if (conf.Filmix.enable)
                 online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix\"},";
 
+            if (conf.FilmixPartner.enable)
+                online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi\"},";
+
             if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
                 online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
 
