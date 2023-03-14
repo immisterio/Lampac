@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -44,6 +45,10 @@ namespace Lampac.Controllers.LITE
                 if (root == null || root.Count == 0)
                     return Content(string.Empty);
 
+                var first = root.First.ToObject<JObject>();
+                if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
+                    return Content(string.Empty);
+
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(20));
             }
             #endregion
@@ -56,7 +61,6 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 foreach (var movie in root)
                 {
-                    string link = null;
                     string streansquality = string.Empty;
                     List<(string link, string quality)> streams = new List<(string, string)>();
 
@@ -65,16 +69,13 @@ namespace Lampac.Controllers.LITE
                         int q = file.Value<int>("quality");
                         string l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, file.Value<string>("url"));
 
-                        if (link == null)
-                            link = l;
-
                         streams.Add((l, $"{q}p"));
                         streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
                     }
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + movie.Value<string>("name") + "</div></div>";
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + movie.Value<string>("name") + "</div></div>";
                     firstjson = false;
                 }
                 #endregion
@@ -82,61 +83,76 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Сериал
-                return Content(string.Empty);
+                firstjson = true;
 
-                //firstjson = true;
+                if (s == -1)
+                {
+                    #region Сезоны
+                    foreach (var translation in root)
+                    {
+                        foreach (var season in translation.Value<JArray>("seasons"))
+                        {
+                            int sid = season.Value<int>("season");
+                            string sname = $"{sid} сезон";
 
-                //if (s == -1)
-                //{
-                //    #region Сезоны
-                //    foreach (var season in root.player_links.playlist)
-                //    {
-                //        string link = $"{host}/lite/fxapi?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
+                            if (!html.Contains(sname))
+                            {
+                                string link = $"{host}/lite/fxapi?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={sid}";
 
-                //        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
-                //        firstjson = false;
-                //    }
-                //    #endregion
-                //}
-                //else
-                //{
-                //    #region Перевод
-                //    int indexTranslate = 0;
+                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + sname + "</div></div></div>";
+                                firstjson = false;
+                            }
+                        }
+                    }
+                    #endregion
+                }
+                else
+                {
+                    #region Перевод
+                    int indexTranslate = 0;
 
-                //    foreach (var translation in root.player_links.playlist[s.ToString()])
-                //    {
-                //        string link = $"{host}/lite/fxapi?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
-                //        string active = t == indexTranslate ? "active" : "";
+                    foreach (var translation in root)
+                    {
+                        foreach (var season in translation.Value<JArray>("seasons"))
+                        {
+                            if (season.Value<int>("season") == s)
+                            {
+                                string link = $"{host}/lite/fxapi?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
+                                string active = t == indexTranslate ? "active" : "";
 
-                //        indexTranslate++;
-                //        html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Key + "</div>";
-                //    }
+                                indexTranslate++;
+                                html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value<string>("name") + "</div>";
+                                break;
+                            }
+                        }
+                    }
 
-                //    html += "</div><div class=\"videos__line\">";
-                //    #endregion
+                    html += "</div><div class=\"videos__line\">";
+                    #endregion
 
-                //    #region Серии
-                //    foreach (var episode in root.player_links.playlist[s.ToString()].ElementAt(t).Value)
-                //    {
-                //        string streansquality = string.Empty;
-                //        List<(string link, string quality)> streams = new List<(string, string)>();
+                    #region Серии
+                    foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<Dictionary<string, JObject>>("episodes").Values)
+                    {
+                        string streansquality = string.Empty;
+                        List<(string link, string quality)> streams = new List<(string, string)>();
 
-                //        foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
-                //        {
-                //            string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
-                //            l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, l);
+                        foreach (var file in episode.Value<JArray>("files"))
+                        {
+                            int q = file.Value<int>("quality");
+                            string l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, file.Value<string>("url"));
 
-                //            streams.Add((l, $"{lq}p"));
-                //            streansquality += $"\"{lq}p\":\"" + l + "\",";
-                //        }
+                            streams.Add((l, $"{q}p"));
+                            streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
+                        }
 
-                //        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
 
-                //        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
-                //        firstjson = false;
-                //    }
-                //    #endregion
-                //}
+                        int e = episode.Value<int>("episode");
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + e + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({e} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{e} серия" + "</div></div>";
+                        firstjson = false;
+                    }
+                    #endregion
+                }
                 #endregion
             }
 
