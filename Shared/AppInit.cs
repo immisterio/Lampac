@@ -207,6 +207,8 @@ namespace Lampac
 
         public FilmixSettings Filmix = new FilmixSettings("http://filmixapp.cyou");
 
+        public FilmixSettings FilmixPartner = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
+
         public OnlinesSettings Zetflix = new OnlinesSettings("https://zetfix.online");
 
         public OnlinesSettings VideoDB = new OnlinesSettings(null);

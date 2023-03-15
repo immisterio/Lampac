@@ -19,6 +19,9 @@ namespace JacRed.Engine
             {
                 try
                 {
+                    if (File.Exists(@"C:\ProgramData\lampac\disablesync"))
+                        break;
+
                     if (!string.IsNullOrWhiteSpace(ModInit.conf.syncapi))
                     {
                         if (lastsync == -1 && File.Exists("cache/jacred/lastsync.txt"))

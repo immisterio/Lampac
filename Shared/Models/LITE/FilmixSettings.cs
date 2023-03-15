@@ -13,7 +13,7 @@
 
         public string host { get; set; }
 
-        public bool enable { get; set; }
+        public bool enable { get; set; } 
 
         public bool pro { get; set; }
 
@@ -22,5 +22,14 @@
         public bool useproxy { get; set; }
 
         public bool streamproxy { get; set; }
+
+
+        public string APIKEY { get; set; }
+
+        public string APISECRET { get; set; }
+
+        public string user_name { get; set; }
+
+        public string user_passw { get; set; }
     }
 }

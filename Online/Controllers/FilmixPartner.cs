@@ -64,7 +64,7 @@ namespace Lampac.Controllers.LITE
                     string streansquality = string.Empty;
                     List<(string link, string quality)> streams = new List<(string, string)>();
 
-                    foreach (var file in movie.Value<JArray>("files"))
+                    foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                     {
                         int q = file.Value<int>("quality");
                         string l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, file.Value<string>("url"));
@@ -131,12 +131,12 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     #region Серии
-                    foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<Dictionary<string, JObject>>("episodes").Values)
+                    foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
                     {
                         string streansquality = string.Empty;
                         List<(string link, string quality)> streams = new List<(string, string)>();
 
-                        foreach (var file in episode.Value<JArray>("files"))
+                        foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                         {
                             int q = file.Value<int>("quality");
                             string l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, file.Value<string>("url"));
