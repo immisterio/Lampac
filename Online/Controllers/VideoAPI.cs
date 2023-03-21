@@ -63,7 +63,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(iframe_src))
                         return null;
 
-                    string iframe = await HttpClient.Get(iframe_src, referer: "https://kinogo.biz/53104-avatar-2-2022.html", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
+                    string iframe = await HttpClient.Get(iframe_src, referer: "https://kinogo.biz/53104-avatar-2-2022.html", httpversion: 2, timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
                     if (iframe == null)
                         return null;
 

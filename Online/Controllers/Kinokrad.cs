@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                     if (news == null)
                         return Content(string.Empty);
 
-                    content = Regex.Match(news, "var filmSource ([^\n\r]+)").Groups[1].Value;
+                    content = Regex.Match(news, "player1-link-movie([^\n\r]+)").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(content))
                         return Content(string.Empty);
 

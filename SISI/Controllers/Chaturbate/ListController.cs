@@ -35,7 +35,7 @@ namespace Lampac.Controllers.Chaturbate
             if (!memoryCache.TryGetValue(memKey, out string html))
             {
                 html = await HttpClient.Get(url, useproxy: AppInit.conf.Chaturbate.useproxy);
-                if (html == null || !html.Contains("class=\"room_list_room\""))
+                if (html == null || !html.Contains("class=\"room_list_room"))
                     return OnError("html");
 
                 memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
