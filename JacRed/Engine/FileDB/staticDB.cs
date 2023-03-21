@@ -63,7 +63,7 @@ namespace JacRed.Engine
             }
             else
             {
-                var fdb = new FileDB(key);
+                var fdb = new FileDB(key, empty: true);
                 openWriteTask.TryAdd(key, new WriteTaskModel() { db = fdb, openconnection = 1 });
                 return fdb;
             }

@@ -12,12 +12,12 @@ namespace JacRed.Engine
     {
         string fdbkey;
 
-        FileDB(string key)
+        FileDB(string key, bool empty = false)
         {
             fdbkey = key;
             string fdbpath = pathDb(key);
 
-            if (File.Exists(fdbpath))
+            if (!empty && File.Exists(fdbpath))
                 Database = JsonStream.Read<Dictionary<string, TorrentDetails>>(fdbpath) ?? new Dictionary<string, TorrentDetails>();
         }
 

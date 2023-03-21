@@ -33,25 +33,26 @@ namespace JacRed.Engine
                             foreach (var collection in root.collections)
                             {
                                 bool updateMasterDb = false;
-                                using (var fdb = FileDB.OpenWrite(collection.Key))
+
+                                foreach (var torrent in collection.Value.torrents)
                                 {
-                                    foreach (var torrent in collection.Value.torrents)
+                                    if (torrent.Value.types == null || torrent.Value.types.Contains("sport"))
+                                        continue;
+
+                                    if (ModInit.conf.trackers != null && !ModInit.conf.trackers.Contains(torrent.Value.trackerName))
+                                        continue;
+
+                                    updateMasterDb = true;
+
+                                    using (var fdb = FileDB.OpenWrite(collection.Key))
                                     {
-                                        if (torrent.Value.types == null || torrent.Value.types.Contains("sport"))
-                                            continue;
-
-                                        if (ModInit.conf.trackers != null && !ModInit.conf.trackers.Contains(torrent.Value.trackerName))
-                                            continue;
-
-                                        updateMasterDb = true;
-
                                         if (fdb.Database.TryGetValue(torrent.Key, out TorrentDetails val))
                                         {
                                             val = torrent.Value;
                                         }
                                         else
                                         {
-                                            fdb.Database.TryAdd(torrent.Key, torrent.Value);  
+                                            fdb.Database.TryAdd(torrent.Key, torrent.Value);
                                         }
                                     }
                                 }
@@ -81,7 +82,7 @@ namespace JacRed.Engine
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(10));
+                await Task.Delay(1000 * 60 * 60);
             }
         }
     }
