@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using Jackett;
 using JacRed.Engine.CORE;
@@ -18,10 +18,10 @@ namespace JacRed.Engine
             string fdbpath = pathDb(key);
 
             if (!empty && File.Exists(fdbpath))
-                Database = JsonStream.Read<Dictionary<string, TorrentDetails>>(fdbpath) ?? new Dictionary<string, TorrentDetails>();
+                Database = JsonStream.Read<ConcurrentDictionary<string, TorrentDetails>>(fdbpath) ?? new ConcurrentDictionary<string, TorrentDetails>();
         }
 
-        public Dictionary<string, TorrentDetails> Database = new Dictionary<string, TorrentDetails>();
+        public ConcurrentDictionary<string, TorrentDetails> Database = new ConcurrentDictionary<string, TorrentDetails>();
         
 
         public void Dispose()

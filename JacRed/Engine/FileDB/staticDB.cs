@@ -17,14 +17,14 @@ namespace JacRed.Engine
         /// $"{search_name}:{search_originalname}"
         /// Верхнее время изменения 
         /// </summary>
-        public static Dictionary<string, DateTime> masterDb = new Dictionary<string, DateTime>();
+        public static ConcurrentDictionary<string, DateTime> masterDb = new ConcurrentDictionary<string, DateTime>();
 
         static ConcurrentDictionary<string, WriteTaskModel> openWriteTask = new ConcurrentDictionary<string, WriteTaskModel>();
 
         static FileDB()
         {
             if (File.Exists("cache/jacred/masterDb.bz"))
-                masterDb = JsonStream.Read<Dictionary<string, DateTime>>("cache/jacred/masterDb.bz");
+                masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>("cache/jacred/masterDb.bz");
         }
         #endregion
 

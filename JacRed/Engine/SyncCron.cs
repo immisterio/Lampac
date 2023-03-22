@@ -34,18 +34,16 @@ namespace JacRed.Engine
                             {
                                 bool updateMasterDb = false;
 
-                                foreach (var torrent in collection.Value.torrents)
+                                using (var fdb = FileDB.OpenWrite(collection.Key))
                                 {
-                                    if (torrent.Value.types == null || torrent.Value.types.Contains("sport"))
-                                        continue;
-
-                                    if (ModInit.conf.trackers != null && !ModInit.conf.trackers.Contains(torrent.Value.trackerName))
-                                        continue;
-
-                                    updateMasterDb = true;
-
-                                    using (var fdb = FileDB.OpenWrite(collection.Key))
+                                    foreach (var torrent in collection.Value.torrents)
                                     {
+                                        if (torrent.Value.types == null || torrent.Value.types.Contains("sport"))
+                                            continue;
+
+                                        if (ModInit.conf.trackers != null && !ModInit.conf.trackers.Contains(torrent.Value.trackerName))
+                                            continue;
+
                                         if (fdb.Database.TryGetValue(torrent.Key, out TorrentDetails val))
                                         {
                                             val = torrent.Value;
@@ -54,6 +52,8 @@ namespace JacRed.Engine
                                         {
                                             fdb.Database.TryAdd(torrent.Key, torrent.Value);
                                         }
+
+                                        updateMasterDb = true;
                                     }
                                 }
 
