@@ -61,7 +61,7 @@ namespace Lampac
             }
         }
 
-        public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{httpContext.Request.Host.Value}";
+        public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{(string.IsNullOrWhiteSpace(conf.listenhost) ? httpContext.Request.Host.Value : conf.listenhost)}";
         #endregion
 
         #region AppInit
@@ -102,6 +102,8 @@ namespace Lampac
 
         public int listenport = 9118;
 
+        public string listenhost = null;
+
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = "linux" };
 
         public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, allow_tmdb = true };
@@ -113,7 +115,7 @@ namespace Lampac
 
         public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 3, img = 1, torrent = 10 };
 
-        public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true };
+        public DLNASettings dlna = new DLNASettings() { enable = true };
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, index = "lampa-main/index.html" };
 

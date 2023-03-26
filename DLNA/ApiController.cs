@@ -26,25 +26,13 @@ namespace Lampac.Controllers
 
         static DLNAController()
         {
-            EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
-            {
-                MaximumConnections = 30,
-                MaximumHalfOpenConnections = 20,
-                MaximumUploadSpeed = 125000, // 1Mbit/s
-                MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
-                MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
-                MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
-            };
-
-            torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
-            torrentEngine.DhtEngine.StartAsync();
-
-
             if (!Directory.Exists("cache/metadata"))
                 return;
 
             foreach (string path in Directory.GetFiles("cache/metadata", "*.torrent"))
             {
+                bullderClientEngine();
+
                 var t = Torrent.Load(path);
                 var manager = AppInit.conf.dlna.mode == "stream" ? torrentEngine.AddStreamingAsync(t, "dlna/").Result : torrentEngine.AddAsync(t, "dlna/").Result;
 
@@ -112,11 +100,65 @@ namespace Lampac.Controllers
                             }
                             catch { }
                         }
+
+                        await removeClientEngine();
                     }
                 };
             }
 
-            torrentEngine.StartAllAsync();
+            if (torrentEngine != null)
+                torrentEngine.StartAllAsync();
+        }
+        #endregion
+
+        #region dlna.js
+        [HttpGet]
+        [Route("dlna.js")]
+        async public Task<ActionResult> Plugin()
+        {
+            if (!AppInit.conf.dlna.enable)
+                return Content(string.Empty);
+
+            if (!memoryCache.TryGetValue("ApiController:dlna.js", out string file))
+            {
+                file = await IO.File.ReadAllTextAsync("plugins/dlna.js");
+                memoryCache.Set("ApiController:dlna.js", file, DateTime.Now.AddMinutes(5));
+            }
+
+            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region bullderClientEngine
+        static Task bullderClientEngine()
+        {
+            if (torrentEngine != null)
+                return Task.CompletedTask;
+
+            EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
+            {
+                MaximumConnections = 30,
+                MaximumHalfOpenConnections = 20,
+                MaximumUploadSpeed = 125000, // 1Mbit/s
+                MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
+                MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
+                MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
+            };
+
+            torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
+            return torrentEngine.DhtEngine.StartAsync();
+        }
+        #endregion
+
+        #region removeClientEngine
+        async static Task removeClientEngine()
+        {
+            if (torrentEngine != null && torrentEngine.Torrents.Count(i => i.State != TorrentState.Stopped && i.State != TorrentState.Stopping && i.State != TorrentState.Error) == 0)
+            {
+                await torrentEngine.StopAllAsync();
+                torrentEngine.Dispose();
+                torrentEngine = null;
+            }
         }
         #endregion
 
@@ -171,24 +213,6 @@ namespace Lampac.Controllers
         }
         #endregion
 
-
-        #region Plugin
-        [HttpGet]
-        [Route("dlna.js")]
-        async public Task<ActionResult> Plugin()
-        {
-            if (!AppInit.conf.dlna.enable)
-                return Content(string.Empty);
-
-            if (!memoryCache.TryGetValue("ApiController:dlna.js", out string file))
-            {
-                file = await IO.File.ReadAllTextAsync("plugins/dlna.js");
-                memoryCache.Set("ApiController:dlna.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
-        }
-        #endregion
 
         #region Navigation
         [HttpGet]
@@ -315,10 +339,10 @@ namespace Lampac.Controllers
         #region Managers
         [HttpGet]
         [Route("dlna/tracker/managers")]
-        public JsonResult Managers()
+        public ActionResult Managers()
         {
-            if (!AppInit.conf.dlna.enable)
-                return Json(new { });
+            if (!AppInit.conf.dlna.enable || torrentEngine == null)
+                return Content("[]");
 
             return Json(torrentEngine.Torrents.Where(i => i.State != TorrentState.Stopped).Select(i => new
             {
@@ -393,11 +417,16 @@ namespace Lampac.Controllers
                 }
                 #endregion
 
+                await bullderClientEngine();
                 byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(tparse.magnet + trackers), s_cts.Token);
                 if (data == null)
+                {
+                    await removeClientEngine();
                     return Json(new { });
+                }
 
                 await IO.File.WriteAllBytesAsync($"cache/torrent/{hash}", data);
+                await removeClientEngine();
 
                 return Json(Torrent.Load(data).Files);
             }
@@ -428,6 +457,8 @@ namespace Lampac.Controllers
                     IO.File.Copy($"cache/torrent/{hash}", $"cache/metadata/{hash.ToUpper()}.torrent");
 
                 var magnetLink = MagnetLink.Parse(tparse.magnet);
+
+                await bullderClientEngine();
                 TorrentManager manager = torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex() == magnetLink.InfoHash.ToHex());
 
                 if (manager != null)
@@ -514,6 +545,8 @@ namespace Lampac.Controllers
                                 }
                                 catch { }
                             }
+
+                            await removeClientEngine();
                         }
                     };
                     #endregion
@@ -575,6 +608,7 @@ namespace Lampac.Controllers
             }
             catch
             {
+                await removeClientEngine();
                 return Json(new { });
             }
 
@@ -587,12 +621,15 @@ namespace Lampac.Controllers
         [Route("dlna/tracker/delete")]
         async public Task<JsonResult> TorrentDelete(string infohash)
         {
-            if (!AppInit.conf.dlna.enable)
+            if (!AppInit.conf.dlna.enable || torrentEngine == null)
                 return Json(new { });
 
             var manager = torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex() == infohash);
             if (manager != null)
+            {
                 await manager.StopAsync();
+                await removeClientEngine();
+            }
 
             return Json(new { status = true });
         }

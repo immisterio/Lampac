@@ -8,6 +8,7 @@ using System;
 using IO = System.IO;
 using System.Security.Cryptography;
 using System.IO.Compression;
+using System.Linq;
 
 namespace Lampac.Controllers
 {
@@ -143,35 +144,42 @@ namespace Lampac.Controllers
 
             string initiale = string.Empty;
 
-            if (lite)
+            if (AppInit.modules != null)
             {
-                if (AppInit.conf.LampaWeb.initPlugins.online)
-                    initiale += "\"{localhost}/lite.js\",";
+                if (lite)
+                {
+                    if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)
+                        initiale += "\"{localhost}/lite.js\",";
 
-                if (AppInit.conf.LampaWeb.initPlugins.sisi)
-                    initiale += "\"{localhost}/sisi.js?lite=true\",";
-            }
-            else
-            {
-                if (AppInit.conf.LampaWeb.initPlugins.dlna)
-                    initiale += "{\"url\": \"{localhost}/dlna.js\",\"status\": 1,\"name\": \"DLNA\",\"author\": \"lampac\"},";
+                    if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
+                        initiale += "\"{localhost}/sisi.js?lite=true\",";
+                }
+                else
+                {
+                    if (AppInit.conf.LampaWeb.initPlugins.dlna && AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) != null)
+                        initiale += "{\"url\": \"{localhost}/dlna.js\",\"status\": 1,\"name\": \"DLNA\",\"author\": \"lampac\"},";
 
-                if (AppInit.conf.LampaWeb.initPlugins.tracks)
-                    initiale += "{\"url\": \"{localhost}/tracks.js\",\"status\": 1,\"name\": \"Tracks.js\",\"author\": \"lampac\"},";
+                    if (AppInit.conf.LampaWeb.initPlugins.tracks && AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
+                        initiale += "{\"url\": \"{localhost}/tracks.js\",\"status\": 1,\"name\": \"Tracks.js\",\"author\": \"lampac\"},";
 
-                if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
-                    initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
+                    if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
+                        initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
 
-                if (AppInit.conf.LampaWeb.initPlugins.online)
-                    initiale += "{\"url\": \"{localhost}/online.js\",\"status\": 1,\"name\": \"Онлайн\",\"author\": \"lampac\"},";
+                    if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)
+                        initiale += "{\"url\": \"{localhost}/online.js\",\"status\": 1,\"name\": \"Онлайн\",\"author\": \"lampac\"},";
 
-                if (AppInit.conf.LampaWeb.initPlugins.sisi)
-                    initiale += "{\"url\": \"{localhost}/sisi.js\",\"status\": 1,\"name\": \"Клубничка\",\"author\": \"lampac\"},";
+                    if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
+                        initiale += "{\"url\": \"{localhost}/sisi.js\",\"status\": 1,\"name\": \"Клубничка\",\"author\": \"lampac\"},";
+                }
             }
 
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
             file = file.Replace("{localhost}", host);
-            file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
+
+            if (AppInit.modules != null && (AppInit.modules.FirstOrDefault(i => i.dll == "Jackett.dll" && i.enable) != null || AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null))
+                file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
+            else
+                file = file.Replace("{jachost}", string.Empty);
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }

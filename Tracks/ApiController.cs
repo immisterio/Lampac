@@ -7,6 +7,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Linq;
+using Lampac.Engine.CORE;
+using System.IO;
 
 namespace Lampac.Controllers
 {
@@ -38,7 +40,7 @@ namespace Lampac.Controllers
             else if (media.Contains("/proxy/") && media.Contains(".mkv"))
             {
                 string hash = Regex.Match(media, "/([a-z0-9]+\\.mkv)").Groups[1].Value;
-                media = Engine.CORE.ProxyLink.Decrypt(hash, null);
+                media = ProxyLink.Decrypt(hash, null);
                 if (string.IsNullOrWhiteSpace(media))
                     return Content(string.Empty);
             }
@@ -50,24 +52,50 @@ namespace Lampac.Controllers
             string memKey = $"tracks:ffprobe:{media}";
             if (!memoryCache.TryGetValue(memKey, out string outPut))
             {
-                var process = new System.Diagnostics.Process();
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                process.StartInfo.FileName = AppInit.conf.ffprobe.os == "linux" ? "ffprobe" : $"ffprobe/{AppInit.conf.ffprobe.os}.exe";
-                process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {media}";
-                process.Start();
+                #region getFolder
+                static string getFolder(string magnethash)
+                {
+                    Directory.CreateDirectory($"cache/tracks/{magnethash[0]}");
+                    return $"cache/tracks/{magnethash[0]}/{magnethash.Remove(0, 1)}";
+                }
+                #endregion
 
-                outPut = await process.StandardOutput.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                string magnethash = null;
+                if (media.Contains("/stream/"))
+                {
+                    magnethash = Regex.Match(media, "link=([a-z0-9]+)").Groups[1].Value;
+                    if (!string.IsNullOrWhiteSpace(magnethash) && System.IO.File.Exists(getFolder(magnethash)))
+                        outPut = BrotliTo.Decompress(await System.IO.File.ReadAllBytesAsync(getFolder(magnethash)));
+                }
 
-                if (outPut == null)
-                    outPut = string.Empty;
+                if (string.IsNullOrWhiteSpace(outPut))
+                {
+                    var process = new System.Diagnostics.Process();
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+                    process.StartInfo.FileName = AppInit.conf.ffprobe.os == "linux" ? "ffprobe" : $"ffprobe/{AppInit.conf.ffprobe.os}.exe";
+                    process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {media}";
+                    process.Start();
 
-                if (Regex.Replace(outPut, "[\n\r\t ]+", "") == "{}")
-                    outPut = string.Empty;
+                    outPut = await process.StandardOutput.ReadToEndAsync();
+                    await process.WaitForExitAsync();
 
-                memoryCache.Set(memKey, outPut, DateTime.Now.AddHours(1));
+                    if (outPut == null)
+                        outPut = string.Empty;
+
+                    if (Regex.Replace(outPut, "[\n\r\t ]+", "") == "{}")
+                        outPut = string.Empty;
+
+                    if (!string.IsNullOrWhiteSpace(outPut) && !string.IsNullOrWhiteSpace(magnethash))
+                    {
+                        await System.IO.File.WriteAllBytesAsync(getFolder(magnethash), BrotliTo.Compress(outPut));
+                    }
+                    else
+                    {
+                        memoryCache.Set(memKey, outPut, DateTime.Now.AddHours(1));
+                    }
+                }
             }
 
             return Content(outPut, contentType: "application/json; charset=utf-8");
