@@ -9,11 +9,12 @@
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
 
 # Настройки Lampa
-1. Плагин онлайн  - "http://IP:9118/online.js"
-2. Плагин xxx     - "http://IP:9118/sisi.js"
-3. Плагин DLNA    - "http://IP:9118/dlna.js"
-4. Плагин Tracks  - "http://IP:9118/tracks.js"
-5. Парсер Jackett - "IP:9118"
+1. онлайн   - "http://IP:9118/online.js"
+2. xxx      - "http://IP:9118/sisi.js"
+3. DLNA     - "http://IP:9118/dlna.js"
+4. TimeCode - "http://IP:9118/timecode.js"
+5. Tracks   - "http://IP:9118/tracks.js"
+6. Парсер Jackett  - "IP:9118"
 
 # Настройки Lampa Lite
 1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 

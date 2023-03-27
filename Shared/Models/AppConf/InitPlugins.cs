@@ -11,5 +11,7 @@
         public bool online { get; set; } = true;
 
         public bool sisi { get; set; } = true;
+
+        public bool timecode { get; set; } = true;
     }
 }
