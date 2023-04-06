@@ -338,7 +338,7 @@ namespace Lampac.Controllers
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
-            string res = await HttpClient.Get($"{host}/lite/{balanser}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{host}/lite/{balanser}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
             links.Add((code.Replace("},", $",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "},"), index, work));

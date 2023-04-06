@@ -30,8 +30,12 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out List<(string translation_id, string translation, string code)> cache))
             {
+                string host = AppInit.conf.VCDN.apihost;
+                if (AppInit.conf.VCDN.corseu)
+                    host = $"{AppInit.corseuhost}/{host}";
+
                 string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-                string content = await HttpClient.Get($"{AppInit.conf.VCDN.apihost}?{args}", referer: "https://kinogo.biz/53104-avatar-2-2022.html", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
+                string content = await HttpClient.Get($"{host}?{args}", referer: "https://kinogo.biz/53104-avatar-2-2022.html", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 8, useproxy: AppInit.conf.VCDN.useproxy);
                 if (content == null)
                     return Content(string.Empty);
 

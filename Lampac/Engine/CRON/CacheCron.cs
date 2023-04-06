@@ -36,7 +36,7 @@ namespace Lampac.Engine.CRON
                     catch { }
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(60));
+                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.crontime.clearCache));
             }
         }
     }

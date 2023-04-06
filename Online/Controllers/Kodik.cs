@@ -204,7 +204,14 @@ namespace Lampac.Controllers.LITE
                 {
                     if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
                     {
-                        string decodedString = DecodeUrlBase64(new string(match.Groups[2].Value.Reverse().ToArray()));
+                        int zCharCode = Convert.ToInt32('Z');
+
+                        string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e => {
+                            int eCharCode = Convert.ToInt32(e.Value[0]);
+                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 13) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
+                        });
+
+                        string decodedString = DecodeUrlBase64(src);
 
                         if (decodedString.StartsWith("//"))
                             decodedString = $"http:{decodedString}";

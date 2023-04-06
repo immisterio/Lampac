@@ -58,10 +58,17 @@ namespace Lampac.Controllers.LITE
                 string memKeyIframesrc = $"videoapi:view:iframe_src:{imdb_id}:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKeyIframesrc, out string code))
                 {
-                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VideoAPI.host}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
+                    string host = AppInit.conf.VideoAPI.host;
+                    if (AppInit.conf.VideoDB.corseu)
+                        host = $"{AppInit.corseuhost}/{host}";
+
+                    var json = await HttpClient.Get<JObject>($"{host}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
                     string iframe_src = json.Value<JArray>("data").First.Value<string>("iframe_src");
                     if (string.IsNullOrWhiteSpace(iframe_src))
                         return null;
+
+                    if (AppInit.conf.VideoDB.corseu)
+                        iframe_src = $"{AppInit.corseuhost}/{iframe_src}";
 
                     string iframe = await HttpClient.Get(iframe_src, referer: "https://kinogo.biz/53104-avatar-2-2022.html", httpversion: 2, timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
                     if (iframe == null)

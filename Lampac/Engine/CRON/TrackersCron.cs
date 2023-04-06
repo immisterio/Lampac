@@ -13,7 +13,7 @@ namespace Lampac.Engine.CRON
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromHours(2));
+                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.crontime.updateTrackers));
                 
                 try
                 {

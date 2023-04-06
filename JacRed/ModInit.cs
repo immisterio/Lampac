@@ -50,5 +50,7 @@ namespace Jackett
         public int maxreadfile = 80;
 
         public bool evercache = false;
+
+        public int syntime = 40;
     }
 }

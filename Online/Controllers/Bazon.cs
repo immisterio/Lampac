@@ -16,10 +16,18 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/bazon")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, string t, int s = -1)
         {
             if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
                 return Content(string.Empty);
+
+            if (checksearch)
+            {
+                if (await search(kinopoisk_id))
+                    return Content("data-json=");
+
+                return Content(string.Empty);
+            }
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
 
@@ -140,5 +148,22 @@ namespace Lampac.Controllers.LITE
 
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
+
+
+        #region search
+        async ValueTask<bool> search(long kinopoisk_id)
+        {
+            string memKey = $"bazon:checksearch:{kinopoisk_id}";
+
+            if (!memoryCache.TryGetValue(memKey, out bool results))
+            {
+                var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token=21fac1d72ec78fbccd096a088d0fab1e&kp={kinopoisk_id}", timeoutSeconds: 8);
+                results = root != null && root.ContainsKey("results");
+                memoryCache.Set(memKey, results, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+            }
+
+            return results;
+        }
+        #endregion
     }
 }

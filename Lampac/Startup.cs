@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Linq;
 using System.Text.Json.Serialization;
 using Lampac.Engine.Middlewares;
@@ -14,8 +13,6 @@ using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Net;
-using System.Reflection;
-using System.IO;
 
 namespace Lampac
 {

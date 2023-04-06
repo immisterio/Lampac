@@ -27,5 +27,7 @@
         public bool useproxy { get; set; }
 
         public bool streamproxy { get; set; }
+
+        public bool corseu { get; set; }
     }
 }

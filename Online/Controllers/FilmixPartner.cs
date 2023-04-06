@@ -17,17 +17,17 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int postid, int t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int postid, int t, int s = -1)
         {
             if (!AppInit.conf.FilmixPartner.enable || string.IsNullOrWhiteSpace(AppInit.conf.Filmix.host))
                 return Content(string.Empty);
 
-            if (original_language != "en")
-                clarification = 1;
-
-            postid = postid == 0 ? await Filmix.search(memoryCache, title, original_title, clarification, year) : postid;
+            postid = postid == 0 ? await search(kinopoisk_id) : postid;
             if (postid == 0)
                 return Content(string.Empty);
+
+            if (checksearch)
+                return Content("data-json=");
 
             #region video_links
             string memKey = $"fxapi:{postid}:{HttpContext.Connection.RemoteIpAddress}";
@@ -159,6 +159,37 @@ namespace Lampac.Controllers.LITE
             return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
+
+        #region search
+        async ValueTask<int> search(long kinopoisk_id)
+        {
+            if (kinopoisk_id == 0)
+                return 0;
+
+            string memKey = $"fxapi:search:{kinopoisk_id}";
+            if (!memoryCache.TryGetValue(memKey, out int postid))
+            {
+                string XFXTOKEN = await getXFXTOKEN();
+                if (string.IsNullOrWhiteSpace(XFXTOKEN))
+                    return 0;
+
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/film/by-kp/{kinopoisk_id}", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>()
+                {
+                    ("X-FX-TOKEN", XFXTOKEN)
+                });
+
+                if (root == null || !root.ContainsKey("id"))
+                    return 0;
+
+                postid = root.Value<int>("id"); 
+
+                if (postid > 0)
+                    memoryCache.Set(memKey, postid, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+            }
+
+            return postid;
+        }
+        #endregion
 
         #region getXFXTOKEN
         static int userid = 1;

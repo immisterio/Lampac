@@ -49,12 +49,13 @@ namespace Lampac.Engine.CORE
 
 
         #region GetLocation
-        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1)
+        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1, bool allowAutoRedirect = true)
         {
             try
             {
                 HttpClientHandler handler = new HttpClientHandler();
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                handler.AllowAutoRedirect = false;   
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {

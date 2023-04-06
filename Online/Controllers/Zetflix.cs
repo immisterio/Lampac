@@ -182,6 +182,9 @@ namespace Lampac.Controllers.LITE
         #region getHost
         async ValueTask<string> getHost()
         {
+            if (AppInit.conf.Zetflix.corseu)
+                return $"{AppInit.corseuhost}/{AppInit.conf.Zetflix.host}";
+
             string memKey = "zetfix:getHost";
 
             if (!memoryCache.TryGetValue(memKey, out string location))

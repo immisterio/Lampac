@@ -15,5 +15,7 @@ namespace Lampac.Models.LITE.Kinobase
         public string subtitle { get; set; }
 
         public List<Playlist> playlist { get; set; }
+
+        public List<Playlist> folder { get; set; }
     }
 }

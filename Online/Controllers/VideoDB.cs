@@ -179,6 +179,9 @@ namespace Lampac.Controllers.LITE
             if (!memoryCache.TryGetValue(memKey, out (JArray pl, bool movie) cache))
             {
                 string host = "https://kinoplay.site";
+                if (AppInit.conf.VideoDB.corseu)
+                    host = $"{AppInit.corseuhost}/{host}";
+
                 string html = await HttpClient.Get($"{host}/iplayer/videodb.php?kp={kinopoisk_id}" + (serial > 0 ? "&series=true" : ""), timeoutSeconds: 8, useproxy: AppInit.conf.VideoDB.useproxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("cache-control", "no-cache"),

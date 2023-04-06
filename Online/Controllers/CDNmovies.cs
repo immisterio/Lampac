@@ -92,7 +92,11 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out List<Voice> cache))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.CDNmovies.host}/serial/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, useproxy: AppInit.conf.CDNmovies.useproxy, addHeaders: new List<(string name, string val)>()
+                string host = AppInit.conf.CDNmovies.host;
+                if (AppInit.conf.CDNmovies.corseu)
+                    host = $"{AppInit.corseuhost}/{host}";
+
+                string html = await HttpClient.Get($"{host}/serial/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, useproxy: AppInit.conf.CDNmovies.useproxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("DNT", "1"),
                     ("Upgrade-Insecure-Requests", "1")

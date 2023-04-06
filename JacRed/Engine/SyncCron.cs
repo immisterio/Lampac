@@ -82,7 +82,7 @@ namespace JacRed.Engine
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(40));
+                await Task.Delay(TimeSpan.FromMinutes(20 > ModInit.conf.syntime ? 20 : ModInit.conf.syntime));
             }
         }
     }

@@ -8,6 +8,8 @@ namespace Lampac.Engine.CRON
 {
     public static class LampaCron
     {
+        static string currentapp;
+
         async public static Task Run()
         {
             while (true)
@@ -26,9 +28,13 @@ namespace Lampac.Engine.CRON
                         if (gitapp == null || !gitapp.Contains("author: 'Yumata'"))
                             return false;
 
-                        string currentapp = await File.ReadAllTextAsync("wwwroot/lampa-main/app.min.js");
+                        if (currentapp == null)
+                        {
+                            currentapp = await File.ReadAllTextAsync("wwwroot/lampa-main/app.min.js");
+                            currentapp = CrypTo.md5(currentapp);
+                        }
 
-                        if (CrypTo.md5(gitapp) != CrypTo.md5(currentapp))
+                        if (CrypTo.md5(gitapp) != currentapp)
                             return true;
 
                         return false;
@@ -39,6 +45,8 @@ namespace Lampac.Engine.CRON
                         byte[] array = await HttpClient.Download("https://github.com/yumata/lampa/archive/refs/heads/main.zip", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
                         if (array != null)
                         {
+                            currentapp = null;
+
                             await File.WriteAllBytesAsync("wwwroot/lampa-main.zip", array);
                             ZipFile.ExtractToDirectory("wwwroot/lampa-main.zip", "wwwroot/", overwriteFiles: true);
 
@@ -51,7 +59,7 @@ namespace Lampac.Engine.CRON
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(20));
+                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.crontime.updateLampaWeb));
             }
         }
     }

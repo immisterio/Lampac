@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using Lampac.Models.Merchant;
 using Lampac.Models.Module;
 using System.Reflection;
+using Shared.Models.AppConf;
 
 namespace Lampac
 {
@@ -62,6 +63,8 @@ namespace Lampac
         }
 
         public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{(string.IsNullOrWhiteSpace(conf.listenhost) ? httpContext.Request.Host.Value : conf.listenhost)}";
+
+        public static string corseuhost => "https://cors.eu.org";
         #endregion
 
         #region AppInit
@@ -107,6 +110,8 @@ namespace Lampac
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = "linux" };
 
         public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, allow_tmdb = true };
+
+        public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
 
         public bool multiaccess = false;
 
