@@ -67,11 +67,11 @@ namespace SISI
                     playlist_url = "http://vi.sisi.am/xdb?sites=faphouse"
                 });
 
-                channels.Add(new
-                {
-                    title = "bang.com",
-                    playlist_url = "http://vi.sisi.am/xdb?sites=bang"
-                });
+                //channels.Add(new
+                //{
+                //    title = "bang.com",
+                //    playlist_url = "http://vi.sisi.am/xdb?sites=bang"
+                //});
             }
 
             if (AppInit.modules != null)

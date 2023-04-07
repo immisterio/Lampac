@@ -89,7 +89,7 @@ namespace Lampac.Controllers.LITE
                 AppInit.conf.accsdb.accounts.Add(invoice["custom_field"]);
             }
 
-            return Content("ок");
+            return Content("ok");
         }
     }
 }

@@ -115,6 +115,8 @@ namespace Lampac
 
         public bool multiaccess = false;
 
+        public bool log = false;
+
         public string anticaptchakey;
 
 

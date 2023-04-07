@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -14,6 +15,8 @@ namespace Lampac.Engine.CORE
 {
     public static class HttpClient
     {
+        static FileStream logFileStream = null;
+
         #region webProxy
         static ConcurrentBag<string> proxyRandomList = new ConcurrentBag<string>();
 
@@ -125,6 +128,8 @@ namespace Lampac.Engine.CORE
         #region BaseGetAsync
         async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
         {
+            string loglines = string.Empty;
+
             try
             {
                 HttpClientHandler handler = new HttpClientHandler()
@@ -183,6 +188,8 @@ namespace Lampac.Engine.CORE
 
                     using (HttpResponseMessage response = await client.SendAsync(req))
                     {
+                        loglines += $"StatusCode: {(int)response.StatusCode}";
+
                         if (response.StatusCode != HttpStatusCode.OK)
                             return (null, response);
 
@@ -194,6 +201,7 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
+                                loglines += "\n\n" + res;
                                 return (res, response);
                             }
                             else
@@ -202,19 +210,26 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
+                                loglines += "\n\n" + res;
                                 return (res, response);
                             }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                loglines = ex.ToString();
+
                 return (null, new HttpResponseMessage()
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
                     RequestMessage = new HttpRequestMessage()
                 });
+            }
+            finally
+            {
+                await WriteLog(url, "GET", null, loglines);
             }
         }
         #endregion
@@ -228,6 +243,8 @@ namespace Lampac.Engine.CORE
 
         async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
         {
+            string loglines = string.Empty;
+
             try
             {
                 HttpClientHandler handler = new HttpClientHandler()
@@ -284,6 +301,8 @@ namespace Lampac.Engine.CORE
 
                     using (HttpResponseMessage response = await client.SendAsync(req))
                     {
+                        loglines += $"StatusCode: {(int)response.StatusCode}";
+
                         if (response.StatusCode != HttpStatusCode.OK)
                             return null;
 
@@ -295,6 +314,7 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return null;
 
+                                loglines += "\n\n" + res;
                                 return res;
                             }
                             else
@@ -303,15 +323,21 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return null;
 
+                                loglines += "\n\n" + res;
                                 return res;
                             }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                loglines = ex.ToString();
                 return null;
+            }
+            finally
+            {
+                await WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
             }
         }
         #endregion
@@ -420,5 +446,31 @@ namespace Lampac.Engine.CORE
             }
         }
         #endregion
+
+
+        async static Task WriteLog(string url, string method, string postdata, string result)
+        {
+            if (!AppInit.conf.log || url.Contains("127.0.0.1"))
+                return;
+
+            string dateLog = DateTime.Today.ToString("dd.MM.yy");
+            string patchlog = $"cache/logs/HttpClient_{dateLog}.log";
+
+            if (logFileStream == null || !File.Exists(patchlog))
+                logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
+
+            string log = $"{DateTime.Now}\n{method}: {url}\n";
+
+            if (!string.IsNullOrWhiteSpace(postdata))
+                log += $"{postdata}\n";
+
+            log += result;
+
+            string splitline = "################################################################";
+            var buffer = Encoding.UTF8.GetBytes($"\n\n\n{splitline}\n\n{log}");
+
+            await logFileStream.WriteAsync(buffer, 0, buffer.Length);
+            await logFileStream.FlushAsync();
+        }
     }
 }
