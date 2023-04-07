@@ -51,6 +51,8 @@ namespace Lampac.Engine.CORE
 
         async public static Task Cron()
         {
+            await Task.Delay(TimeSpan.FromMinutes(1));
+
             while (true)
             {
                 try

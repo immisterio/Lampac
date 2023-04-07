@@ -15,6 +15,8 @@ namespace JacRed.Engine
 
         async public static Task Run()
         {
+            await Task.Delay(TimeSpan.FromMinutes(1));
+
             while (true)
             {
                 try

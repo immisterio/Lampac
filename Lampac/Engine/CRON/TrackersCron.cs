@@ -11,6 +11,8 @@ namespace Lampac.Engine.CRON
     {
         async public static Task Run()
         {
+            await Task.Delay(TimeSpan.FromMinutes(1));
+
             while (true)
             {
                 await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.crontime.updateTrackers));
