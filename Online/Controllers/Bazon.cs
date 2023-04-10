@@ -157,7 +157,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out bool results))
             {
-                var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token=21fac1d72ec78fbccd096a088d0fab1e&kp={kinopoisk_id}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}", timeoutSeconds: 8);
                 results = root != null && root.ContainsKey("results");
                 memoryCache.Set(memKey, results, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
