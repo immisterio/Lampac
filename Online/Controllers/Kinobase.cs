@@ -256,12 +256,14 @@ namespace Lampac.Controllers.LITE
                 string IDENTIFIER = new Regex("var IDENTIFIER = \"([^\"]+)").Match(news).Groups[1].Value;
                 string PLAYER_CUID = new Regex("var PLAYER_CUID = \"([^\"]+)").Match(news).Groups[1].Value;
 
-                string userdata = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/user_data?page=movie&movie_id={MOVIE_ID}&cuid={PLAYER_CUID}&device=DESKTOP&_=1656153006095", timeoutSeconds: 8, proxy: proxy);
+                string userdata = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/user_data.js?page=movie&movie_id={MOVIE_ID}&cuid={PLAYER_CUID}&device=DESKTOP&_=1681474328", referer: $"{AppInit.conf.Kinobase.host}/{link}", timeoutSeconds: 8, proxy: proxy);
                 if (userdata == null)
                     return null;
 
-                string VOD_HASH = new Regex("\"vod_hash\":\"([^\"]+)").Match(userdata).Groups[1].Value;
-                string VOD_TIME = new Regex("\"vod_time\":([0-9]+)").Match(userdata).Groups[1].Value;
+                new Jint.Engine().SetValue("eval", new Action<string>(i => userdata = i)).Execute(userdata);
+
+                string VOD_HASH = new Regex("vod_hash([\t ]+)?=([\t ]+)?\"([^\"]+)").Match(userdata).Groups[3].Value;
+                string VOD_TIME = new Regex("vod_time([\t ]+)?=([\t ]+)?\"([0-9]+)").Match(userdata).Groups[3].Value;
 
                 content = await HttpClient.Get($"{AppInit.conf.Kinobase.host}/vod/{MOVIE_ID}?identifier={IDENTIFIER}&player_type=new&file_type=hls&st={VOD_HASH}&e={VOD_TIME}", timeoutSeconds: 8, proxy: proxy);
                 if (content == null)
