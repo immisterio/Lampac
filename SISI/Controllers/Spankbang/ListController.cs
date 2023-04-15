@@ -14,6 +14,24 @@ namespace Lampac.Controllers.Spankbang
 {
     public class ListController : BaseController
     {
+        #region ListController
+        public static List<(string name, string val)> headers = new List<(string name, string val)>() 
+        {
+            ("cookie", "cor=CU; coe=ww; cfc_ok=00|2|ww|ru|master|0; backend_version=main; _ga=GA1.3.1461554580.1681547007; _gid=GA1.3.474005340.1681547007; __cf_bm=65YepZYb0ZHsmCe6eJ727djyxo6VKNA3PZ742EpG4VY-1681547006-0-AdKlqSpX8AOmBLABLR9HCfNSUXbRNE0KSyJWKQNyaVbzyk5KW+zdk9WRZAnmaLaEVAC7VncDT9C7W1UQl2rBRJtIc9LuNKxoZX5XoKS/H5Ehd0uXTgVKW/TYSKSXmBx8XkjOBZR/PdX3mbJbQgGU2gaEhjP3cmy7j5XHJDv0y6pq; ana_vid=a6c8f77399dc87da58ec057de8e298274cf478cf6b63c2f8796e84aab05c0ddb; ana_sid=a6c8f77399dc87da58ec057de8e298274cf478cf6b63c2f8796e84aab05c0ddb; age_pass=1; age_pass=1; sb_session=eyJfcGVybWFuZW50Ijp0cnVlfQ.ZDpfSg.oxGXJKdtuvnjs25gejnvfFPVCi0"),
+            ("cache-control", "no-cache"),
+            ("dnt", "1"),
+            ("pragma", "no-cache"),
+            ("sec-ch-ua", "\"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\""),
+            ("sec-ch-ua-mobile", "?0"),
+            ("sec-ch-ua-platform", "\"Windows\""),
+            ("sec-fetch-dest", "document"),
+            ("sec-fetch-mode", "navigate"),
+            ("sec-fetch-site", "none"),
+            ("sec-fetch-user", "?1"),
+            ("upgrade-insecure-requests", "1")
+        };
+        #endregion
+
         [HttpGet]
         [Route("sbg")]
         async public Task<JsonResult> Index(string search, string sort, int pg = 1)
@@ -40,20 +58,7 @@ namespace Lampac.Controllers.Spankbang
             string memKey = $"Spankbang:list:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out string html))
             {
-                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy, httpversion: 2, addHeaders: new List<(string name, string val)>()
-                {
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("pragma", "no-cache"),
-                    ("sec-ch-ua", "\"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "document"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "none"),
-                    ("sec-fetch-user", "?1"),
-                    ("upgrade-insecure-requests", "1")
-                });
+                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy, httpversion: 2, addHeaders: headers);
 
                 if (html == null || !html.Contains("<div class=\"video-item"))
                     return OnError("html");

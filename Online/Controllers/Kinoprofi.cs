@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(true, l.uri);
+                        string link = HostStreamProxy(true, l.uri, new List<(string, string)>() { ("referer", AppInit.conf.Kinoprofi.host) });
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
                     memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
 
-                file = HostStreamProxy(true, file);
+                file = HostStreamProxy(true, file, new List<(string, string)>() { ("referer", AppInit.conf.Kinoprofi.host) });
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }

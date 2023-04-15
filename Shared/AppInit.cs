@@ -210,7 +210,7 @@ namespace Lampac
 
         public OnlinesSettings Redheadsound = new OnlinesSettings("https://redheadsound.studio");
 
-        public OnlinesSettings Kinoprofi = new OnlinesSettings("https://kinoprofi.vip", apihost: "https://api.kinoprofi.vip");
+        public OnlinesSettings Kinoprofi = new OnlinesSettings("https://kinoprofi.io", apihost: "https://api.kinoprofi.io");
 
         public OnlinesSettings Lostfilmhd = new OnlinesSettings("http://www.disneylove.ru");
 

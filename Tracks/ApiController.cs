@@ -40,7 +40,7 @@ namespace Lampac.Controllers
             else if (media.Contains("/proxy/") && media.Contains(".mkv"))
             {
                 string hash = Regex.Match(media, "/([a-z0-9]+\\.mkv)").Groups[1].Value;
-                media = ProxyLink.Decrypt(hash, null);
+                media = ProxyLink.Decrypt(hash, null).uri;
                 if (string.IsNullOrWhiteSpace(media))
                     return Content(string.Empty);
             }

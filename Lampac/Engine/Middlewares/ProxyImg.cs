@@ -4,7 +4,6 @@ using System.IO;
 using Lampac.Engine.CORE;
 using NetVips;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -47,8 +46,10 @@ namespace Lampac.Engine.Middlewares
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
                 href = Regex.Replace(href, "(\\?|&)account_email=([^&]+)?", "", RegexOptions.IgnoreCase);
 
+                var decryptLink = ProxyLink.Decrypt(href, httpContext.Connection.RemoteIpAddress.ToString());
+
                 if (!href.Contains("image.tmdb.org"))
-                    href = ProxyLink.Decrypt(href, httpContext.Connection.RemoteIpAddress.ToString());
+                    href = decryptLink.uri;
 
                 if (string.IsNullOrWhiteSpace(href))
                 {
@@ -71,12 +72,7 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                List<(string name, string val)> headers = new List<(string name, string val)>();
-
-                if (href.Contains("cdntrex."))
-                    headers.Add(("referer", AppInit.conf.Porntrex.host));
-
-                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.serverproxy.useproxy, addHeaders: headers);
+                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.serverproxy.useproxy, addHeaders: decryptLink.headers);
                 if (array == null)
                 {
                     httpContext.Response.Redirect(href);

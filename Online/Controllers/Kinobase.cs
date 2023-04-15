@@ -54,22 +54,6 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            #region getStreamLink
-            string getStreamLink(string _data)
-            {
-                foreach (var quality in new List<string> { "2160", "2060", "1440", "1080", "720", "480", "360", "240" })
-                {
-                    string file = new Regex($"\\[{quality}p?\\]" + "(\\{[^\\}]+\\})?([^\\[\\|,\n\r\t ]+.m3u8)").Match(_data).Groups[2].Value;
-                    if (string.IsNullOrEmpty(file))
-                        continue;
-
-                    return HostStreamProxy(AppInit.conf.Kinobase.streamproxy, file);
-                }
-
-                return _data;
-            }
-            #endregion
-
             if (content.Contains("file|"))
             {
                 #region Фильм
@@ -89,7 +73,7 @@ namespace Lampac.Controllers.LITE
                         {
                             if (!string.IsNullOrWhiteSpace(smatch.Groups[1].Value) && !string.IsNullOrWhiteSpace(smatch.Groups[2].Value))
                             {
-                                string url = HostStreamProxy(AppInit.conf.Kinobase.streamproxy, smatch.Groups[2].Value);
+                                string url = HostStreamProxy(AppInit.conf.Kinobase.streamproxy, smatch.Groups[2].Value, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) });
                                 html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + smatch.Groups[1].Value + "</div></div>";
                                 end = true;
                                 firstjson = true;
@@ -109,7 +93,7 @@ namespace Lampac.Controllers.LITE
                         string hls = new Regex($"\\[{quality}p?\\]" + "(\\{[^\\}]+\\})?(https?://[^\\[\\|,;\n\r\t ]+.m3u8)").Match(content).Groups[2].Value;
                         if (!string.IsNullOrEmpty(hls))
                         {
-                            hls = HostStreamProxy(AppInit.conf.Kinobase.streamproxy, hls);
+                            hls = HostStreamProxy(AppInit.conf.Kinobase.streamproxy, hls, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) });
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                             firstjson = true;
                         }
@@ -119,6 +103,22 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
+                #region getStreamLink
+                string getStreamLink(string _data)
+                {
+                    foreach (var quality in new List<string> { "2160", "2060", "1440", "1080", "720", "480", "360", "240" })
+                    {
+                        string file = new Regex($"\\[{quality}p?\\]" + "(\\{[^\\}]+\\})?([^\\[\\|,\n\r\t ]+.m3u8)").Match(_data).Groups[2].Value;
+                        if (string.IsNullOrEmpty(file))
+                            continue;
+
+                        return HostStreamProxy(AppInit.conf.Kinobase.streamproxy, file, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) });
+                    }
+
+                    return _data;
+                }
+                #endregion
+
                 #region Сериал
                 try
                 {
@@ -168,6 +168,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
+        #region anticaptcha
         [HttpGet]
         [Route("lite/kinobase/check")]
         async public Task<ActionResult> Check()
@@ -200,7 +201,7 @@ namespace Lampac.Controllers.LITE
                 return Content(result ?? "null");
             }
         }
-
+        #endregion
 
         #region embed
         async ValueTask<string> embed(string title, int year)

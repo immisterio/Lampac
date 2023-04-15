@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
     public static class ProxyLink
     {
-        static ConcurrentDictionary<string, (DateTime upd, string reqip, string uri)> links = new ConcurrentDictionary<string, (DateTime upd, string reqip, string uri)>();
+        static ConcurrentDictionary<string, (DateTime upd, string reqip, List<(string name, string val)> headers, string uri)> links = new ConcurrentDictionary<string, (DateTime upd, string reqip, List<(string name, string val)> headers, string uri)>();
 
-        public static string Encrypt(string uri, string reqip)
+        public static string Encrypt(string uri, string reqip, List<(string name, string val)> headers = null)
         {
             if (!AppInit.conf.serverproxy.encrypt)
                 return uri;
@@ -29,23 +30,23 @@ namespace Lampac.Engine.CORE
                 hash += ".jpg";
 
             if (!links.ContainsKey(hash))
-                links.AddOrUpdate(hash, (DateTime.Now, reqip, uri) , (d,u) => (DateTime.Now, reqip, uri));
+                links.AddOrUpdate(hash, (DateTime.Now, reqip, headers, uri) , (d,u) => (DateTime.Now, reqip, headers, uri));
 
             return hash;
         }
 
-        public static string Decrypt(string hash, string reqip)
+        public static (List<(string name, string val)> headers, string uri) Decrypt(string hash, string reqip)
         {
             if (!AppInit.conf.serverproxy.encrypt)
-                return hash;
+                return (null, hash);
 
-            if (links.TryGetValue(hash, out (DateTime upd, string reqip, string uri) val))
+            if (links.TryGetValue(hash, out (DateTime upd, string reqip, List <(string name, string val)> headers, string uri) val))
             {
                 if (reqip == null || reqip == val.reqip)
-                    return val.uri;
+                    return (val.headers, val.uri);
             }
 
-            return null;
+            return (null, null);
         }
 
 

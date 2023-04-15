@@ -111,7 +111,7 @@ namespace Lampac.Controllers.Porntrex
                     {
                         video = $"{host}/ptx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
                         name = g[2].Value,
-                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, $"https://{img[2].Value}"),
+                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, $"https://{img[2].Value}", new List<(string, string)>() { ("referer", AppInit.conf.Porntrex.host) }),
                         quality = !string.IsNullOrEmpty(quality) ? quality : null,
                         time = duration,
                         json = true

@@ -199,7 +199,11 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
-            return Redirect(HostStreamProxy(true, hls));
+            return Redirect(HostStreamProxy(true, hls, new List<(string, string)>() 
+            {
+                ("origin", "https://aniboom.one"),
+                ("referer", "https://aniboom.one/")
+            }));
         }
         #endregion
     }

@@ -19,23 +19,11 @@ namespace Lampac.Controllers.Spankbang
             if (!AppInit.conf.Spankbang.enable)
                 return OnError("disable");
 
+            #region Кеш запроса
             string memKey = $"Spankbang:vidosik:{goni}";
             if (!memoryCache.TryGetValue(memKey, out string stream_data))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10, httpversion: 2, addHeaders: new List<(string name, string val)>()
-                {
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("pragma", "no-cache"),
-                    ("sec-ch-ua", "\"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "document"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "none"),
-                    ("sec-fetch-user", "?1"),
-                    ("upgrade-insecure-requests", "1")
-                });
+                string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10, httpversion: 2, addHeaders: ListController.headers);
 
                 stream_data = StringConvert.FindLastText(html ?? "", "stream_data", "</script>");
 
@@ -44,6 +32,7 @@ namespace Lampac.Controllers.Spankbang
 
                 memoryCache.Set(memKey, stream_data, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
+            #endregion
 
             #region Достаем ссылки на поток
             var stream_links = new Dictionary<string, string>();

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
@@ -46,9 +47,9 @@ namespace Lampac.Engine
             return userIp;
         }
 
-        public string HostImgProxy( int width, int height, string uri)
+        public string HostImgProxy( int width, int height, string uri, List<(string name, string val)> headers = null)
         {
-            uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString());
+            uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
             string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
             if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
                 uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
@@ -56,11 +57,11 @@ namespace Lampac.Engine
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
-        public string HostStreamProxy(bool streamproxy, string uri)
+        public string HostStreamProxy(bool streamproxy, string uri, List<(string name, string val)> headers = null)
         {
             if (streamproxy)
             {
-                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString());
+                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
                 string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
                 if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
                     uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
