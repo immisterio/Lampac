@@ -1,38 +1,35 @@
 ﻿using System;
-using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Chaturbate
 {
     public class StreamController : BaseController
     {
         [HttpGet]
-        [Route("chu/potok.m3u8")]
+        [Route("chu/potok")]
         async public Task<ActionResult> Index(string baba)
         {
             if (!AppInit.conf.Chaturbate.enable)
                 return OnError("disable");
 
             string memKey = $"chaturbate:stream:{baba}";
-            if (memoryCache.TryGetValue(memKey, out string hls))
-                return Redirect(HostStreamProxy(AppInit.conf.Chaturbate.streamproxy, hls));
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
+            {
+                stream_links = await ChaturbateTo.StreamLinks(AppInit.conf.Chaturbate.corsHost(), baba, url => HttpClient.Get(url, useproxy: AppInit.conf.Chaturbate.useproxy));
+                if (stream_links == null)
+                    return OnError("stream_links");
 
-            string html = await HttpClient.Get($"{AppInit.conf.Chaturbate.host}/{baba}/", useproxy: AppInit.conf.Chaturbate.useproxy);
-            if (html == null)
-                return OnError("html");
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
+            }
 
-            hls = new Regex("(https?://[^ ]+/playlist\\.m3u8)").Match(html).Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(hls))
-                return OnError("hls");
-
-            hls = hls.Replace("\\u002D", "-").Replace("\\", "");
-            memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
-
-            return Redirect(HostStreamProxy(AppInit.conf.Chaturbate.streamproxy, hls));
+            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Chaturbate.streamproxy, v.Value)));
         }
     }
 }

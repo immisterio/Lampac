@@ -5,7 +5,7 @@ namespace Lampac.Engine.CORE
     public static class StringConvert
     {
         #region FindStartText
-        public static string FindStartText(string data, string end, string start = null)
+        public static string? FindStartText(string data, string end, string? start = null)
         {
             try
             {
@@ -19,7 +19,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region FindLastText
-        public static string FindLastText(string data, string start, string end = null)
+        public static string? FindLastText(string data, string start, string? end = null)
         {
             try
             {
@@ -68,7 +68,7 @@ namespace Lampac.Engine.CORE
 
 
         #region SearchName
-        public static string SearchName(string val)
+        public static string? SearchName(string val)
         {
             if (string.IsNullOrWhiteSpace(val))
                 return null;

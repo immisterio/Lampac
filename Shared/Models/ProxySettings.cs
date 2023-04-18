@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lampac.Models.JAC
+namespace Lampac.Models
 {
     public class ProxySettings
     {

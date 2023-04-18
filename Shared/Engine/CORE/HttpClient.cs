@@ -1,4 +1,4 @@
-﻿using Lampac.Models.JAC;
+﻿using Lampac.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;

@@ -22,6 +22,7 @@ namespace Lampac.Controllers.Eporner
                 return OnError("disable");
 
             #region Формируем страницу запроса и меню
+            pg += 1;
             string url = $"{AppInit.conf.Eporner.host}/";
 
             if (!string.IsNullOrWhiteSpace(search))

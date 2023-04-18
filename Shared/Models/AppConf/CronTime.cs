@@ -1,4 +1,4 @@
-﻿namespace Shared.Models.AppConf
+﻿namespace Lampac.Models.AppConf
 {
     public class CronTime
     {
