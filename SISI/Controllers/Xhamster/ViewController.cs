@@ -1,57 +1,36 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared.Engine.SISI;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Lampac.Controllers.Xhamster
 {
     public class ViewController : BaseController
     {
         [HttpGet]
-        [Route("xmr/vidosik.m3u8")]
-        async public Task<ActionResult> Index(string goni)
+        [Route("xmr/vidosik")]
+        async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.Xhamster.enable)
                 return OnError("disable");
 
-            string memKey = $"Xhamster:vidosik:{goni}";
-            if (!memoryCache.TryGetValue(memKey, out (string hls, string stream_link) cache))
+            string memKey = $"xhamster:view:{uri}";
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Xhamster.host}/{goni}", useproxy: AppInit.conf.Xhamster.useproxy);
-                if (html == null)
-                    return OnError("html");
+                stream_links = await XhamsterTo.StreamLinks(AppInit.conf.Xhamster.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xhamster.useproxy));
 
-                string stream_link = new Regex("\"hls\":{\"url\":\"([^\"]+)\"").Match(html).Groups[1].Value.Replace("\\", "");
-                if (string.IsNullOrWhiteSpace(stream_link))
-                    return OnError("stream_link");
+                if (stream_links == null || stream_links.Count == 0)
+                    return OnError("stream_links");
 
-                if (stream_link.StartsWith("/"))
-                    stream_link = AppInit.conf.Xhamster.host + stream_link;
-
-                if (!stream_link.Contains(".m3u"))
-                {
-                    string m3u8 = await HttpClient.Get(stream_link, useproxy: AppInit.conf.Xhamster.useproxy, timeoutSeconds: 8);
-                    if (m3u8 != null)
-                    {
-                        // Ссылка на сервер источника
-                        string masterHost = new Regex("^(https?://[^/]+)").Match(stream_link).Groups[1].Value;
-
-                        // Меняем ссылки которые начинаются с "/" на "http"
-                        cache.hls = Regex.Replace(m3u8, "([\n\r\t ]+)/", $"$1{masterHost}/");
-                    }
-                }
-
-                cache.stream_link = stream_link;
-                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            if (cache.hls != null)
-                return Content(cache.hls, "application/vnd.apple.mpegurl");
-
-            return Redirect(HostStreamProxy(AppInit.conf.Xhamster.streamproxy, cache.stream_link));
+            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Xhamster.streamproxy, v.Value)));
         }
     }
 }

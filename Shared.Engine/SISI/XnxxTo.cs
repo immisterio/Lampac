@@ -15,7 +15,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<string, string> onpicture)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>();
 
@@ -30,15 +30,20 @@ namespace Shared.Engine.SISI
                     string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
                     img = img.Replace(".THUMBNUM.", ".1.");
 
-                    playlists.Add(new PlaylistItem()
+                    var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
                         video = $"{uri}?uri={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = onpicture.Invoke(img),
+                        picture = img,
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
                         json = true
-                    });
+                    };
+
+                    if (onplaylist != null)
+                        pl = onplaylist.Invoke(pl);
+
+                    playlists.Add(pl);
                 }
             }
 
@@ -60,7 +65,7 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>> onm3u)
+        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
@@ -73,7 +78,7 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
 
-            string? m3u8 = await onm3u.Invoke(stream_link);
+            string? m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
             if (m3u8 == null)
             {
                 return new Dictionary<string, string>()

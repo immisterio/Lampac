@@ -19,7 +19,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = ChaturbateTo.Menu(null, sort),
-                list = ChaturbateTo.Playlist("chu/potok", html, picture => picture)
+                list = ChaturbateTo.Playlist("chu/potok", html)
             };
         }
 

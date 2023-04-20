@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Linq;
 using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -15,42 +14,25 @@ namespace Lampac.Controllers.Porntrex
     {
         [HttpGet]
         [Route("ptx/vidosik")]
-        async public Task<ActionResult> vidosik(string goni)
+        async public Task<ActionResult> vidosik(string uri)
         {
             if (!AppInit.conf.Porntrex.enable)
                 return OnError("disable");
 
-            string memKey = $"Porntrex:vidosik:{goni}";
+            string memKey = $"porntrex:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Porntrex.host}/{goni}", timeoutSeconds: 10, useproxy: AppInit.conf.Porntrex.useproxy);
-                if (html == null)
-                    return OnError("html");
-
-                stream_links = new Dictionary<string, string>();
-                var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
-                while (match.Success)
-                {
-                    stream_links.TryAdd(match.Groups[2].Value, $"{host}/ptx/strem?link={HttpUtility.UrlEncode(match.Groups[1].Value)}");
-                    match = match.NextMatch();
-                    //break;
-                }
-
-                if (stream_links.Count == 0)
-                {
-                    string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(link))
-                        stream_links.TryAdd("auto", $"{host}/ptx/strem?link={HttpUtility.UrlEncode(link)}");
-                }
-
-                if (stream_links.Count == 0)
+                var links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10));
+                if (links == null || links.Count == 0)
                     return OnError("stream_links");
 
-                stream_links = stream_links.Reverse().ToDictionary(k => k.Key, v => v.Value);
+                stream_links = new Dictionary<string, string>();
+                foreach (var l in links)
+                    stream_links.TryAdd(l.Key, $"{host}/ptx/strem?link={HttpUtility.UrlEncode(l.Value)}");
 
-                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
-            
+
             return Json(stream_links);
         }
 

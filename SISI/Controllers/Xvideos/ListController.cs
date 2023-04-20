@@ -1,14 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Xvideos
 {
@@ -21,60 +19,28 @@ namespace Lampac.Controllers.Xvideos
             if (!AppInit.conf.Xvideos.enable)
                 return OnError("disable");
 
-            string url = $"{AppInit.conf.Xvideos.host}/new/{pg}";
-            if (!string.IsNullOrWhiteSpace(search))
-                url = $"{AppInit.conf.Xvideos.host}/?k={HttpUtility.UrlEncode(search)}&p={pg}";
-
-            string memKey = $"Xvideos:list:{search}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out string html))
+            string memKey = $"xds:list:{search}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy);
-                if (html == null || !html.Contains("<div class=\"thumb-inside\">"))
+                string html = await XvideosTo.InvokeHtml(AppInit.conf.Xvideos.host, search, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy));
+                if (html == null)
                     return OnError("html");
 
-                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
-            }
-
-            var playlists = new List<PlaylistItem>();
-            foreach (string row in Regex.Split(html, "<div class=\"thumb-inside\">").Skip(1))
-            {
-                var g = new Regex($"<a href=\"/(prof-video-click/[^\"]+|video[0-9]+/[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups;
-                string qmark = new Regex("<span class=\"video-hd-mark\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-
-                if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
+                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", html, pl =>
                 {
-                    string duration = new Regex("<span class=\"duration\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
+                    return pl;
+                });
 
-                    string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                    img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/");
-                    img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase);
+                if (playlists.Count == 0)
+                    return OnError("playlists");
 
-                    playlists.Add(new PlaylistItem()
-                    {
-                        name = g[2].Value,
-                        video = $"{host}/xds/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
-                        quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
-                        time = duration,
-                        json = true
-                    });
-                }
+                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
-
-            if (playlists.Count == 0)
-                return OnError("playlists");
 
             return new JsonResult(new
             {
-                menu = new List<MenuItem>()
-                {
-                    new MenuItem()
-                    {
-                        title = "Поиск",
-                        search_on = "search_on",
-                        playlist_url = $"{host}/xds",
-                    }
-                },
+                menu = XvideosTo.Menu(host),
                 list = playlists
             });
         }

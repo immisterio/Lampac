@@ -18,7 +18,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string html, Func<string, string> onpicture)
+        public static List<PlaylistItem> Playlist(string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>();
 
@@ -38,13 +38,18 @@ namespace Shared.Engine.SISI
                 if (string.IsNullOrWhiteSpace(title))
                     title = baba;
 
-                playlists.Add(new PlaylistItem()
+                var pl = new PlaylistItem()
                 {
                     name = title,
                     quality = row.Contains("__hd_plus __rt") ? "HD+" : row.Contains("__hd __rtl") ? "HD" : null,
                     video = $"https://{esid}.bcvcdn.com/hls/stream_{baba}/public-aac/stream_{baba}/chunks.m3u8",
-                    picture = onpicture.Invoke($"https://{img}")
-                });
+                    picture = $"https://{img}"
+                };
+
+                if (onplaylist != null)
+                    pl = onplaylist.Invoke(pl);
+
+                playlists.Add(pl);
             }
 
             return playlists;

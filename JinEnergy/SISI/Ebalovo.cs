@@ -20,7 +20,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = EbalovoTo.Menu(null, sort),
-                list = EbalovoTo.Playlist("elo/vidosik", html, picture => picture)
+                list = EbalovoTo.Playlist("elo/vidosik", html)
             };
         }
 

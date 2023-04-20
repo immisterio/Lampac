@@ -25,7 +25,7 @@ namespace Lampac.Controllers.BongaCams
             {
                 string html = await BongaCamsTo.InvokeHtml(AppInit.conf.BongaCams.host, sort, pg, url => 
                 {
-                    return HttpClient.Get(url, useproxy: AppInit.conf.BongaCams.useproxy, addHeaders: new List<(string name, string val)>()
+                    return HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.BongaCams.useproxy, addHeaders: new List<(string name, string val)>()
                     {
                         ("dnt", "1"),
                         ("referer", AppInit.conf.BongaCams.host),
@@ -39,7 +39,8 @@ namespace Lampac.Controllers.BongaCams
                 if (html == null)
                     return OnError("html");
 
-                playlists = BongaCamsTo.Playlist(html, picture => HostImgProxy(0, AppInit.conf.sisi.heightPicture, picture));
+                playlists = BongaCamsTo.Playlist(html);
+
                 if (playlists.Count == 0)
                     return OnError("playlists");
 
@@ -49,14 +50,14 @@ namespace Lampac.Controllers.BongaCams
             return new JsonResult(new
             {
                 menu = BongaCamsTo.Menu(host, sort),
-                list = playlists.Select(i => new 
+                list = playlists.Select(pl => new
                 {
-                    i.name,
-                    i.picture,
-                    video = HostStreamProxy(AppInit.conf.BongaCams.streamproxy, i.video),
-                    i.json,
-                    i.time,
-                    i.quality
+                    pl.name,
+                    video = HostStreamProxy(AppInit.conf.BongaCams.streamproxy, pl.video),
+                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture),
+                    pl.time,
+                    pl.json,
+                    pl.quality
                 })
             });
         }

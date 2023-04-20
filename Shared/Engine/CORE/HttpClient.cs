@@ -52,13 +52,37 @@ namespace Lampac.Engine.CORE
 
 
         #region GetLocation
-        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1, bool allowAutoRedirect = true)
+        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1, bool allowAutoRedirect = true, bool useproxy = false, WebProxy proxy = null)
         {
             try
             {
                 HttpClientHandler handler = new HttpClientHandler();
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                handler.AllowAutoRedirect = false;   
+                handler.AllowAutoRedirect = false;
+
+                #region proxy
+                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
+                {
+                    handler.UseProxy = true;
+                    handler.Proxy = proxy ?? webProxy();
+                }
+
+                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
+                {
+                    foreach (var p in AppInit.conf.globalproxy)
+                    {
+                        if (p.list == null || p.list.Count == 0)
+                            continue;
+
+                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
+                        {
+                            handler.UseProxy = true;
+                            handler.Proxy = webProxy(p);
+                            break;
+                        }
+                    }
+                }
+                #endregion
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {

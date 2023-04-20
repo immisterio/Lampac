@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.HQporner
 {
@@ -14,44 +14,29 @@ namespace Lampac.Controllers.HQporner
     {
         [HttpGet]
         [Route("hqr/vidosik")]
-        async public Task<ActionResult> Index(string goni)
+        async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.HQporner.enable)
                 return OnError("disable");
 
-            string memKey = $"HQporner:vidosik:{goni}";
-            if (!memoryCache.TryGetValue(memKey, out string iframeHtml))
+            string memKey = $"HQporner:view:{uri}";
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.HQporner.host}/{goni}", referer: AppInit.conf.HQporner.host, timeoutSeconds: 10, useproxy: AppInit.conf.HQporner.useproxy);
-                if (html == null)
-                    return OnError("html");
+                System.Net.WebProxy proxy = null;
+                if (AppInit.conf.HQporner.useproxy)
+                    proxy = HttpClient.webProxy();
 
-                string iframeUri = new Regex("<iframe [^>]+ src=\"//([^/]+/video/[^/]+/)\"").Match(html).Groups[1].Value;
-                iframeHtml = await HttpClient.Get($"https://{iframeUri}");
-                if (iframeHtml == null)
-                    return OnError("iframeHtml");
+                stream_links = await HQpornerTo.StreamLinks(AppInit.conf.HQporner.host, uri, 
+                               htmlurl => HttpClient.Get(htmlurl, timeoutSeconds: 8, proxy: proxy), 
+                               iframeurl => HttpClient.Get(iframeurl, timeoutSeconds: 8, proxy: proxy));
 
-                memoryCache.Set(memKey, iframeHtml, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
+                if (stream_links == null || stream_links.Count == 0)
+                    return OnError("stream_links");
+
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            var stream_links = new Dictionary<string, string>();
-            var match = new Regex("src=\"//([^\"]+)\" title=\"([^\"]+)\"").Match(iframeHtml.Replace("\\", ""));
-            while (match.Success)
-            {
-                if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value) && !match.Groups[2].Value.Contains("Default"))
-                {
-                    string hls = "http://" + match.Groups[1].Value;
-                    stream_links.TryAdd(match.Groups[2].Value, HostStreamProxy(AppInit.conf.HQporner.streamproxy, hls));
-                }
-
-                match = match.NextMatch();
-            }
-
-            if (stream_links.Count == 0)
-                return OnError("stream_links");
-
-            stream_links = stream_links.Reverse().ToDictionary(k => k.Key, v => v.Value);
-            return Json(stream_links);
+            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.HQporner.streamproxy, v.Value)));
         }
     }
 }

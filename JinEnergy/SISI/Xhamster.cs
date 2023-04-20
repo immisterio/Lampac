@@ -20,7 +20,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = XhamsterTo.Menu(null, sort),
-                list = XhamsterTo.Playlist("xmr/vidosik", html, picture => picture)
+                list = XhamsterTo.Playlist("xmr/vidosik", html)
             };
         }
 

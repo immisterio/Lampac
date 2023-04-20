@@ -1,10 +1,12 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared.Engine.SISI;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Lampac.Controllers.Ebalovo
 {
@@ -12,37 +14,29 @@ namespace Lampac.Controllers.Ebalovo
     {
         [HttpGet]
         [Route("elo/vidosik")]
-        async public Task<ActionResult> Index(string goni)
+        async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.Ebalovo.enable)
                 return OnError("disable");
 
-            string memKey = $"Ebalovo:vidosik:{goni}";
-            if (!memoryCache.TryGetValue(memKey, out string location))
+            string memKey = $"ebalovo:view:{uri}";
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Ebalovo.host}/{goni}");
-                if (html == null)
-                    return OnError("html");
+                System.Net.WebProxy proxy = null;
+                if (AppInit.conf.Ebalovo.useproxy)
+                    proxy = HttpClient.webProxy();
 
-                string stream_link = null;
-                var match = new Regex($"(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
-                while (match.Success)
-                {
-                    stream_link = match.Groups[1].Value;
-                    match = match.NextMatch();
-                }
+                stream_links = await EbalovoTo.StreamLinks(AppInit.conf.Ebalovo.host, uri,
+                               url => HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy),
+                               location => HttpClient.GetLocation(location, timeoutSeconds: 8, proxy: proxy, referer: $"{AppInit.conf.Ebalovo.host}/"));
 
-                if (string.IsNullOrWhiteSpace(stream_link))
-                    return OnError("stream_link");
+                if (stream_links == null || stream_links.Count == 0)
+                    return OnError("stream_links");
 
-                location = await HttpClient.GetLocation(stream_link, referer: $"{AppInit.conf.Ebalovo.host}/");
-                if (location == null || stream_link == location || location.Contains("/get_file/"))
-                    return OnError("location");
-
-                memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Redirect(HostStreamProxy(true, location));
+            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Ebalovo.streamproxy, v.Value)));
         }
     }
 }

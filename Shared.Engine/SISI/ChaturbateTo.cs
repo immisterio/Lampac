@@ -2,6 +2,7 @@
 using Shared.Model;
 using System;
 using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Engine.SISI
 {
@@ -20,7 +21,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<string, string> onpicture)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>();
 
@@ -37,14 +38,19 @@ namespace Shared.Engine.SISI
                         continue;
                 }
 
-                playlists.Add(new PlaylistItem()
+                var pl = new PlaylistItem()
                 {
                     name = baba,
                     quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
                     video = $"{uri}?baba={baba}",
-                    picture = onpicture.Invoke(new Regex(" src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value),
+                    picture = new Regex(" src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value,
                     json = true
-                });
+                };
+
+                if (onplaylist != null)
+                    pl = onplaylist.Invoke(pl);
+
+                playlists.Add(pl);
             }
 
             return playlists;

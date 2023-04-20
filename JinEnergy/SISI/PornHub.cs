@@ -20,7 +20,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = PornHubTo.Menu(null, sort),
-                list = PornHubTo.Playlist("phub/vidosik", html, picture => picture)
+                list = PornHubTo.Playlist("phub/vidosik", html)
             };
         }
 

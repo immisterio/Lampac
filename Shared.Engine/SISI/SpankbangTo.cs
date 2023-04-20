@@ -26,7 +26,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<string, string> onpicture)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>();
 
@@ -45,15 +45,20 @@ namespace Shared.Engine.SISI
                     string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
                     img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
 
-                    playlists.Add(new PlaylistItem()
+                    var pl = new PlaylistItem()
                     {
                         name = title,
                         video = $"{uri}?uri={HttpUtility.UrlEncode(link)}",
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
-                        picture = onpicture.Invoke(img),
+                        picture = img,
                         time = duration,
                         json = true
-                    });
+                    };
+
+                    if (onplaylist != null)
+                        pl = onplaylist.Invoke(pl);
+
+                    playlists.Add(pl);
                 }
             }
 

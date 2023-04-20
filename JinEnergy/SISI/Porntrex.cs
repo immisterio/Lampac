@@ -21,7 +21,11 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = PorntrexTo.Menu(null, sort),
-                list = PorntrexTo.Playlist("ptx/vidosik", html, picture => $"http://vi.sisi.am/poster.jpg?href={HttpUtility.UrlEncode(picture)}&r=200")
+                list = PorntrexTo.Playlist("ptx/vidosik", html, pl => 
+                {
+                    pl.picture = $"http://vi.sisi.am/poster.jpg?href={HttpUtility.UrlEncode(pl.picture)}&r=200";
+                    return pl;
+                })
             };
         }
 

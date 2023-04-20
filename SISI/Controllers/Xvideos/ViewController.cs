@@ -1,13 +1,12 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
 using System;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Xvideos
 {
@@ -15,48 +14,23 @@ namespace Lampac.Controllers.Xvideos
     {
         [HttpGet]
         [Route("xds/vidosik")]
-        async public Task<ActionResult> Index(string goni)
+        async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.Xvideos.enable)
                 return OnError("disable");
 
-            string memKey = $"Xvideos:vidosik:{goni}";
-            if (!memoryCache.TryGetValue(memKey, out (string m3u8, string stream_link) cache))
+            string memKey = $"xvideos:view:{uri}";
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Xvideos.host}/{Regex.Replace(goni, "^([^/]+)/.*", "$1/_")}", timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy);
-                if (html == null)
-                    return OnError("html");
+                stream_links = await XvideosTo.StreamLinks(AppInit.conf.Xvideos.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy));
 
-                string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html).Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(stream_link))
-                    return OnError("stream_link");
+                if (stream_links == null || stream_links.Count == 0)
+                    return OnError("stream_links");
 
-                string m3u8 = await HttpClient.Get(stream_link, timeoutSeconds: 8, useproxy: AppInit.conf.Xvideos.useproxy);
-                if (m3u8 == null)
-                    return OnError("m3u8");
-
-                cache = (m3u8, stream_link);
-                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            var playlists = new List<PlaylistItem>();
-            foreach (string line in cache.m3u8.Split('\n'))
-            {
-                if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("hls-"))
-                    continue;
-
-                string hls = $"{Regex.Replace(cache.stream_link, "/hls.m3u8.*", "")}/{line}";
-                playlists.Add(new PlaylistItem()
-                {
-                    name = new Regex("hls-([0-9]+)p").Match(line).Groups[1].Value,
-                    video = HostStreamProxy(AppInit.conf.Xvideos.streamproxy, hls)
-                });
-            }
-
-            if (playlists.Count == 0)
-                return OnError("playlists");
-
-            return Json(playlists.OrderByDescending(i => { int.TryParse(i.name, out int q); return q; }).ToDictionary(k => $"{k.name}p", v => v.video));
+            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Xvideos.streamproxy, v.Value)));
         }
     }
 }

@@ -2,11 +2,11 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Spankbang
 {
@@ -14,81 +14,27 @@ namespace Lampac.Controllers.Spankbang
     {
         [HttpGet]
         [Route("sbg/vidosik")]
-        async public Task<ActionResult> Index(string goni)
+        async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.Spankbang.enable)
                 return OnError("disable");
 
-            #region Кеш запроса
-            string memKey = $"Spankbang:vidosik:{goni}";
-            if (!memoryCache.TryGetValue(memKey, out string stream_data))
+            string memKey = $"spankbang:view:{uri}";
+            if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
+                return OnError(errormsg);
+
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Spankbang.host}/{goni}", timeoutSeconds: 10, httpversion: 2, addHeaders: ListController.headers);
+                stream_links = await SpankbangTo.StreamLinks(AppInit.conf.Spankbang.host, uri, 
+                               url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy, addHeaders: ListController.headers));
 
-                stream_data = StringConvert.FindLastText(html ?? "", "stream_data", "</script>");
+                if (stream_links == null || stream_links.Count == 0)
+                    return OnError("stream_links");
 
-                if (string.IsNullOrWhiteSpace(stream_data))
-                    return OnError("stream_data");
-
-                memoryCache.Set(memKey, stream_data, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
-            #endregion
 
-            #region Достаем ссылки на поток
-            var stream_links = new Dictionary<string, string>();
-
-            var match = new Regex("'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'").Match(stream_data);
-            while (match.Success)
-            {
-                string hls = match.Groups[3].Value.Replace("https:", "http:");
-                stream_links.TryAdd($"{match.Groups[1].Value}{match.Groups[2].Value}", HostStreamProxy(AppInit.conf.Spankbang.streamproxy, hls));
-                match = match.NextMatch();
-            }
-            #endregion
-
-            if (stream_links.Count == 0)
-                return OnError("stream_links");
-
-            stream_links = stream_links.OrderByDescending(i => i.Key == "4k").ThenByDescending(i => int.Parse(i.Key.Replace("p", "").Replace("k", ""))).ToDictionary(k => k.Key, v => v.Value);
-            return Json(stream_links);
+            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Spankbang.streamproxy, v.Value)));
         }
-
-
-        #region getCSRF
-        async public ValueTask<string> getCsrfSession()
-        {
-            string memKey = "porn-spankbang:getCSRF-sb_csrf_session";
-            if (memoryCache.TryGetValue(memKey, out string csrf))
-                return csrf;
-
-            try
-            {
-                using (var client = new System.Net.Http.HttpClient())
-                {
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
-
-                    using (var response = await client.GetAsync(AppInit.conf.Spankbang.host))
-                    {
-                        if (response.Headers.TryGetValues("Set-Cookie", out var cook))
-                        {
-                            foreach (string line in cook)
-                            {
-                                if (line.Contains("sb_csrf_session="))
-                                {
-                                    csrf = new Regex("sb_csrf_session=([^;]+)(;|$)").Match(line).Groups[1].Value;
-                                    memoryCache.Set(memKey, csrf, TimeSpan.FromMinutes(10));
-                                    return csrf;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-
-            return string.Empty;
-        }
-        #endregion
     }
 }

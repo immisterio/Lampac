@@ -19,7 +19,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = XnxxTo.Menu(null),
-                list = XnxxTo.Playlist("xnx/vidosik", html, picture => picture)
+                list = XnxxTo.Playlist("xnx/vidosik", html)
             };
         }
 

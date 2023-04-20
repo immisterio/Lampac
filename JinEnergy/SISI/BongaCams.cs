@@ -19,7 +19,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = BongaCamsTo.Menu(null, sort),
-                list = BongaCamsTo.Playlist(html, picture => picture)
+                list = BongaCamsTo.Playlist(html)
             };
         }
     }

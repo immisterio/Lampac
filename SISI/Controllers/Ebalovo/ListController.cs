@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Ebalovo
 {
@@ -20,108 +19,30 @@ namespace Lampac.Controllers.Ebalovo
             if (!AppInit.conf.Ebalovo.enable)
                 return OnError("disable");
 
-            #region Формируем страницу запроса
-            string url = $"{AppInit.conf.Ebalovo.host}/";
-
-            if (!string.IsNullOrWhiteSpace(search))
+            string memKey = $"elo:{search}:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                url += $"search/{HttpUtility.UrlEncode(search)}/";
-            }
-            else
-            {
-                if (!string.IsNullOrWhiteSpace(sort))
-                    url += $"{sort}/";
-            }
-
-            if (pg > 1)
-                url += $"{pg}/";
-            #endregion
-
-            string memKey = $"Ebalovo:list:{search}:{sort}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out string html))
-            {
-                html = await HttpClient.Get(url);
-                if (html == null || !html.Contains("<div class=\"item\">"))
+                string html = await EbalovoTo.InvokeHtml(AppInit.conf.Ebalovo.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Ebalovo.useproxy));
+                if (html == null)
                     return OnError("html");
 
-                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
-            }
+                playlists = EbalovoTo.Playlist($"{host}/elo/vidosik", html, pl => 
+                {
+                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
+                    return pl;
+                });
 
-            var playlists = getTubes(html);
-            if (playlists.Count == 0)
-                return OnError("playlists");
+                if (playlists.Count == 0)
+                    return OnError("playlists");
+
+                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
+            }
 
             return new JsonResult(new
             {
-                menu = new List<MenuItem>()
-                {
-                    new MenuItem()
-                    {
-                        title = "Поиск",
-                        search_on = "search_on",
-                        playlist_url = $"{host}/elo",
-                    },
-                    new MenuItem()
-                    {
-                        title = $"Сортировка: {(string.IsNullOrWhiteSpace(sort) ? "новинки" : sort)}",
-                        playlist_url = "submenu",
-                        submenu = new List<MenuItem>()
-                        {
-                            new MenuItem()
-                            {
-                                title = "Новинки",
-                                playlist_url = $"{host}/elo"
-                            },
-                            new MenuItem()
-                            {
-                                title = "Лучшее",
-                                playlist_url = $"{host}/elo?sort=porno-online"
-                            },
-                            new MenuItem()
-                            {
-                                title = "Популярное",
-                                playlist_url = $"{host}/elo?sort=xxx-top"
-                            }
-                        }
-                    }
-                },
+                menu = EbalovoTo.Menu(host, sort),
                 list = playlists
             });
         }
-
-
-        #region getTubes
-        List<PlaylistItem> getTubes(string html)
-        {
-            var playlists = new List<PlaylistItem>();
-
-            foreach (string row in Regex.Split(Regex.Replace(html, "[\n\r\t]+", ""), "<div class=\"item\">"))
-            {
-                if (string.IsNullOrWhiteSpace(row) || !row.Contains("<div class=\"item-info\">"))
-                    continue;
-
-                string link = new Regex($"<a href=\"https?://[^/]+/(video/[^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                string title = new Regex("<div class=\"item-title\">([^<]+)</div>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-
-                if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
-                {
-                    string duration = new Regex(" data-eb=\"([^;\"]+);", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    var img = new Regex("( )src=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
-                    if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
-                        img = new Regex("(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
-
-                    playlists.Add(new PlaylistItem()
-                    {
-                        name = title,
-                        video = $"{host}/elo/vidosik?goni={HttpUtility.UrlEncode(link)}",
-                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img[2].Value),
-                        time = duration
-                    });
-                }
-            }
-
-            return playlists;
-        }
-        #endregion
     }
 }

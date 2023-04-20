@@ -29,7 +29,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<string, string> onpicture)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>();
             string videoCategory = StringConvert.FindLastText(html, "id=\"videoCategory\"") ??
@@ -63,14 +63,19 @@ namespace Shared.Engine.SISI
                     string? img = m("(data-mediumthumb|data-path)=\"(https?://[^\"]+)\"", 2) ?? m("<img src=\"([^\"]+)\"");
                     string? duration = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<");
 
-                    playlists.Add(new PlaylistItem()
+                    var pl = new PlaylistItem()
                     {
                         name = title,
                         video = $"{uri}?vkey={vkey}",
-                        picture = onpicture.Invoke(img ?? string.Empty),
+                        picture = img ?? string.Empty,
                         time = duration,
                         json = true
-                    });
+                    };
+
+                    if (onplaylist != null)
+                        pl = onplaylist.Invoke(pl);
+
+                    playlists.Add(pl);
                 }
             }
 

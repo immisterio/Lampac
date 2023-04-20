@@ -7,6 +7,21 @@ namespace JinEnergy.Engine
 {
     public static class JsHttpClient
     {
+        #region headers
+        static string headers(List<(string name, string val)>? addHeaders)
+        {
+            string hed = "'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'";
+            if (addHeaders != null && addHeaders.Count > 0)
+            {
+                foreach (var h in addHeaders)
+                    hed += $", '{h.name}':'{h.val}'";
+            }
+
+            return "headers:{" + hed + "}";
+        }
+        #endregion
+
+
         #region Get
         public static ValueTask<string?> Get(string url, Encoding? encoding = null, int timeoutSeconds = 8, List<(string name, string val)>? addHeaders = null)
         {
@@ -42,7 +57,7 @@ namespace JinEnergy.Engine
                     if (AppInit.JSRuntime == null)
                         return default;
 
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "', false, {dataType: 'text'})");
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "', false, {dataType: 'text', "+ headers(addHeaders) + "})");
                 }
 
                 using (var client = new HttpClient())
@@ -100,7 +115,7 @@ namespace JinEnergy.Engine
                     if (AppInit.JSRuntime == null)
                         return default;
 
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "',true,{dataType: '" + data.ReadAsStringAsync().Result + "'})");
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "',true,{dataType: '" + data.ReadAsStringAsync().Result + "', "+ headers(addHeaders) + "})");
                 }
 
                 using (var client = new HttpClient())

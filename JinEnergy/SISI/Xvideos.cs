@@ -19,7 +19,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = XvideosTo.Menu(null),
-                list = XvideosTo.Playlist("xds/vidosik", html, picture => picture)
+                list = XvideosTo.Playlist("xds/vidosik", html)
             };
         }
 

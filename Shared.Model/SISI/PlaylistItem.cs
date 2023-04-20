@@ -13,5 +13,7 @@
         public string? time { get; set; }
 
         public bool json { get; set; }
+
+        public Dictionary<string, string>? qualitys { get; set; }
     }
 }

@@ -22,11 +22,16 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"Chaturbate:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await ChaturbateTo.InvokeHtml(AppInit.conf.Chaturbate.corsHost(), sort, pg, url => HttpClient.Get(url, useproxy: AppInit.conf.Chaturbate.useproxy));
+                string html = await ChaturbateTo.InvokeHtml(AppInit.conf.Chaturbate.corsHost(), sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Chaturbate.useproxy));
                 if (html == null)
                     return OnError("html");
 
-                playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html, picture => HostImgProxy(0, AppInit.conf.sisi.heightPicture, picture));
+                playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html, pl => 
+                {
+                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
+                    return pl;
+                });
+
                 if (playlists.Count == 0)
                     return OnError("playlists");
 

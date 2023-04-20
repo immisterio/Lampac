@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.SISI;
+using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -26,7 +27,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<string, string> onpicture)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>();
 
@@ -45,14 +46,19 @@ namespace Shared.Engine.SISI
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
                         img = new Regex("(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
 
-                    playlists.Add(new PlaylistItem()
+                    var pl = new PlaylistItem()
                     {
                         name = title,
                         video = $"{uri}?uri={HttpUtility.UrlEncode(link)}",
-                        picture = onpicture.Invoke(img[2].Value),
+                        picture = img[2].Value,
                         time = duration,
                         json = true
-                    });
+                    };
+
+                    if (onplaylist != null)
+                        pl = onplaylist.Invoke(pl);
+
+                    playlists.Add(pl);
                 }
             }
 
@@ -97,7 +103,7 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onlocation = null)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
@@ -114,6 +120,15 @@ namespace Shared.Engine.SISI
 
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
+
+            if (onlocation != null)
+            {
+                string? location = await onlocation.Invoke(stream_link);
+                if (location == null || stream_link == location || location.Contains("/get_file/"))
+                    return null;
+
+                stream_link = location;
+            }
 
             return new Dictionary<string, string>()
             {

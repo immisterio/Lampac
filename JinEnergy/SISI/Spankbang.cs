@@ -20,7 +20,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = SpankbangTo.Menu(null, sort),
-                list = SpankbangTo.Playlist("sbg/vidosik", html, picture => picture)
+                list = SpankbangTo.Playlist("sbg/vidosik", html)
             };
         }
 

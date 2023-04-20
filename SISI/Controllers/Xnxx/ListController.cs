@@ -1,14 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using System;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Xnxx
 {
@@ -21,70 +19,30 @@ namespace Lampac.Controllers.Xnxx
             if (!AppInit.conf.Xnxx.enable)
                 return OnError("disable");
 
-            string url = $"{AppInit.conf.Xnxx.host}/best/{DateTime.Today.AddMonths(-1).ToString("yyyy-MM")}/{pg}";
-            if (!string.IsNullOrWhiteSpace(search))
-                url = $"{AppInit.conf.Xnxx.host}/search/{HttpUtility.UrlEncode(search)}/{pg}";
-
-            string memKey = $"Xnxx:list:{search}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out string html))
+            string memKey = $"xnx:list:{search}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xnxx.useproxy);
-                if (html == null || !html.Contains("<div id=\"video_"))
+                string html = await XnxxTo.InvokeHtml(AppInit.conf.Xnxx.host, search, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xnxx.useproxy));
+                if (html == null)
                     return OnError("html");
 
-                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
-            }
+                playlists = XnxxTo.Playlist($"{host}/xnx/vidosik", html, pl =>
+                {
+                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
+                    return pl;
+                });
 
-            var playlists = getTubes(html);
-            if (playlists.Count == 0)
-                return OnError("playlists");
+                if (playlists.Count == 0)
+                    return OnError("playlists");
+
+                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
+            }
 
             return new JsonResult(new
             {
-                menu = new List<MenuItem>()
-                {
-                    new MenuItem()
-                    {
-                        title = "Поиск",
-                        search_on = "search_on",
-                        playlist_url = $"{host}/xnx",
-                    }
-                },
+                menu = XnxxTo.Menu(host),
                 list = playlists
             });
         }
-
-
-        #region getTubes
-        List<PlaylistItem> getTubes(string html)
-        {
-            var playlists = new List<PlaylistItem>();
-
-            foreach (string row in Regex.Split(Regex.Replace(html, "[\n\r\t]+", ""), "<div id=\"video_").Skip(1))
-            {
-                var g = new Regex($"<a href=\"/(video-[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups;
-                string quality = new Regex("<span class=\"superfluous\"> - </span>([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-
-                if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
-                {
-                    string duration = new Regex("</span>([^<]+)<span class=\"video-hd\">", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                    img = img.Replace(".THUMBNUM.", ".1.");
-
-                    playlists.Add(new PlaylistItem()
-                    {
-                        name = g[2].Value,
-                        video = $"{host}/xnx/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
-                        time = duration,
-                        quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
-                        json = true
-                    });
-                }
-            }
-
-            return playlists;
-        }
-        #endregion
     }
 }

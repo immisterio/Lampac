@@ -20,7 +20,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = HQpornerTo.Menu(null, sort),
-                list = HQpornerTo.Playlist("hqr/vidosik", html, picture => picture)
+                list = HQpornerTo.Playlist("hqr/vidosik", html)
             };
         }
 

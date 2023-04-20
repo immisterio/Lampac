@@ -1,14 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Web;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using System;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Eporner
 {
@@ -21,119 +19,31 @@ namespace Lampac.Controllers.Eporner
             if (!AppInit.conf.Eporner.enable)
                 return OnError("disable");
 
-            #region Формируем страницу запроса и меню
             pg += 1;
-            string url = $"{AppInit.conf.Eporner.host}/";
-
-            if (!string.IsNullOrWhiteSpace(search))
+            string memKey = $"epr:{search}:{sort}:{pg}";
+            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                url += $"search/{HttpUtility.UrlEncode(search)}/";
-            }
-            else
-            {
-                if (!string.IsNullOrWhiteSpace(sort))
-                    url += $"{sort}/";
-            }
-
-            if (pg > 1)
-                url += $"{pg}/";
-            #endregion
-
-            string memKey = $"Eporner:list:{search}:{sort}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out string html))
-            {
-                html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Eporner.useproxy);
-                if (html == null || !Regex.IsMatch(html, "<div class=\"mb( hdy)?\""))
+                string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Eporner.useproxy));
+                if (html == null)
                     return OnError("html");
 
-                memoryCache.Set(memKey, html, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
-            }
+                playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html, pl =>
+                {
+                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
+                    return pl;
+                });
 
-            var playlists = getTubes(html);
-            if (playlists.Count == 0)
-                return OnError("playlists");
+                if (playlists.Count == 0)
+                    return OnError("playlists");
+
+                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
+            }
 
             return new JsonResult(new
             {
-                menu = new List<MenuItem>()
-                {
-                    new MenuItem()
-                    {
-                        title = "Поиск",
-                        search_on = "search_on",
-                        playlist_url = $"{host}/epr",
-                    },
-                    new MenuItem()
-                    {
-                        title = $"Сортировка: {(string.IsNullOrWhiteSpace(sort) ? "новинки" : sort)}",
-                        playlist_url = "submenu",
-                        submenu = new List<MenuItem>()
-                        {
-                            new MenuItem()
-                            {
-                                title = "Новинки",
-                                playlist_url = $"{host}/epr"
-                            },
-                            new MenuItem()
-                            {
-                                title = "Топ просмотра",
-                                playlist_url = $"{host}/epr?sort=most-viewed"
-                            },
-                            new MenuItem()
-                            {
-                                title = "Топ рейтинга",
-                                playlist_url = $"{host}/epr?sort=top-rated"
-                            },
-                            new MenuItem()
-                            {
-                                title = "Длинные ролики",
-                                playlist_url = $"{host}/epr?sort=longest"
-                            },
-                            new MenuItem()
-                            {
-                                title = "Короткие ролики",
-                                playlist_url = $"{host}/epr?sort=shortest"
-                            }
-                        }
-                    }
-                },
+                menu = EpornerTo.Menu(host, sort),
                 list = playlists
             });
         }
-
-
-        #region getTubes
-        List<PlaylistItem> getTubes(string html)
-        {
-            var playlists = new List<PlaylistItem>();
-
-            foreach (string row in Regex.Split(html, "<div class=\"mb( hdy)?\"").Skip(1))
-            {
-                var g = new Regex("<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>", RegexOptions.IgnoreCase).Match(row).Groups;
-                string quality = new Regex("<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", RegexOptions.IgnoreCase).Match(row).Groups[2].Value;
-
-                if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
-                {
-                    string img = new Regex(" data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(img))
-                        img = new Regex("<img src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-
-                    string duration = new Regex("<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[2].Value.Trim();
-
-                    playlists.Add(new PlaylistItem()
-                    {
-                        name = g[2].Value,
-                        video = $"{host}/epr/vidosik?goni={HttpUtility.UrlEncode(g[1].Value)}",
-                        picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, img),
-                        quality = quality,
-                        time = duration,
-                        json = true
-                    });
-                }
-            }
-
-            return playlists;
-        }
-        #endregion
     }
 }

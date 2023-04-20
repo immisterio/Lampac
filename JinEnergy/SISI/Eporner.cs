@@ -20,7 +20,7 @@ namespace JinEnergy.SISI
             return new
             {
                 menu = EpornerTo.Menu(null, sort),
-                list = EpornerTo.Playlist("epr/vidosik", html, picture => picture)
+                list = EpornerTo.Playlist("epr/vidosik", html)
             };
         }
 
@@ -28,7 +28,10 @@ namespace JinEnergy.SISI
         [JSInvokable("epr/vidosik")]
         async public static Task<dynamic> Stream(string args)
         {
-            var stream_links = await EpornerTo.StreamLinks(AppInit.Eporner.corsHost(), arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), jsonurl => JsHttpClient.Get(AppInit.Eporner.corsHost(jsonurl)));
+            var stream_links = await EpornerTo.StreamLinks(AppInit.Eporner.corsHost(), arg("uri", args), 
+                               htmlurl => JsHttpClient.Get(htmlurl), 
+                               jsonurl => JsHttpClient.Get(AppInit.Eporner.corsHost(jsonurl)));
+
             if (stream_links == null)
                 return OnError("stream_links");
 
