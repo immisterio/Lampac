@@ -1,4 +1,6 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model;
+
+namespace Lampac.Models.LITE
 {
     public class OnlinesSettings
     {
@@ -28,6 +30,27 @@
 
         public bool streamproxy { get; set; }
 
+
         public bool corseu { get; set; }
+
+        public string? webcorshost { get; set; }
+
+        public string corsHost()
+        {
+            string? crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.corseuhost : null;
+            if (string.IsNullOrWhiteSpace(crhost))
+                return host;
+
+            return $"{crhost}/{host}";
+        }
+
+        public string corsHost(string uri)
+        {
+            string? crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.corseuhost : null;
+            if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri) || uri.Contains(crhost))
+                return uri;
+
+            return $"{crhost}/{uri}";
+        }
     }
 }

@@ -5,6 +5,9 @@ namespace Shared.Model
 {
     public class AppInit
     {
+        public static string corseuhost => "https://cors.eu.org";
+
+
         public SisiSettings BongaCams = new SisiSettings("https://rus.bongacams.com");
 
         public SisiSettings Chaturbate = new SisiSettings("https://chaturbate.com");
@@ -62,7 +65,7 @@ namespace Shared.Model
         public OnlinesSettings CDNmovies = new OnlinesSettings("https://cdnmovies.nl");
 
 
-        public OnlinesSettings VCDN = new OnlinesSettings(string.Empty, apihost: "https://89442664434375553.svetacdn.in/0HlZgU1l1mw5");
+        public OnlinesSettings VCDN = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5");
 
         public OnlinesSettings VoKino = new OnlinesSettings("http://api.vokino.tv") { streamproxy = true };
 
@@ -72,7 +75,7 @@ namespace Shared.Model
 
         public HDVBSettings HDVB = new HDVBSettings("https://apivb.info", "5e2fe4c70bafd9a7414c4f170ee1b192");
 
-        public OnlinesSettings Seasonvar = new OnlinesSettings(string.Empty, apihost: "http://api.seasonvar.ru");
+        public OnlinesSettings Seasonvar = new OnlinesSettings("http://api.seasonvar.ru");
 
         public KinoPubSettings KinoPub = new KinoPubSettings("https://api.service-kp.com") { uhd = true };
 

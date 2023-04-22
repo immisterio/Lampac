@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace JinEnergy.Engine
 {
@@ -10,14 +11,14 @@ namespace JinEnergy.Engine
         #region headers
         static string headers(List<(string name, string val)>? addHeaders)
         {
-            string hed = "'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'";
+            string hed = string.Empty;
             if (addHeaders != null && addHeaders.Count > 0)
             {
                 foreach (var h in addHeaders)
-                    hed += $", '{h.name}':'{h.val}'";
+                    hed += $"'{h.name}':'{h.val}',";
             }
 
-            return "headers:{" + hed + "}";
+            return "headers:{" + Regex.Replace(hed, ",$", "") + "}";
         }
         #endregion
 
@@ -57,7 +58,7 @@ namespace JinEnergy.Engine
                     if (AppInit.JSRuntime == null)
                         return default;
 
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "', false, {dataType: 'text', "+ headers(addHeaders) + "})");
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "', false, {dataType: 'text', " + headers(addHeaders) + "})");
                 }
 
                 using (var client = new HttpClient())
@@ -115,7 +116,7 @@ namespace JinEnergy.Engine
                     if (AppInit.JSRuntime == null)
                         return default;
 
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "',true,{dataType: '" + data.ReadAsStringAsync().Result + "', "+ headers(addHeaders) + "})");
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "','" + data.ReadAsStringAsync().Result + "',{dataType: 'text', "+ headers(addHeaders) + "})");
                 }
 
                 using (var client = new HttpClient())

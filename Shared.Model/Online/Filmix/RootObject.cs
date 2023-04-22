@@ -2,6 +2,6 @@
 {
     public class RootObject
     {
-        public PlayerLinks player_links { get; set; }
+        public PlayerLinks? player_links { get; set; }
     }
 }

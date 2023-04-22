@@ -111,7 +111,7 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>> onjson)
+        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>> onjson, Func<string, string>? onlog = null)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
@@ -129,14 +129,18 @@ namespace Shared.Engine.SISI
             if (json == null)
                 return null;
 
+            onlog?.Invoke("json: " + json);
+
             var stream_links = new Dictionary<string, string>();
-            var match = new Regex("\"src\": +\"(https?://[^/]+/[^\"]+-([0-9]+p).mp4)\",").Match(json);
+            var match = new Regex("\"src\":( +)?\"(https?://[^/]+/[^\"]+-([0-9]+p).mp4)\",").Match(json);
             while (match.Success)
             {
-                stream_links.TryAdd(match.Groups[2].Value, match.Groups[1].Value);
+                onlog?.Invoke($"{match.Groups[3].Value} /  {match.Groups[2].Value}");
+                stream_links.TryAdd(match.Groups[3].Value, match.Groups[2].Value);
                 match = match.NextMatch();
             }
 
+            onlog?.Invoke("stream_links: " + stream_links.Count);
             return stream_links;
         }
 

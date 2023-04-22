@@ -72,6 +72,19 @@ namespace Lampac.Engine
             return uri;
         }
 
+        async public ValueTask<T> InvokeCache<T>(string key, int min, Func<ValueTask<T>> onget)
+        {
+            if (memoryCache.TryGetValue(key, out T val))
+                return val;
+
+            val = await onget.Invoke();
+            if (val == null || val.Equals(default(T)))
+                return default;
+
+            memoryCache.Set(key, val, DateTime.Now.AddMinutes(min));
+            return val;
+        }
+
         public new void Dispose()
         {
             serviceScope?.Dispose();

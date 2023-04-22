@@ -36,7 +36,7 @@ namespace Shared.Engine.SISI
                     continue;
 
                 string link = Regex.Match(row, "<a href=\"/([^\"]+)\"", RegexOptions.IgnoreCase).Groups[1].Value;
-                string title = Regex.Match(row, "class=\"(n|name)\">([^<]+)<", RegexOptions.IgnoreCase).Groups[1].Value;
+                string title = Regex.Match(row, "class=\"(n|name)\">([^<]+)<", RegexOptions.IgnoreCase).Groups[2].Value;
 
                 if (!string.IsNullOrWhiteSpace(link) && !string.IsNullOrWhiteSpace(title))
                 {
