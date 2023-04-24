@@ -8,7 +8,7 @@ namespace JinEnergy.Online
     public class FilmixController : BaseController
     {
         [JSInvokable("lite/filmix")]
-        async public static Task<dynamic> Index(string args)
+        async public static Task<string> Index(string args)
         {
             int s = int.Parse(arg("s", args) ?? "-1");
             int t = int.Parse(arg("t", args) ?? "0");
@@ -28,9 +28,14 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            postid = postid == 0 ? await InvStructCache(id, $"filmix:search:{title}:{original_title}:{clarification}", () => oninvk.Search(title, original_title, clarification, year)) : postid;
             if (postid == 0)
-                return OnError("postid");
+            {
+                var res = await InvStructCache(id, $"filmix:search:{title}:{original_title}:{clarification}", () => oninvk.Search(title, original_title, clarification, year));
+                if (res.id == 0)
+                    return res.similars;
+
+                postid = res.id;
+            }
 
             var player_links = await InvokeCache(id, $"filmix:post:{postid}", () => oninvk.Post(postid));
             if (player_links == null)

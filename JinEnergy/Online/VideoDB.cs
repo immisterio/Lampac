@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class VideoDBController : BaseController
     {
         [JSInvokable("lite/videodb")]
-        async public static Task<dynamic> Index(string args)
+        async public static Task<string> Index(string args)
         {
             int s = int.Parse(arg("s", args) ?? "-1");
             int sid = int.Parse(arg("sid", args) ?? "-1");

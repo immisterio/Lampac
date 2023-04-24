@@ -45,6 +45,11 @@ namespace JinEnergy
                 Eneyida.enable = false;
             }
 
+            if (type != "apk")
+            {
+                VideoDB.enable = false;
+            }
+
             if (urlconf != null && urlconf.StartsWith("http"))
             {
                 var setings = await JsHttpClient.Get<Shared.Model.AppInit>(urlconf);

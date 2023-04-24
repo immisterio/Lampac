@@ -2,10 +2,14 @@
 {
     public class EmbedModel
     {
-        public string? translation_id { get; set; }
+        public string type { get; set; } = null!;
 
-        public string translation { get; set; }
+        public Dictionary<string, string> voices { get; set; }
 
-        public string code { get; set; }
+        public Dictionary<string, HashSet<int>> voiceSeasons { get; set; }
+
+        public Dictionary<string, List<Season>>? serial { get; set; }
+
+        public Dictionary<string, string>? movie { get; set; }
     }
 }

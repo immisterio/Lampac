@@ -1,5 +1,5 @@
-﻿using Lampac.Models.LITE.Ashdi;
-using Shared.Model.Online.Eneyida;
+﻿using Shared.Model.Online.Eneyida;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -96,42 +96,58 @@ namespace Shared.Engine.Online
                 return null;
 
             onlog?.Invoke("iframeUri: " + iframeUri);
-            result.content = await onget.Invoke(iframeUri);
-            if (result.content == null || !result.content.Contains("file:"))
+            string? content = await onget.Invoke(iframeUri);
+            if (content == null || !content.Contains("file:"))
                 return null;
 
-            onlog?.Invoke("result: " + result);
+            if (!content.Contains("file:'[{"))
+            {
+                result.content = content;
+            }
+            else
+            {
+                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
+                if (root == null || root.Count == 0)
+                    return null;
+
+                result.serial = root;
+            }
+
             return result;
         }
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, string? title, string? original_title, int year, int t, int s, string? href)
+        public string Html(EmbedModel result, int clarification, string? title, string? original_title, int year, int t, int s, string? href)
         {
             bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
+            var html = new StringBuilder();
+            html.Append("<div class=\"videos__line\">");
+
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region similar
-            if (result.content == null)
+            if (result.content == null && result.serial == null)
             {
                 if (string.IsNullOrWhiteSpace(href) && result.similars != null && result.similars.Count > 0)
                 {
                     foreach (var similar in result.similars)
                     {
-                        string link = host + $"lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+                        string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>";
+                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>");
                         firstjson = false;
                     }
 
-                    return html + "</div>";
+                    return html.ToString() + "</div>";
                 }
 
                 return string.Empty;
             }
             #endregion
 
-            if (!result.content.Contains("file:'[{"))
+            if (result.content != null)
             {
                 #region Фильм
                 string hls = Regex.Match(result.content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
@@ -140,100 +156,110 @@ namespace Shared.Engine.Online
 
                 #region subtitle
                 string subtitles = string.Empty;
-
                 string subtitle = new Regex("\"subtitle\":\"([^\"]+)\"").Match(result.content).Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(subtitle))
+
+                if (!string.IsNullOrEmpty(subtitle))
                 {
+                    var subbuild = new StringBuilder();
                     var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                         {
                             string suburl = onstreamfile.Invoke(match.Groups[2].Value);
-                            subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
+                            subbuild.Append("{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},");
                         }
 
                         match = match.NextMatch();
                     }
-                }
 
-                subtitles = Regex.Replace(subtitles, ",$", "");
+                    if (subbuild.Length > 0)
+                        subtitles = Regex.Replace(subbuild.ToString(), ",$", "");
+                }
                 #endregion
 
                 hls = onstreamfile.Invoke(hls);
-                html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
+                html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>");
                 #endregion
             }
             else
             {
                 #region Сериал
+                string? enc_href = HttpUtility.UrlEncode(href);
+
                 try
                 {
-                    var root = JsonSerializer.Deserialize<List<Voice>>(new Regex("file:'([^\n\r]+)',").Match(result.content).Groups[1].Value);
-                    if (root == null)
-                        return string.Empty;
-
                     if (s == -1)
                     {
-                        foreach (var voice in root)
+                        #region Сезоны
+                        var hashseason = new HashSet<string>();
+
+                        foreach (var voice in result.serial)
                         {
                             foreach (var season in voice.folder)
                             {
-                                if (html.Contains(season.title))
+                                if (hashseason.Contains(season.title))
                                     continue;
 
+                                hashseason.Add(season.title);
                                 string numberseason = Regex.Match(season.title, "([0-9]+)$").Groups[1].Value;
-                                string link = host + $"lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(href)}&s={numberseason}";
+                                if (string.IsNullOrEmpty(numberseason)) 
+                                    continue;
 
-                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>";
+                                string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
+
+                                html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>");
                                 firstjson = false;
                             }
                         }
+                        #endregion
                     }
                     else
                     {
                         #region Перевод
-                        for (int i = 0; i < root.Count; i++)
+                        for (int i = 0; i < result.serial.Count; i++)
                         {
-                            if (root[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
+                            if (result.serial[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
                                 continue;
 
                             if (t == -1)
                                 t = i;
 
-                            string link = host + $"lite/eneyida?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(href)}&s={s}&t={i}";
+                            string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
 
-                            html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + root[i].title + "</div>";
+                            html.Append("<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + result.serial[i].title + "</div>");
                         }
 
-                        html += "</div><div class=\"videos__line\">";
+                        html.Append("</div><div class=\"videos__line\">");
                         #endregion
 
-                        foreach (var episode in root[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
+                        foreach (var episode in result.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
                         {
                             #region subtitle
                             string subtitles = string.Empty;
 
-                            if (!string.IsNullOrWhiteSpace(episode.subtitle))
+                            if (!string.IsNullOrEmpty(episode.subtitle))
                             {
+                                var subbuild = new StringBuilder();
                                 var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
                                 while (match.Success)
                                 {
                                     if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                                     {
                                         string suburl = onstreamfile.Invoke(match.Groups[2].Value);
-                                        subtitles += "{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},";
+                                        subbuild.Append("{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},");
                                     }
 
                                     match = match.NextMatch();
                                 }
-                            }
 
-                            subtitles = Regex.Replace(subtitles, ",$", "");
+                                if (subbuild.Length > 0)
+                                    subtitles = Regex.Replace(subbuild.ToString(), ",$", "");
+                            }
                             #endregion
 
                             string file = onstreamfile.Invoke(episode.file);
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>";
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
                             firstjson = false;
                         }
                     }
@@ -245,7 +271,7 @@ namespace Shared.Engine.Online
                 #endregion
             }
 
-            return html + "</div>";
+            return html.ToString() + "</div>";
         }
         #endregion
     }

@@ -1,8 +1,8 @@
-﻿namespace Lampac.Models.LITE.VideoCDN
+﻿namespace Shared.Model.Online.VideoCDN
 {
     public class Folder
     {
-        public string comment { get; set; }
+        public string id { get; set; }
 
         public string file { get; set; }
     }

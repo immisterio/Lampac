@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.Ashdi.streamproxy, streamfile)
             );
 
-            string content = await InvokeCache($"ashdi:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(kinopoisk_id));
+            var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(kinopoisk_id));
             if (content == null)
                 return Content(string.Empty);
 

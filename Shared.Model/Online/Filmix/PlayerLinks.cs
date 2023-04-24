@@ -1,4 +1,6 @@
-﻿namespace Lampac.Models.LITE.Filmix
+﻿using System.Text.Json;
+
+namespace Lampac.Models.LITE.Filmix
 {
     public class PlayerLinks
     {
@@ -7,6 +9,6 @@
         /// <summary>
         /// сезон, (озвучка, (серия, item))
         /// </summary>
-        public Dictionary<string, Dictionary<string, Dictionary<string, Movie>>>? playlist { get; set; }
+        public Dictionary<string, Dictionary<string, JsonElement>>? playlist { get; set; }
     }
 }

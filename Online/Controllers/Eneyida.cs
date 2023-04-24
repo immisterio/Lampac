@@ -15,9 +15,6 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Eneyida.enable)
                 return Content(string.Empty);
 
-            if (original_language != "en")
-                clarification = 1;
-
             System.Net.WebProxy proxy = null;
             if (AppInit.conf.Eneyida.useproxy)
                 proxy = HttpClient.webProxy();
@@ -31,9 +28,9 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(AppInit.conf.Eneyida.streamproxy, onstreamtofile)
             );
 
-            var result = await InvokeCache($"eneyida:view:{original_title}:{year}:{href}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(clarification == 1 ? title : original_title, year, href));
+            var result = await InvokeCache($"eneyida:view:{original_title}:{year}:{href}:{clarification}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(clarification == 1 ? title : original_title, year, href));
 
-            return Content(oninvk.Html(result, title, original_title, year, t, s, href), "text/html; charset=utf-8");
+            return Content(oninvk.Html(result, clarification, title, original_title, year, t, s, href), "text/html; charset=utf-8");
         }
     }
 }

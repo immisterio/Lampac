@@ -1,9 +1,8 @@
-﻿using Lampac.Models.LITE.VideoCDN;
-using Lampac.Models.LITE;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Web;
 using System.Text.Json;
 using Shared.Model.Online.VideoCDN;
+using System.Text;
 
 namespace Shared.Engine.Online
 {
@@ -27,7 +26,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<List<EmbedModel>?> Embed(long kinopoisk_id, string? imdb_id)
+        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
         {
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return null;
@@ -37,283 +36,190 @@ namespace Shared.Engine.Online
             if (content == null)
                 return null;
 
-            var cache = new List<EmbedModel>();
+            var result = new EmbedModel();
+            result.type = Regex.Match(content, "id=\"videoType\" value=\"([^\"]+)\"").Groups[1].Value;
+            result.voices = new Dictionary<string, string>();
 
             if (content.Contains("</option>"))
             {
-                #region Несколько озвучек
+                result.voices.TryAdd("0", "По умолчанию");
+
                 var match = new Regex("<option +value=\"([0-9]+)\"[^>]+>([^<]+)</option>").Match(Regex.Replace(content, "[\n\r\t]+", ""));
                 while (match.Success)
                 {
                     string translation_id = match.Groups[1].Value;
                     string translation = match.Groups[2].Value.Trim();
 
-                    if (!string.IsNullOrWhiteSpace(translation))
-                    {
-                        string code = Regex.Match(content, "\"" + translation_id + "\":\"([^\"]+)\"").Groups[1].Value;
-                        if (string.IsNullOrWhiteSpace(code))
-                        {
-                            code = Regex.Match(content, "\"" + translation_id + "\":(\\[\\{[^\n\r]+\\}\\])(,|\\}'>)").Groups[1].Value;
-                            code = Regex.Split(code, ",\"[0-9]+\"")[0];
-                        }
-
-                        code = code.Replace("&quot;", "\"").Replace("\\\"", "\"").Replace("\\\\\\", "\\").Replace("\\\\", "\\");
-
-                        if (!string.IsNullOrWhiteSpace(code))
-                            cache.Add(new EmbedModel() { translation_id = translation_id, translation = translation, code = code });
-                    }
+                    if (!string.IsNullOrEmpty(translation_id) && !string.IsNullOrEmpty(translation))
+                        result.voices.TryAdd(translation_id, translation);
 
                     match = match.NextMatch();
+                }
+            }
+
+            string files = Regex.Match(content, "id=\"files\" value='([^\n\r]+)'>").Groups[1].Value;
+
+            if (result.type is "movie" or "anime")
+            {
+                result.movie = JsonSerializer.Deserialize<Dictionary<string, string>>(files);
+                if (result.movie == null)
+                    return null;
+            }
+            else
+            {
+                result.serial = JsonSerializer.Deserialize<Dictionary<string, List<Season>>>(files);
+                if (result.serial == null)
+                    return null;
+
+                #region voiceSeasons
+                result.voiceSeasons = new Dictionary<string, HashSet<int>>();
+
+                foreach (var voice in result.serial.OrderByDescending(k => k.Key == "0"))
+                {
+                    if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
+                    {
+                        foreach (var season in voice.Value)
+                        {
+                            if (result.voiceSeasons.TryGetValue(voice.Key, out HashSet<int> _s))
+                            {
+                                _s.Add(season.id);
+                            }
+                            else
+                            {
+                                result.voiceSeasons.TryAdd(voice.Key, new HashSet<int>() { season.id });
+                            }
+                        }
+                    }
+                }
+                #endregion
+            }
+
+            return result;
+        }
+        #endregion
+
+        #region Html
+        public string Html(EmbedModel result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s)
+        {
+            bool firstjson = true;
+            var html = new StringBuilder();
+            html.Append("<div class=\"videos__line\">");
+
+            if (result.type is "movie" or "anime")
+            {
+                #region Фильм
+                foreach (var voice in result.movie)
+                {
+                    if (result.voices.TryGetValue(voice.Key, out string name))
+                    {
+                        var streams = new List<(string link, string quality)>() { Capacity = 4 };
+
+                        foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                        {
+                            string link = m.Groups[2].Value;
+                            if (string.IsNullOrEmpty(link))
+                                continue;
+
+                            streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
+                        }
+
+                        if (streams.Count == 0)
+                            continue;
+
+                        string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+
+                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
+                        firstjson = false;
+                    }
                 }
                 #endregion
             }
             else
             {
-                #region Одна озвучка
-                string code = Regex.Match(content, "id=\"files\" value='([^\n\r]+)'>").Groups[1].Value;
-                code = code.Replace("&quot;", "\"").Replace("\\\"", "\"").Replace("\\\\\\", "\\").Replace("\\\\", "\\");
+                #region Сериал
+                string? enc_title = HttpUtility.UrlEncode(title);
+                string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-                string? translation_id = null;
-                string translation = "По умолчанию";
-
-                if (!string.IsNullOrWhiteSpace(code))
-                    cache.Add(new EmbedModel() { translation_id = translation_id, translation = translation, code = code });
-                #endregion
-            }
-
-            if (cache.Count == 0)
-                return null;
-
-            return cache;
-        }
-        #endregion
-
-        #region Html
-        public string Html(List<EmbedModel> cache, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid)
-        {
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
-            var serialmedia = new List<ApiModel>();
-
-            #region Playlists
-            foreach (var voice in cache)
-            {
-                if (!voice.code.Contains("\"comment\":"))
+                try
                 {
-                    #region Фильм
-                    string streansquality = string.Empty;
-                    List<(string link, string quality)> streams = new List<(string, string)>();
-
-                    foreach (var quality in new List<string> { "1080", "720", "480", "360" })
+                    if (s == -1)
                     {
-                        string link = new Regex($"//([^/]+/([^/:]+:[0-9]+/)?(movies|animes)/[^\n\r\t, ]+/{quality})").Match(voice.code.Replace("\\", "")).Groups[1].Value;
-                        if (string.IsNullOrEmpty(link))
-                            continue;
+                        var seasons = new HashSet<int>();
 
-                        link = $"http://{link}.mp4";
-                        link = onstreamfile.Invoke(link);
-
-                        streams.Add((link, $"{quality}p"));
-                        streansquality += $"\"{quality}p\":\"" + link + "\",";
-                    }
-
-                    //if (streams.Count > 0 && streams[0].quality == "720p")
-                    //    streansquality = $"\"1080p\":\"" + streams[0].link.Replace("/720.mp4", "/1080.mp4") + "\"," + streansquality;
-
-                    streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title ?? voice.translation) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice.translation?.Replace("Перевод", "По умолчанию") + "</div></div>";
-                    firstjson = false;
-                    #endregion
-                }
-                else
-                {
-                    #region Перевод
-                    var md = new ApiModel()
-                    {
-                        title = voice.translation?.Replace("Перевод", "По умолчанию"),
-                        type = "voice",
-                        submenu = new List<ApiModel>()
-                    };
-                    #endregion
-
-                    #region Сериал
-                    List<Manifest>? seasons;
-
-                    #region Получаем json
-                    try
-                    {
-                        //Console.WriteLine(voice.code);
-                        //Console.WriteLine("\n\n");
-                        if (voice.code.Contains("\"folder\":"))
+                        foreach (var voice in result.serial)
                         {
-                            seasons = JsonSerializer.Deserialize<List<Manifest>>(voice.code);
-                        }
-                        else
-                        {
-                            seasons = new List<Manifest>()
-                            {
-                                new Manifest()
-                                {
-                                    comment = null,
-                                    folder = JsonSerializer.Deserialize<List<Folder>>(voice.code)
-                                }
-                            };
+                            foreach (var season in voice.Value)
+                                seasons.Add(season.id);
                         }
 
-                        if (seasons == null || seasons.Count == 0)
+                        foreach (int id in seasons.OrderBy(s => s))
                         {
-                            continue;
-                            //return OnError("Не удалось получить список сезонов", memKey: memKey);
+                            string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={id}";
+
+                            html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{id} сезон" + "</div></div></div>");
+                            firstjson = false;
                         }
                     }
-                    catch
+                    else
                     {
-                        // return OnError("Неправильный формат json", memKey: memKey);
-                        continue;
-                    }
-                    #endregion
-
-                    #region getStreamLink
-                    List<(string link, string quality)> getStreamLink(string _data)
-                    {
-                        var streams = new List<(string link, string quality)>();
-                        foreach (var quality in new List<string> { "1080", "720", "480", "360", "240" })
+                        #region Перевод
+                        foreach (var voice in result.voiceSeasons)
                         {
-                            string file = new Regex($"//([^/]+/([^/:]+:[0-9]+/)?(tvseries|animetvseries|showtvseries)/[^\n\r\t, ]+/{quality})").Match(_data).Groups[1].Value;
-                            if (string.IsNullOrEmpty(file))
+                            if (!voice.Value.Contains(s))
                                 continue;
 
-                            file = $"http://{file}.mp4";
-                            file = onstreamfile.Invoke(file);
+                            if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
+                            {
+                                if (string.IsNullOrEmpty(t))
+                                    t = voice.Key;
 
-                            streams.Add((file, $"{quality}p"));
+                                string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.Key}";
+
+                                html.Append("<div class=\"videos__button selector " + (t == voice.Key ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
+                            }
                         }
 
-                        return streams;
-                    }
-                    #endregion
+                        html.Append("</div><div class=\"videos__line\">");
+                        #endregion
 
-                    foreach (var season in seasons)
-                    {
+                        if (string.IsNullOrEmpty(t))
+                            t = "0";
+
+                        var season = result.serial[t].First(i => i.id == s);
                         if (season.folder == null)
-                            continue;
+                            return string.Empty;
 
-                        var mdSeason = new ApiModel()
+                        foreach (var episode in season.folder)
                         {
-                            title = HttpUtility.HtmlDecode(season.comment)?.Replace("<br>", " "),
-                            type = "season",
-                            submenu = new List<ApiModel>()
-                        };
+                            var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                            foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                            {
+                                string link = m.Groups[2].Value;
+                                if (string.IsNullOrEmpty(link))
+                                    continue;
 
-                        foreach (var serie in season.folder)
-                        {
-                            List<(string link, string quality)> streams = getStreamLink(serie.file);
+                                streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
+                            }
+
                             if (streams.Count == 0)
                                 continue;
 
-                            mdSeason.submenu.Add(new ApiModel()
-                            {
-                                title = HttpUtility.HtmlDecode(serie.comment).Replace("<br>", " "),
-                                stream_url = streams[0].link,
-                                streams = streams,
-                                type = "episode"
-                            });
-                        }
+                            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
 
-                        if (mdSeason.submenu.Count == 0)
-                            continue;
-
-                        if (season.comment != null)
-                        {
-                            md.submenu.Add(mdSeason);
-                        }
-                        else
-                        {
-                            md.submenu.AddRange(mdSeason.submenu);
-                        }
-                    }
-                    #endregion
-
-                    serialmedia.Add(md);
-                }
-            }
-            #endregion
-
-            #region serialmedia
-            if (serialmedia.Count > 0)
-            {
-                #region Озвучки
-                for (int i = 0; i < serialmedia.Count; i++)
-                {
-                    var voice = serialmedia[i];
-                    string link = host + $"lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={i}";
-                    html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + voice.title + "</div>";
-                }
-
-                html += "</div>";
-                #endregion
-
-                html += "<div class=\"videos__line\">";
-
-                if (serialmedia?[0]?.submenu?[0].type == "season" && sid == -1)
-                {
-                    if (serialmedia.Count > t)
-                    {
-                        firstjson = true;
-                        for (int i = 0; i < serialmedia[t]?.submenu?.Count; i++)
-                        {
-                            if (serialmedia[t]?.submenu?[i] is ApiModel season)
-                            {
-                                string link = host + $"lite/vcdn?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={t}&s={Regex.Match(season.title, "^([0-9]+)").Groups[1].Value}&sid={i}";
-
-                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>";
-                                firstjson = false;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    firstjson = true;
-                    var episodes = sid == -1 ? serialmedia?[t].submenu : serialmedia?[t].submenu?[sid].submenu;
-
-                    if (episodes != null)
-                    {
-                        foreach (var episode in episodes)
-                        {
-                            string? sname = title ?? original_title;
-                            string episodetitle = Regex.Replace(episode.title ?? "", "<[^>]+>", "");
-                            if (!string.IsNullOrWhiteSpace(episodetitle))
-                                sname += $" ({episodetitle})";
-
-                            string ename = Regex.Match(episode.title ?? "", "<i>([^<]+)</i>").Groups[1].Value;
-                            string eid = Regex.Match(episode.title ?? "", "^([0-9]+)").Groups[1].Value;
-
-                            if (s == -1)
-                                s = 1;
-
-                            #region streamsquality
-                            string streamsquality = string.Empty;
-                            foreach (var stream in episode.streams)
-                                streamsquality += $"\"{stream.quality}\":\"" + stream.link + "\",";
-
-                            if (episode.streams.Count > 0 && episode.streams[0].quality == "720p")
-                                streamsquality = $"\"1080p\":\"" + episode.streams[0].link.Replace("/720.mp4", "/1080.mp4") + "\"," + streamsquality;
-
-                            streamsquality = "\"quality\": {" + Regex.Replace(streamsquality, ",$", "") + "}";
-                            #endregion
-
-                            html += "<div class=\"videos__item videos__episode selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + eid + "\" data-json='{\"method\":\"play\",\"url\":\"" + episode.stream_url + "\",\"title\":\"" + sname + "\", " + streamsquality + "}'><div class=\"videos__item-imgbox videos__episode-imgbox\"><div class=\"videos__episode-number\">" + episode?.title?.Split("<")[0].Trim() + "</div></div><div class=\"videos__item-title videos__episode-title\">" + ename + "</div></div>";
+                            string e = episode.id.Split("_")[1];
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + e + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({e} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{e} серия" + "</div></div>");
                             firstjson = false;
                         }
                     }
                 }
+                catch
+                {
+                    return string.Empty;
+                }
+                #endregion
             }
-            #endregion
 
-            return html + "</div>";
+            return html.ToString() + "</div>";
         }
         #endregion
     }

@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(AppInit.conf.Collaps.streamproxy, onstreamtofile)
             );
 
-            string content = await InvokeCache($"collaps:view:{imdb_id}:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id));
+            var content = await InvokeCache($"collaps:view:{imdb_id}:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id));
             if (content == null)
                 return Content(string.Empty);
 

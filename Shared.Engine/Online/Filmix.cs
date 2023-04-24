@@ -1,8 +1,7 @@
 ﻿using Lampac.Models.LITE.Filmix;
 using Shared.Model.Online.Filmix;
+using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -29,10 +28,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<int> Search(string? title, string? original_title, int clarification, int year)
+        async public ValueTask<(int id, string? similars)> Search(string? title, string? original_title, int clarification, int year)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
-                return 0;
+                return (0, null);
 
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
            
@@ -40,38 +39,49 @@ namespace Shared.Engine.Online
             
             string? json = await onget.Invoke(uri);
             if (json == null)
-                return 0;
+                return (0, null);
 
             onlog?.Invoke("json: " + json);
 
             var root = JsonSerializer.Deserialize<List<SearchModel>>(json);
             if (root == null || root.Count == 0)
-                return 0;
+                return (0, null);
 
             onlog?.Invoke("root.Count " + root.Count);
 
-            int? reservedid = 0;
+            var ids = new List<int>();
+            var similars = new StringBuilder();
+
+            bool firstjson = true;
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
             foreach (var item in root)
             {
                 if (item == null)
                     continue;
 
-                if (!string.IsNullOrWhiteSpace(title) && item.title?.ToLower() == title.ToLower())
+                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
+                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
                 {
-                    reservedid = item.id;
                     if (item.year == year)
-                        return reservedid ?? 0;
-                }
+                        ids.Add(item.id);
 
-                if (!string.IsNullOrWhiteSpace(original_title) && item.original_title?.ToLower() == original_title.ToLower())
-                {
-                    reservedid = item.id;
-                    if (item.year == year)
-                        return reservedid ?? 0;
+                    string link = host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}";
+
+                    string name = item.title ?? string.Empty;
+                    if (!string.IsNullOrEmpty(item.original_title))
+                        name += $" / {item.original_title}";
+
+                    similars.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{name} ({item.year})" + "</div></div></div>");
+                    firstjson = false;
                 }
             }
 
-            return reservedid ?? 0;
+            if (ids.Count == 1)
+                return (ids[0], null);
+
+            return (0, similars.ToString());
         }
         #endregion
 
@@ -103,7 +113,8 @@ namespace Shared.Engine.Online
         public string Html(PlayerLinks player_links, bool pro, int postid, string? title, string? original_title, int t, int s)
         {
             bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
+            var html = new StringBuilder();
+            html.Append("<div class=\"videos__line\">");
 
             var filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
             bool hidefree720 = string.IsNullOrWhiteSpace(token) && filmixservtime >= 19 && filmixservtime <= 23;
@@ -116,34 +127,29 @@ namespace Shared.Engine.Online
 
                 foreach (var v in player_links.movie)
                 {
-                    string? link = null;
-                    string streansquality = string.Empty;
-                    List<(string link, string quality)> streams = new List<(string, string)>();
+                    var streams = new List<(string link, string quality)>() { Capacity = pro ? 5 : 2 };
 
-                    foreach (int q in new int[] { 2160, 1440, 1080, 720, 480, 360 })
+                    foreach (int q in new int[] { 2160, 1440, 1080, 720, 480 })
                     {
-                        if (!v.link.Contains($"{q},"))
-                            continue;
-
                         if (hidefree720 && q > 480)
                             continue;
 
                         if (!pro && q > 720)
                             continue;
 
+                        if (!v.link.Contains($"{q},"))
+                            continue;
+
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
-                        l = onstreamfile.Invoke(l);
-
-                        if (link == null)
-                            link = l;
-
-                        streams.Add((l, $"{q}p"));
-                        streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
+                        streams.Add((onstreamfile.Invoke(l), $"{q}p"));
                     }
 
-                    streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+                    if (streams.Count == 0)
+                        continue;
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.translation + "</div></div>";
+                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+
+                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.translation + "</div></div>");
                     firstjson = false;
                 }
                 #endregion
@@ -151,16 +157,17 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                firstjson = true;
+                string? enc_title = HttpUtility.UrlEncode(title);
+                string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 if (s == -1)
                 {
                     #region Сезоны
                     foreach (var season in player_links.playlist)
                     {
-                        string link = host + $"lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
+                        string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
 
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
+                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>");
                         firstjson = false;
                     }
                     #endregion
@@ -172,21 +179,31 @@ namespace Shared.Engine.Online
 
                     foreach (var translation in player_links.playlist[s.ToString()])
                     {
-                        string link = host + $"lite/filmix?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
+                        string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
                         string active = t == indexTranslate ? "active" : "";
 
                         indexTranslate++;
-                        html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Key + "</div>";
+                        html.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Key + "</div>");
                     }
 
-                    html += "</div><div class=\"videos__line\">";
+                    html.Append("</div><div class=\"videos__line\">");
                     #endregion
 
                     #region Серии
-                    foreach (var episode in player_links.playlist[s.ToString()].ElementAt(t).Value)
+                    Dictionary<string, Movie>? episodes = null;
+
+                    try
                     {
-                        string streansquality = string.Empty;
-                        List<(string link, string quality)> streams = new List<(string, string)>();
+                        episodes = player_links.playlist[s.ToString()].ElementAt(t).Value.Deserialize<Dictionary<string, Movie>>();
+                    }
+                    catch { }
+
+                    if (episodes == null)
+                        return string.Empty;
+
+                    foreach (var episode in episodes)
+                    {
+                        var streams = new List<(string link, string quality)>() { Capacity = pro ? episode.Value.qualities.Count : 2 };
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
@@ -197,15 +214,15 @@ namespace Shared.Engine.Online
                                 continue;
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
-                            l = onstreamfile.Invoke(l);
-
-                            streams.Add((l, $"{lq}p"));
-                            streansquality += $"\"{lq}p\":\"" + l + "\",";
+                            streams.Add((onstreamfile.Invoke(l), $"{lq}p"));
                         }
 
-                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
+                        if (streams.Count == 0)
+                            continue;
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
+                        string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+
+                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>");
                         firstjson = false;
                     }
                     #endregion
@@ -213,7 +230,7 @@ namespace Shared.Engine.Online
                 #endregion
             }
 
-            return html + "</div>";
+            return html.ToString() + "</div>";
         }
         #endregion
     }

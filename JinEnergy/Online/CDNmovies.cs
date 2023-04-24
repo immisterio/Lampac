@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class CDNmoviesController : BaseController
     {
         [JSInvokable("lite/cdnmovies")]
-        async public static Task<dynamic> Index(string args)
+        async public static Task<string> Index(string args)
         {
             int s = int.Parse(arg("s", args) ?? "-1");
             int t = int.Parse(arg("t", args) ?? "0");

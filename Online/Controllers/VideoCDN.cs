@@ -10,7 +10,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vcdn")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
             if (!AppInit.conf.VCDN.enable)
                 return Content(string.Empty);
@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return Content(string.Empty);
 
-            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }
     }
 }

@@ -64,7 +64,7 @@ namespace JinEnergy.Engine
                 using (var client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 4_000_000; // 4MB
+                    client.MaxResponseContentBufferSize = 10_000_000; // 10MB
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {

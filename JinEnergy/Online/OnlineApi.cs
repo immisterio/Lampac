@@ -1,5 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
@@ -10,7 +11,7 @@ namespace JinEnergy.Online
         static Dictionary<string, string?> eids = new Dictionary<string, string?>();
 
         [JSInvokable("externalids")]
-        async public static Task<dynamic> Externalids(string args)
+        async public static Task<string> Externalids(string args)
         {
             long id = long.Parse(arg("id", args) ?? "0");
             if (id == 0)
@@ -91,7 +92,7 @@ namespace JinEnergy.Online
             }
             #endregion
 
-            return new { imdb_id, kinopoisk_id };
+            return JsonSerializer.Serialize(new { imdb_id, kinopoisk_id });
         }
         #endregion
 

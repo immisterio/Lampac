@@ -87,18 +87,18 @@ namespace Shared.Engine.SISI
                 };
             }
 
-            var stream_links = new Dictionary<string, string>();
-            foreach (string quality in new List<string>() { "2160", "1440", "1080", "720", "480", "360", "250" })
+            var stream_links = new Dictionary<int, string>();
+            foreach (Match m in Regex.Matches(m3u8, "(hls-(2160|1440|1080|720|480|360)p[^\n\r\t ]+)"))
             {
-                string hls = Regex.Match(m3u8, $"(hls-{quality}p[^\n\r\t ]+)").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(hls))
+                string hls = m.Groups[1].Value;
+                if (string.IsNullOrEmpty(hls))
                     continue;
 
                 hls = $"{Regex.Replace(stream_link, "/hls\\.m3u.*", "")}/{hls}".Replace("https:", "http:");
-                stream_links.Add($"{quality}p", hls);
+                stream_links.Add(int.Parse(m.Groups[2].Value), hls);
             }
 
-            return stream_links;
+            return stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value);
         }
     }
 }
