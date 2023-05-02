@@ -136,8 +136,6 @@ namespace Lampac
 
         public JacConf jac = new JacConf();
 
-        public TorrServerConf ts = new TorrServerConf() { enable = true };
-
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", priority: "torrent");
 

@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
 
-                        streansquality += $"\"{f.quality}\":\"" + HostStreamProxy(AppInit.conf.AnilibriaOnline.streamproxy, f.url) + "\",";
+                        streansquality += $"\"{f.quality}\":\"" + HostStreamProxy(AppInit.conf.AnilibriaOnline.streamproxy, $"https://{root.player.host}{f.url}") + "\",";
                     }
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";

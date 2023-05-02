@@ -14,7 +14,8 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 3. DLNA     - "http://IP:9118/dlna.js"
 4. TimeCode - "http://IP:9118/timecode.js"
 5. Tracks   - "http://IP:9118/tracks.js"
-6. Парсер Jackett  - "IP:9118"
+6. TorrServer      - "http://IP:9118/ts.js"
+7. Парсер Jackett  - "IP:9118"
 
 # Настройки Lampa Lite
 1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 

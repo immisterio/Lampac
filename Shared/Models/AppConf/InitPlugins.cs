@@ -13,5 +13,7 @@
         public bool sisi { get; set; } = true;
 
         public bool timecode { get; set; } = true;
+
+        public bool torrserver { get; set; } = true;
     }
 }

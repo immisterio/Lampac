@@ -6,6 +6,8 @@ namespace Lampac.Models.Merchant
     {
         public int accessCost { get; set; }
 
+        public int accessForMonths { get; set; } = 12;
+
         public int allowedDifference { get; set; }
 
         public B2payConf B2PAY { get; set; } = new B2payConf();

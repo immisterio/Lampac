@@ -385,7 +385,7 @@ namespace Lampac.Controllers
         async public Task<JsonResult> Show(string path)
         {
             if (!AppInit.conf.dlna.enable)
-                return Json(new { });
+                return Json(new { error = "enable" });
 
             try
             {
@@ -395,7 +395,7 @@ namespace Lampac.Controllers
                     return Json(Torrent.Load(tparse.torrent).Files);
 
                 if (tparse.magnet == null)
-                    return Json(new { });
+                    return Json(new { error = "magnet" });
 
                 string hash = Regex.Match(tparse.magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
                 if (IO.File.Exists($"cache/torrent/{hash}"))
@@ -412,8 +412,8 @@ namespace Lampac.Controllers
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
 
-                    if (line.StartsWith("http") || line.StartsWith("udp:"))
-                        trackers += $"&tr={line}";
+                    if (line.StartsWith("http") /*|| line.StartsWith("udp:")*/)
+                        trackers += $"&tr={HttpUtility.HtmlEncode(line)}";
                 }
                 #endregion
 
@@ -422,17 +422,18 @@ namespace Lampac.Controllers
                 if (data == null)
                 {
                     await removeClientEngine();
-                    return Json(new { });
+                    return Json(new { error = "DownloadMetadata" });
                 }
 
+                Directory.CreateDirectory("cache/torrent");
                 await IO.File.WriteAllBytesAsync($"cache/torrent/{hash}", data);
                 await removeClientEngine();
 
                 return Json(Torrent.Load(data).Files);
             }
-            catch
+            catch (Exception ex)
             {
-                return Json(new { });
+                return Json(new { error = ex.ToString() });
             }
         }
         #endregion
@@ -443,13 +444,13 @@ namespace Lampac.Controllers
         async public Task<JsonResult> Download(string path, int[] indexs, string thumb)
         {
             if (!AppInit.conf.dlna.enable)
-                return Json(new { });
+                return Json(new { error = "enable" });
 
             try
             {
                 var tparse = await getTorrent(path);
                 if (tparse.magnet == null)
-                    return Json(new { });
+                    return Json(new { error = "magnet" });
 
                 // cache metadata
                 string hash = Regex.Match(tparse.magnet, "btih:([a-z0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToLower();
@@ -606,10 +607,10 @@ namespace Lampac.Controllers
                 }
                 #endregion
             }
-            catch
+            catch (Exception ex)
             {
                 await removeClientEngine();
-                return Json(new { });
+                return Json(new { error = ex.ToString() });
             }
 
             return Json(new { status = true });

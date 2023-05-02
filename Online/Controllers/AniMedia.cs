@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                         foreach (var pl in playlist)
                         {
                             string name = pl.Value<string>("title");
-                            string file = pl.Value<string>("file");
+                            string file = pl.Value<string>("file").Replace("https:", "http:"); // кривой ssl на сайте
                             if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(file))
                                 links.Add((name, file));
                         }

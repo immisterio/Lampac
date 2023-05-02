@@ -107,13 +107,10 @@ namespace JinEnergy.Online
             bool isanime = original_language == "ja";
             bool life = arg(args, "life")?.ToLower() == "true";
 
-            //if (!string.IsNullOrWhiteSpace(conf.VoKino.token) && (serial == -1 || serial == 0))
-            //    online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
-
             //if (conf.KinoPub.enable)
             //    online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";
 
-            if (AppInit.Filmix.enable)
+            if (AppInit.Filmix.enable && AppInit.Filmix.pro)
                 online += "{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},";
 
             //if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
@@ -128,17 +125,20 @@ namespace JinEnergy.Online
             if (AppInit.VideoDB.enable)
                 online += "{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},";
 
-            //if (conf.Kinobase.enable)
-            //    online += "{\"name\":\"" + (conf.Kinobase.displayname ?? "Kinobase") + "\",\"url\":\"{localhost}/kinobase\"},";
+            if (AppInit.Kinobase.enable)
+                online += "{\"name\":\"Kinobase\",\"url\":\"lite/kinobase\"},";
 
             //if (conf.Zetflix.enable)
             //    online += "{\"name\":\"" + (conf.Zetflix.displayname ?? "Zetflix") + "\",\"url\":\"{localhost}/zetflix\"},";
 
-            //if (conf.Voidboost.enable)
-            //    online += "{\"name\":\"" + (conf.Voidboost.displayname ?? "Voidboost") + "\",\"url\":\"{localhost}/voidboost\"},";
-
             if (AppInit.VCDN.enable)
                 online += "{\"name\":\"VideoCDN\",\"url\":\"lite/vcdn\"},";
+
+            if (AppInit.Voidboost.enable)
+                online += "{\"name\":\"Voidboost\",\"url\":\"lite/voidboost\"},";
+
+            if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
+                online += "{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},";
 
             if (AppInit.Ashdi.enable)
                 online += "{\"name\":\"Ashdi (UKR)\",\"url\":\"lite/ashdi\"},";
@@ -185,20 +185,20 @@ namespace JinEnergy.Online
             //if (conf.Kinotochka.enable)
             //    online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";
 
-            //if (serial == -1 || serial == 0 || (serial == 1 && !isanime))
-            //{
+            if (serial == -1 || serial == 0 || (serial == 1 && !isanime))
+            {
             //    if (conf.Kinokrad.enable)
             //        online += "{\"name\":\"" + (conf.Kinokrad.displayname ?? "Kinokrad") + "\",\"url\":\"{localhost}/kinokrad\"},";
 
             //    if (conf.Kinoprofi.enable)
             //        online += "{\"name\":\"" + (conf.Kinoprofi.displayname ?? "Kinoprofi") + "\",\"url\":\"{localhost}/kinoprofi\"},";
 
-            //    if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
-            //        online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
+            if (AppInit.Redheadsound.enable && (serial == -1 || serial == 0))
+                online += "{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},";
 
             //    if (!string.IsNullOrWhiteSpace(conf.VideoAPI.token) && (serial == -1 || serial == 0))
             //        online += "{\"name\":\"" + (conf.VideoAPI.displayname ?? "VideoAPI (ENG)") + "\",\"url\":\"{localhost}/videoapi\"},";
-            //}
+            }
 
             //if (conf.IframeVideo.enable && (serial == -1 || serial == 0))
             //    online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";

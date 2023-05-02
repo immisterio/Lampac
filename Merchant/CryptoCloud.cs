@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
             if (!users.Contains($",cryptocloud,{invoice_id}"))
             {
                 var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/cryptocloud/{invoice_id}"));
-                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["email"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
+                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["email"].ToLower()},{DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths).ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
 
                 AppInit.conf.accsdb.accounts.Add(invoice["email"]);
             }

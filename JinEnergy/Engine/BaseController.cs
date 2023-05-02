@@ -7,6 +7,8 @@ namespace JinEnergy.Engine
 {
     public class BaseController : ComponentBase
     {
+        public static IJSRuntime? JSRuntime => AppInit.JSRuntime;
+
         public static string OnError(string msg)
         {
             AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);

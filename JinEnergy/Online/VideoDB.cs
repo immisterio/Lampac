@@ -22,8 +22,8 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var content = await InvStructCache(id, $"videodb:view:{kinopoisk_id}", () => oninvk.Embed(kinopoisk_id, serial));
-            if (content.pl == null)
+            var content = await InvokeCache(id, $"videodb:view:{kinopoisk_id}", () => oninvk.Embed(kinopoisk_id, serial));
+            if (content?.pl == null)
                 return OnError("content");
 
             return oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid);

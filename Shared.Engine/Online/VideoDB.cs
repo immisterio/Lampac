@@ -24,10 +24,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<(List<RootObject> pl, bool movie)> Embed(long kinopoisk_id, int serial)
+        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, int serial)
         {
             if (kinopoisk_id == 0)
-                return default;
+                return null;
 
             string host = "https://kinoplay.site";
 
@@ -41,7 +41,7 @@ namespace Shared.Engine.Online
 
             string? file = new Regex("file:([^\n\r]+,\\])").Match(html ?? "").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
-                return default;
+                return null;
 
             file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
                         .Replace("},]", "}]");
@@ -49,15 +49,15 @@ namespace Shared.Engine.Online
             onlog?.Invoke("file: " + file);
             var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
             if (pl == null || pl.Count == 0) 
-                return default;
+                return null;
 
             onlog?.Invoke("pl " + pl.Count);
-            return (pl, !file.Contains("\"comment\":"));
+            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":") };
         }
         #endregion
 
         #region Html
-        public string Html((List<RootObject> pl, bool movie) root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid)
+        public string Html(EmbedModel root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid)
         {
             bool firstjson = true;
             var html = new StringBuilder();

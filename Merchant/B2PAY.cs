@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
             if (!users.Contains($",b2pay,{orderNumber}"))
             {
                 var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
-                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"].ToLower()},{DateTime.UtcNow.AddYears(1).ToFileTimeUtc()},b2pay,{orderNumber}\n");
+                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"].ToLower()},{DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths).ToFileTimeUtc()},b2pay,{orderNumber}\n");
 
                 AppInit.conf.accsdb.accounts.Add(invoice["custom_field"]);
             }

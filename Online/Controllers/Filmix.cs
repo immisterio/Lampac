@@ -45,10 +45,14 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(AppInit.conf.Filmix.streamproxy, onstreamtofile)
             );
 
-            
-            postid = postid == 0 ? await InvokeCache($"filmix:search:{title}:{original_title}:{clarification}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, clarification, year)) : postid;
             if (postid == 0)
-                return Content(string.Empty);
+            {
+                var res = await InvokeCache($"filmix:search:{title}:{original_title}:{clarification}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, clarification, year));
+                if (res.id == 0)
+                    return Content(res.similars);
+
+                postid = res.id;
+            }
 
             var player_links = await InvokeCache($"filmix:post:{postid}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Post(postid));
             if (player_links == null)

@@ -11,16 +11,35 @@ using System.Net.Http;
 using System.Threading;
 using System.Net.Http.Headers;
 using TorrServer;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers
 {
     public class TorrServerController : BaseController
     {
+        #region ts.js
+        [HttpGet]
+        [Route("ts.js")]
+        async public Task<ActionResult> Plugin()
+        {
+            if (!ModInit.enable)
+                return Content(string.Empty);
+
+            if (!memoryCache.TryGetValue("ApiController:ts.js", out string file))
+            {
+                file = await IO.File.ReadAllTextAsync("plugins/ts.js");
+                memoryCache.Set("ApiController:ts.js", file, DateTime.Now.AddMinutes(5));
+            }
+
+            return Content(file.Replace("{localhost}", Regex.Replace(host, "^https?://", "")), contentType: "application/javascript; charset=utf-8");
+        }
+        #endregion
+
         [Route("ts")]
         [Route("ts/{*suffix}")]
         async public Task Index()
         {
-            if (!AppInit.conf.ts.enable || HttpContext.Request.Path.Value.StartsWith("/shutdown"))
+            if (!ModInit.enable || HttpContext.Request.Path.Value.StartsWith("/shutdown"))
             {
                 HttpContext.Response.StatusCode = 404;
                 return;
@@ -87,7 +106,7 @@ namespace Lampac.Controllers
 
         async public Task TorAPI(HttpContext httpContext)
         {
-            if (ModInit.tsprocess == null || await CheckPort(AppInit.conf.ts.tsport, httpContext) == false)
+            if (ModInit.tsprocess == null || await CheckPort(ModInit.tsport, httpContext) == false)
             {
                 #region Запускаем TorrServer
                 var thread = new Thread(() =>
@@ -98,8 +117,8 @@ namespace Lampac.Controllers
                         ModInit.tsprocess.StartInfo.UseShellExecute = false;
                         ModInit.tsprocess.StartInfo.RedirectStandardOutput = true;
                         ModInit.tsprocess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                        ModInit.tsprocess.StartInfo.FileName = AppInit.conf.ts.tspath;
-                        ModInit.tsprocess.StartInfo.Arguments = $"-p {AppInit.conf.ts.tsport} >/dev/null 2>&1";
+                        ModInit.tsprocess.StartInfo.FileName = ModInit.tspath;
+                        ModInit.tsprocess.StartInfo.Arguments = $"--httpauth -p {ModInit.tsport} -d {ModInit.homedir}";
                         ModInit.tsprocess.Start();
                         ModInit.tsprocess.WaitForExit();
                     }
@@ -113,7 +132,7 @@ namespace Lampac.Controllers
                 #endregion
 
                 #region Проверяем доступность сервера
-                if (await CheckPort(AppInit.conf.ts.tsport, httpContext) == false)
+                if (await CheckPort(ModInit.tsport, httpContext) == false)
                 {
                     ModInit.tsprocess?.Dispose();
                     ModInit.tsprocess = null;
@@ -130,7 +149,7 @@ namespace Lampac.Controllers
                         {
                             client.Timeout = TimeSpan.FromSeconds(10);
 
-                            var response = await client.PostAsync($"http://127.0.0.1:{AppInit.conf.ts.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
+                            var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                             string settingsJson = await response.Content.ReadAsStringAsync();
 
                             if (!string.IsNullOrWhiteSpace(settingsJson))
@@ -141,7 +160,7 @@ namespace Lampac.Controllers
                                 if (requestJson != settingsJson)
                                 {
                                     requestJson = "{\"action\":\"set\",\"sets\":" + requestJson + "}";
-                                    await client.PostAsync($"http://127.0.0.1:{AppInit.conf.ts.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
+                                    await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                                 }
                             }
                         }
@@ -176,7 +195,7 @@ namespace Lampac.Controllers
                     string requestJson = Encoding.UTF8.GetString(mem.ToArray());
                     #endregion
 
-                    var response = await client.PostAsync($"http://127.0.0.1:{AppInit.conf.ts.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
+                    var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                     string settingsJson = await response.Content.ReadAsStringAsync();
 
                     if (requestJson.Trim() == "{\"action\":\"get\"}")
@@ -192,8 +211,8 @@ namespace Lampac.Controllers
             #endregion
 
             #region Отправляем запрос в torrserver
-            string pathRequest = Regex.Replace(Uri.EscapeDataString(httpContext.Request.Path.Value), "^/ts", "");
-            string servUri = $"http://127.0.0.1:{AppInit.conf.ts.tsport}{pathRequest + httpContext.Request.QueryString.Value}";
+            string pathRequest = Regex.Replace(httpContext.Request.Path.Value, "^/ts", "");
+            string servUri = $"http://127.0.0.1:{ModInit.tsport}{pathRequest + httpContext.Request.QueryString.Value}";
 
             using (var client = new HttpClient())
             {
@@ -266,10 +285,14 @@ namespace Lampac.Controllers
 
             foreach (var header in request.Headers)
             {
+                if (header.Key.ToLower() is "authorization")
+                    continue;
+
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
 
+            requestMessage.Headers.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
             requestMessage.Headers.Host = context.Request.Host.Value;// uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);

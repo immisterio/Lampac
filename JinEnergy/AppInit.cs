@@ -35,6 +35,7 @@ namespace JinEnergy
                 BongaCams.corseu = true;
                 Chaturbate.corseu = true;
                 CDNmovies.corseu = true;
+                Redheadsound.corseu = true;
             }
 
             if (type == "web")
@@ -43,6 +44,7 @@ namespace JinEnergy
                 Xvideos.enable = false;
                 Ebalovo.enable = false;
                 Eneyida.enable = false;
+                Kinobase.enable = false;
             }
 
             if (type != "apk")
