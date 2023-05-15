@@ -40,7 +40,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     bool limitip = false;
                     HashSet<string> ips = null;
-                    string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower();
+                    string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower()?.Trim();
 
                     if (string.IsNullOrWhiteSpace(account_email) || AppInit.conf.accsdb.accounts.FirstOrDefault(i => i.ToLower() == account_email) == null || 
                         IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip, out ips))

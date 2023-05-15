@@ -12,7 +12,7 @@ namespace Shared.Model
 
         public SisiSettings Chaturbate = new SisiSettings("https://chaturbate.com");
 
-        public SisiSettings Ebalovo = new SisiSettings("https://www.ebalovo.pro");
+        public SisiSettings Ebalovo = new SisiSettings("https://www.ebalovo.pro") { streamproxy = true };
 
         public SisiSettings Eporner = new SisiSettings("https://www.eporner.com");
 
@@ -28,7 +28,7 @@ namespace Shared.Model
 
         public SisiSettings Xvideos = new SisiSettings("https://www.xvideos.com");
 
-        public SisiSettings PornHub = new SisiSettings("https://rt.pornhub.com");
+        public SisiSettings PornHub = new SisiSettings("https://rt.pornhub.com") { streamproxy = true };
 
 
 
@@ -48,7 +48,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinotochka = new OnlinesSettings("https://kinotochka.co");
 
-        public OnlinesSettings Redheadsound = new OnlinesSettings("https://redheadsound.studio");
+        public OnlinesSettings Redheadsound = new OnlinesSettings("https://redheadsound.studio") { streamproxy = true };
 
         public OnlinesSettings Kinoprofi = new OnlinesSettings("https://kinoprofi.io", apihost: "https://api.kinoprofi.io");
 

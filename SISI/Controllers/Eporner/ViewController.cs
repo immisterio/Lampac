@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using System.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Eporner
 {
@@ -22,16 +23,18 @@ namespace Lampac.Controllers.Eporner
             string memKey = $"eporner:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                System.Net.WebProxy proxy = null;
-                if (AppInit.conf.Ebalovo.useproxy)
-                    proxy = HttpClient.webProxy();
+                var proxyManager = new ProxyManager("epr", AppInit.conf.Eporner);
+                var proxy = proxyManager.Get();
 
                 stream_links = await EpornerTo.StreamLinks(AppInit.conf.Eporner.host, uri, 
                                htmlurl => HttpClient.Get(htmlurl, timeoutSeconds: 8, proxy: proxy), 
                                jsonurl => HttpClient.Get(jsonurl, timeoutSeconds: 8, proxy: proxy));
 
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 2));
             }

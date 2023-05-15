@@ -11,6 +11,7 @@ using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using Lampac.Engine.Parse;
 using Shared;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.JAC
 {
@@ -27,7 +28,9 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");
 
-            byte[] _t = await HttpClient.Download($"{AppInit.conf.Anilibria.host}/{url}", referer: $"{AppInit.conf.Anilibria.host}/release/{code}.html", timeoutSeconds: 10, useproxy: AppInit.conf.Anilibria.useproxy);
+            var proxyManager = new ProxyManager("anilibria", AppInit.conf.Anilibria);
+
+            byte[] _t = await HttpClient.Download($"{AppInit.conf.Anilibria.host}/{url}", referer: $"{AppInit.conf.Anilibria.host}/release/{code}.html", timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -39,6 +42,7 @@ namespace Lampac.Controllers.JAC
                 return File(tcache.torrent, "application/x-bittorrent");
             }
 
+            proxyManager.Refresh();
             return Content("error");
         }
         #endregion
@@ -54,12 +58,15 @@ namespace Lampac.Controllers.JAC
             #region Кеш
             if (!Startup.memoryCache.TryGetValue(memkey, out List<RootObject> roots))
             {
-                roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: AppInit.conf.jac.timeoutSeconds, useproxy: AppInit.conf.Anilibria.useproxy, IgnoreDeserializeObject: true);
+                var proxyManager = new ProxyManager("anilibria", AppInit.conf.Anilibria);
+
+                roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: AppInit.conf.jac.timeoutSeconds, proxy: proxyManager.Get(), IgnoreDeserializeObject: true);
                 if (roots == null || roots.Count == 0)
                 {
                     if (AppInit.conf.jac.emptycache)
                         Startup.memoryCache.Set($"{memkey}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.htmlCacheToMinutes)));
 
+                    proxyManager.Refresh();
                     return false;
                 }
 

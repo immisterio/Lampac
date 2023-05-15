@@ -9,9 +9,9 @@ namespace JinEnergy.SISI
         [JSInvokable("epr")]
         async public static Task<dynamic> Index(string args)
         {
-            string? search = arg("search", args);
-            string? sort = arg("sort", args);
-            int pg = int.Parse(arg("pg", args) ?? "1") + 1;
+            string? search = parse_arg("search", args);
+            string? sort = parse_arg("sort", args);
+            int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
             string? html = await EpornerTo.InvokeHtml(AppInit.Eporner.corsHost(), search, sort, pg, url => JsHttpClient.Get(url));
             if (html == null)
@@ -28,7 +28,7 @@ namespace JinEnergy.SISI
         [JSInvokable("epr/vidosik")]
         async public static Task<dynamic> Stream(string args)
         {
-            var stream_links = await EpornerTo.StreamLinks(AppInit.Eporner.corsHost(), arg("uri", args), 
+            var stream_links = await EpornerTo.StreamLinks(AppInit.Eporner.corsHost(), parse_arg("uri", args), 
                                htmlurl => JsHttpClient.Get(htmlurl), 
                                jsonurl => JsHttpClient.Get(AppInit.Eporner.corsHost(jsonurl)));
 

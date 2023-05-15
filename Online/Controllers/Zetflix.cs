@@ -10,11 +10,14 @@ using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Web;
 using System.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Zetflix : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("zetflix", AppInit.conf.Zetflix);
+
         [HttpGet]
         [Route("lite/zetflix")]
         async public Task<ActionResult> Index(int id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
@@ -69,7 +72,7 @@ namespace Lampac.Controllers.LITE
                 {
                     int number_of_seasons = 1;
 
-                    var themoviedb = await HttpClient.Get<JObject>($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", timeoutSeconds: 8);
+                    var themoviedb = await HttpClient.Get<JObject>($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", proxy: proxyManager.Get(), timeoutSeconds: 8);
                     if (themoviedb != null)
                     {
                         number_of_seasons = themoviedb.Value<int>("number_of_seasons");
@@ -158,7 +161,7 @@ namespace Lampac.Controllers.LITE
             if (!memoryCache.TryGetValue(memKey, out (JArray pl, bool movie) cache))
             {
                 string host = await getHost();
-                string html = await HttpClient.Get($"{host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), timeoutSeconds: 8, useproxy: AppInit.conf.Zetflix.useproxy, addHeaders: new List<(string name, string val)>()
+                string html = await HttpClient.Get($"{host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>()
                 {
                     ("dnt", "1"),
                     ("pragma", "no-cache"),
@@ -168,7 +171,10 @@ namespace Lampac.Controllers.LITE
 
                 string file = new Regex("file:([^\n\r]+,\\])").Match(html).Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(file))
+                {
+                    proxyManager.Refresh();
                     return (null, false);
+                }
 
                 cache.movie = !file.Contains("\"comment\":");
                 cache.pl = JsonConvert.DeserializeObject<JArray>(file);
@@ -189,7 +195,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
-                location = await HttpClient.GetLocation(AppInit.conf.Zetflix.host, timeoutSeconds: 8, referer: "https://www.google.com/");
+                location = await HttpClient.GetLocation(AppInit.conf.Zetflix.host, timeoutSeconds: 8, proxy: proxyManager.Get(), referer: "https://www.google.com/");
 
                 if (string.IsNullOrWhiteSpace(location))
                     return AppInit.conf.Zetflix.host;

@@ -8,11 +8,14 @@ using System.Web;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class IframeVideo : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("iframevideo", AppInit.conf.IframeVideo);
+
         [HttpGet]
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
@@ -74,7 +77,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, useproxy: AppInit.conf.IframeVideo.useproxy, addHeaders: new List<(string name, string val)>()
+                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>()
                 {
                     ("Origin", AppInit.conf.IframeVideo.cdnhost),
                     ("Referer", $"{AppInit.conf.IframeVideo.cdnhost}/"),
@@ -84,12 +87,12 @@ namespace Lampac.Controllers.LITE
                     ("X-REF", "no-referer")
                 });
 
-                if (json == null)
-                    return Content(string.Empty);
-
-                urim3u8 = Regex.Match(json, "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                urim3u8 = Regex.Match(json ?? "", "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
@@ -128,9 +131,12 @@ namespace Lampac.Controllers.LITE
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");
 
-                res.content = await HttpClient.Get(res.path, referer: "https://kinoplayer.online/", timeoutSeconds: 8);
+                res.content = await HttpClient.Get(res.path, referer: "https://kinoplayer.online/", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (res.content == null)
+                {
+                    proxyManager.Refresh();
                     return (null, null, 0, null);
+                }
 
                 memoryCache.Set(memKey, res, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }

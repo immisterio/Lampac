@@ -9,6 +9,7 @@ using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,6 +22,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Kinokrad.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
 
+            var proxyManager = new ProxyManager("kinokrad", AppInit.conf.Kinokrad);
+            var proxy = proxyManager.Get();
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
@@ -32,9 +36,12 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinokrad:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
+                        string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         if (search == null)
-                            return null;
+                        {
+                            proxyManager.Refresh();
+                            return Content(string.Empty);
+                        }
 
                         links = new List<(string, string)>();
 
@@ -51,7 +58,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -69,21 +79,28 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinokrad:playlist:{newsuri}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
-                        if (news == null)
-                            return Content(string.Empty);
+                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy);
+                        string filetxt = Regex.Match(news ?? "", "\"/(playlist/[^\"]+\\.txt)\"").Groups[1].Value;
 
-                        string filetxt = Regex.Match(news, "\"/(playlist/[^\"]+\\.txt)\"").Groups[1].Value;
                         if (string.IsNullOrWhiteSpace(filetxt))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
-                        var root = await HttpClient.Get<JObject>($"{AppInit.conf.Kinokrad.host}/{filetxt}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
+                        var root = await HttpClient.Get<JObject>($"{AppInit.conf.Kinokrad.host}/{filetxt}", timeoutSeconds: 8, proxy: proxy);
                         if (root == null)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         var playlist = root.Value<JArray>("playlist");
                         if (playlist == null)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string name, string uri)>();
 
@@ -96,7 +113,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -116,9 +136,12 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinokrad:view:{title}:{year}";
                 if (!memoryCache.TryGetValue(memKey, out string content))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
+                    string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     string link = null, reservedlink = null;
                     foreach (string row in search.Split("searchitem").Skip(1))
@@ -142,18 +165,22 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(link))
                     {
                         if (string.IsNullOrWhiteSpace(reservedlink))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         link = reservedlink;
                     }
 
-                    string news = await HttpClient.Get(link, timeoutSeconds: 8, useproxy: AppInit.conf.Kinokrad.useproxy);
-                    if (news == null)
-                        return Content(string.Empty);
+                    string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
+                    content = Regex.Match(news ?? "", "player1-link-movie([^\n\r]+)").Groups[1].Value;
 
-                    content = Regex.Match(news, "player1-link-movie([^\n\r]+)").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(content))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }

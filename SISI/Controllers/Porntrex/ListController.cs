@@ -7,6 +7,7 @@ using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -22,18 +23,27 @@ namespace Lampac.Controllers.Porntrex
             string memKey = $"ptx:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await PorntrexTo.InvokeHtml(AppInit.conf.Porntrex.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Porntrex.useproxy));
+                var proxyManager = new ProxyManager("ptx", AppInit.conf.Porntrex);
+                var proxy = proxyManager.Get();
+
+                string html = await PorntrexTo.InvokeHtml(AppInit.conf.Porntrex.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = PorntrexTo.Playlist($"{host}/ptx/vidosik", html, pl =>
                 {
-                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
+                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture, headers: new List<(string name, string val)> { ("referer", AppInit.conf.Porntrex.host) });
                     return pl;
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

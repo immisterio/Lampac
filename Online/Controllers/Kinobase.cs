@@ -6,6 +6,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.reCAPTCHA;
 using Shared.Engine.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,22 +19,21 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Kinobase.enable)
                 return Content(string.Empty);
 
-            System.Net.WebProxy proxy = null;
-            if (AppInit.conf.Kinobase.useproxy)
-                proxy = HttpClient.webProxy();
+            if (string.IsNullOrEmpty(title) || year == 0)
+                return Content(string.Empty);
 
             var oninvk = new KinobaseInvoke
             (
                host,
                AppInit.conf.Kinobase.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.Kinobase.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               (url, data) => HttpClient.Post(AppInit.conf.Kinobase.corsHost(url), data, timeoutSeconds: 8, proxy: proxy),
+               ongettourl => HttpClient.Get(AppInit.conf.Kinobase.corsHost(ongettourl), timeoutSeconds: 8),
+               (url, data) => HttpClient.Post(AppInit.conf.Kinobase.corsHost(url), data, timeoutSeconds: 8),
                streamfile => HostStreamProxy(AppInit.conf.Kinobase.streamproxy, streamfile, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) })
             );
 
             var content = await InvokeCache($"kinobase:view:{title}:{year}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(title, year, evalcode => 
             {
-                string? result = null;
+                string result = null;
                 new Jint.Engine().SetValue("eval", new Action<string>(i => result = i)).Execute(evalcode);
                 return ValueTask.FromResult(result);
             }));

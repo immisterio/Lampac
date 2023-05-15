@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model.Proxy;
+
+namespace Lampac.Models.LITE
 {
-    public class IframeVideoSettings
+    public class IframeVideoSettings : Iproxy
     {
         public IframeVideoSettings(string host, string cdnhost)
         {
@@ -19,8 +21,13 @@
 
         public bool enable { get; set; }
 
+
         public bool useproxy { get; set; }
 
+        public string? globalnameproxy { get; set; }
+
         public bool streamproxy { get; set; }
+
+        public ProxySettings? proxy { get; set; }
     }
 }

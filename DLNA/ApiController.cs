@@ -407,13 +407,16 @@ namespace Lampac.Controllers
                 #region trackers
                 string trackers = string.Empty;
 
-                foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
+                if (IO.File.Exists("cache/trackers.txt"))
                 {
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
+                    foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
+                    {
+                        if (string.IsNullOrWhiteSpace(line))
+                            continue;
 
-                    if (line.StartsWith("http") /*|| line.StartsWith("udp:")*/)
-                        trackers += $"&tr={HttpUtility.HtmlEncode(line)}";
+                        if (line.StartsWith("http") /*|| line.StartsWith("udp:")*/)
+                            trackers += $"&tr={HttpUtility.HtmlEncode(line)}";
+                    }
                 }
                 #endregion
 
@@ -487,17 +490,22 @@ namespace Lampac.Controllers
                 }
                 else
                 {
+                    Directory.CreateDirectory("dlna/");
+
                     dynamic tlink = tparse.torrent != null ? Torrent.Load(tparse.torrent) : magnetLink;
                     manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, "dlna/") : await torrentEngine.AddAsync(tlink, "dlna/");
 
                     #region AddTrackerAsync
-                    foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
+                    if (IO.File.Exists("cache/trackers.txt"))
                     {
-                        if (string.IsNullOrWhiteSpace(line))
-                            continue;
+                        foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
+                        {
+                            if (string.IsNullOrWhiteSpace(line))
+                                continue;
 
-                        if (line.StartsWith("http") || line.StartsWith("udp:"))
-                            await manager.TrackerManager.AddTrackerAsync(new Uri(line));
+                            if (line.StartsWith("http") || line.StartsWith("udp:"))
+                                await manager.TrackerManager.AddTrackerAsync(new Uri(line));
+                        }
                     }
                     #endregion
 
@@ -569,6 +577,7 @@ namespace Lampac.Controllers
                 }
                 else
                 {
+                    Directory.CreateDirectory("cache/metadata/");
                     await IO.File.WriteAllTextAsync($"cache/metadata/{manager.InfoHash.ToHex()}.json", JsonConvert.SerializeObject(indexs));
 
                     for (int i = 0; i < manager.Files.Count; i++)

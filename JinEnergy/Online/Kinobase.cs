@@ -9,8 +9,11 @@ namespace JinEnergy.Online
         [JSInvokable("lite/kinobase")]
         async public static Task<string> Index(string args)
         {
-            int s = int.Parse(arg("s", args) ?? "-1");
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
+
+            if (string.IsNullOrEmpty(arg.title) || arg.year == 0)
+                return OnError("year");
 
             var oninvk = new KinobaseInvoke
             (
@@ -21,11 +24,11 @@ namespace JinEnergy.Online
                streamfile => streamfile
             );
 
-            var content = await InvokeCache(id, $"kinobase:view:{title}:{year}", () => oninvk.Embed(title, year, evalcode => JSRuntime.InvokeAsync<string?>("eval", evalcode.Replace("}eval(", "}("))));
+            var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, evalcode => JSRuntime.InvokeAsync<string?>("eval", evalcode.Replace("}eval(", "}("))));
             if (content == null)
-                return string.Empty;
+                return OnError("content");
 
-            return oninvk.Html(content, title, year, s);
+            return oninvk.Html(content, arg.title, arg.year, s);
         }
     }
 }

@@ -13,12 +13,12 @@ namespace JinEnergy.Online
         [JSInvokable("externalids")]
         async public static Task<string> Externalids(string args)
         {
-            long id = long.Parse(arg("id", args) ?? "0");
+            long id = long.Parse(parse_arg("id", args) ?? "0");
             if (id == 0)
                 return OnError("id");
 
-            string? imdb_id = arg("imdb_id", args);
-            int serial = int.Parse(arg("serial", args) ?? "0");
+            string? imdb_id = parse_arg("imdb_id", args);
+            int serial = int.Parse(parse_arg("serial", args) ?? "0");
 
             #region getAlloha / getVSDN / getTabus
             async ValueTask<string?> getAlloha(string imdb)
@@ -101,11 +101,11 @@ namespace JinEnergy.Online
         public static string Events(string args)
         {
             string online = string.Empty;
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
 
-            serial = int.Parse(arg("serial", args) ?? "-1");
-            bool isanime = original_language == "ja";
-            bool life = arg(args, "life")?.ToLower() == "true";
+            var arg = defaultArgs(args);
+            int serial = int.Parse(parse_arg("serial", args) ?? "-1");
+            bool isanime = arg.original_language == "ja";
+            bool life = parse_arg(args, "life")?.ToLower() == "true";
 
             //if (conf.KinoPub.enable)
             //    online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";

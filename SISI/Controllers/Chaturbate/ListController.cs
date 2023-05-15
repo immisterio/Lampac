@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Chaturbate
 {
@@ -22,9 +23,15 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"Chaturbate:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await ChaturbateTo.InvokeHtml(AppInit.conf.Chaturbate.corsHost(), sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Chaturbate.useproxy));
+                var proxyManager = new ProxyManager("chu", AppInit.conf.Chaturbate);
+                var proxy = proxyManager.Get();
+
+                string html = await ChaturbateTo.InvokeHtml(AppInit.conf.Chaturbate.corsHost(), sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html, pl => 
                 {
@@ -33,7 +40,10 @@ namespace Lampac.Controllers.Chaturbate
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }

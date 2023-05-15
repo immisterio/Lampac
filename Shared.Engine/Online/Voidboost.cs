@@ -30,9 +30,6 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<string?> Embed(string? imdb_id, long kinopoisk_id, string? t)
         {
-            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return null;
-
             string uri = $"{apihost}/embed/";
             if (kinopoisk_id > 0 && !string.IsNullOrWhiteSpace(imdb_id))
                 uri += $"{imdb_id},{kinopoisk_id}";

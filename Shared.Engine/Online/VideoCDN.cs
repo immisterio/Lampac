@@ -28,9 +28,6 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
         {
-            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return null;
-
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
             string? content = await onget.Invoke($"{apihost}?{args}", "https://kinogo.biz/53104-avatar-2-2022.html");
             if (content == null)
@@ -110,27 +107,33 @@ namespace Shared.Engine.Online
                 #region Фильм
                 foreach (var voice in result.movie)
                 {
-                    if (result.voices.TryGetValue(voice.Key, out string name))
+                    result.voices.TryGetValue(voice.Key, out string name);
+                    if (string.IsNullOrEmpty(name))
                     {
-                        var streams = new List<(string link, string quality)>() { Capacity = 4 };
-
-                        foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
-                        {
-                            string link = m.Groups[2].Value;
-                            if (string.IsNullOrEmpty(link))
-                                continue;
-
-                            streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
-                        }
-
-                        if (streams.Count == 0)
+                        if (result.movie.Count > 1)
                             continue;
 
-                        string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                        firstjson = false;
+                        name = "По умолчанию";
                     }
+
+                    var streams = new List<(string link, string quality)>() { Capacity = 4 };
+
+                    foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                    {
+                        string link = m.Groups[2].Value;
+                        if (string.IsNullOrEmpty(link))
+                            continue;
+
+                        streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
+                    }
+
+                    if (streams.Count == 0)
+                        continue;
+
+                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+
+                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
+                    firstjson = false;
                 }
                 #endregion
             }

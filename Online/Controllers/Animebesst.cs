@@ -8,11 +8,14 @@ using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Animebesst : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("animebesst", AppInit.conf.Animebesst);
+
         [HttpGet]
         [Route("lite/animebesst")]
         async public Task<ActionResult> Index(string title, string uri, int s, string account_email)
@@ -29,9 +32,12 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animebesst:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string uri, string s)> catalog))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Animebesst.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Animebesst.useproxy);
+                    string search = await HttpClient.Post($"{AppInit.conf.Animebesst.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     catalog = new List<(string title, string uri, string s)>();
 
@@ -51,7 +57,10 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
@@ -74,13 +83,14 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animebesst:playlist:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out List<(string episode, string uri)> links))
                 {
-                    string news = await HttpClient.Get(uri, timeoutSeconds: 10, useproxy: AppInit.conf.Animebesst.useproxy);
-                    if (string.IsNullOrWhiteSpace(news))
-                        return Content(string.Empty);
+                    string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get());
+                    string videoList = Regex.Match(news ?? "", "var videoList = ([^\n\r]+)").Groups[1].Value.Replace("\\", "");
 
-                    string videoList = Regex.Match(news, "var videoList = ([^\n\r]+)").Groups[1].Value.Replace("\\", "");
                     if (string.IsNullOrWhiteSpace(videoList))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     links = new List<(string episode, string uri)>();
                     var match = Regex.Match(videoList, "\"id\":\"([0-9]+)\",\"link\":\"(https?:)?//([^\"]+)\"");
@@ -93,7 +103,10 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (links.Count == 0)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }
@@ -123,13 +136,14 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animebesst:video:{uri}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                string iframe = await HttpClient.Get($"https://{uri}", timeoutSeconds: 8, useproxy: AppInit.conf.Animebesst.useproxy);
-                if (string.IsNullOrWhiteSpace(iframe))
-                    return Content(string.Empty);
+                string iframe = await HttpClient.Get($"https://{uri}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                hls = Regex.Match(iframe ?? "", "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
 
-                hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(hls))
+                if (string.IsNullOrEmpty(hls))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }

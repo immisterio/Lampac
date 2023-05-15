@@ -11,6 +11,7 @@ using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.JAC
 {
@@ -30,7 +31,9 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            _t = await HttpClient.Download($"{Regex.Replace(AppInit.conf.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: AppInit.conf.Rutor.host, timeoutSeconds: 10);
+            var proxyManager = new ProxyManager("rutor", AppInit.conf.Rutor);
+
+            _t = await HttpClient.Download($"{Regex.Replace(AppInit.conf.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: AppInit.conf.Rutor.host, timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -40,6 +43,7 @@ namespace Lampac.Controllers.JAC
             else if (AppInit.conf.jac.emptycache)
                 Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
+            proxyManager.Refresh();
             return Redirect(magnet);
         }
         #endregion
@@ -62,7 +66,9 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Rutor.host}/search" + (cat == "0" ? $"/{HttpUtility.UrlEncode(query)}" : $"/0/{cat}/000/0/{HttpUtility.UrlEncode(query)}"), useproxy: AppInit.conf.Rutor.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
+                var proxyManager = new ProxyManager("rutor", AppInit.conf.Rutor);
+
+                string html = await HttpClient.Get($"{AppInit.conf.Rutor.host}/search" + (cat == "0" ? $"/{HttpUtility.UrlEncode(query)}" : $"/0/{cat}/000/0/{HttpUtility.UrlEncode(query)}"), proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null && html.Contains("id=\"logo\""))
                 {
@@ -73,6 +79,7 @@ namespace Lampac.Controllers.JAC
 
                 if (cread.html == null)
                 {
+                    proxyManager.Refresh();
                     HtmlCache.EmptyCache(cachekey);
                     return false;
                 }

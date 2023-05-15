@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.CORE;
 using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.BongaCams
@@ -23,9 +24,12 @@ namespace Lampac.Controllers.BongaCams
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
+                var proxyManager = new ProxyManager("bgs", AppInit.conf.BongaCams);
+                var proxy = proxyManager.Get();
+
                 string html = await BongaCamsTo.InvokeHtml(AppInit.conf.BongaCams.host, sort, pg, url => 
                 {
-                    return HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.BongaCams.useproxy, addHeaders: new List<(string name, string val)>()
+                    return HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
                     {
                         ("dnt", "1"),
                         ("referer", AppInit.conf.BongaCams.host),
@@ -37,12 +41,18 @@ namespace Lampac.Controllers.BongaCams
                 });
 
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = BongaCamsTo.Playlist(html);
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }

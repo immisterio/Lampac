@@ -15,7 +15,7 @@ namespace JinEnergy.Engine
             return string.Empty;
         }
 
-        public static string? arg(string name, string args)
+        public static string? parse_arg(string name, string args)
         {
             string val = Regex.Match(args ?? "", $"(^|&|\\?){name}=([^&]+)").Groups[2].Value;
             if (string.IsNullOrWhiteSpace(val))
@@ -24,20 +24,24 @@ namespace JinEnergy.Engine
             return HttpUtility.UrlDecode(val);
         }
 
-        public static void defaultOnlineArgs(string args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email)
+        public static (long id, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int serial, string? original_language, int year, string? source, int clarification, long cub_id, string? account_email) 
+            defaultArgs(string args)
         {
-            id = long.Parse(arg("id", args) ?? "0");
-            imdb_id = arg("imdb_id", args);
-            kinopoisk_id = long.Parse(arg("kinopoisk_id", args) ?? "0");
-            title = arg("title", args);
-            original_title = arg("original_title", args);
-            serial = int.Parse(arg("serial", args) ?? "0");
-            original_language = arg("original_language", args);
-            year = int.Parse(arg("year", args) ?? "0");
-            source = arg("source", args);
-            clarification = int.Parse(arg("clarification", args) ?? "0");
-            cub_id = long.Parse(arg("cub_id", args) ?? "0");
-            account_email = arg("account_email", args);
+            return
+            (
+               long.Parse(parse_arg("id", args) ?? "0"),
+               parse_arg("imdb_id", args),
+               long.Parse(parse_arg("kinopoisk_id", args) ?? "0"),
+               parse_arg("title", args),
+               parse_arg("original_title", args),
+               int.Parse(parse_arg("serial", args) ?? "0"),
+               parse_arg("original_language", args),
+               int.Parse(parse_arg("year", args) ?? "0"),
+               parse_arg("source", args),
+               int.Parse(parse_arg("clarification", args) ?? "0"),
+               long.Parse(parse_arg("cub_id", args) ?? "0"),
+               parse_arg("account_email", args)
+            );
         }
 
         async public static ValueTask<T?> InvokeCache<T>(long id, string memKey, Func<ValueTask<T?>> onresult) where T : class

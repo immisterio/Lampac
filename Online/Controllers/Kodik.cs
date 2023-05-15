@@ -12,11 +12,14 @@ using Lampac.Engine.CORE;
 using System.Security.Cryptography;
 using System.Text;
 using Lampac.Models.LITE.Kodik;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Kodik : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("kodik", AppInit.conf.Kodik);
+
         [HttpGet]
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string kid, int s = -1)
@@ -177,13 +180,14 @@ namespace Lampac.Controllers.LITE
             string memKey = $"kodik:view:VideoParse:{link}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
-                System.Net.WebProxy proxy = null;
-                if (AppInit.conf.Kodik.useproxy)
-                    proxy = HttpClient.webProxy();
+                var proxy = proxyManager.Get();
 
                 string iframe = await HttpClient.Get($"http:{link}", referer: "https://animego.org/", proxy: proxy, timeoutSeconds: 8);
                 if (iframe == null)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 string _frame = Regex.Replace(iframe, "[\n\r\t ]+", "");
                 string d_sign = new Regex("d_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
@@ -195,7 +199,10 @@ namespace Lampac.Controllers.LITE
 
                 string json = await HttpClient.Post($"{AppInit.conf.Kodik.linkhost}/gvi", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D", proxy: proxy, timeoutSeconds: 8);
                 if (json == null)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 streams = new List<(string q, string url)>();
 
@@ -264,9 +271,12 @@ namespace Lampac.Controllers.LITE
                 if (s > 0)
                     url += $"&season={s}";
 
-                var root = await HttpClient.Get<JObject>(url, timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>(url, timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || !root.ContainsKey("results"))
+                {
+                    proxyManager.Refresh();
                     return null;
+                }
 
                 results = root.GetValue("results");
                 if (results.Count() == 0)

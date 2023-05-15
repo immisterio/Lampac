@@ -9,10 +9,13 @@ namespace JinEnergy.Online
         [JSInvokable("lite/videodb")]
         async public static Task<string> Index(string args)
         {
-            int s = int.Parse(arg("s", args) ?? "-1");
-            int sid = int.Parse(arg("sid", args) ?? "-1");
-            string? t = arg("t", args);
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
+            int sid = int.Parse(parse_arg("sid", args) ?? "-1");
+            string? t = parse_arg("t", args);
+
+            if (arg.kinopoisk_id == 0)
+                return OnError("kinopoisk_id");
 
             var oninvk = new VideoDBInvoke
             (
@@ -22,11 +25,11 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var content = await InvokeCache(id, $"videodb:view:{kinopoisk_id}", () => oninvk.Embed(kinopoisk_id, serial));
+            var content = await InvokeCache(arg.id, $"videodb:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id, arg.serial));
             if (content?.pl == null)
                 return OnError("content");
 
-            return oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid);
+            return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
         }
     }
 }

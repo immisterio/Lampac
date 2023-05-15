@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Xvideos
 {
@@ -22,10 +23,16 @@ namespace Lampac.Controllers.Xvideos
             string memKey = $"xvideos:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                stream_links = await XvideosTo.StreamLinks(AppInit.conf.Xvideos.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xvideos.useproxy));
+                var proxyManager = new ProxyManager("xds", AppInit.conf.Xvideos);
+                var proxy = proxyManager.Get();
+
+                stream_links = await XvideosTo.StreamLinks(AppInit.conf.Xvideos.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
 
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }

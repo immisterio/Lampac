@@ -31,9 +31,6 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<EmbedModel?> Embed(string? title, int year, Func<string, ValueTask<string?>> oneval)
         {
-            if (string.IsNullOrEmpty(title) || year == 0)
-                return null;
-
             string? content = await onget($"{apihost}/search?query={HttpUtility.UrlEncode(title)}");
             if (content == null)
                 return null;

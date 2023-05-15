@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model.Proxy;
+
+namespace Lampac.Models.LITE
 {
-    public class HDVBSettings
+    public class HDVBSettings : Iproxy
     {
         public HDVBSettings(string apihost, string token)
         {
@@ -14,5 +16,14 @@
         public string apihost { get; set; }
 
         public string token { get; set; }
+
+
+        public bool useproxy { get; set; }
+
+        public string? globalnameproxy { get; set; }
+
+        public bool streamproxy { get; set; }
+
+        public ProxySettings? proxy { get; set; }
     }
 }

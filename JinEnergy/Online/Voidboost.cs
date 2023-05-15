@@ -20,14 +20,17 @@ namespace JinEnergy.Online
         [JSInvokable("lite/voidboost")]
         async public static Task<string> Index(string args)
         {
-            string? t = arg("t", args);
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            string? t = parse_arg("t", args);
 
-            var content = await InvokeCache(id, $"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}", () => oninvk.Embed(imdb_id, kinopoisk_id, t));
+            if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
+                return OnError("imdb_id");
+
+            var content = await InvokeCache(arg.id, $"voidboost:view:{arg.kinopoisk_id}:{arg.imdb_id}:{t}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, t));
             if (content == null)
-                return string.Empty;
+                return OnError("content");
 
-            return oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, t);
+            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t);
         }
 
 
@@ -35,11 +38,14 @@ namespace JinEnergy.Online
         [JSInvokable("lite/voidboost/serial")]
         async public static Task<string> Serial(string args)
         {
-            string? t = arg("t", args);
-            int s = int.Parse(arg("s", args) ?? "0");
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            string? t = parse_arg("t", args);
+            int s = int.Parse(parse_arg("s", args) ?? "0");
 
-            string? html = await InvokeCache(id, $"voidboost:view:serial:{t}:{s}", () => oninvk.Serial(imdb_id, kinopoisk_id, title, original_title, t, s, false));
+            if (string.IsNullOrWhiteSpace(t))
+                return OnError("t");
+
+            string? html = await InvokeCache(arg.id, $"voidboost:view:serial:{t}:{s}", () => oninvk.Serial(arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s, false));
             if (html == null)
                 return string.Empty;
 
@@ -51,11 +57,11 @@ namespace JinEnergy.Online
         [JSInvokable("lite/voidboost/movie")]
         async public static Task<string> Movie(string args)
         {
-            string? t = arg("t", args);
-            int s = int.Parse(arg("s", args) ?? "0");
-            int e = int.Parse(arg("e", args) ?? "0");
+            string? t = parse_arg("t", args);
+            int s = int.Parse(parse_arg("s", args) ?? "0");
+            int e = int.Parse(parse_arg("e", args) ?? "0");
 
-            string? result = await InvokeCache(0, $"rezka:view:stream:{t}:{s}:{e}", () => oninvk.Movie(arg("title", args), arg("original_title", args), t, s, e, false));
+            string? result = await InvokeCache(0, $"rezka:view:stream:{t}:{s}:{e}", () => oninvk.Movie(parse_arg("title", args), parse_arg("original_title", args), t, s, e, false));
             if (result == null)
                 return string.Empty;
 

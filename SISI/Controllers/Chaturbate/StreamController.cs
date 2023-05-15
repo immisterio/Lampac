@@ -6,6 +6,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.CORE;
 using Shared.Engine.SISI;
 
 namespace Lampac.Controllers.Chaturbate
@@ -22,9 +23,15 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"chaturbate:stream:{baba}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                stream_links = await ChaturbateTo.StreamLinks(AppInit.conf.Chaturbate.corsHost(), baba, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Chaturbate.useproxy));
+                var proxyManager = new ProxyManager("chu", AppInit.conf.Chaturbate);
+                var proxy = proxyManager.Get();
+
+                stream_links = await ChaturbateTo.StreamLinks(AppInit.conf.Chaturbate.corsHost(), baba, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
             }

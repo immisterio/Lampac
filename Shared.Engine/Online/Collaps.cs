@@ -27,9 +27,6 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<EmbedModel?> Embed(string? imdb_id, long kinopoisk_id)
         {
-            if(kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return null;
-
             string uri = $"{apihost}/embed/imdb/{imdb_id}";
             if (kinopoisk_id > 0)
                 uri = $"{apihost}/embed/kp/{kinopoisk_id}";
@@ -109,7 +106,7 @@ namespace Shared.Engine.Online
 
                 try
                 {
-                    if (s == 0)
+                    if (s == -1)
                     {
                         foreach (var season in md.serial.OrderBy(i => i.season))
                         {

@@ -29,9 +29,6 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<EmbedModel?> Embed(string? title, int year)
         {
-            if (string.IsNullOrWhiteSpace(title) || year == 0)
-                return null;
-
             string? search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}");
             if (search == null)
                 return null;

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
 using System.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Xnxx
 {
@@ -22,10 +23,16 @@ namespace Lampac.Controllers.Xnxx
             string memKey = $"xnxx:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                stream_links = await XnxxTo.StreamLinks(AppInit.conf.Xnxx.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xnxx.useproxy));
+                var proxyManager = new ProxyManager("xnx", AppInit.conf.Xnxx);
+                var proxy = proxyManager.Get();
+
+                stream_links = await XnxxTo.StreamLinks(AppInit.conf.Xnxx.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
 
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }

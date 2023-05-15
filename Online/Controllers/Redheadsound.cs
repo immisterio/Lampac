@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,9 +19,11 @@ namespace Lampac.Controllers.LITE
             if (original_language != "en")
                 clarification = 1;
 
-            System.Net.WebProxy proxy = null;
-            if (AppInit.conf.Redheadsound.useproxy)
-                proxy = HttpClient.webProxy();
+            if (string.IsNullOrWhiteSpace(title) || year == 0)
+                return Content(string.Empty);
+
+            var proxyManager = new ProxyManager("redheadsound", AppInit.conf.Redheadsound);
+            var proxy = proxyManager.Get();
 
             var oninvk = new RedheadsoundInvoke
             (
@@ -32,8 +35,11 @@ namespace Lampac.Controllers.LITE
             );
 
             var content = await InvokeCache($"redheadsound:view:{title}:{year}:{clarification}", AppInit.conf.multiaccess ? 30 : 10, () => oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year));
-            if (content.iframe == null)
+            if (content == null)
+            {
+                proxyManager.Refresh();
                 return Content(string.Empty);
+            }
 
             return Content(oninvk.Html(content, title), "text/html; charset=utf-8");
         }

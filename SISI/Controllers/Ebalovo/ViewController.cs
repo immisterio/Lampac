@@ -7,6 +7,7 @@ using System;
 using Shared.Engine.SISI;
 using System.Collections.Generic;
 using System.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Ebalovo
 {
@@ -22,16 +23,18 @@ namespace Lampac.Controllers.Ebalovo
             string memKey = $"ebalovo:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                System.Net.WebProxy proxy = null;
-                if (AppInit.conf.Ebalovo.useproxy)
-                    proxy = HttpClient.webProxy();
+                var proxyManager = new ProxyManager("elo", AppInit.conf.Ebalovo);
+                var proxy = proxyManager.Get();
 
                 stream_links = await EbalovoTo.StreamLinks(AppInit.conf.Ebalovo.host, uri,
                                url => HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy),
                                location => HttpClient.GetLocation(location, timeoutSeconds: 8, proxy: proxy, referer: $"{AppInit.conf.Ebalovo.host}/"));
 
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }

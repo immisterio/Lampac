@@ -28,9 +28,6 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id)
         {
-            if(kinopoisk_id == 0)
-                return null;
-
             string? product = await onget.Invoke($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}");
             if (product == null)
                 return null;

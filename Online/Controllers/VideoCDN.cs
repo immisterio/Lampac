@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -12,12 +13,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vcdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
-            if (!AppInit.conf.VCDN.enable)
+            if (!AppInit.conf.VCDN.enable || (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
                 return Content(string.Empty);
 
-            System.Net.WebProxy proxy = null;
-            if (AppInit.conf.VCDN.useproxy)
-                proxy = HttpClient.webProxy();
+            var proxyManager = new ProxyManager("vcdn", AppInit.conf.VCDN);
+            var proxy = proxyManager.Get();
 
             var oninvk = new VideoCDNInvoke
             (
@@ -29,7 +29,10 @@ namespace Lampac.Controllers.LITE
 
             var content = await InvokeCache($"videocdn:view:{imdb_id}:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, imdb_id));
             if (content == null)
+            {
+                proxyManager.Refresh();
                 return Content(string.Empty);
+            }
 
             return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }

@@ -26,9 +26,6 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<List<Voice>?> Embed(long kinopoisk_id)
         {
-            if(kinopoisk_id == 0)
-                return null;
-
             string? html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
             if (html == null)
                 return null;

@@ -11,11 +11,14 @@ using System.Linq;
 using Lampac.Models.LITE;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Rezka : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
+
         [HttpGet]
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int s = -1, string href = null)
@@ -166,18 +169,24 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{AppInit.conf.Rezka.host}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
                 string data = $"id={id}&translator_id={t}&action=get_episodes";
 
-                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10, addHeaders: new List<(string name, string val)>
+                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>
                 {
                     ("X-App-Hdrezka-App", "1"),
                     ("Cookie", AppInit.conf.Rezka.сookie)
                 });
 
                 if (root == null || !root.ContainsKey("episodes"))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 string episodes = root.Value<object>("episodes")?.ToString();
                 if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
@@ -261,8 +270,8 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out JObject root))
             {
-                string uri = $"{AppInit.conf.Rezka.host}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}"; 
                 string data = null;
+                string uri = $"{AppInit.conf.Rezka.host}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
 
                 if (s == -1)
                 {
@@ -273,18 +282,24 @@ namespace Lampac.Controllers.LITE
                     data = $"id={id}&translator_id={t}&season={s}&episode={e}&action=get_stream";
                 }
 
-                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10, addHeaders: new List<(string name, string val)> 
+                root = await HttpClient.Post<JObject>(uri, data, timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)> 
                 { 
                     ("X-App-Hdrezka-App", "1"),
                     ("Cookie", AppInit.conf.Rezka.сookie)
                 });
-                
+
                 if (root == null || !root.ContainsKey("url"))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 string url = root.Value<object>("url")?.ToString();
                 if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
@@ -407,17 +422,17 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out (string content, string id, List<(string title, string href)> similar) result))
             {
-                System.Net.WebProxy proxy = null;
-                if (AppInit.conf.Rezka.useproxy)
-                    proxy = HttpClient.webProxy();
-
+                var proxy = proxyManager.Get();
                 string link = href, reservedlink = null;
 
                 if (string.IsNullOrWhiteSpace(link))
                 {
                     string search = await HttpClient.Get($"{AppInit.conf.Rezka.host}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
+                    {
+                        proxyManager.Refresh();
                         return (null, null, null);
+                    }
 
                     foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
                     {
@@ -455,7 +470,10 @@ namespace Lampac.Controllers.LITE
                 result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
                 result.content = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (result.content == null || string.IsNullOrWhiteSpace(result.id))
+                {
+                    proxyManager.Refresh();
                     return (null, null, null);
+                }
 
                 memoryCache.Set(memKey, result, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }

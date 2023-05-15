@@ -13,6 +13,7 @@ using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using System.Collections.Generic;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.JAC
 {
@@ -39,7 +40,9 @@ namespace Lampac.Controllers.JAC
                 return Content("error");
             }
 
-            byte[] _t = await HttpClient.Download($"{AppInit.conf.Megapeer.host}/download/{id}", referer: AppInit.conf.Megapeer.host, timeoutSeconds: 10);
+            var proxyManager = new ProxyManager("megapeer", AppInit.conf.Megapeer);
+
+            byte[] _t = await HttpClient.Download($"{AppInit.conf.Megapeer.host}/download/{id}", referer: AppInit.conf.Megapeer.host, timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -52,6 +55,7 @@ namespace Lampac.Controllers.JAC
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
 
+            proxyManager.Refresh();
             return Content("error");
         }
         #endregion
@@ -71,7 +75,9 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.Megapeer.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds, addHeaders: new List<(string name, string val)>()
+                var proxyManager = new ProxyManager("megapeer", AppInit.conf.Megapeer);
+
+                string html = await HttpClient.Get($"{AppInit.conf.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds, addHeaders: new List<(string name, string val)>()
                 {
                     ("dnt", "1"),
                     ("pragma", "no-cache"),
@@ -92,6 +98,7 @@ namespace Lampac.Controllers.JAC
 
                 if (cread.html == null)
                 {
+                    proxyManager.Refresh();
                     HtmlCache.EmptyCache(cachekey);
                     return false;
                 }

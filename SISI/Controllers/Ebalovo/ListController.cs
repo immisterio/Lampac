@@ -7,6 +7,7 @@ using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Ebalovo
 {
@@ -22,9 +23,15 @@ namespace Lampac.Controllers.Ebalovo
             string memKey = $"elo:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await EbalovoTo.InvokeHtml(AppInit.conf.Ebalovo.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Ebalovo.useproxy));
+                var proxyManager = new ProxyManager("elo", AppInit.conf.Ebalovo);
+                var proxy = proxyManager.Get();
+
+                string html = await EbalovoTo.InvokeHtml(AppInit.conf.Ebalovo.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = EbalovoTo.Playlist($"{host}/elo/vidosik", html, pl => 
                 {
@@ -33,7 +40,10 @@ namespace Lampac.Controllers.Ebalovo
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

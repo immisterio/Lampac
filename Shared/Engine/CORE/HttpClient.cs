@@ -1,7 +1,5 @@
-﻿using Lampac.Models;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,89 +13,83 @@ namespace Lampac.Engine.CORE
 {
     public static class HttpClient
     {
-        static FileStream logFileStream = null;
-
-        #region webProxy
-        static ConcurrentBag<string> proxyRandomList = new ConcurrentBag<string>();
-
-        public static WebProxy webProxy()
+        #region Handler
+        static HttpClientHandler Handler(string url, WebProxy proxy)
         {
-            if (proxyRandomList.Count == 0)
+            var handler = new HttpClientHandler()
             {
-                foreach (string ip in AppInit.conf.proxy.list.OrderBy(a => Guid.NewGuid()).ToArray())
-                    proxyRandomList.Add(ip);
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+
+            handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+            if (proxy != null)
+            {
+                handler.UseProxy = true;
+                handler.Proxy = proxy;
             }
 
-            proxyRandomList.TryTake(out string proxyip);
+            if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
+            {
+                foreach (var p in AppInit.conf.globalproxy)
+                {
+                    if (p.list == null || p.list.Count == 0 || p.pattern == null)
+                        continue;
 
-            ICredentials credentials = null;
+                    if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
+                    {
+                        ICredentials credentials = null;
 
-            if (AppInit.conf.proxy.useAuth)
-                credentials = new NetworkCredential(AppInit.conf.proxy.username, AppInit.conf.proxy.password);
+                        if (p.useAuth)
+                            credentials = new NetworkCredential(p.username, p.password);
 
-            return new WebProxy(proxyip, AppInit.conf.proxy.BypassOnLocal, null, credentials);
+                        handler.UseProxy = true;
+                        handler.Proxy = new WebProxy(p.list.OrderBy(a => Guid.NewGuid()).First(), p.BypassOnLocal, null, credentials);
+                        break;
+                    }
+                }
+            }
+
+            return handler;
         }
+        #endregion
 
-
-        static WebProxy webProxy(ProxySettings p)
+        #region DefaultRequestHeaders
+        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<(string name, string val)> addHeaders)
         {
-            ICredentials credentials = null;
+            client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
-            if (p.useAuth)
-                credentials = new NetworkCredential(p.username, p.password);
+            if (MaxResponseContentBufferSize != -1)
+                client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
 
-            return new WebProxy(p.list.OrderBy(a => Guid.NewGuid()).First(), p.BypassOnLocal, null, credentials);
+            client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
+
+            if (cookie != null)
+                client.DefaultRequestHeaders.Add("cookie", cookie);
+
+            if (referer != null)
+                client.DefaultRequestHeaders.Add("referer", referer);
+
+            if (addHeaders != null)
+            {
+                foreach (var item in addHeaders)
+                    client.DefaultRequestHeaders.Add(item.name, item.val);
+            }
         }
         #endregion
 
 
         #region GetLocation
-        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1, bool allowAutoRedirect = true, bool useproxy = false, WebProxy proxy = null)
+        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<(string name, string val)> addHeaders = null, int httpversion = 1, bool allowAutoRedirect = false, WebProxy proxy = null)
         {
             try
             {
-                HttpClientHandler handler = new HttpClientHandler();
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                handler.AllowAutoRedirect = false;
-
-                #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
-                {
-                    handler.UseProxy = true;
-                    handler.Proxy = proxy ?? webProxy();
-                }
-
-                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
-                {
-                    foreach (var p in AppInit.conf.globalproxy)
-                    {
-                        if (p.list == null || p.list.Count == 0)
-                            continue;
-
-                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
-                        {
-                            handler.UseProxy = true;
-                            handler.Proxy = webProxy(p);
-                            break;
-                        }
-                    }
-                }
-                #endregion
+                HttpClientHandler handler = Handler(url, proxy);
+                handler.AllowAutoRedirect = allowAutoRedirect;
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.DefaultRequestHeaders.Add("UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36");
-
-                    if (referer != null)
-                        client.DefaultRequestHeaders.Add("referer", referer);
-
-                    if (addHeaders != null)
-                    {
-                        foreach (var item in addHeaders)
-                            client.DefaultRequestHeaders.Add(item.name, item.val);
-                    }
+                    DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, referer, addHeaders);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -122,18 +114,18 @@ namespace Lampac.Engine.CORE
 
 
         #region Get
-        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, long MaxResponseContentBufferSize = 0, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1)
         {
-            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, MaxResponseContentBufferSize: MaxResponseContentBufferSize, useproxy: useproxy, proxy: proxy, httpversion: httpversion)).content;
+            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion)).content;
         }
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool IgnoreDeserializeObject = false, bool useproxy = false, WebProxy proxy = null)
+        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null)
         {
             try
             {
-                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useproxy: useproxy, proxy: proxy)).content;
+                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, proxy: proxy)).content;
                 if (html == null)
                     return default;
 
@@ -150,60 +142,15 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region BaseGetAsync
-        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<(string name, string val)> addHeaders = null, WebProxy proxy = null, int httpversion = 1)
         {
             string loglines = string.Empty;
 
             try
             {
-                HttpClientHandler handler = new HttpClientHandler()
+                using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
                 {
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-                };
-
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
-                {
-                    handler.UseProxy = true;
-                    handler.Proxy = proxy ?? webProxy();
-                }
-
-                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
-                {
-                    foreach (var p in AppInit.conf.globalproxy)
-                    {
-                        if (p.list == null || p.list.Count == 0)
-                            continue;
-
-                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
-                        {
-                            handler.UseProxy = true;
-                            handler.Proxy = webProxy(p);
-                            break;
-                        }
-                    }
-                }
-                #endregion
-
-                using (var client = new System.Net.Http.HttpClient(handler))
-                {
-                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
-
-                    if (cookie != null)
-                        client.DefaultRequestHeaders.Add("cookie", cookie);
-
-                    if (referer != null)
-                        client.DefaultRequestHeaders.Add("referer", referer);
-
-                    if (addHeaders != null)
-                    {
-                        foreach (var item in addHeaders)
-                            client.DefaultRequestHeaders.Add(item.name, item.val);
-                    }
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -260,62 +207,20 @@ namespace Lampac.Engine.CORE
 
 
         #region Post
-        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
+        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, WebProxy proxy = null, int httpversion = 1)
         {
-            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useproxy: useproxy, proxy: proxy, httpversion: httpversion);
+            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, proxy: proxy, httpversion: httpversion);
         }
 
-        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, WebProxy proxy = null, int httpversion = 1)
         {
             string loglines = string.Empty;
 
             try
             {
-                HttpClientHandler handler = new HttpClientHandler()
+                using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
                 {
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
-                };
-
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
-                {
-                    handler.UseProxy = true;
-                    handler.Proxy = proxy ?? webProxy();
-                }
-
-                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
-                {
-                    foreach (var p in AppInit.conf.globalproxy)
-                    {
-                        if (p.list == null || p.list.Count == 0)
-                            continue;
-
-                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
-                        {
-                            handler.UseProxy = true;
-                            handler.Proxy = webProxy(p);
-                            break;
-                        }
-                    }
-                }
-                #endregion
-
-                using (var client = new System.Net.Http.HttpClient(handler))
-                {
-                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.MaxResponseContentBufferSize = MaxResponseContentBufferSize != 0 ? MaxResponseContentBufferSize : 10_000_000; // 10MB
-
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
-                    if (cookie != null)
-                        client.DefaultRequestHeaders.Add("cookie", cookie);
-
-                    if (addHeaders != null)
-                    {
-                        foreach (var item in addHeaders)
-                            client.DefaultRequestHeaders.Add(item.name, item.val);
-                    }
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, addHeaders);
 
                     var req = new HttpRequestMessage(HttpMethod.Post, url)
                     {
@@ -367,16 +272,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post<T>
-        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
+        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
         {
-            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useproxy: useproxy, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject);
+            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject);
         }
 
-        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, bool useproxy = false, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
+        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<(string name, string val)> addHeaders = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
         {
             try
             {
-                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useproxy: useproxy, encoding: encoding, proxy: proxy);
+                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, encoding: encoding, proxy: proxy);
                 if (json == null)
                     return default;
 
@@ -394,59 +299,16 @@ namespace Lampac.Engine.CORE
 
 
         #region Download
-        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<(string name, string val)> addHeaders = null, bool useproxy = false, WebProxy proxy = null)
+        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<(string name, string val)> addHeaders = null, WebProxy proxy = null)
         {
             try
             {
-                HttpClientHandler handler = new HttpClientHandler()
-                {
-                    AllowAutoRedirect = true,
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
-                };
-
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                #region proxy
-                if (AppInit.conf.proxy.list != null && AppInit.conf.proxy.list.Count > 0 && (useproxy || proxy != null))
-                {
-                    handler.UseProxy = true;
-                    handler.Proxy = proxy ?? webProxy();
-                }
-
-                if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
-                {
-                    foreach (var p in AppInit.conf.globalproxy)
-                    {
-                        if (p.list == null || p.list.Count == 0)
-                            continue;
-
-                        if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
-                        {
-                            handler.UseProxy = true;
-                            handler.Proxy = webProxy(p);
-                            break;
-                        }
-                    }
-                }
-                #endregion
+                var handler = Handler(url, proxy);
+                handler.AllowAutoRedirect = true;
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
-
-                    if (cookie != null)
-                        client.DefaultRequestHeaders.Add("cookie", cookie);
-
-                    if (referer != null)
-                        client.DefaultRequestHeaders.Add("referer", referer);
-
-                    if (addHeaders != null)
-                    {
-                        foreach (var item in addHeaders)
-                            client.DefaultRequestHeaders.Add(item.name, item.val);
-                    }
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders);
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {
@@ -471,6 +333,38 @@ namespace Lampac.Engine.CORE
         }
         #endregion
 
+        #region DownloadFile
+        async public static ValueTask<bool> DownloadFile(string url, string path, int timeoutSeconds = 20, List<(string name, string val)> addHeaders = null, WebProxy proxy = null)
+        {
+            try
+            {
+                var handler = Handler(url, proxy);
+                handler.AllowAutoRedirect = true;
+
+                using (var client = new System.Net.Http.HttpClient(handler))
+                {
+                    DefaultRequestHeaders(client, timeoutSeconds, -1, null, null, addHeaders);
+
+                    using (var stream = await client.GetStreamAsync(url))
+                    {
+                        using (var fileStream = new FileStream(path, FileMode.OpenOrCreate))
+                        {
+                            await stream.CopyToAsync(fileStream);
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        #endregion
+
+
+        #region WriteLog
+        static FileStream logFileStream = null;
 
         async static Task WriteLog(string url, string method, string postdata, string result)
         {
@@ -496,5 +390,6 @@ namespace Lampac.Engine.CORE
             await logFileStream.WriteAsync(buffer, 0, buffer.Length);
             await logFileStream.FlushAsync();
         }
+        #endregion
     }
 }

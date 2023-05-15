@@ -12,6 +12,7 @@ using System.Threading;
 using System.Net.Http.Headers;
 using TorrServer;
 using Microsoft.Extensions.Caching.Memory;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers
 {
@@ -22,9 +23,6 @@ namespace Lampac.Controllers
         [Route("ts.js")]
         async public Task<ActionResult> Plugin()
         {
-            if (!ModInit.enable)
-                return Content(string.Empty);
-
             if (!memoryCache.TryGetValue("ApiController:ts.js", out string file))
             {
                 file = await IO.File.ReadAllTextAsync("plugins/ts.js");
@@ -35,11 +33,44 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        #region Main
         [Route("ts")]
+        [Route("ts/static/js/main.{suffix}.chunk.js")]
+        async public Task<ActionResult> Main()
+        {
+            string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
+            string servUri = $"http://127.0.0.1:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+
+            if (!pathRequest.Contains(".js") && await Start() == false)
+                return StatusCode(500);
+
+            string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, addHeaders: new List<(string name, string val)>() 
+            {
+                ("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"),
+            });
+
+            if (html == null)
+                return StatusCode(500);
+
+            if (pathRequest.Contains(".js"))
+            {
+                html = html.Replace(".concat(C,\"/", ".concat(C,\"/ts/");
+                return Content(html, "application/javascript; charset=utf-8");
+            }
+            else
+            {
+                html = html.Replace("href=\"/", "href=\"").Replace("src=\"/", "src=\"");
+                html = html.Replace("<meta charset=\"utf-8\">", "<meta charset=\"utf-8\"><base href=\"/ts/\" />");
+                return Content(html, "text/html; charset=utf-8");
+            }
+        }
+        #endregion
+
+        #region TorAPI
         [Route("ts/{*suffix}")]
         async public Task Index()
         {
-            if (!ModInit.enable || HttpContext.Request.Path.Value.StartsWith("/shutdown"))
+            if (HttpContext.Request.Path.Value.StartsWith("/shutdown"))
             {
                 HttpContext.Response.StatusCode = 404;
                 return;
@@ -52,7 +83,7 @@ namespace Lampac.Controllers
                 {
                     if (ModInit.clientIps.Contains(HttpContext.Connection.RemoteIpAddress.ToString()))
                     {
-                        await TorAPI(HttpContext);
+                        await TorAPI();
                         return;
                     }
                     else
@@ -76,12 +107,12 @@ namespace Lampac.Controllers
                     byte[] data = Convert.FromBase64String(Authorization.ToString().Replace("Basic ", ""));
                     string[] decodedString = Encoding.UTF8.GetString(data).Split(":");
 
-                    string login = decodedString[0].ToLower();
+                    string login = decodedString[0].ToLower().Trim();
                     string passwd = decodedString[1];
 
                     if (AppInit.conf.accsdb.accounts.Contains(login) && passwd == "ts")
                     {
-                        await TorAPI(HttpContext);
+                        await TorAPI();
                         return;
                     }
                 }
@@ -98,15 +129,71 @@ namespace Lampac.Controllers
             }
             else
             {
-                await TorAPI(HttpContext);
+                await TorAPI();
                 return;
             }
         }
 
-
-        async public Task TorAPI(HttpContext httpContext)
+        async public Task TorAPI()
         {
-            if (ModInit.tsprocess == null || await CheckPort(ModInit.tsport, httpContext) == false)
+            if (await Start() == false)
+                return;
+
+            #region settings
+            if (HttpContext.Request.Path.Value.StartsWith("/settings"))
+            {
+                if (HttpContext.Request.Method != "POST")
+                {
+                    HttpContext.Response.StatusCode = 404;
+                    await HttpContext.Response.WriteAsync("404 page not found");
+                    return;
+                }
+
+                using (HttpClient client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(15);
+
+                    #region Данные запроса
+                    MemoryStream mem = new MemoryStream();
+                    await HttpContext.Request.Body.CopyToAsync(mem);
+                    string requestJson = Encoding.UTF8.GetString(mem.ToArray());
+                    #endregion
+
+                    var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
+                    string settingsJson = await response.Content.ReadAsStringAsync();
+
+                    if (requestJson.Trim() == "{\"action\":\"get\"}")
+                    {
+                        await HttpContext.Response.WriteAsync(settingsJson);
+                        return;
+                    }
+
+                    await HttpContext.Response.WriteAsync(string.Empty);
+                    return;
+                }
+            }
+            #endregion
+
+            #region Отправляем запрос в torrserver
+            string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
+            string servUri = $"http://127.0.0.1:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+
+            using (var client = new HttpClient())
+            {
+                var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted);
+
+                await CopyProxyHttpResponse(HttpContext, response);
+            }
+            #endregion
+        }
+        #endregion
+
+
+        #region Start
+        async public ValueTask<bool> Start()
+        {
+            if (ModInit.tsprocess == null || await CheckPort(ModInit.tsport, HttpContext) == false)
             {
                 #region Запускаем TorrServer
                 var thread = new Thread(() =>
@@ -132,11 +219,11 @@ namespace Lampac.Controllers
                 #endregion
 
                 #region Проверяем доступность сервера
-                if (await CheckPort(ModInit.tsport, httpContext) == false)
+                if (await CheckPort(ModInit.tsport, HttpContext) == false)
                 {
                     ModInit.tsprocess?.Dispose();
                     ModInit.tsprocess = null;
-                    return;
+                    return false;
                 }
                 #endregion
 
@@ -171,59 +258,13 @@ namespace Lampac.Controllers
             }
 
             if (ModInit.tsprocess == null)
-                return;
+                return false;
 
-            ModInit.clientIps.Add(httpContext.Connection.RemoteIpAddress.ToString());
+            ModInit.clientIps.Add(HttpContext.Connection.RemoteIpAddress.ToString());
 
-            #region settings
-            if (httpContext.Request.Path.Value.StartsWith("/settings"))
-            {
-                if (httpContext.Request.Method != "POST")
-                {
-                    httpContext.Response.StatusCode = 404;
-                    await httpContext.Response.WriteAsync("404 page not found");
-                    return;
-                }
-
-                using (HttpClient client = new HttpClient())
-                {
-                    client.Timeout = TimeSpan.FromSeconds(15);
-
-                    #region Данные запроса
-                    MemoryStream mem = new MemoryStream();
-                    await httpContext.Request.Body.CopyToAsync(mem);
-                    string requestJson = Encoding.UTF8.GetString(mem.ToArray());
-                    #endregion
-
-                    var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
-                    string settingsJson = await response.Content.ReadAsStringAsync();
-
-                    if (requestJson.Trim() == "{\"action\":\"get\"}")
-                    {
-                        await httpContext.Response.WriteAsync(settingsJson);
-                        return;
-                    }
-
-                    await httpContext.Response.WriteAsync(string.Empty);
-                    return;
-                }
-            }
-            #endregion
-
-            #region Отправляем запрос в torrserver
-            string pathRequest = Regex.Replace(httpContext.Request.Path.Value, "^/ts", "");
-            string servUri = $"http://127.0.0.1:{ModInit.tsport}{pathRequest + httpContext.Request.QueryString.Value}";
-
-            using (var client = new HttpClient())
-            {
-                var request = CreateProxyHttpRequest(httpContext, new Uri(servUri));
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
-
-                await CopyProxyHttpResponse(httpContext, response);
-            }
-            #endregion
+            return true;
         }
-
+        #endregion
 
         #region CheckPort
         async public ValueTask<bool> CheckPort(int port, HttpContext httpContext)
@@ -269,6 +310,7 @@ namespace Lampac.Controllers
             }
         }
         #endregion
+
 
         #region CreateProxyHttpRequest
         HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri)

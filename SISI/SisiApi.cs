@@ -60,18 +60,6 @@ namespace SISI
                     title = "Sexy Time",
                     playlist_url = "http://vi.sisi.am/xdb"
                 });
-
-                channels.Add(new
-                {
-                    title = "faphouse.com",
-                    playlist_url = "http://vi.sisi.am/xdb?sites=faphouse"
-                });
-
-                //channels.Add(new
-                //{
-                //    title = "bang.com",
-                //    playlist_url = "http://vi.sisi.am/xdb?sites=bang"
-                //});
             }
 
             if (AppInit.modules != null)

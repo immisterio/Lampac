@@ -12,6 +12,7 @@ using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.JAC
 {
@@ -31,7 +32,9 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            _t = await HttpClient.Download($"{AppInit.conf.TorrentBy.host}/d.php?id={id}", referer: AppInit.conf.TorrentBy.host, timeoutSeconds: 10);
+            var proxyManager = new ProxyManager("torrentby", AppInit.conf.TorrentBy);
+
+            _t = await HttpClient.Download($"{AppInit.conf.TorrentBy.host}/d.php?id={id}", referer: AppInit.conf.TorrentBy.host, timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -41,6 +44,7 @@ namespace Lampac.Controllers.JAC
             else if (AppInit.conf.jac.emptycache)
                 Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
+            proxyManager.Refresh();
             return Redirect(magnet);
         }
         #endregion
@@ -60,7 +64,9 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}&search_in=0", useproxy: AppInit.conf.TorrentBy.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
+                var proxyManager = new ProxyManager("torrentby", AppInit.conf.TorrentBy);
+
+                string html = await HttpClient.Get($"{AppInit.conf.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}&search_in=0", proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null)
                 {
@@ -71,6 +77,7 @@ namespace Lampac.Controllers.JAC
 
                 if (cread.html == null)
                 {
+                    proxyManager.Refresh();
                     HtmlCache.EmptyCache(cachekey);
                     return false;
                 }

@@ -1,8 +1,9 @@
 ﻿using Shared.Model;
+using Shared.Model.Proxy;
 
 namespace Lampac.Models.SISI
 {
-    public class SisiSettings
+    public class SisiSettings : Iproxy
     {
         public SisiSettings(string host, bool enable = true, bool useproxy = false)
         {
@@ -16,9 +17,14 @@ namespace Lampac.Models.SISI
 
         public bool enable { get; set; }
 
+
         public bool useproxy { get; set; }
 
+        public string? globalnameproxy { get; set; }
+
         public bool streamproxy { get; set; }
+
+        public ProxySettings? proxy { get; set; }
 
 
         public bool corseu { get; set; }

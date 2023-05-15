@@ -9,9 +9,9 @@ namespace JinEnergy.SISI
         [JSInvokable("elo")]
         async public static Task<dynamic> Index(string args)
         {
-            string? search = arg("search", args);
-            string? sort = arg("sort", args);
-            int pg = int.Parse(arg("pg", args) ?? "1") + 1;
+            string? search = parse_arg("search", args);
+            string? sort = parse_arg("sort", args);
+            int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
             string? html = await EbalovoTo.InvokeHtml(AppInit.Ebalovo.host, search, sort, pg, url => JsHttpClient.Get(url));
             if (html == null)
@@ -28,7 +28,7 @@ namespace JinEnergy.SISI
         [JSInvokable("elo/vidosik")]
         async public static Task<dynamic> Stream(string args)
         {
-            var stream_links = await EbalovoTo.StreamLinks(AppInit.Ebalovo.host, arg("uri", args), url => JsHttpClient.Get(url));
+            var stream_links = await EbalovoTo.StreamLinks(AppInit.Ebalovo.host, parse_arg("uri", args), url => JsHttpClient.Get(url));
             if (stream_links == null)
                 return OnError("stream_links");
 

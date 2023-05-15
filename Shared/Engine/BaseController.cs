@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Shared;
+using Shared.Engine.CORE;
 
 namespace Lampac.Engine
 {

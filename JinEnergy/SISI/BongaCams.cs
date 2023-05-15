@@ -9,8 +9,8 @@ namespace JinEnergy.SISI
         [JSInvokable("bgs")]
         async public static Task<dynamic> Index(string args)
         {
-            string? sort = arg("sort", args);
-            int pg = int.Parse(arg("pg", args) ?? "1");
+            string? sort = parse_arg("sort", args);
+            int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
             string? html = await BongaCamsTo.InvokeHtml(AppInit.BongaCams.corsHost(), sort, pg, url => JsHttpClient.Get(url));
             if (html == null)

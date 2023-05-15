@@ -9,11 +9,14 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class AniMedia : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("animedia", AppInit.conf.AniMedia);
+
         [HttpGet]
         [Route("lite/animedia")]
         async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, string account_email = null)
@@ -30,9 +33,12 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animedia:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string code)> catalog))
                 {
-                    string search = await HttpClient.Get($"{AppInit.conf.AniMedia.host}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, useproxy: AppInit.conf.AniMedia.useproxy);
+                    string search = await HttpClient.Get($"{AppInit.conf.AniMedia.host}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     catalog = new List<(string title, string url)>();
 
@@ -45,7 +51,10 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
@@ -70,13 +79,14 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"animedia:seasons:{code}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string news = await HttpClient.Get($"{AppInit.conf.AniMedia.host}/anime/{code}/1/1", timeoutSeconds: 8, useproxy: AppInit.conf.AniMedia.useproxy);
-                        if (news == null)
-                            return Content(string.Empty);
+                        string news = await HttpClient.Get($"{AppInit.conf.AniMedia.host}/anime/{code}/1/1", timeoutSeconds: 8, proxy: proxyManager.Get());
+                        string entryid = Regex.Match(news ?? "", "name=\"entry_id\" value=\"([0-9]+)\"").Groups[1].Value;
 
-                        string entryid = Regex.Match(news, "name=\"entry_id\" value=\"([0-9]+)\"").Groups[1].Value;
                         if (string.IsNullOrWhiteSpace(entryid))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string, string)>();
 
@@ -90,7 +100,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -108,9 +121,12 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"animedia:playlist:{entry_id}:{s}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        var playlist = await HttpClient.Get<JArray>($"{AppInit.conf.AniMedia.host}/embeds/playlist-j.txt/{entry_id}/{s}", timeoutSeconds: 8, useproxy: AppInit.conf.AniMedia.useproxy);
+                        var playlist = await HttpClient.Get<JArray>($"{AppInit.conf.AniMedia.host}/embeds/playlist-j.txt/{entry_id}/{s}", timeoutSeconds: 8, proxy: proxyManager.Get());
                         if (playlist == null || playlist.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string name, string uri)>();
 
@@ -123,7 +139,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }

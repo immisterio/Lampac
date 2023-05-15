@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Lampac.Models.JAC;
 using Shared;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.JAC
 {
@@ -37,7 +38,9 @@ namespace Lampac.Controllers.JAC
                 return Content("error");
             }
 
-            byte[] _t = await HttpClient.Download($"{AppInit.conf.Bitru.host}/download.php?id={id}", referer: $"{AppInit.conf.Bitru}/details.php?id={id}", useproxy: AppInit.conf.Bitru.useproxy, timeoutSeconds: 10);
+            var proxyManager = new ProxyManager("bitru", AppInit.conf.Bitru);
+
+            byte[] _t = await HttpClient.Download($"{AppInit.conf.Bitru.host}/download.php?id={id}", referer: $"{AppInit.conf.Bitru}/details.php?id={id}", proxy: proxyManager.Get(), timeoutSeconds: 10);
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -50,6 +53,7 @@ namespace Lampac.Controllers.JAC
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
 
+            proxyManager.Refresh();
             return Content("error");
         }
         #endregion
@@ -70,7 +74,9 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", useproxy: AppInit.conf.Bitru.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
+                var proxyManager = new ProxyManager("bitru", AppInit.conf.Bitru);
+
+                string html = await HttpClient.Get($"{AppInit.conf.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null && html.Contains("id=\"logo\""))
                 {
@@ -81,6 +87,7 @@ namespace Lampac.Controllers.JAC
 
                 if (cread.html == null)
                 {
+                    proxyManager.Refresh();
                     HtmlCache.EmptyCache(cachekey);
                     return false;
                 }

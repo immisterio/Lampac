@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -58,28 +59,36 @@ namespace Lampac.Controllers.LITE
                 string memKeyIframesrc = $"videoapi:view:iframe_src:{imdb_id}:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKeyIframesrc, out string code))
                 {
-                    string host = AppInit.conf.VideoAPI.host;
-                    if (AppInit.conf.VideoDB.corseu)
-                        host = $"{AppInit.corseuhost}/{host}";
+                    var proxyManager = new ProxyManager("videoapi", AppInit.conf.VideoAPI);
+                    var proxy = proxyManager.Get();
 
-                    var json = await HttpClient.Get<JObject>($"{host}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
+                    var json = await HttpClient.Get<JObject>($"{AppInit.conf.VideoAPI.corsHost()}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, proxy: proxy);
+                    if (json == null)
+                    {
+                        proxyManager.Refresh();
+                        return null;
+                    }
+
                     string iframe_src = json.Value<JArray>("data").First.Value<string>("iframe_src");
                     if (string.IsNullOrWhiteSpace(iframe_src))
                         return null;
 
-                    if (AppInit.conf.VideoDB.corseu)
-                        iframe_src = $"{AppInit.corseuhost}/{iframe_src}";
-
-                    string iframe = await HttpClient.Get(iframe_src, referer: "https://kinogo.biz/53104-avatar-2-2022.html", httpversion: 2, timeoutSeconds: 8, useproxy: AppInit.conf.VideoAPI.useproxy);
+                    string iframe = await HttpClient.Get(AppInit.conf.VideoAPI.corsHost(iframe_src), referer: "https://kinogo.biz/53104-avatar-2-2022.html", httpversion: 2, timeoutSeconds: 8, proxy: proxy);
                     if (iframe == null)
+                    {
+                        proxyManager.Refresh();
                         return null;
+                    }
 
                     code = Regex.Match(iframe, "id=\"files\" value='([^\n\r]+)'>").Groups[1].Value;
                     code = code.Replace("&quot;", "\"").Replace("\\\"", "\"").Replace("\\\\\\", "\\").Replace("\\\\", "\\");
                     code = code.Replace("\\", "");
 
                     if (string.IsNullOrWhiteSpace(code))
+                    {
+                        proxyManager.Refresh();
                         return null;
+                    }
 
                     memoryCache.Set(memKeyIframesrc, code, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
                 }

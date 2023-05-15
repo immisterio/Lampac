@@ -7,11 +7,14 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Porntrex
 {
     public class ViewController : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("ptx", AppInit.conf.Porntrex);
+
         [HttpGet]
         [Route("ptx/vidosik")]
         async public Task<ActionResult> vidosik(string uri)
@@ -19,12 +22,17 @@ namespace Lampac.Controllers.Porntrex
             if (!AppInit.conf.Porntrex.enable)
                 return OnError("disable");
 
-            string memKey = $"porntrex:view:{uri}";
+            string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                var links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10));
+                var proxy = proxyManager.Get();
+
+                var links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (links == null || links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 stream_links = new Dictionary<string, string>();
                 foreach (var l in links)
@@ -44,7 +52,7 @@ namespace Lampac.Controllers.Porntrex
             string memKey = $"Porntrex:strem:{link}";
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
-                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, addHeaders: new List<(string name, string val)>() 
+                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>() 
                 {
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),

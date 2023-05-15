@@ -9,11 +9,11 @@ namespace JinEnergy.Online
         [JSInvokable("lite/eneyida")]
         async public static Task<string> Index(string args)
         {
-            string? href = arg("href", args);
-            int s = int.Parse(arg("s", args) ?? "-1");
-            int t = int.Parse(arg("t", args) ?? "-1");
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
-
+            var arg = defaultArgs(args);
+            string? href = parse_arg("href", args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
+            int t = int.Parse(parse_arg("t", args) ?? "-1");
+            
             var oninvk = new EneyidaInvoke
             (
                null,
@@ -24,11 +24,11 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var result = await InvokeCache(id, $"eneyida:view:{original_title}:{year}:{href}:{clarification}", () => oninvk.Embed(clarification == 1 ? title : original_title, year, href));
+            var result = await InvokeCache(arg.id, $"eneyida:view:{arg.original_title}:{arg.year}:{href}:{arg.clarification}", () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
             if (result == null)
                 return OnError("result");
 
-            return oninvk.Html(result, clarification, title, original_title, year, t, s, href);
+            return oninvk.Html(result, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
         }
     }
 }

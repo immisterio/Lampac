@@ -1,5 +1,4 @@
 ﻿using JinEnergy.Engine;
-using Lampac.Models.LITE.KinoPub;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 
@@ -10,12 +9,13 @@ namespace JinEnergy.Online
         [JSInvokable("lite/filmix")]
         async public static Task<string> Index(string args)
         {
-            int s = int.Parse(arg("s", args) ?? "-1");
-            int t = int.Parse(arg("t", args) ?? "0");
-            int postid = int.Parse(arg("postid", args) ?? "0");
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
+            int t = int.Parse(parse_arg("t", args) ?? "0");
+            int postid = int.Parse(parse_arg("postid", args) ?? "0");
+            int clarification = arg.clarification;
 
-            if (original_language != "en")
+            if (arg.original_language != "en")
                 clarification = 1;
 
             var oninvk = new FilmixInvoke
@@ -30,18 +30,18 @@ namespace JinEnergy.Online
 
             if (postid == 0)
             {
-                var res = await InvStructCache(id, $"filmix:search:{title}:{original_title}:{clarification}", () => oninvk.Search(title, original_title, clarification, year));
+                var res = await InvStructCache(arg.id, $"filmix:search:{arg.title}:{arg.original_title}:{clarification}", () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
                 if (res.id == 0)
                     return res.similars;
 
                 postid = res.id;
             }
 
-            var player_links = await InvokeCache(id, $"filmix:post:{postid}", () => oninvk.Post(postid));
+            var player_links = await InvokeCache(arg.id, $"filmix:post:{postid}", () => oninvk.Post(postid));
             if (player_links == null)
                 return OnError("player_links");
 
-            return oninvk.Html(player_links, AppInit.Filmix.pro, postid, title, original_title, t, s);
+            return oninvk.Html(player_links, AppInit.Filmix.pro, postid, arg.title, arg.original_title, t, s);
         }
     }
 }

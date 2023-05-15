@@ -9,9 +9,12 @@ namespace JinEnergy.Online
         [JSInvokable("lite/ashdi")]
         async public static Task<string> Index(string args)
         {
-            int s = int.Parse(arg("s", args) ?? "-1");
-            int t = int.Parse(arg("t", args) ?? "-1");
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
+            int t = int.Parse(parse_arg("t", args) ?? "-1");
+
+            if (arg.kinopoisk_id == 0)
+                return OnError("kinopoisk_id");
 
             var oninvk = new AshdiInvoke
             (
@@ -21,11 +24,11 @@ namespace JinEnergy.Online
                onstreamtofile => onstreamtofile
             );
 
-            var content = await InvokeCache(id, $"ashdi:view:{kinopoisk_id}", () => oninvk.Embed(kinopoisk_id));
+            var content = await InvokeCache(arg.id, $"ashdi:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
             if (content == null)
                 return OnError("content");
 
-            return oninvk.Html(content, kinopoisk_id, title, original_title, t, s);
+            return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }
     }
 }

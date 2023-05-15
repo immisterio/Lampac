@@ -9,10 +9,14 @@ namespace JinEnergy.Online
         [JSInvokable("lite/redheadsound")]
         async public static Task<string> Index(string args)
         {
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            int clarification = arg.clarification;
 
-            if (original_language != "en")
+            if (arg.original_language != "en")
                 clarification = 1;
+
+            if (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0)
+                return OnError("title");
 
             var oninvk = new RedheadsoundInvoke
             (
@@ -23,11 +27,11 @@ namespace JinEnergy.Online
                streamfile => streamfile
             );
 
-            var content = await InvokeCache(id, $"redheadsound:view:{title}:{year}:{clarification}", () => oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year));
+            var content = await InvokeCache(arg.id, $"redheadsound:view:{arg.title}:{arg.year}:{clarification}", () => oninvk.Embed(clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year));
             if (content == null)
-                return string.Empty;
+                return OnError("content");
 
-            return oninvk.Html(content, title);
+            return oninvk.Html(content, arg.title);
         }
     }
 }

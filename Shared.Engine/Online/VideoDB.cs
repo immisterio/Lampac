@@ -26,9 +26,6 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, int serial)
         {
-            if (kinopoisk_id == 0)
-                return null;
-
             string host = "https://kinoplay.site";
 
             string? html = await onget.Invoke($"{host}/iplayer/videodb.php?kp={kinopoisk_id}" + (serial > 0 ? "&series=true" : ""), new List<(string name, string val)>()

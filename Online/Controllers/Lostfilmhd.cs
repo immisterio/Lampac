@@ -10,11 +10,14 @@ using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Lostfilmhd : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("lostfilmhd", AppInit.conf.Lostfilmhd);
+
         [HttpGet]
         [Route("lite/lostfilmhd")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
@@ -27,7 +30,10 @@ namespace Lampac.Controllers.LITE
 
             var content = await embed(title, year);
             if (content.seasons == null)
+            {
+                proxyManager.Refresh();
                 return Content(string.Empty);
+            }
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -77,13 +83,19 @@ namespace Lampac.Controllers.LITE
             string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}:{v}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}&voice={v}", referer: AppInit.conf.Lostfilmhd.host, useproxy: AppInit.conf.Lostfilmhd.useproxy, timeoutSeconds: 10);
+                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}&voice={v}", referer: AppInit.conf.Lostfilmhd.host, proxy: proxyManager.Get(), timeoutSeconds: 10);
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 urim3u8 = new Regex("\"hls\":\"(https?:[^\"]+\\.m3u8)\"").Match(html).Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
@@ -102,9 +114,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out (Dictionary<string, object> seasons, string iframe_src) cache))
             {
-                System.Net.WebProxy proxy = null;
-                if (AppInit.conf.Lostfilmhd.useproxy)
-                    proxy = HttpClient.webProxy();
+                var proxy = proxyManager.Get();
 
                 string search = await HttpClient.Post($"{AppInit.conf.Lostfilmhd.host}/publ/", $"query={HttpUtility.UrlEncode(title)}&a=2", timeoutSeconds: 8, proxy: proxy);
                 if (search == null)

@@ -7,6 +7,7 @@ using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.HQporner
 {
@@ -22,16 +23,18 @@ namespace Lampac.Controllers.HQporner
             string memKey = $"HQporner:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                System.Net.WebProxy proxy = null;
-                if (AppInit.conf.HQporner.useproxy)
-                    proxy = HttpClient.webProxy();
+                var proxyManager = new ProxyManager("hqr", AppInit.conf.HQporner);
+                var proxy = proxyManager.Get();
 
                 stream_links = await HQpornerTo.StreamLinks(AppInit.conf.HQporner.host, uri, 
                                htmlurl => HttpClient.Get(htmlurl, timeoutSeconds: 8, proxy: proxy), 
                                iframeurl => HttpClient.Get(iframeurl, timeoutSeconds: 8, proxy: proxy));
 
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }

@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Spankbang
 {
@@ -38,9 +39,15 @@ namespace Lampac.Controllers.Spankbang
             string memKey = $"sbg:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await SpankbangTo.InvokeHtml(AppInit.conf.Spankbang.host, search, sort, pg, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 10, useproxy: AppInit.conf.Spankbang.useproxy, addHeaders: headers));
+                var proxyManager = new ProxyManager("sbg", AppInit.conf.Spankbang);
+                var proxy = proxyManager.Get();
+
+                string html = await SpankbangTo.InvokeHtml(AppInit.conf.Spankbang.host, search, sort, pg, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 10, proxy: proxy, addHeaders: headers));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = SpankbangTo.Playlist($"{host}/sbg/vidosik", html, pl =>
                 {
@@ -49,7 +56,10 @@ namespace Lampac.Controllers.Spankbang
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

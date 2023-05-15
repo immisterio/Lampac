@@ -9,6 +9,7 @@ using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,6 +22,9 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title) || !AppInit.conf.Kinoprofi.enable)
                 return Content(string.Empty);
 
+            var proxyManager = new ProxyManager("kinoprofi", AppInit.conf.Kinoprofi);
+            var proxy = proxyManager.Get();
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
@@ -32,13 +36,14 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinoprofi:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Get($"{AppInit.conf.Kinoprofi.host}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinoprofi.useproxy);
-                        if (search == null)
-                            return Content(string.Empty);
+                        string search = await HttpClient.Get($"{AppInit.conf.Kinoprofi.host}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                        string session_id = Regex.Match(search ?? "", "session_id += '([^']+)'").Groups[1].Value;
 
-                        string session_id = Regex.Match(search, "session_id += '([^']+)'").Groups[1].Value;
                         if (string.IsNullOrWhiteSpace(session_id))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string, string)>();
 
@@ -55,7 +60,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -74,14 +82,25 @@ namespace Lampac.Controllers.LITE
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
                         string newsid = Regex.Match(newsuri, "https?://[^/]+/([0-9]+)-").Groups[1].Value;
-
-                        var root = await HttpClient.Post<JObject>($"{AppInit.conf.Kinoprofi.apihost}/getplay", $"key%5Bid%5D={newsid}&pl_type=movie&session={session}&is_mobile=0&dle_group=5", timeoutSeconds: 8, useproxy: AppInit.conf.Kinoprofi.useproxy);
-                        if (root == null)
+                        if (string.IsNullOrEmpty(newsid))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
+
+                        var root = await HttpClient.Post<JObject>($"{AppInit.conf.Kinoprofi.apihost}/getplay", $"key%5Bid%5D={newsid}&pl_type=movie&session={session}&is_mobile=0&dle_group=5", timeoutSeconds: 8, proxy: proxy);
+                        if (root == null)
+                        {
+                            proxyManager.Refresh();
+                            return Content(string.Empty);
+                        }
 
                         var playlist = root.Value<JObject>("pl")?.Value<JObject>("hls")?.Value<JArray>("playlist");
                         if (playlist == null)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string name, string uri)>();
 
@@ -99,7 +118,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -119,12 +141,10 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinoprofi:view:{title}:{year}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
-                    string search = await HttpClient.Get($"{AppInit.conf.Kinoprofi.host}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinoprofi.useproxy);
-                    if (search == null)
-                        return Content(string.Empty);
-
                     string keyid = null, reservedlink = null;
-                    foreach (string row in Regex.Replace(search, "[\n\r\t]+", "").Split("sh-block").Skip(1))
+                    string search = await HttpClient.Get($"{AppInit.conf.Kinoprofi.host}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+
+                    foreach (string row in Regex.Replace(search ?? "", "[\n\r\t]+", "").Split("sh-block").Skip(1))
                     {
                         if (Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value.ToLower() != title.ToLower())
                             continue;
@@ -143,22 +163,34 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(keyid))
                     {
                         if (string.IsNullOrWhiteSpace(reservedlink))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         keyid = reservedlink;
                     }
 
-                    string session_id = Regex.Match(search, "var session_id += '([^']+)'").Groups[1].Value;
+                    string session_id = Regex.Match(search ?? "", "var session_id += '([^']+)'").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(session_id))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
-                    string json = await HttpClient.Post($"{AppInit.conf.Kinoprofi.apihost}/getplay", $"key%5Bid%5D={keyid}&pl_type=movie&session={session_id}&is_mobile=0&dle_group=5", timeoutSeconds: 8, useproxy: AppInit.conf.Kinoprofi.useproxy);
+                    string json = await HttpClient.Post($"{AppInit.conf.Kinoprofi.apihost}/getplay", $"key%5Bid%5D={keyid}&pl_type=movie&session={session_id}&is_mobile=0&dle_group=5", timeoutSeconds: 8, proxy: proxy);
                     if (json == null || !json.Contains(".m3u8"))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     file = Regex.Match(json, "\"hls\":\"(https?:[^\"]+)\"").Groups[1].Value.Replace("\\", "");
                     if (string.IsNullOrWhiteSpace(file))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }

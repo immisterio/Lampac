@@ -9,8 +9,8 @@ namespace JinEnergy.SISI
         [JSInvokable("xnx")]
         async public static Task<dynamic> Index(string args)
         {
-            string? search = arg("search", args);
-            int pg = int.Parse(arg("pg", args) ?? "1");
+            string? search = parse_arg("search", args);
+            int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
             string? html = await XnxxTo.InvokeHtml(AppInit.Xnxx.host, search, pg, url => JsHttpClient.Get(url));
             if (html == null)
@@ -27,7 +27,7 @@ namespace JinEnergy.SISI
         [JSInvokable("xnx/vidosik")]
         async public static Task<dynamic> Stream(string args)
         {
-            var stream_links = await XnxxTo.StreamLinks(AppInit.Xnxx.host, arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
+            var stream_links = await XnxxTo.StreamLinks(AppInit.Xnxx.host, parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
             if (stream_links == null)
                 return OnError("stream_links");
 

@@ -7,6 +7,7 @@ using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.PornHub
 {
@@ -22,9 +23,15 @@ namespace Lampac.Controllers.PornHub
             string memKey = $"PornHub:list:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await PornHubTo.InvokeHtml(AppInit.conf.PornHub.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.PornHub.useproxy));
+                var proxyManager = new ProxyManager("phub", AppInit.conf.PornHub);
+                var proxy = proxyManager.Get();
+
+                string html = await PornHubTo.InvokeHtml(AppInit.conf.PornHub.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = PornHubTo.Playlist($"{host}/phub/vidosik", html, pl =>
                 {
@@ -33,7 +40,10 @@ namespace Lampac.Controllers.PornHub
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

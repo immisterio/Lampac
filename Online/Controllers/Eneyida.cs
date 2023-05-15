@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -10,14 +11,16 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/eneyida")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int t = -1, int s = -1, string href = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null)
         {
             if (!AppInit.conf.Eneyida.enable)
                 return Content(string.Empty);
 
-            System.Net.WebProxy proxy = null;
-            if (AppInit.conf.Eneyida.useproxy)
-                proxy = HttpClient.webProxy();
+            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
+                return Content(string.Empty);
+
+            var proxyManager = new ProxyManager("eneyida", AppInit.conf.Eneyida);
+            var proxy = proxyManager.Get();
 
             var oninvk = new EneyidaInvoke
             (
@@ -28,7 +31,13 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(AppInit.conf.Eneyida.streamproxy, onstreamtofile)
             );
 
-            var result = await InvokeCache($"eneyida:view:{original_title}:{year}:{href}:{clarification}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(clarification == 1 ? title : original_title, year, href));
+            string search_title = clarification == 1 ? title : original_title;
+            var result = await InvokeCache($"eneyida:view:{search_title}:{year}:{href}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(search_title, year, href));
+            if (result == null)
+            {
+                proxyManager.Refresh();
+                return Content(string.Empty);
+            }
 
             return Content(oninvk.Html(result, clarification, title, original_title, year, t, s, href), "text/html; charset=utf-8");
         }

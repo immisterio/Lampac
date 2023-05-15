@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,9 +17,8 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.CDNmovies.enable || kinopoisk_id == 0)
                 return Content(string.Empty);
 
-            System.Net.WebProxy proxy = null;
-            if (AppInit.conf.CDNmovies.useproxy)
-                proxy = HttpClient.webProxy();
+            var proxyManager = new ProxyManager("cdnmovies", AppInit.conf.CDNmovies);
+            var proxy = proxyManager.Get();
 
             var oninvk = new CDNmoviesInvoke
             (
@@ -34,7 +34,10 @@ namespace Lampac.Controllers.LITE
 
             var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(kinopoisk_id));
             if (voices == null)
+            {
+                proxyManager.Refresh();
                 return Content(string.Empty);
+            }
 
             return Content(oninvk.Html(voices, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
         }

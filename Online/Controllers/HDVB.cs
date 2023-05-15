@@ -10,11 +10,14 @@ using System.Linq;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.HDVB;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class HDVB : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("hdvb", AppInit.conf.HDVB);
+
         [HttpGet]
         [Route("lite/hdvb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, int t = -1, int s = -1)
@@ -112,9 +115,14 @@ namespace Lampac.Controllers.LITE
             string memKey = $"video:view:video:{iframe}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8);
+                var proxy = proxyManager.Get();
+
+                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 string vid = "vid1666694269";
                 string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
@@ -124,9 +132,12 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
-                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>() 
+                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>() 
                 {
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -142,15 +153,18 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             if (play)
-                return Redirect(urim3u8);
+                return Redirect(HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -166,9 +180,14 @@ namespace Lampac.Controllers.LITE
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8);
+                var proxy = proxyManager.Get();
+
+                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 #region playlist
                 string vid = "vid1666694269";
@@ -179,7 +198,10 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 var headers = new List<(string name, string val)>()
                 {
@@ -196,29 +218,38 @@ namespace Lampac.Controllers.LITE
                     ("x-csrf-token", csrftoken)
                 };
 
-                var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: headers, IgnoreDeserializeObject: true);
+                var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: headers, IgnoreDeserializeObject: true);
                 if (playlist == null || playlist.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
                 #endregion
 
                 file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
                 if (string.IsNullOrWhiteSpace(file))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 file = Regex.Replace(file, "^/playlist/", "/");
                 file = Regex.Replace(file, "\\.txt$", "");
 
-                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, addHeaders: headers);
+                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: headers);
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             if (play)
-                return Redirect(urim3u8);
+                return Redirect(HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + urim3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -229,9 +260,12 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out JArray root))
             {
-                root = await HttpClient.Get<JArray>($"{AppInit.conf.HDVB.apihost}/api/videos.json?token={AppInit.conf.HDVB.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8);
+                root = await HttpClient.Get<JArray>($"{AppInit.conf.HDVB.apihost}/api/videos.json?token={AppInit.conf.HDVB.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || root.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return null;
+                }
 
                 memoryCache.Set(memKey, root, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }

@@ -101,7 +101,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"seasonvar:search:{title}:{year}";
             if (!memoryCache.TryGetValue(memKey, out JArray root))
             {
-                root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Seasonvar.useproxy);
+                root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8);
                 if (root == null || root.Count == 0)
                     return 0;
 
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"seasonvar:season:{season_id}";
             if (!memoryCache.TryGetValue(memKey, out JObject root))
             {
-                root = await HttpClient.Post<JObject>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=getSeason&season_id={season_id}", timeoutSeconds: 8, useproxy: AppInit.conf.Seasonvar.useproxy);
+                root = await HttpClient.Post<JObject>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=getSeason&season_id={season_id}", timeoutSeconds: 8);
                 if (root == null)
                     return null;
 

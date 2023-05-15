@@ -11,6 +11,7 @@ using Lampac.Models.AppConf;
 using Lampac.Models;
 using Lampac.Models.DLNA;
 using Lampac.Models.Merchant;
+using System.Collections.Concurrent;
 
 namespace Lampac
 {
@@ -105,7 +106,7 @@ namespace Lampac
 
         public string listenhost = null;
 
-        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = "linux" };
+        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = Environment.OSVersion.Platform == PlatformID.Unix ? "linux" : "win" };
 
         public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, allow_tmdb = true };
 
@@ -168,17 +169,17 @@ namespace Lampac
 
         public ProxySettings proxy = new ProxySettings();
 
-        public List<ProxySettings> globalproxy = new List<ProxySettings>()
+        public ConcurrentBag<ProxySettings> globalproxy = new ConcurrentBag<ProxySettings>()
         {
             new ProxySettings()
             {
                 pattern = "\\.onion",
-                list = new List<string>() { "socks5://127.0.0.1:9050" }
+                list = new ConcurrentBag<string>() { "socks5://127.0.0.1:9050" }
             }
         };
 
 
-        public List<OverrideResponse> overrideResponse = new List<OverrideResponse>()
+        public ConcurrentBag<OverrideResponse> overrideResponse = new ConcurrentBag<OverrideResponse>()
         {
             new OverrideResponse()
             {

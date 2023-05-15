@@ -9,11 +9,14 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class AnimeGo : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("animego", AppInit.conf.AnimeGo);
+
         [HttpGet]
         [Route("lite/animego")]
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, string account_email)
@@ -30,9 +33,12 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animego:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string pid, string s)> catalog))
                 {
-                    string search = await HttpClient.Get($"{AppInit.conf.AnimeGo.host}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy);
+                    string search = await HttpClient.Get($"{AppInit.conf.AnimeGo.host}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get());
                     if (search == null)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     catalog = new List<(string title, string pid, string s)>();
 
@@ -53,7 +59,10 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
@@ -77,7 +86,7 @@ namespace Lampac.Controllers.LITE
                 if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
                     #region content
-                    var player = await HttpClient.Get<JObject>($"{AppInit.conf.AnimeGo.host}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>() 
+                    var player = await HttpClient.Get<JObject>($"{AppInit.conf.AnimeGo.host}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>() 
                     {
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
@@ -91,12 +100,18 @@ namespace Lampac.Controllers.LITE
 
                     string content = player?.Value<string>("content");
                     if (string.IsNullOrWhiteSpace(content))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
                     #endregion
 
                     var g = Regex.Match(content, "data-player=\"(https?:)?//(aniboom\\.[^/]+)/embed/([^\"\\?&]+)\\?episode=1\\&amp;translation=([0-9]+)\"").Groups;
                     if (string.IsNullOrWhiteSpace(g[2].Value) || string.IsNullOrWhiteSpace(g[3].Value) || string.IsNullOrWhiteSpace(g[4].Value))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     #region links
                     cache.links = new List<(string episode, string uri)>();
@@ -110,7 +125,10 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (cache.links.Count == 0)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
                     #endregion
 
                     #region translation / translations
@@ -174,7 +192,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, useproxy: AppInit.conf.AnimeGo.useproxy, addHeaders: new List<(string name, string val)>()
+                string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>()
                 {
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -187,13 +205,19 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (string.IsNullOrWhiteSpace(embed))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 embed = embed.Replace("&quot;", "\"").Replace("\\", "");
 
                 hls = Regex.Match(embed, "\"hls\":\"\\{\"src\":\"(https?:)?(//[^\"]+\\.m3u8)\"").Groups[2].Value;
                 if (string.IsNullOrWhiteSpace(hls))
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 hls = "https:" + hls;
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));

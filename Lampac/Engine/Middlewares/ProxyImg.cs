@@ -4,6 +4,7 @@ using System.IO;
 using Lampac.Engine.CORE;
 using NetVips;
 using System.Text.RegularExpressions;
+using Shared.Engine.CORE;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -72,9 +73,12 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 8, useproxy: AppInit.conf.serverproxy.useproxy, addHeaders: decryptLink.headers);
+                var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
+
+                var array = await HttpClient.Download(href, timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: decryptLink.headers);
                 if (array == null)
                 {
+                    proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
                     return;
                 }

@@ -7,6 +7,7 @@ using Lampac.Models.SISI;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Eporner
 {
@@ -23,9 +24,15 @@ namespace Lampac.Controllers.Eporner
             string memKey = $"epr:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Eporner.useproxy));
+                var proxyManager = new ProxyManager("epr", AppInit.conf.Eporner);
+                var proxy = proxyManager.Get();
+
+                string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html, pl =>
                 {
@@ -34,7 +41,10 @@ namespace Lampac.Controllers.Eporner
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

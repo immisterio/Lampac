@@ -7,6 +7,7 @@ using Lampac.Models.SISI;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.Xnxx
 {
@@ -22,9 +23,15 @@ namespace Lampac.Controllers.Xnxx
             string memKey = $"xnx:list:{search}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await XnxxTo.InvokeHtml(AppInit.conf.Xnxx.host, search, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.Xnxx.useproxy));
+                var proxyManager = new ProxyManager("xnx", AppInit.conf.Xnxx);
+                var proxy = proxyManager.Get();
+
+                string html = await XnxxTo.InvokeHtml(AppInit.conf.Xnxx.host, search, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = XnxxTo.Playlist($"{host}/xnx/vidosik", html, pl =>
                 {
@@ -33,7 +40,10 @@ namespace Lampac.Controllers.Xnxx
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

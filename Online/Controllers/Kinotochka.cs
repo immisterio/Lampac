@@ -9,6 +9,7 @@ using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,6 +22,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Kinotochka.enable || string.IsNullOrWhiteSpace(title))
                 return Content(string.Empty);
 
+            var proxyManager = new ProxyManager("kinotochka", AppInit.conf.Kinotochka);
+            var proxy = proxyManager.Get();
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
@@ -32,9 +36,12 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, useproxy: AppInit.conf.Kinotochka.useproxy);
+                        string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         if (search == null)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string, string)>();
 
@@ -53,7 +60,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -71,21 +81,28 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:playlist:{newsuri}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, useproxy: AppInit.conf.Kinotochka.useproxy);
-                        if (news == null)
-                            return Content(string.Empty);
+                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy);
+                        string filetxt = Regex.Match(news ?? "", "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
 
-                        string filetxt = Regex.Match(news, "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
                         if (string.IsNullOrWhiteSpace(filetxt))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
-                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, useproxy: AppInit.conf.Kinotochka.useproxy);
+                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy);
                         if (root == null)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         var playlist = root.Value<JArray>("playlist");
                         if (playlist == null)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         links = new List<(string name, string uri)>();
 
@@ -103,7 +120,10 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -123,13 +143,12 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{title}:{year}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
-                    System.Net.WebProxy proxy = null;
-                    if (AppInit.conf.Kinotochka.useproxy)
-                        proxy = HttpClient.webProxy();
-
                     string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     string link = null, reservedlink = null;
                     foreach (string row in search.Split("sres-wrap clearfix").Skip(1))
@@ -153,18 +172,22 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(link))
                     {
                         if (string.IsNullOrWhiteSpace(reservedlink))
+                        {
+                            proxyManager.Refresh();
                             return Content(string.Empty);
+                        }
 
                         link = reservedlink;
                     }
 
                     string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
-                    if (news == null)
-                        return Content(string.Empty);
+                    file = Regex.Match(news ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
 
-                    file = Regex.Match(news, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(file))
+                    {
+                        proxyManager.Refresh();
                         return Content(string.Empty);
+                    }
 
                     foreach (string f in file.Split(",").Reverse())
                     {

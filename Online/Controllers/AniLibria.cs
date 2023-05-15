@@ -9,11 +9,14 @@ using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
     public class AniLibriaOnline : BaseController
     {
+        ProxyManager proxyManager = new ProxyManager("anilibria", AppInit.conf.AnilibriaOnline);
+
         [HttpGet]
         [Route("lite/anilibria")]
         async public Task<ActionResult> Index(string title, string code, int year)
@@ -26,9 +29,12 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memkey, out List<RootObject> result))
             {
-                var search = await HttpClient.Get<List<RootObject>>($"{AppInit.conf.AnilibriaOnline.apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title), useproxy: AppInit.conf.AnilibriaOnline.useproxy, IgnoreDeserializeObject: true);
+                var search = await HttpClient.Get<List<RootObject>>($"{AppInit.conf.AnilibriaOnline.apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title), proxy: proxyManager.Get(), IgnoreDeserializeObject: true);
                 if (search == null || search.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return Content(string.Empty);
+                }
 
                 result = new List<RootObject>();
                 foreach (var item in search)

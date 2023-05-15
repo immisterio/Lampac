@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.HQporner
 {
@@ -22,9 +23,15 @@ namespace Lampac.Controllers.HQporner
             string memKey = $"hqr:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await HQpornerTo.InvokeHtml(AppInit.conf.HQporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.HQporner.useproxy));
+                var proxyManager = new ProxyManager("hqr", AppInit.conf.HQporner);
+                var proxy = proxyManager.Get();
+
+                string html = await HQpornerTo.InvokeHtml(AppInit.conf.HQporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
+                {
+                    proxyManager.Refresh();
                     return OnError("html");
+                }
 
                 playlists = HQpornerTo.Playlist($"{host}/hqr/vidosik", html, pl =>
                 {
@@ -33,7 +40,10 @@ namespace Lampac.Controllers.HQporner
                 });
 
                 if (playlists.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("playlists");
+                }
 
                 memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }

@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model.Proxy;
+
+namespace Lampac.Models.LITE
 {
-    public class KodikSettings
+    public class KodikSettings : Iproxy
     {
         public KodikSettings(string apihost, string linkhost, string token, string secret_token, bool localip)
         {
@@ -24,8 +26,14 @@
 
         public bool localip { get; set; }
 
+
+
         public bool useproxy { get; set; }
 
+        public string? globalnameproxy { get; set; }
+
         public bool streamproxy { get; set; }
+
+        public ProxySettings? proxy { get; set; }
     }
 }

@@ -13,6 +13,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Lampac.Models.JAC;
 using System.Collections.Generic;
 using Shared;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.JAC
 {
@@ -124,8 +125,10 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
+            var proxyManager = new ProxyManager("nnmclub", AppInit.conf.NNMClub);
+
             #region html
-            string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: 10);
+            string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get(), timeoutSeconds: 10);
             string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html ?? string.Empty).Groups[1].Value;
 
             if (html == null || !html.Contains("NNM-Club</title>") || string.IsNullOrWhiteSpace(magnet))
@@ -139,6 +142,7 @@ namespace Lampac.Controllers.JAC
                 if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
 
+                proxyManager.Refresh();
                 return Content("error");
             }
             #endregion
@@ -182,8 +186,10 @@ namespace Lampac.Controllers.JAC
 
             if (!cread.cache)
             {
+                var proxyManager = new ProxyManager("nnmclub", AppInit.conf.NNMClub);
+
                 string data = $"prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_shs=0&prev_shr=0&prev_sht=0&o=1&s=2&tm=-1&shf=1&sha=1&ta=-1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&pn=&submit=%CF%EE%E8%F1%EA";
-                string html = await HttpClient.Post($"{AppInit.conf.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), useproxy: AppInit.conf.NNMClub.useproxy, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
+                string html = await HttpClient.Post($"{AppInit.conf.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
 
                 if (html != null && html.Contains("NNM-Club</title>"))
                 {
@@ -197,6 +203,7 @@ namespace Lampac.Controllers.JAC
 
                 if (cread.html == null)
                 {
+                    proxyManager.Refresh();
                     HtmlCache.EmptyCache(cachekey);
                     return false;
                 }

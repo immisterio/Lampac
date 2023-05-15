@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using System.Linq;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.PornHub
 {
@@ -25,9 +26,12 @@ namespace Lampac.Controllers.PornHub
 
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
+                var proxyManager = new ProxyManager("phub", AppInit.conf.PornHub);
+                var proxy = proxyManager.Get();
+
                 stream_links = await PornHubTo.StreamLinks(AppInit.conf.PornHub.host, vkey, url =>
                 {
-                    return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, useproxy: AppInit.conf.PornHub.useproxy, addHeaders: new List<(string name, string val)>()
+                    return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
                     {
                         ("accept-language", "ru-RU,ru;q=0.9"),
                         ("sec-ch-ua", "\"Chromium\";v=\"94\", \"Google Chrome\";v=\"94\", \";Not A Brand\";v=\"99\""),
@@ -43,7 +47,10 @@ namespace Lampac.Controllers.PornHub
                 });
 
                 if (stream_links == null || stream_links.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return OnError("stream_links");
+                }
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }

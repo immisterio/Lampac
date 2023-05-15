@@ -11,6 +11,7 @@ using Lampac.Engine.Parse;
 using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.CRON
 {
@@ -37,7 +38,9 @@ namespace Lampac.Controllers.CRON
                 return Content("error");
             }
 
-            _t = await HttpClient.Download($"{AppInit.conf.Anifilm.host}/{tid}", referer: $"{AppInit.conf.Anifilm.host}/", timeoutSeconds: 10, useproxy: AppInit.conf.Anifilm.useproxy);
+            var proxyManager = new ProxyManager("anifilm", AppInit.conf.Anifilm);
+
+            _t = await HttpClient.Download($"{AppInit.conf.Anifilm.host}/{tid}", referer: $"{AppInit.conf.Anifilm.host}/", timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
                 await TorrentCache.Write(key, _t);
@@ -50,6 +53,7 @@ namespace Lampac.Controllers.CRON
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
 
+            proxyManager.Refresh();
             return Content("error");
         }
         #endregion
@@ -72,7 +76,9 @@ namespace Lampac.Controllers.CRON
 
             if (!cread.cache)
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Anifilm.host}/releases?title={HttpUtility.UrlEncode(query)}", timeoutSeconds: AppInit.conf.jac.timeoutSeconds, useproxy: AppInit.conf.Anifilm.useproxy);
+                var proxyManager = new ProxyManager("anifilm", AppInit.conf.Anifilm);
+
+                string html = await HttpClient.Get($"{AppInit.conf.Anifilm.host}/releases?title={HttpUtility.UrlEncode(query)}", timeoutSeconds: AppInit.conf.jac.timeoutSeconds, proxy: proxyManager.Get());
 
                 if (html != null && html.Contains("id=\"ui-components\""))
                 {
@@ -83,6 +89,7 @@ namespace Lampac.Controllers.CRON
 
                 if (cread.html == null)
                 {
+                    proxyManager.Refresh();
                     HtmlCache.EmptyCache(cachekey);
                     return false;
                 }

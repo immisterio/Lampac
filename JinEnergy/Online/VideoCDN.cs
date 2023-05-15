@@ -9,9 +9,12 @@ namespace JinEnergy.Online
         [JSInvokable("lite/vcdn")]
         async public static Task<string> Index(string args)
         {
-            int s = int.Parse(arg("s", args) ?? "-1");
-            string? t = arg("t", args);
-            defaultOnlineArgs(args, out long id, out string? imdb_id, out long kinopoisk_id, out string? title, out string? original_title, out int serial, out string? original_language, out int year, out string? source, out int clarification, out long cub_id, out string? account_email);
+            var arg = defaultArgs(args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
+            string? t = parse_arg("t", args);
+
+            if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
+                return OnError(string.Empty);
 
             var oninvk = new VideoCDNInvoke
             (
@@ -22,12 +25,12 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var content = await InvokeCache(id, $"videocdn:view:{imdb_id}:{kinopoisk_id}", () => 
+            var content = await InvokeCache(arg.id, $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => 
             {
                 if (!AppInit.IsAndrod)
                     AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
 
-                var res = oninvk.Embed(kinopoisk_id, imdb_id);
+                var res = oninvk.Embed(arg.kinopoisk_id, arg.imdb_id);
 
                 if (!AppInit.IsAndrod)
                     AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
@@ -38,7 +41,7 @@ namespace JinEnergy.Online
             if (content == null)
                 return OnError(string.Empty);
 
-            return oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, t, s);
+            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }
     }
 }

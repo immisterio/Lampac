@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.AppConf
+﻿using Shared.Model.Proxy;
+
+namespace Lampac.Models.AppConf
 {
-    public class ServerproxyConf
+    public class ServerproxyConf : Iproxy
     {
         public bool enable { get; set; }
 
@@ -8,6 +10,11 @@
 
         public bool allow_tmdb { get; set; }
 
+
         public bool useproxy { get; set; }
+
+        public string globalnameproxy { get; set; }
+
+        public ProxySettings? proxy { get; set; }
     }
 }

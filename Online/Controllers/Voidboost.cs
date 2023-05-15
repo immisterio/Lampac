@@ -8,12 +8,10 @@ namespace Lampac.Controllers.LITE
 {
     public class Voidboost : BaseController
     {
-        #region VoidboostInvoke
-        static VoidboostInvoke oninvk;
-
-        public Voidboost()
+        #region InitVoidboostInvoke
+        public VoidboostInvoke InitVoidboostInvoke()
         {
-            oninvk = new VoidboostInvoke
+            return new VoidboostInvoke
             (
                 host,
                 AppInit.conf.Voidboost.corsHost(),
@@ -31,6 +29,11 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Voidboost.enable)
                 return Content(string.Empty);
 
+            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                return Content(string.Empty);
+
+            var oninvk = InitVoidboostInvoke();
+
             var content = await InvokeCache($"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id, t));
             if (content == null)
                 return Content(string.Empty);
@@ -44,8 +47,10 @@ namespace Lampac.Controllers.LITE
         [Route("lite/voidboost/serial")]
         async public Task<ActionResult> Serial(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s)
         {
-            if (!AppInit.conf.Voidboost.enable)
+            if (!AppInit.conf.Voidboost.enable || string.IsNullOrEmpty(t))
                 return Content(string.Empty);
+
+            var oninvk = InitVoidboostInvoke();
 
             string html = await InvokeCache($"voidboost:view:serial:{t}:{s}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Serial(imdb_id, kinopoisk_id, title, original_title, t, s, true));
             if (html == null)
@@ -63,6 +68,8 @@ namespace Lampac.Controllers.LITE
         {
             if (!AppInit.conf.Voidboost.enable)
                 return Content(string.Empty);
+
+            var oninvk = InitVoidboostInvoke();
 
             string result = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, t, s, e, play));
             if (result == null)

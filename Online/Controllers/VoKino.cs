@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"vokino:{kinopoisk_id}";
             if (!memoryCache.TryGetValue(memKey, out JArray channels))
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/list?name=%2B{kinopoisk_id}&token={AppInit.conf.VoKino.token}", timeoutSeconds: 8, useproxy: AppInit.conf.VoKino.useproxy);
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/list?name=%2B{kinopoisk_id}&token={AppInit.conf.VoKino.token}", timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("channels"))
                     return Content(string.Empty);
 
@@ -53,7 +53,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(id))
                     return Content(string.Empty);
 
-                root = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/online/vokino?id={id}&inparse=true&token={AppInit.conf.VoKino.token}", timeoutSeconds: 8, useproxy: AppInit.conf.VoKino.useproxy);
+                root = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/online/vokino?id={id}&inparse=true&token={AppInit.conf.VoKino.token}", timeoutSeconds: 8);
                 if (root == null || !root.ContainsKey("channels"))
                     return Content(string.Empty);
 

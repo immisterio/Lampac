@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -15,9 +16,8 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || !AppInit.conf.Ashdi.enable)
                 return Content(string.Empty);
 
-            System.Net.WebProxy proxy = null;
-            if (AppInit.conf.Ashdi.useproxy)
-                proxy = HttpClient.webProxy();
+            var proxyManager = new ProxyManager("ashdi", AppInit.conf.Ashdi);
+            var proxy = proxyManager.Get();
 
             var oninvk = new AshdiInvoke
             (
@@ -29,7 +29,10 @@ namespace Lampac.Controllers.LITE
 
             var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(kinopoisk_id));
             if (content == null)
+            {
+                proxyManager.Refresh();
                 return Content(string.Empty);
+            }
 
             return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }
