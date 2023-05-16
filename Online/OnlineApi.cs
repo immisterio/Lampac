@@ -190,7 +190,7 @@ namespace Lampac.Controllers
             if (!life && conf.jac.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.VoKino.token) && (serial == -1 || serial == 0))
+            if (conf.VoKino.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
 
             if (conf.KinoPub.enable)
@@ -202,10 +202,10 @@ namespace Lampac.Controllers
             if (conf.FilmixPartner.enable)
                 online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
+            if (conf.Bazon.enable)
                 online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.Alloha.token))
+            if (conf.Alloha.enable)
                 online += "{\"name\":\"" + (conf.Alloha.displayname ?? "Alloha") + "\",\"url\":\"{localhost}/alloha\"},";
 
             if (conf.Rezka.enable)
@@ -232,10 +232,10 @@ namespace Lampac.Controllers
             if (conf.Eneyida.enable)
                 online += "{\"name\":\"" + (conf.Eneyida.displayname ?? "Eneyida (UKR)") + "\",\"url\":\"{localhost}/eneyida\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.Kodik.token))
+            if (conf.Kodik.enable)
                 online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.Seasonvar.token) && (serial == -1 || serial == 1))
+            if (conf.Seasonvar.enable && (serial == -1 || serial == 1))
                 online += "{\"name\":\"" + (conf.Seasonvar.displayname ?? "Seasonvar") + "\",\"url\":\"{localhost}/seasonvar\"},";
 
             if (conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
@@ -244,7 +244,7 @@ namespace Lampac.Controllers
             if (conf.Collaps.enable)
                 online += "{\"name\":\"" + (conf.Collaps.displayname ?? "Collaps") + "\",\"url\":\"{localhost}/collaps\"},";
 
-            if (!string.IsNullOrWhiteSpace(conf.HDVB.token))
+            if (conf.HDVB.enable)
                 online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
 
             if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
@@ -282,7 +282,7 @@ namespace Lampac.Controllers
                 if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
                     online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
 
-                if (!string.IsNullOrWhiteSpace(conf.VideoAPI.token) && (serial == -1 || serial == 0))
+                if (conf.VideoAPI.enable && (serial == -1 || serial == 0))
                     online += "{\"name\":\"" + (conf.VideoAPI.displayname ?? "VideoAPI (ENG)") + "\",\"url\":\"{localhost}/videoapi\"},";
             }
 

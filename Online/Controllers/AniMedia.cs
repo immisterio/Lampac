@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Web;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,10 +9,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class AniMedia : BaseController
+    public class AniMedia : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("animedia", AppInit.conf.AniMedia);
 
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, string account_email = null)
         {
             if (!AppInit.conf.AniMedia.enable || string.IsNullOrWhiteSpace(title))
-                return Content(string.Empty);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -35,10 +35,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string search = await HttpClient.Get($"{AppInit.conf.AniMedia.host}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     catalog = new List<(string title, string url)>();
 
@@ -51,10 +48,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
@@ -83,10 +77,7 @@ namespace Lampac.Controllers.LITE
                         string entryid = Regex.Match(news ?? "", "name=\"entry_id\" value=\"([0-9]+)\"").Groups[1].Value;
 
                         if (string.IsNullOrWhiteSpace(entryid))
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         links = new List<(string, string)>();
 
@@ -100,10 +91,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -118,15 +106,14 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     #region Серии
+                    var proxy = proxyManager.Get();
+
                     string memKey = $"animedia:playlist:{entry_id}:{s}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        var playlist = await HttpClient.Get<JArray>($"{AppInit.conf.AniMedia.host}/embeds/playlist-j.txt/{entry_id}/{s}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                        var playlist = await HttpClient.Get<JArray>($"{AppInit.conf.AniMedia.host}/embeds/playlist-j.txt/{entry_id}/{s}", timeoutSeconds: 8, proxy: proxy);
                         if (playlist == null || playlist.Count == 0)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         links = new List<(string name, string uri)>();
 
@@ -139,17 +126,14 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(AppInit.conf.AniMedia.streamproxy, l.uri);
+                        string link = HostStreamProxy(AppInit.conf.AniMedia, l.uri, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name.ToLower()})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }

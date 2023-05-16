@@ -7,27 +7,30 @@ using System.Collections.Generic;
 using System.Web;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Alloha;
+using Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Alloha : BaseController
+    public class Alloha : BaseOnlineController
     {
+        ProxyManager proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
+
         [HttpGet]
         [Route("lite/alloha")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
-                return Content(string.Empty);
+            if (!AppInit.conf.Alloha.enable)
+                return OnError();
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return Content(string.Empty);
+                return OnError();
 
             JToken data = await search(imdb_id, kinopoisk_id);
             if (data == null)
-                return Content(string.Empty);
+                return OnError(proxyManager);
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -107,15 +110,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha/video.m3u8")]
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.Alloha.token))
-                return Content(string.Empty);
+            if (!AppInit.conf.Alloha.enable)
+                return OnError();
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
             if (AppInit.conf.Alloha.localip)
             {
                 userIp = await mylocalip();
                 if (userIp == null)
-                    return Content(string.Empty);
+                    return OnError();
             }
 
             string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}";
@@ -133,16 +136,16 @@ namespace Lampac.Controllers.LITE
                     uri += $"&episode={e}";
                 #endregion
 
-                string json = await HttpClient.Get(uri, timeoutSeconds: 8);
+                string json = await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (json == null || !json.Contains("\"status\":\"success\""))
-                    return Content(string.Empty);
+                    return OnError();
 
                 _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\"]+\\.m3u8)").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(_cache.m3u8))
                 {
                     _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"(https?://[^;\"]+\\.m3u8)").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(_cache.m3u8))
-                        return Content(string.Empty);
+                        return OnError();
                 }
 
                 string subtitle = Regex.Match(json.Replace("\\", ""), "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;
@@ -166,7 +169,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out JToken data))
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || !root.ContainsKey("data"))
                     return null;
 

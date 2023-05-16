@@ -5,17 +5,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 using System.Web;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Linq;
 using Lampac.Models.LITE;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Rezka : BaseController
+    public class Rezka : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int s = -1, string href = null)
         {
             if (!AppInit.conf.Rezka.enable)
-                return Content(string.Empty);
+                return OnError();
 
             if (original_language != "en")
                 clarification = 1;
@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
                     return Content(html + "</div>", "text/html; charset=utf-8");
                 }
 
-                return Content(string.Empty);
+                return OnError(proxyManager);
             }
             #endregion
 
@@ -96,7 +96,7 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 string trs = new Regex("\\.initCDNSeriesEvents\\([0-9]+, ([0-9]+),").Match(result.content).Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(trs))
-                    return Content(string.Empty);
+                    return OnError(proxyManager);
 
                 #region Перевод
                 if (result.content.Contains("data-translator_id="))
@@ -159,7 +159,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(string title, string original_title, int clarification, int year, string href, long id, int t, int s = -1)
         {
             if (!AppInit.conf.Rezka.enable)
-                return Content(string.Empty);
+                return OnError();
 
             #region Кеш запроса
             string memKey = $"rezka:view:serial:{id}:{t}";
@@ -176,17 +176,11 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (root == null || !root.ContainsKey("episodes"))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 string episodes = root.Value<object>("episodes")?.ToString();
                 if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
@@ -263,7 +257,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, bool play = false)
         {
             if (!AppInit.conf.Rezka.enable)
-                return Content(string.Empty);
+                return OnError();
 
             #region Кеш запроса
             string memKey = $"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}";
@@ -289,17 +283,11 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (root == null || !root.ContainsKey("url"))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 string url = root.Value<object>("url")?.ToString();
                 if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
@@ -315,7 +303,7 @@ namespace Lampac.Controllers.LITE
                 while (m.Success)
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
-                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + HostStreamProxy(AppInit.conf.Rezka.streamproxy, m.Groups[2].Value) + "\"},";
+                        subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + HostStreamProxy(AppInit.conf.Rezka, m.Groups[2].Value) + "\"},";
 
                     m = m.NextMatch();
                 }
@@ -392,6 +380,8 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
+            var proxy = proxyManager.Get();
+
             #region Максимально доступное
             foreach (var q in new List<string> { "2160p", "1440p", "1080p Ultra", "1080p", "720p", "480p", "360p", "240p" })
             {
@@ -402,7 +392,7 @@ namespace Lampac.Controllers.LITE
                 links.Add(new ApiModel()
                 {
                     title = q.Contains("p") ? q : $"{q}p",
-                    stream_url = HostStreamProxy(AppInit.conf.Rezka.streamproxy, link)
+                    stream_url = HostStreamProxy(AppInit.conf.Rezka, link, proxy: proxy)
                 });
             }
             #endregion
@@ -429,10 +419,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string search = await HttpClient.Get($"{AppInit.conf.Rezka.host}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
-                    {
-                        proxyManager.Refresh();
                         return (null, null, null);
-                    }
 
                     foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
                     {
@@ -470,10 +457,7 @@ namespace Lampac.Controllers.LITE
                 result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
                 result.content = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
                 if (result.content == null || string.IsNullOrWhiteSpace(result.id))
-                {
-                    proxyManager.Refresh();
                     return (null, null, null);
-                }
 
                 memoryCache.Set(memKey, result, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }

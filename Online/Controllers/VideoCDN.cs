@@ -1,13 +1,13 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class VideoCDN : BaseController
+    public class VideoCDN : BaseOnlineController
     {
         [HttpGet]
         [Route("lite/vcdn")]
@@ -24,15 +24,12 @@ namespace Lampac.Controllers.LITE
                host,
                AppInit.conf.VCDN.corsHost(),
                (url, referer) => HttpClient.Get(AppInit.conf.VCDN.corsHost(url), referer: referer, timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(AppInit.conf.VCDN.streamproxy, streamfile)
+               streamfile => HostStreamProxy(AppInit.conf.VCDN, streamfile, proxy: proxy)
             );
 
             var content = await InvokeCache($"videocdn:view:{imdb_id}:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, imdb_id));
             if (content == null)
-            {
-                proxyManager.Refresh();
-                return Content(string.Empty);
-            }
+                return OnError(proxyManager);
 
             return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }

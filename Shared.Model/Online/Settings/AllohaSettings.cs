@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model.Base;
+
+namespace Lampac.Models.LITE
 {
-    public class AllohaSettings
+    public class AllohaSettings : BaseSettings
     {
         public AllohaSettings(string apihost, string linkhost, string token, string secret_token, bool localip)
         {
@@ -11,10 +13,6 @@
             this.localip = localip;
         }
 
-
-        public string? displayname { get; set; }
-
-        public string apihost { get; set; }
 
         public string linkhost { get; set; }
 

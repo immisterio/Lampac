@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Shared.Models;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
     public static class ProxyLink
     {
-        static ConcurrentDictionary<string, (DateTime upd, string reqip, List<(string name, string val)> headers, string uri)> links = new ConcurrentDictionary<string, (DateTime upd, string reqip, List<(string name, string val)> headers, string uri)>();
+        static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
 
-        public static string Encrypt(string uri, string reqip, List<(string name, string val)> headers = null)
+        public static string Encrypt(string uri, string reqip, List<(string name, string val)> headers = null, WebProxy proxy = null)
         {
             if (!AppInit.conf.serverproxy.encrypt)
                 return uri;
@@ -30,23 +32,26 @@ namespace Lampac.Engine.CORE
                 hash += ".jpg";
 
             if (!links.ContainsKey(hash))
-                links.AddOrUpdate(hash, (DateTime.Now, reqip, headers, uri) , (d,u) => (DateTime.Now, reqip, headers, uri));
+            {
+                var md = new ProxyLinkModel(reqip, headers, proxy, uri);
+                links.AddOrUpdate(hash, md, (d, u) => md);
+            }
 
             return hash;
         }
 
-        public static (List<(string name, string val)> headers, string uri) Decrypt(string hash, string reqip)
+        public static (List<(string name, string val)> headers, WebProxy proxy, string uri) Decrypt(string hash, string reqip)
         {
             if (!AppInit.conf.serverproxy.encrypt)
-                return (null, hash);
+                return (null, null, hash);
 
-            if (links.TryGetValue(hash, out (DateTime upd, string reqip, List <(string name, string val)> headers, string uri) val))
+            if (links.TryGetValue(hash, out ProxyLinkModel val))
             {
                 if (reqip == null || reqip == val.reqip)
-                    return (val.headers, val.uri);
+                    return (val.headers, val.proxy, val.uri);
             }
 
-            return (null, null);
+            return (null, null, null);
         }
 
 
@@ -60,13 +65,13 @@ namespace Lampac.Engine.CORE
                 {
                     foreach (var link in links)
                     {
-                        if (DateTime.Now > link.Value.upd.AddHours(8))
+                        if (DateTime.Now > link.Value.upd.AddHours(link.Value.uri.EndsWith(".jpg") ? 1 : 8))
                             links.TryRemove(link.Key, out _);
                     }
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(20));
+                await Task.Delay(TimeSpan.FromMinutes(5));
             }
         }
     }

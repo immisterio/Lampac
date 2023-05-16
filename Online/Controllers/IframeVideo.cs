@@ -6,13 +6,13 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 using System.Web;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class IframeVideo : BaseController
+    public class IframeVideo : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("iframevideo", AppInit.conf.IframeVideo);
 
@@ -21,11 +21,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
             if (!AppInit.conf.IframeVideo.enable)
-                return Content(string.Empty);
+                return OnError();
 
             var frame = await iframe(imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
-                return Content(string.Empty);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -72,12 +72,14 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
             if (!AppInit.conf.IframeVideo.enable)
-                return Content(string.Empty);
+                return OnError();
+
+            var proxy = proxyManager.Get();
 
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>()
+                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("Origin", AppInit.conf.IframeVideo.cdnhost),
                     ("Referer", $"{AppInit.conf.IframeVideo.cdnhost}/"),
@@ -89,15 +91,12 @@ namespace Lampac.Controllers.LITE
 
                 urim3u8 = Regex.Match(json ?? "", "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            string url = HostStreamProxy(AppInit.conf.IframeVideo.streamproxy, urim3u8);
+            string url = HostStreamProxy(AppInit.conf.IframeVideo, urim3u8, proxy: proxy);
             if (play)
                 return Redirect(url);
 
@@ -119,7 +118,8 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
                     uri = $"{AppInit.conf.IframeVideo.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={AppInit.conf.IframeVideo.token}";
 
-                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8);
+                var proxy = proxyManager.Get();
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
                 if (root == null)
                     return (null, null, 0, null);
 
@@ -131,7 +131,7 @@ namespace Lampac.Controllers.LITE
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");
 
-                res.content = await HttpClient.Get(res.path, referer: "https://kinoplayer.online/", timeoutSeconds: 8, proxy: proxyManager.Get());
+                res.content = await HttpClient.Get(res.path, referer: "https://kinoplayer.online/", timeoutSeconds: 8, proxy: proxy);
                 if (res.content == null)
                 {
                     proxyManager.Refresh();

@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model.Base;
+
+namespace Lampac.Models.LITE
 {
-    public class BazonSettings
+    public class BazonSettings : BaseSettings
     {
         public BazonSettings(string apihost, string token, bool localip)
         {
@@ -9,10 +11,6 @@
             this.localip = localip;
         }
 
-
-        public string? displayname { get; set; }
-
-        public string apihost { get; set; }
 
         public string token { get; set; }
 

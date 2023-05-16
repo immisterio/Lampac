@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Web;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,10 +9,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class AnimeGo : BaseController
+    public class AnimeGo : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("animego", AppInit.conf.AnimeGo);
 
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, string account_email)
         {
             if (!AppInit.conf.AnimeGo.enable || string.IsNullOrWhiteSpace(title))
-                return Content(string.Empty);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -35,10 +35,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string search = await HttpClient.Get($"{AppInit.conf.AnimeGo.host}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get());
                     if (search == null)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     catalog = new List<(string title, string pid, string s)>();
 
@@ -59,10 +56,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
@@ -100,18 +94,12 @@ namespace Lampac.Controllers.LITE
 
                     string content = player?.Value<string>("content");
                     if (string.IsNullOrWhiteSpace(content))
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
                     #endregion
 
                     var g = Regex.Match(content, "data-player=\"(https?:)?//(aniboom\\.[^/]+)/embed/([^\"\\?&]+)\\?episode=1\\&amp;translation=([0-9]+)\"").Groups;
                     if (string.IsNullOrWhiteSpace(g[2].Value) || string.IsNullOrWhiteSpace(g[3].Value) || string.IsNullOrWhiteSpace(g[4].Value))
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     #region links
                     cache.links = new List<(string episode, string uri)>();
@@ -125,10 +113,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (cache.links.Count == 0)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
                     #endregion
 
                     #region translation / translations
@@ -187,7 +172,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
             if (!AppInit.conf.AnimeGo.enable)
-                return Content(string.Empty);
+                return OnError();
 
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
@@ -205,25 +190,19 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (string.IsNullOrWhiteSpace(embed))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 embed = embed.Replace("&quot;", "\"").Replace("\\", "");
 
                 hls = Regex.Match(embed, "\"hls\":\"\\{\"src\":\"(https?:)?(//[^\"]+\\.m3u8)\"").Groups[2].Value;
                 if (string.IsNullOrWhiteSpace(hls))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 hls = "https:" + hls;
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
-            return Redirect(HostStreamProxy(true, hls, new List<(string, string)>() 
+            return Redirect(HostStreamProxy(AppInit.conf.AnimeGo, hls, proxy: proxyManager.Get(), headers: new List<(string, string)>() 
             {
                 ("origin", "https://aniboom.one"),
                 ("referer", "https://aniboom.one/")

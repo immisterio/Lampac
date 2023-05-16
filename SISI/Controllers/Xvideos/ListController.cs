@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
+using SISI;
 
 namespace Lampac.Controllers.Xvideos
 {
-    public class ListController : BaseController
+    public class ListController : BaseSisiController
     {
         [HttpGet]
         [Route("xds")]
@@ -28,31 +28,17 @@ namespace Lampac.Controllers.Xvideos
 
                 string html = await XvideosTo.InvokeHtml(AppInit.conf.Xvideos.host, search, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return OnError("html");
-                }
+                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", html, pl =>
-                {
-                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
-                    return pl;
-                });
+                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", html);
 
                 if (playlists.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return OnError("playlists");
-                }
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
-                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
+                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return new JsonResult(new
-            {
-                menu = XvideosTo.Menu(host),
-                list = playlists
-            });
+            return OnResult(playlists, XvideosTo.Menu(host));
         }
     }
 }

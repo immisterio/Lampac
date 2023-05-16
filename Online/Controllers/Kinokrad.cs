@@ -4,23 +4,23 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Web;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Kinokrad : BaseController
+    public class Kinokrad : BaseOnlineController
     {
         [HttpGet]
         [Route("lite/kinokrad")]
         async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, int s = -1)
         {
             if (!AppInit.conf.Kinokrad.enable || string.IsNullOrWhiteSpace(title))
-                return Content(string.Empty);
+                return OnError();
 
             var proxyManager = new ProxyManager("kinokrad", AppInit.conf.Kinokrad);
             var proxy = proxyManager.Get();
@@ -38,10 +38,7 @@ namespace Lampac.Controllers.LITE
                     {
                         string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         if (search == null)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         links = new List<(string, string)>();
 
@@ -58,10 +55,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
@@ -83,24 +77,15 @@ namespace Lampac.Controllers.LITE
                         string filetxt = Regex.Match(news ?? "", "\"/(playlist/[^\"]+\\.txt)\"").Groups[1].Value;
 
                         if (string.IsNullOrWhiteSpace(filetxt))
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         var root = await HttpClient.Get<JObject>($"{AppInit.conf.Kinokrad.host}/{filetxt}", timeoutSeconds: 8, proxy: proxy);
                         if (root == null)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         var playlist = root.Value<JArray>("playlist");
                         if (playlist == null)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         links = new List<(string name, string uri)>();
 
@@ -113,17 +98,14 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                     }
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(true, l.uri, new List<(string, string)>() { ("referer", AppInit.conf.Kinokrad.host) });
+                        string link = HostStreamProxy(AppInit.conf.Kinokrad, l.uri, new List<(string, string)>() { ("referer", AppInit.conf.Kinokrad.host) }, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -138,10 +120,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     string link = null, reservedlink = null;
                     foreach (string row in search.Split("searchitem").Skip(1))
@@ -165,10 +144,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(link))
                     {
                         if (string.IsNullOrWhiteSpace(reservedlink))
-                        {
-                            proxyManager.Refresh();
-                            return Content(string.Empty);
-                        }
+                            return OnError(proxyManager);
 
                         link = reservedlink;
                     }
@@ -177,10 +153,7 @@ namespace Lampac.Controllers.LITE
                     content = Regex.Match(news ?? "", "player1-link-movie([^\n\r]+)").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(content))
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }
@@ -190,14 +163,14 @@ namespace Lampac.Controllers.LITE
                     string hls = new Regex($"\\[{quality}p\\]" + "(https?://[^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content).Groups[1].Value;
                     if (!string.IsNullOrEmpty(hls))
                     {
-                        hls = HostStreamProxy(true, hls, new List<(string, string)>() { ("referer", AppInit.conf.Kinokrad.host) });
+                        hls = HostStreamProxy(AppInit.conf.Kinokrad, hls, new List<(string, string)>() { ("referer", AppInit.conf.Kinokrad.host) }, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                         firstjson = true;
                     }
                 }
 
                 if (html == "<div class=\"videos__line\">")
-                    return Content(string.Empty);
+                    return OnError(proxyManager);
                 #endregion
             }
 

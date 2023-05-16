@@ -2,17 +2,17 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Web;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Animebesst : BaseController
+    public class Animebesst : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("animebesst", AppInit.conf.Animebesst);
 
@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string uri, int s, string account_email)
         {
             if (!AppInit.conf.Animebesst.enable || string.IsNullOrWhiteSpace(title))
-                return Content(string.Empty);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -34,10 +34,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string search = await HttpClient.Post($"{AppInit.conf.Animebesst.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     catalog = new List<(string title, string uri, string s)>();
 
@@ -57,10 +54,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
                 }
@@ -87,10 +81,7 @@ namespace Lampac.Controllers.LITE
                     string videoList = Regex.Match(news ?? "", "var videoList = ([^\n\r]+)").Groups[1].Value.Replace("\\", "");
 
                     if (string.IsNullOrWhiteSpace(videoList))
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     links = new List<(string episode, string uri)>();
                     var match = Regex.Match(videoList, "\"id\":\"([0-9]+)\",\"link\":\"(https?:)?//([^\"]+)\"");
@@ -103,10 +94,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (links.Count == 0)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                        return OnError(proxyManager);
 
                     memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
                 }
@@ -131,7 +119,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string uri)
         {
             if (!AppInit.conf.Animebesst.enable)
-                return Content(string.Empty);
+                return OnError();
 
             string memKey = $"animebesst:video:{uri}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
@@ -140,15 +128,12 @@ namespace Lampac.Controllers.LITE
                 hls = Regex.Match(iframe ?? "", "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(hls))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
             }
 
-            return Redirect(HostStreamProxy(true, hls));
+            return Redirect(HostStreamProxy(AppInit.conf.Animebesst, hls, proxy: proxyManager.Get()));
         }
         #endregion
     }

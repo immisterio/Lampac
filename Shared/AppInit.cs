@@ -8,10 +8,10 @@ using Lampac.Models.Module;
 using System.Reflection;
 using Lampac.Models.JAC;
 using Lampac.Models.AppConf;
-using Lampac.Models;
 using Lampac.Models.DLNA;
 using Lampac.Models.Merchant;
 using System.Collections.Concurrent;
+using Shared.Model.Base;
 
 namespace Lampac
 {

@@ -1,4 +1,4 @@
-﻿using Shared.Model.Proxy;
+﻿using Shared.Model.Base;
 
 namespace Lampac.Models.AppConf
 {
@@ -12,6 +12,8 @@ namespace Lampac.Models.AppConf
 
 
         public bool useproxy { get; set; }
+
+        public bool useproxystream { get; set; }
 
         public string globalnameproxy { get; set; }
 

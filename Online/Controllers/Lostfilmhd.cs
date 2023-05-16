@@ -4,17 +4,17 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Web;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Lostfilmhd : BaseController
+    public class Lostfilmhd : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("lostfilmhd", AppInit.conf.Lostfilmhd);
 
@@ -23,17 +23,14 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
             if (!AppInit.conf.Lostfilmhd.enable)
-                return Content(string.Empty);
+                return OnError();
 
             if (year == 0 || string.IsNullOrWhiteSpace(title))
-                return Content(string.Empty);
+                return OnError();
 
             var content = await embed(title, year);
             if (content.seasons == null)
-            {
-                proxyManager.Refresh();
-                return Content(string.Empty);
-            }
+                return OnError(proxyManager);
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -63,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    return Content(string.Empty);
+                    return OnError();
                 }
             }
 
@@ -78,32 +75,28 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string iframe, int s, int e, int v, string title, string original_title, bool play)
         {
             if (!AppInit.conf.Lostfilmhd.enable)
-                return Content(string.Empty);
+                return OnError();
+
+            var proxy = proxyManager.Get();
 
             string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}:{v}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}&voice={v}", referer: AppInit.conf.Lostfilmhd.host, proxy: proxyManager.Get(), timeoutSeconds: 10);
+                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}&voice={v}", referer: AppInit.conf.Lostfilmhd.host, proxy: proxy, timeoutSeconds: 10);
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 urim3u8 = new Regex("\"hls\":\"(https?:[^\"]+\\.m3u8)\"").Match(html).Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
             if (play)
-                return Redirect(HostStreamProxy(true, urim3u8));
+                return Redirect(HostStreamProxy(AppInit.conf.Lostfilmhd, urim3u8, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(true, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Lostfilmhd, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 

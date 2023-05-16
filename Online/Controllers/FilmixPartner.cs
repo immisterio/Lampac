@@ -3,28 +3,28 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 using System.Web;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class FilmixPartner : BaseController
+    public class FilmixPartner : BaseOnlineController
     {
         [HttpGet]
         [Route("lite/fxapi")]
         async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int postid, int t, int s = -1)
         {
             if (!AppInit.conf.FilmixPartner.enable || string.IsNullOrWhiteSpace(AppInit.conf.Filmix.host))
-                return Content(string.Empty);
+                return OnError();
 
             postid = postid == 0 ? await search(kinopoisk_id) : postid;
             if (postid == 0)
-                return Content(string.Empty);
+                return OnError();
 
             if (checksearch)
                 return Content("data-json=");
@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
             {
                 string XFXTOKEN = await getXFXTOKEN();
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
-                    return Content(string.Empty);
+                    return OnError();
 
                 root = await HttpClient.Get<JArray>($"{AppInit.conf.FilmixPartner.host}/video_links/{postid}", addHeaders: new List<(string name, string val)>()
                 {
@@ -43,11 +43,11 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (root == null || root.Count == 0)
-                    return Content(string.Empty);
+                    return OnError();
 
                 var first = root.First.ToObject<JObject>();
                 if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
-                    return Content(string.Empty);
+                    return OnError();
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(20));
             }
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                     {
                         int q = file.Value<int>("quality");
-                        string l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, file.Value<string>("url"));
+                        string l = HostStreamProxy(AppInit.conf.FilmixPartner, file.Value<string>("url"));
 
                         streams.Add((l, $"{q}p"));
                         streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
@@ -139,7 +139,7 @@ namespace Lampac.Controllers.LITE
                         foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                         {
                             int q = file.Value<int>("quality");
-                            string l = HostStreamProxy(AppInit.conf.FilmixPartner.streamproxy, file.Value<string>("url"));
+                            string l = HostStreamProxy(AppInit.conf.FilmixPartner, file.Value<string>("url"));
 
                             streams.Add((l, $"{q}p"));
                             streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";

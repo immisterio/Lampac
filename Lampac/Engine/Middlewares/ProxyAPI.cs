@@ -49,9 +49,9 @@ namespace Lampac.Engine.Middlewares
                 string reqip = httpContext.Connection.RemoteIpAddress.ToString();
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
-                servUri = Regex.Replace(servUri, "(\\?|&)account_email=([^&]+)?", "", RegexOptions.IgnoreCase);
 
-                var decryptLink = CORE.ProxyLink.Decrypt(servUri, reqip);
+                string dhash = Regex.Replace(servUri, "(\\?|&).*", "", RegexOptions.IgnoreCase);
+                var decryptLink = CORE.ProxyLink.Decrypt(dhash, reqip);
 
                 if (!servUri.Contains("api.themoviedb.org"))
                     servUri = decryptLink.uri;
@@ -80,12 +80,18 @@ namespace Lampac.Engine.Middlewares
 
                 using (var client = new HttpClient(handler))
                 {
+                    if (decryptLink.proxy != null)
+                    {
+                        handler.UseProxy = true;
+                        handler.Proxy = decryptLink.proxy;
+                    }
+
                     var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
                     if ((int)response.StatusCode is 301 or 302 or 303 || response.Headers.Location != null)
                     {
-                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, reqip, decryptLink.headers)}"));
+                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, reqip, decryptLink.headers, decryptLink.proxy)}"));
                         return;
                     }
 
@@ -98,7 +104,7 @@ namespace Lampac.Engine.Middlewares
                                 string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
                                 string m3u8 = Regex.Replace(Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync()), "(https?://[^\n\r\"\\# ]+)", m =>
                                 {
-                                    return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, reqip, decryptLink.headers)}");
+                                    return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, reqip, decryptLink.headers, decryptLink.proxy)}");
                                 });
 
                                 string hlshost = Regex.Match(servUri, "(https?://[^/]+)/").Groups[1].Value;
@@ -120,7 +126,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, reqip, decryptLink.headers)}");
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, reqip, decryptLink.headers, decryptLink.proxy)}");
                                 });
 
                                 m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
@@ -139,7 +145,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, reqip, decryptLink.headers)}");
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, reqip, decryptLink.headers, decryptLink.proxy)}");
                                 });
 
                                 httpContext.Response.ContentType = contentType.First();

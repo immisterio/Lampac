@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.AniLibria;
 using System.Web;
@@ -10,10 +9,11 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class AniLibriaOnline : BaseController
+    public class AniLibriaOnline : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("anilibria", AppInit.conf.AnilibriaOnline);
 
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string code, int year)
         {
             if (!AppInit.conf.AnilibriaOnline.enable || string.IsNullOrWhiteSpace(title))
-                return Content(string.Empty);
+                return OnError();
 
             #region Кеш
             string memkey = $"aniLibriaonline:{title}";
@@ -31,10 +31,7 @@ namespace Lampac.Controllers.LITE
             {
                 var search = await HttpClient.Get<List<RootObject>>($"{AppInit.conf.AnilibriaOnline.apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title), proxy: proxyManager.Get(), IgnoreDeserializeObject: true);
                 if (search == null || search.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 result = new List<RootObject>();
                 foreach (var item in search)
@@ -53,6 +50,7 @@ namespace Lampac.Controllers.LITE
             if (!string.IsNullOrWhiteSpace(code) || (result.Count == 1 && result[0].season.year == year && result[0].names.ru?.ToLower() == title.ToLower()))
             {
                 #region Серии
+                var proxy = proxyManager.Get();
                 var root = string.IsNullOrWhiteSpace(code) ? result[0] : result.Find(i => i.code == code);
 
                 foreach (var episode in root.player.playlist.Select(i => i.Value))
@@ -65,14 +63,14 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
 
-                        streansquality += $"\"{f.quality}\":\"" + HostStreamProxy(AppInit.conf.AnilibriaOnline.streamproxy, $"https://{root.player.host}{f.url}") + "\",";
+                        streansquality += $"\"{f.quality}\":\"" + HostStreamProxy(AppInit.conf.AnilibriaOnline, $"https://{root.player.host}{f.url}") + "\",";
                     }
 
                     streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                     #endregion
 
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
-                    hls = HostStreamProxy(AppInit.conf.AnilibriaOnline.streamproxy, $"https://{root.player.host}{hls}");
+                    hls = HostStreamProxy(AppInit.conf.AnilibriaOnline, $"https://{root.player.host}{hls}", proxy: proxy);
 
                     string season = string.IsNullOrWhiteSpace(code) || (root.names.ru?.ToLower() == title.ToLower()) ? "1"  : "0";
 

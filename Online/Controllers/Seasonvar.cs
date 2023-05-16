@@ -4,29 +4,32 @@ using System;
 using System.Web;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
+using Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Seasonvar : BaseController
+    public class Seasonvar : BaseOnlineController
     {
+        ProxyManager proxyManager = new ProxyManager("seasonvar", AppInit.conf.Seasonvar, refresh: false);
+
         [HttpGet]
         [Route("lite/seasonvar")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, string original_language, int seasonid, string t, int s = -1)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.Seasonvar.token))
-                return Content(string.Empty);
+            if (!AppInit.conf.Seasonvar.enable)
+                return OnError();
 
             if (original_language != "en")
                 clarification = 1;
 
             seasonid = seasonid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), year) : seasonid;
             if (seasonid == 0)
-                return Content(string.Empty);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -47,7 +50,7 @@ namespace Lampac.Controllers.LITE
             {
                 var playlist = await getPlaylist(seasonid);
                 if (playlist == null)
-                    return Content(string.Empty);
+                    return OnError();
 
                 #region Перевод
                 foreach (var pl in playlist)
@@ -70,12 +73,14 @@ namespace Lampac.Controllers.LITE
                 #endregion
 
                 #region Серии
+                var proxy = proxyManager.Get();
+
                 foreach (var pl in playlist)
                 {
                     if (pl.Value<string>("perevod") != t)
                         continue;
 
-                    string link = HostStreamProxy(AppInit.conf.Seasonvar.streamproxy, pl.Value<string>("link"));
+                    string link = HostStreamProxy(AppInit.conf.Seasonvar, pl.Value<string>("link"), proxy: proxy);
                     string name = pl.Value<string>("name");
 
                     string subtitles = pl.Value<string>("subtitles");
@@ -101,9 +106,12 @@ namespace Lampac.Controllers.LITE
             string memKey = $"seasonvar:search:{title}:{year}";
             if (!memoryCache.TryGetValue(memKey, out JArray root))
             {
-                root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8);
+                root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || root.Count == 0)
+                {
+                    proxyManager.Refresh();
                     return 0;
+                }
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
@@ -136,9 +144,12 @@ namespace Lampac.Controllers.LITE
             string memKey = $"seasonvar:season:{season_id}";
             if (!memoryCache.TryGetValue(memKey, out JObject root))
             {
-                root = await HttpClient.Post<JObject>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=getSeason&season_id={season_id}", timeoutSeconds: 8);
+                root = await HttpClient.Post<JObject>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=getSeason&season_id={season_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null)
+                {
+                    proxyManager.Refresh();
                     return null;
+                }
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }

@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
+using SISI;
 
 namespace Lampac.Controllers.Eporner
 {
-    public class ListController : BaseController
+    public class ListController : BaseSisiController
     {
         [HttpGet]
         [Route("epr")]
@@ -29,31 +29,17 @@ namespace Lampac.Controllers.Eporner
 
                 string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return OnError("html");
-                }
+                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html, pl =>
-                {
-                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
-                    return pl;
-                });
+                playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);
 
                 if (playlists.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return OnError("playlists");
-                }
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
-                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
+                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return new JsonResult(new
-            {
-                menu = EpornerTo.Menu(host, sort),
-                list = playlists
-            });
+            return OnResult(playlists, EpornerTo.Menu(host, sort));
         }
     }
 }

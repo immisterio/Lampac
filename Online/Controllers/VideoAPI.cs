@@ -5,30 +5,33 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class VideoAPI : BaseController
+    public class VideoAPI : BaseOnlineController
     {
+        ProxyManager proxyManager = new ProxyManager("videoapi", AppInit.conf.VideoAPI);
+
         [HttpGet]
         [Route("lite/videoapi")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.VideoAPI.token))
-                return Content(string.Empty);
+            if (!AppInit.conf.VideoAPI.enable)
+                return OnError();
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return Content(string.Empty);
+                return OnError();
 
             string content = await iframe(imdb_id, kinopoisk_id);
             if (content == null)
-                return Content(string.Empty);
+                return OnError();
 
             string html = "<div class=\"videos__line\">";
 
+            var proxy = proxyManager.Get();
             string streansquality = string.Empty;
             List<(string link, string quality)> streams = new List<(string, string)>();
 
@@ -38,8 +41,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(link))
                     continue;
 
-                link = $"http://{link}";
-                link = HostStreamProxy(AppInit.conf.VideoAPI.streamproxy, link);
+                link = HostStreamProxy(AppInit.conf.VideoAPI, $"http://{link}", proxy: proxy);
 
                 streams.Add((link, $"{quality}p"));
                 streansquality += $"\"{quality}p\":\"" + link + "\",";
@@ -59,7 +61,6 @@ namespace Lampac.Controllers.LITE
                 string memKeyIframesrc = $"videoapi:view:iframe_src:{imdb_id}:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKeyIframesrc, out string code))
                 {
-                    var proxyManager = new ProxyManager("videoapi", AppInit.conf.VideoAPI);
                     var proxy = proxyManager.Get();
 
                     var json = await HttpClient.Get<JObject>($"{AppInit.conf.VideoAPI.corsHost()}/api/short?api_token={AppInit.conf.VideoAPI.token}" + $"&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}", timeoutSeconds: 8, proxy: proxy);

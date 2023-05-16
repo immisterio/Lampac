@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
+using SISI;
 
 namespace Lampac.Controllers.Spankbang
 {
-    public class ListController : BaseController
+    public class ListController : BaseSisiController
     {
         #region headers
         public static List<(string name, string val)> headers = new List<(string name, string val)>() 
@@ -44,31 +44,17 @@ namespace Lampac.Controllers.Spankbang
 
                 string html = await SpankbangTo.InvokeHtml(AppInit.conf.Spankbang.host, search, sort, pg, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 10, proxy: proxy, addHeaders: headers));
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return OnError("html");
-                }
+                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = SpankbangTo.Playlist($"{host}/sbg/vidosik", html, pl =>
-                {
-                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
-                    return pl;
-                });
+                playlists = SpankbangTo.Playlist($"{host}/sbg/vidosik", html);
 
                 if (playlists.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return OnError("playlists");
-                }
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
-                memoryCache.Set(memKey, playlists, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 10 : 2));
+                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return new JsonResult(new
-            {
-                menu = SpankbangTo.Menu(host, sort),
-                list = playlists
-            });
+            return OnResult(playlists, SpankbangTo.Menu(host, sort));
         }
     }
 }

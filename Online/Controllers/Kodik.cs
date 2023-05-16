@@ -7,16 +7,16 @@ using System.Collections.Generic;
 using System.Web;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using System.Security.Cryptography;
 using System.Text;
 using Lampac.Models.LITE.Kodik;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Kodik : BaseController
+    public class Kodik : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("kodik", AppInit.conf.Kodik);
 
@@ -24,15 +24,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string kid, int s = -1)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.token))
-                return Content(string.Empty);
+            if (!AppInit.conf.Kodik.enable)
+                return OnError();
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return Content(string.Empty);
+                return OnError();
 
             JToken results = await search(imdb_id, kinopoisk_id, s);
             if (results == null)
-                return Content(string.Empty);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -126,8 +126,10 @@ namespace Lampac.Controllers.LITE
             {
                 userIp = await mylocalip();
                 if (userIp == null)
-                    return Content(string.Empty);
+                    return OnError();
             }
+
+            var proxy = proxyManager.Get();
 
             string memKey = $"kodik:view:stream:{link}:{userIp}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
@@ -135,7 +137,7 @@ namespace Lampac.Controllers.LITE
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                 string hmac = HMAC(AppInit.conf.Kodik.secret_token, $"{link}:{userIp}:{deadline}");
 
-                string json = await HttpClient.Get($"{AppInit.conf.Kodik.linkhost}/api/video-links" + $"?link={link}&p={AppInit.conf.Kodik.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8);
+                string json = await HttpClient.Get($"{AppInit.conf.Kodik.linkhost}/api/video-links" + $"?link={link}&p={AppInit.conf.Kodik.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
                 streams = new List<(string q, string url)>();
                 var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
@@ -156,7 +158,7 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in streams)
             {
-                string hls = HostStreamProxy(AppInit.conf.Kodik.streamproxy, l.url);
+                string hls = HostStreamProxy(AppInit.conf.Kodik, l.url, proxy: proxy);
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 
@@ -177,17 +179,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/videoparse.m3u8")]
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
+            if (!AppInit.conf.Kodik.enable)
+                return OnError();
+
+            var proxy = proxyManager.Get();
+
             string memKey = $"kodik:view:VideoParse:{link}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
-                var proxy = proxyManager.Get();
-
                 string iframe = await HttpClient.Get($"http:{link}", referer: "https://animego.org/", proxy: proxy, timeoutSeconds: 8);
-                if (iframe == null)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                if (iframe == null) 
+                    return OnError(proxyManager);
 
                 string _frame = Regex.Replace(iframe, "[\n\r\t ]+", "");
                 string d_sign = new Regex("d_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
@@ -199,10 +201,7 @@ namespace Lampac.Controllers.LITE
 
                 string json = await HttpClient.Post($"{AppInit.conf.Kodik.linkhost}/gvi", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D", proxy: proxy, timeoutSeconds: 8);
                 if (json == null)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 streams = new List<(string q, string url)>();
 
@@ -230,7 +229,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (streams.Count == 0)
-                    return Content(string.Empty);
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, streams, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
@@ -238,7 +237,7 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in streams)
             {
-                string hls = HostStreamProxy(AppInit.conf.Kodik.streamproxy, l.url);
+                string hls = HostStreamProxy(AppInit.conf.Kodik, l.url, proxy: proxy);
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 

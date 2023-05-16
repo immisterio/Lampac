@@ -1,13 +1,14 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.Online;
+using Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Filmix : BaseController
+    public class Filmix : BaseOnlineController
     {
         #region filmixpro
         [HttpGet]
@@ -31,18 +32,21 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int postid, int t, int s = -1)
         {
             if (!AppInit.conf.Filmix.enable)
-                return Content(string.Empty);
+                return OnError();
 
             if (original_language != "en")
                 clarification = 1;
+
+            var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
+            var proxy = proxyManager.Get();
 
             var oninvk = new FilmixInvoke
             (
                host,
                AppInit.conf.Filmix.host,
                AppInit.conf.Filmix.token,
-               ongettourl => HttpClient.Get(ongettourl, timeoutSeconds: 8),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix.streamproxy, onstreamtofile)
+               ongettourl => HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, onstreamtofile, proxy: proxy)
             );
 
             if (postid == 0)
@@ -56,7 +60,7 @@ namespace Lampac.Controllers.LITE
 
             var player_links = await InvokeCache($"filmix:post:{postid}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Post(postid));
             if (player_links == null)
-                return Content(string.Empty);
+                return OnError(proxyManager);
 
             return Content(oninvk.Html(player_links, AppInit.conf.Filmix.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
         }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Lampac.Models
+namespace Shared.Model.Base
 {
     public class ProxySettings
     {

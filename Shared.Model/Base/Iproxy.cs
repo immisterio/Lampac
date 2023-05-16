@@ -1,10 +1,10 @@
-﻿using Lampac.Models;
-
-namespace Shared.Model.Proxy
+﻿namespace Shared.Model.Base
 {
     public interface Iproxy
     {
         public bool useproxy { get; set; }
+
+        public bool useproxystream { get; set; }
 
         public string? globalnameproxy { get; set; }
 

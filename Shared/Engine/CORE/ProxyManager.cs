@@ -1,6 +1,6 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
-using Shared.Model.Proxy;
+using Shared.Model.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,19 +14,23 @@ namespace Shared.Engine.CORE
 
         #region ProxyManager
         string plugin;
-
+        bool refresh;
         Iproxy conf;
 
-        public ProxyManager(string plugin, Iproxy conf)
+        public ProxyManager(string plugin, Iproxy conf, bool refresh = true)
         {
             this.plugin = plugin;
             this.conf = conf;
+            this.refresh = refresh;
         }
         #endregion
 
         #region Get
         public WebProxy Get()
         {
+            if (!conf.useproxy && !conf.useproxystream)
+                return null;
+
             ICredentials credentials = null;
 
             if (conf.proxy != null)
@@ -44,9 +48,6 @@ namespace Shared.Engine.CORE
             }
             else
             {
-                if (!conf.useproxy)
-                    return null;
-
                 string proxyip;
                 bool bypassOnLocal = false;
 
@@ -89,6 +90,9 @@ namespace Shared.Engine.CORE
         #region Refresh
         public void Refresh()
         {
+            if (!refresh)
+                return;
+
             if (conf.proxy != null)
             {
                 if (!string.IsNullOrEmpty(conf.proxy.refresh_uri))

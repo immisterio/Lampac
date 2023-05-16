@@ -1,6 +1,8 @@
-﻿namespace Lampac.Models.LITE
+﻿using Shared.Model.Base;
+
+namespace Lampac.Models.LITE
 {
-    public class FilmixSettings
+    public class FilmixSettings : BaseSettings
     {
         public FilmixSettings(string host, bool enable = true)
         {
@@ -9,19 +11,9 @@
         }
 
 
-        public string? displayname { get; set; }
-
-        public string host { get; set; }
-
-        public bool enable { get; set; } 
-
         public bool pro { get; set; }
 
         public string? token { get; set; }
-
-        public bool useproxy { get; set; }
-
-        public bool streamproxy { get; set; }
 
 
         public string? APIKEY { get; set; }

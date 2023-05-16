@@ -138,7 +138,7 @@ namespace JinEnergy
 
         public static IframeVideoSettings IframeVideo = conf.IframeVideo;
 
-        public static HDVBSettings HDVB = conf.HDVB;
+        public static OnlinesSettings HDVB = conf.HDVB;
 
         public static OnlinesSettings Seasonvar = conf.Seasonvar;
 

@@ -1,13 +1,13 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class VideoDB : BaseController
+    public class VideoDB : BaseOnlineController
     {
         [HttpGet]
         [Route("lite/videodb")]
@@ -23,15 +23,12 @@ namespace Lampac.Controllers.LITE
             (
                host,
                (url, head) => HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy, addHeaders: head),
-               streamfile => HostStreamProxy(AppInit.conf.VideoDB.streamproxy, streamfile)
+               streamfile => HostStreamProxy(AppInit.conf.VideoDB, streamfile, proxy: proxy)
             );
 
             var content = await InvokeCache($"videodb:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, serial));
             if (content.pl == null)
-            {
-                proxyManager.Refresh();
-                return Content(string.Empty);
-            }
+                return OnError(proxyManager);
 
             return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
         }

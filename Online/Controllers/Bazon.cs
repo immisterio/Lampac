@@ -7,26 +7,29 @@ using System.Collections.Generic;
 using System.Web;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Bazon : BaseController
+    public class Bazon : BaseOnlineController
     {
+        ProxyManager proxyManager = new ProxyManager("bazon", AppInit.conf.Bazon);
+
         [HttpGet]
         [Route("lite/bazon")]
         async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, string t, int s = -1)
         {
-            if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.Bazon.token))
-                return Content(string.Empty);
+            if (kinopoisk_id == 0 || !AppInit.conf.Bazon.enable)
+                return OnError();
 
             if (checksearch)
             {
                 if (await search(kinopoisk_id))
                     return Content("data-json=");
 
-                return Content(string.Empty);
+                return OnError(proxyManager);
             }
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
@@ -35,15 +38,15 @@ namespace Lampac.Controllers.LITE
             {
                 userIp = await mylocalip();
                 if (userIp == null)
-                    return Content(string.Empty);
+                    return OnError();
             }
 
             string memKey = $"bazon:view:{kinopoisk_id}:{userIp}";
             if (!memoryCache.TryGetValue(memKey, out JToken results))
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Bazon.apihost}/api/playlist?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}&ref=&ip={userIp}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Bazon.apihost}/api/playlist?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}&ref=&ip={userIp}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || !root.ContainsKey("results"))
-                    return Content(string.Empty);
+                    return OnError(proxyManager);
 
                 results = root.GetValue("results");
                 memoryCache.Set(memKey, results, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
@@ -157,7 +160,7 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out bool results))
             {
-                var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 results = root != null && root.ContainsKey("results");
                 memoryCache.Set(memKey, results, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }

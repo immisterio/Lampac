@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
+using SISI;
 
 namespace Lampac.Controllers.Chaturbate
 {
-    public class ListController : BaseController
+    public class ListController : BaseSisiController
     {
         [HttpGet]
         [Route("chu")]
@@ -28,31 +28,17 @@ namespace Lampac.Controllers.Chaturbate
 
                 string html = await ChaturbateTo.InvokeHtml(AppInit.conf.Chaturbate.corsHost(), sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return OnError("html");
-                }
+                    return OnError("html", proxyManager);
 
-                playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html, pl => 
-                {
-                    pl.picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture);
-                    return pl;
-                });
+                playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html);
 
                 if (playlists.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return OnError("playlists");
-                }
+                    return OnError("playlists", proxyManager);
 
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }
 
-            return new JsonResult(new
-            {
-                menu = ChaturbateTo.Menu(host, sort),
-                list = playlists
-            });
+            return OnResult(playlists, ChaturbateTo.Menu(host, sort));
         }
     }
 }

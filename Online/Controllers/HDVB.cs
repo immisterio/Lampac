@@ -7,14 +7,14 @@ using System.Collections.Generic;
 using System.Web;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.HDVB;
 using Shared.Engine.CORE;
+using Online;
 
 namespace Lampac.Controllers.LITE
 {
-    public class HDVB : BaseController
+    public class HDVB : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("hdvb", AppInit.conf.HDVB);
 
@@ -22,12 +22,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, int t = -1, int s = -1)
         {
-            if (kinopoisk_id == 0 || string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
-                return Content(string.Empty);
+            if (kinopoisk_id == 0 || !AppInit.conf.HDVB.enable)
+                return OnError();
 
             JArray data = await search(kinopoisk_id);
             if (data == null)
-                return Content(string.Empty);
+                return OnError(proxyManager);
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -109,20 +109,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/video.m3u8")]
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
-                return Content(string.Empty);
+            if (!AppInit.conf.HDVB.enable)
+                return OnError();
+
+            var proxy = proxyManager.Get();
 
             string memKey = $"video:view:video:{iframe}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                var proxy = proxyManager.Get();
-
-                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8, proxy: proxy);
+                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.host}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 string vid = "vid1666694269";
                 string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
@@ -132,10 +129,7 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>() 
                 {
@@ -153,18 +147,15 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8));
+                return Redirect(HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -174,20 +165,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/serial.m3u8")]
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.HDVB.token))
+            if (!AppInit.conf.HDVB.enable)
                 return Content(string.Empty);
+
+            var proxy = proxyManager.Get();
 
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                var proxy = proxyManager.Get();
-
-                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.apihost}/", timeoutSeconds: 8, proxy: proxy);
+                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.host}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 #region playlist
                 string vid = "vid1666694269";
@@ -198,10 +186,7 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 var headers = new List<(string name, string val)>()
                 {
@@ -220,36 +205,27 @@ namespace Lampac.Controllers.LITE
 
                 var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: headers, IgnoreDeserializeObject: true);
                 if (playlist == null || playlist.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
                 #endregion
 
                 file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
                 if (string.IsNullOrWhiteSpace(file))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 file = Regex.Replace(file, "^/playlist/", "/");
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: headers);
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
-                {
-                    proxyManager.Refresh();
-                    return Content(string.Empty);
-                }
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
             if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8));
+                return Redirect(HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB.streamproxy, urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -260,12 +236,9 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out JArray root))
             {
-                root = await HttpClient.Get<JArray>($"{AppInit.conf.HDVB.apihost}/api/videos.json?token={AppInit.conf.HDVB.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                root = await HttpClient.Get<JArray>($"{AppInit.conf.HDVB.host}/api/videos.json?token={AppInit.conf.HDVB.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || root.Count == 0)
-                {
-                    proxyManager.Refresh();
                     return null;
-                }
 
                 memoryCache.Set(memKey, root, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }

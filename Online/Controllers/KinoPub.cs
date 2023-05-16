@@ -2,26 +2,31 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Web;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE.KinoPub;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
+using Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
-    public class KinoPub : BaseController
+    public class KinoPub : BaseOnlineController
     {
+        ProxyManager proxyManager = new ProxyManager("kinopub", AppInit.conf.KinoPub);
+
         #region kinopubpro
         [HttpGet]
         [Route("lite/kinopubpro")]
         async public Task<ActionResult> Pro(string code)
         {
+            var proxy = proxyManager.Get();
+
             if (string.IsNullOrWhiteSpace(code))
             {
-                var token_request = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.apihost}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "");
+                var token_request = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.apihost}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy);
 
                 string html = "1. Откройте <a href='https://kino.pub/device'>https://kino.pub/device</a> <br>";
                 html += $"2. Введите код активации <b>{token_request.Value<string>("user_code")}</b><br>";
@@ -33,11 +38,11 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                var device_token = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.apihost}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "");
+                var device_token = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.apihost}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy);
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
-                await HttpClient.Post($"{AppInit.conf.KinoPub.apihost}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", "&title=LAMPAC");
+                await HttpClient.Post($"{AppInit.conf.KinoPub.apihost}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", "&title=LAMPAC", proxy: proxy);
 
                 return Content($"В init.conf укажите token <b>{device_token.Value<string>("access_token")}</b>", "text/html; charset=utf-8");
             }
@@ -49,21 +54,23 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string original_language, int postid, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
-                return Content(string.Empty);
+                return OnError();
 
             if (original_language != "en")
                 clarification = 1;
 
             postid = postid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), imdb_id, kinopoisk_id) : postid;
             if (postid == 0)
-                return Content(string.Empty);
+                return OnError();
+
+            var proxy = proxyManager.Get();
 
             string memKey = $"kinopub:{postid}";
             if (!memoryCache.TryGetValue(memKey, out RootObject root))
             {
-                root = await HttpClient.Get<RootObject>($"{AppInit.conf.KinoPub.apihost}/v1/items/{postid}?access_token={AppInit.conf.KinoPub.token}", timeoutSeconds: 8);
+                root = await HttpClient.Get<RootObject>($"{AppInit.conf.KinoPub.apihost}/v1/items/{postid}?access_token={AppInit.conf.KinoPub.token}", timeoutSeconds: 8, proxy: proxy);
                 if (root?.item?.seasons == null && root?.item?.videos == null)
-                    return Content(string.Empty);
+                    return OnError(proxyManager);
 
                 memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(10));
             }
@@ -106,7 +113,7 @@ namespace Lampac.Controllers.LITE
 
                     if (AppInit.conf.KinoPub.filetype == "hls4")
                     {
-                        string hls = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, v.files[0].url.hls4);
+                        string hls = HostStreamProxy(AppInit.conf.KinoPub, v.files[0].url.hls4, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
                     }
                     else
@@ -118,7 +125,7 @@ namespace Lampac.Controllers.LITE
                         {
                             foreach (var sub in v.subtitles)
                             {
-                                string suburl = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, sub.url);
+                                string suburl = HostStreamProxy(AppInit.conf.KinoPub, sub.url, proxy: proxy);
                                 subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
                             }
 
@@ -131,14 +138,14 @@ namespace Lampac.Controllers.LITE
 
                         foreach (var f in v.files)
                         {
-                            string l = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, f.url.http);
+                            string l = HostStreamProxy(AppInit.conf.KinoPub, f.url.http, proxy: proxy);
                             streansquality += $"\"{f.quality}\":\"" + l + "\",";
                         }
 
                         streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                         #endregion
 
-                        string mp4 = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, v.files[0].url.http);
+                        string mp4 = HostStreamProxy(AppInit.conf.KinoPub, v.files[0].url.http, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
                     }
                 }
@@ -184,7 +191,7 @@ namespace Lampac.Controllers.LITE
 
                         if (AppInit.conf.KinoPub.filetype == "hls4")
                         {
-                            string hls = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, episode.files[0].url.hls4);
+                            string hls = HostStreamProxy(AppInit.conf.KinoPub, episode.files[0].url.hls4, proxy: proxy);
 
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
                             firstjson = false;
@@ -198,7 +205,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 foreach (var sub in episode.subtitles)
                                 {
-                                    string suburl = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, sub.url);
+                                    string suburl = HostStreamProxy(AppInit.conf.KinoPub, sub.url, proxy: proxy);
                                     subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
                                 }
 
@@ -211,14 +218,14 @@ namespace Lampac.Controllers.LITE
 
                             foreach (var f in episode.files)
                             {
-                                string l = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, f.url.http);
+                                string l = HostStreamProxy(AppInit.conf.KinoPub, f.url.http, proxy: proxy);
                                 streansquality += $"\"{f.quality}\":\"" + l + "\",";
                             }
 
                             streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                             #endregion
 
-                            string mp4 = HostStreamProxy(AppInit.conf.KinoPub.streamproxy, episode.files[0].url.http);
+                            string mp4 = HostStreamProxy(AppInit.conf.KinoPub, episode.files[0].url.http, proxy: proxy);
 
                             html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
                             firstjson = false;
@@ -245,13 +252,19 @@ namespace Lampac.Controllers.LITE
             string memKey = $"kinopub:search:{title}:{imdb_id}:{kinopoisk_id}";
             if (!memoryCache.TryGetValue(memKey, out JArray items))
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.KinoPub.apihost}/v1/items/search?q={HttpUtility.UrlEncode(title)}&access_token={AppInit.conf.KinoPub.token}&field=title&perpage=200", timeoutSeconds: 8);
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.KinoPub.apihost}/v1/items/search?q={HttpUtility.UrlEncode(title)}&access_token={AppInit.conf.KinoPub.token}&field=title&perpage=200", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null)
+                {
+                    proxyManager.Refresh();
                     return 0;
+                }
 
                 items = root.Value<JArray>("items");
                 if (items == null)
+                {
+                    proxyManager.Refresh();
                     return 0;
+                }
 
                 memoryCache.Set(memKey, items, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }

@@ -3,15 +3,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Web;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
+using SISI;
 
 namespace Lampac.Controllers.Porntrex
 {
-    public class ViewController : BaseController
+    public class ViewController : BaseSisiController
     {
         ProxyManager proxyManager = new ProxyManager("ptx", AppInit.conf.Porntrex);
 
@@ -29,10 +29,7 @@ namespace Lampac.Controllers.Porntrex
 
                 var links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (links == null || links.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return OnError("stream_links");
-                }
+                    return OnError("stream_links", proxyManager);
 
                 stream_links = new Dictionary<string, string>();
                 foreach (var l in links)
@@ -49,10 +46,12 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/strem")]
         async public Task<ActionResult> strem(string link)
         {
+            var proxy = proxyManager.Get();
+
             string memKey = $"Porntrex:strem:{link}";
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
-                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>() 
+                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, addHeaders: new List<(string name, string val)>() 
                 {
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),
@@ -68,7 +67,7 @@ namespace Lampac.Controllers.Porntrex
                 memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.Porntrex.streamproxy, location));
+            return Redirect(HostStreamProxy(AppInit.conf.Porntrex, location, proxy: proxy));
         }
     }
 }

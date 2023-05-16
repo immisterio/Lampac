@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Shared;
-using Shared.Engine.CORE;
+using Shared.Model.Base;
 
 namespace Lampac.Engine
 {
@@ -25,11 +26,6 @@ namespace Lampac.Engine
             serviceScope = Startup.ApplicationServices.CreateScope();
             var scopeServiceProvider = serviceScope.ServiceProvider;
             memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
-        }
-
-        public JsonResult OnError(string msg)
-        {
-            return new JsonResult(new { success = false, msg });
         }
 
         async public ValueTask<string> mylocalip()
@@ -58,11 +54,11 @@ namespace Lampac.Engine
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
-        public string HostStreamProxy(bool streamproxy, string uri, List<(string name, string val)> headers = null)
+        public string HostStreamProxy(Istreamproxy conf, string uri, List<(string name, string val)> headers = null, WebProxy proxy = null)
         {
-            if (streamproxy)
+            if (conf == null || conf.streamproxy || conf.useproxystream)
             {
-                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
+                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null);
                 string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
                 if (AppInit.conf.accsdb.enable && !string.IsNullOrWhiteSpace(account_email))
                     uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";

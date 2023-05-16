@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
+using Shared.Model.Base;
+using SISI;
 
 namespace Lampac.Controllers.BongaCams
 {
-    public class ListController : BaseController
+    public class ListController : BaseSisiController
     {
         [HttpGet]
         [Route("bgs")]
@@ -21,12 +21,12 @@ namespace Lampac.Controllers.BongaCams
             if (!AppInit.conf.BongaCams.enable)
                 return OnError("disable");
 
+            var proxyManager = new ProxyManager("bgs", AppInit.conf.BongaCams);
+            var proxy = proxyManager.Get();
+
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("bgs", AppInit.conf.BongaCams);
-                var proxy = proxyManager.Get();
-
                 string html = await BongaCamsTo.InvokeHtml(AppInit.conf.BongaCams.host, sort, pg, url => 
                 {
                     return HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
@@ -41,35 +41,17 @@ namespace Lampac.Controllers.BongaCams
                 });
 
                 if (html == null)
-                {
-                    proxyManager.Refresh();
-                    return OnError("html");
-                }
+                    return OnError("html", proxyManager);
 
                 playlists = BongaCamsTo.Playlist(html);
 
                 if (playlists.Count == 0)
-                {
-                    proxyManager.Refresh();
-                    return OnError("playlists");
-                }
+                    return OnError("playlists", proxyManager);
 
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }
 
-            return new JsonResult(new
-            {
-                menu = BongaCamsTo.Menu(host, sort),
-                list = playlists.Select(pl => new
-                {
-                    pl.name,
-                    video = HostStreamProxy(AppInit.conf.BongaCams.streamproxy, pl.video),
-                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture),
-                    pl.time,
-                    pl.json,
-                    pl.quality
-                })
-            });
+            return OnResult(playlists, AppInit.conf.BongaCams, BongaCamsTo.Menu(host, sort), proxy: proxy);
         }
     }
 }
