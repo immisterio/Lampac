@@ -45,7 +45,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrWhiteSpace(t))
                 return OnError("t");
 
-            string? html = await InvokeCache(arg.id, $"voidboost:view:serial:{t}:{s}", () => oninvk.Serial(arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s, false));
+            string? html = await InvokeCache(0, $"voidboost:view:serial:{t}:{s}", () => oninvk.Serial(arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s, false));
             if (html == null)
                 return string.Empty;
 

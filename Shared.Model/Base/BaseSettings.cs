@@ -29,7 +29,7 @@
 
         public string? webcorshost { get; set; }
 
-        public string? corsHost()
+        public string corsHost()
         {
             string? crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.corseuhost : null;
             if (string.IsNullOrWhiteSpace(crhost))

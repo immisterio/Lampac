@@ -61,7 +61,7 @@ namespace Lampac.Controllers.LITE
             if (html == null)
                 return OnError(proxyManager);
 
-            return Content(html + "</div>", "text/html; charset=utf-8");
+            return Content(html, "text/html; charset=utf-8");
         }
         #endregion
 
@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(result);
 
-            return Content(result);
+            return Content(result, "application/json; charset=utf-8");
         }
         #endregion
     }

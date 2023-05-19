@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.Caching.Memory;
 using System.Web;
 using System.Linq;
 using Online;
 using Shared.Engine.CORE;
+using Shared.Engine.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -42,53 +42,25 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.VoKino.enable)
+            if (kinopoisk_id == 0 || !AppInit.conf.VoKino.enable || string.IsNullOrEmpty(AppInit.conf.VoKino.token))
                 return OnError();
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}";
-            if (!memoryCache.TryGetValue(memKey, out JArray channels))
-            {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/list?name=%2B{kinopoisk_id}&token={AppInit.conf.VoKino.token}", timeoutSeconds: 8, proxy: proxy);
-                if (root == null || !root.ContainsKey("channels"))
-                    return OnError(proxyManager);
+            var oninvk = new VoKinoInvoke
+            (
+               null,
+               AppInit.conf.VoKino.corsHost(),
+               AppInit.conf.VoKino.token,
+               ongettourl => HttpClient.Get(AppInit.conf.VoKino.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               streamfile => HostStreamProxy(AppInit.conf.VoKino, streamfile, proxy: proxy)
+            );
 
-                string id = root.Value<JArray>("channels")?.First?.Value<JObject>("details")?.Value<string>("id");
-                if (string.IsNullOrWhiteSpace(id))
-                    return OnError();
+            var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(kinopoisk_id));
+            if (content == null)
+                return OnError(proxyManager);
 
-                root = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/online/vokino?id={id}&token={AppInit.conf.VoKino.token}", timeoutSeconds: 8, proxy: proxy);
-                if (root == null || !root.ContainsKey("channels"))
-                    return OnError(proxyManager);
-
-                channels = root.Value<JArray>("channels");
-                if (channels == null || channels.Count == 0)
-                    return OnError();
-
-                memoryCache.Set(memKey, channels, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
-            }
-
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
-            foreach (var ch in channels)
-            {
-                string link = HostStreamProxy(AppInit.conf.VoKino, ch.Value<string>("stream_url"), proxy: proxy);
-                string name = ch.Value<string>("quality_full");
-                if (!string.IsNullOrWhiteSpace(name.Replace("2160p.", "")))
-                {
-                    name = name.Replace("2160p.", "4K ");
-                    string size = ch.Value<JObject>("extra")?.Value<string>("size");
-                    if (!string.IsNullOrWhiteSpace(size))
-                        name += $" - {size}";
-                }
-
-                html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + (title ?? original_title) + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
-                firstjson = false;
-            }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, title, original_title), "text/html; charset=utf-8");
         }
     }
 }

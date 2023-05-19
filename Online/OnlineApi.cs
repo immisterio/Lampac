@@ -61,16 +61,24 @@ namespace Lampac.Controllers
                 if (json == null)
                     return null;
 
-                return Regex.Match(json, "\"id_kp\":([0-9]+),").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"id_kp\":([0-9]+),").Groups[1].Value;
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                    return kpid;
+
+                return null;
             }
 
             async ValueTask<string> getVSDN(string imdb)
             {
-                string json = await HttpClient.Get("http://cdn.svetacdn.in/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
+                string json = await HttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
                 if (json == null)
                     return null;
 
-                return Regex.Match(json, "\"kp_id\":\"([0-9]+)\"").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"kp_id\":\"([0-9]+)\"").Groups[1].Value;
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                    return kpid;
+
+                return null;
             }
 
             async ValueTask<string> getTabus(string imdb)
@@ -79,7 +87,11 @@ namespace Lampac.Controllers
                 if (json == null)
                     return null;
 
-                return Regex.Match(json, "\"kinopoisk_id\":\"([0-9]+)\"").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"([0-9]+)\"").Groups[1].Value;
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                    return kpid;
+
+                return null;
             }
             #endregion
 
@@ -117,7 +129,7 @@ namespace Lampac.Controllers
                 }
                 else
                 {
-                    switch (AppInit.conf.online.findkp ?? "alloha")
+                    switch (AppInit.conf.online.findkp ?? "all")
                     {
                         case "alloha":
                             kinopoisk_id = await getAlloha(imdb_id);
@@ -128,12 +140,13 @@ namespace Lampac.Controllers
                         case "tabus":
                             kinopoisk_id = await getTabus(imdb_id);
                             break;
+                        default:
+                            kinopoisk_id = await getAlloha(imdb_id) ?? await getVSDN(imdb_id) ?? await getTabus(imdb_id);
+                            break;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(kinopoisk_id) && kinopoisk_id != "0" && kinopoisk_id != "null")
+                    if (!string.IsNullOrEmpty(kinopoisk_id))
                         IO.File.WriteAllText(path, kinopoisk_id);
-                    else
-                        kinopoisk_id = null;
                 }
             }
             #endregion

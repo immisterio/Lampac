@@ -62,8 +62,6 @@ namespace Lampac
         }
 
         public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{(string.IsNullOrWhiteSpace(conf.listenhost) ? httpContext.Request.Host.Value : conf.listenhost)}";
-
-        public static string corseuhost => "https://cors.eu.org";
         #endregion
 
         #region modules

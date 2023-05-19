@@ -28,7 +28,7 @@ namespace JinEnergy.Online
                     return null;
 
                 string kpid = Regex.Match(json, "\"id_kp\":([0-9]+),").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(kpid) && kpid != "0" && kpid != "null")
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
                 return null;
@@ -36,12 +36,12 @@ namespace JinEnergy.Online
 
             async ValueTask<string?> getVSDN(string imdb)
             {
-                string? json = await JsHttpClient.Get("http://cdn.svetacdn.in/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
+                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
                 if (json == null)
                     return null;
 
                 string kpid = Regex.Match(json, "\"kp_id\":\"([0-9]+)\"").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(kpid) && kpid != "0" && kpid != "null")
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
                 return null;
@@ -54,7 +54,7 @@ namespace JinEnergy.Online
                     return null;
 
                 string kpid = Regex.Match(json, "\"kinopoisk_id\":\"([0-9]+)\"").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(kpid) && kpid != "0" && kpid != "null")
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
                 return null;
@@ -107,6 +107,9 @@ namespace JinEnergy.Online
             bool isanime = arg.original_language == "ja";
             bool life = parse_arg(args, "life")?.ToLower() == "true";
 
+            if (AppInit.VoKino.enable && (serial == -1 || serial == 0))
+                online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";
+
             //if (conf.KinoPub.enable)
             //    online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";
 
@@ -119,8 +122,8 @@ namespace JinEnergy.Online
             //if (!string.IsNullOrWhiteSpace(conf.Alloha.token))
             //    online += "{\"name\":\"" + (conf.Alloha.displayname ?? "Alloha") + "\",\"url\":\"{localhost}/alloha\"},";
 
-            //if (conf.Rezka.enable)
-            //    online += "{\"name\":\"" + (conf.Rezka.displayname ?? "Rezka") + "\",\"url\":\"{localhost}/rezka\"},";
+            if (AppInit.Rezka.enable)
+                online += "{\"name\":\"Rezka\",\"url\":\"lite/rezka\"},";
 
             if (AppInit.VideoDB.enable)
                 online += "{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},";
@@ -148,9 +151,6 @@ namespace JinEnergy.Online
 
             //if (!string.IsNullOrWhiteSpace(conf.Kodik.token))
             //    online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
-
-            //if (!string.IsNullOrWhiteSpace(conf.Seasonvar.token) && (serial == -1 || serial == 1))
-            //    online += "{\"name\":\"" + (conf.Seasonvar.displayname ?? "Seasonvar") + "\",\"url\":\"{localhost}/seasonvar\"},";
 
             //if (conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
             //    online += "{\"name\":\"" + (conf.Lostfilmhd.displayname ?? "LostfilmHD") + "\",\"url\":\"{localhost}/lostfilmhd\"},";
