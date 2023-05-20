@@ -73,18 +73,15 @@ namespace Shared.Engine.Online
             string IDENTIFIER = new Regex("var IDENTIFIER = \"([^\"]+)").Match(news).Groups[1].Value;
             string PLAYER_CUID = new Regex("var PLAYER_CUID = \"([^\"]+)").Match(news).Groups[1].Value;
 
-            string? userdata = await onget($"{apihost}/user_data.js?page=movie&movie_id={MOVIE_ID}&cuid={PLAYER_CUID}&device=DESKTOP&_=1681474328");
-            if (userdata == null)
+            //string? userdata = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&IDENTIFIER={IDENTIFIER}&player_type=new&file_type=hls&_=1684592281");
+            //if (userdata == null)
+            //    return null;
+
+            string? voduri = await oneval($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&IDENTIFIER={IDENTIFIER}&player_type=new&file_type=hls&_=1684592281");
+            if (string.IsNullOrEmpty(voduri))
                 return null;
 
-            userdata = await oneval(userdata);
-            if (string.IsNullOrEmpty(userdata))
-                return null;
-
-            string VOD_HASH = new Regex("vod_hash([\t ]+)?=([\t ]+)?\"([^\"]+)").Match(userdata).Groups[3].Value;
-            string VOD_TIME = new Regex("vod_time([\t ]+)?=([\t ]+)?\"([0-9]+)").Match(userdata).Groups[3].Value;
-
-            content = await onget($"{apihost}/vod/{MOVIE_ID}?identifier={IDENTIFIER}&player_type=new&file_type=hls&st={VOD_HASH}&e={VOD_TIME}");
+            content = await onget(apihost + voduri);
             if (content == null)
                 return null;
 

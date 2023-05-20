@@ -24,11 +24,30 @@ namespace JinEnergy.Online
                streamfile => streamfile
             );
 
-            var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, evalcode => JSRuntime.InvokeAsync<string?>("eval", evalcode.Replace("}eval(", "}("))));
+            var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, uri => JSRuntime.InvokeAsync<string?>("eval", evalcode(uri))));
             if (content == null)
                 return OnError("content");
 
             return oninvk.Html(content, arg.title, arg.year, s);
+        }
+
+
+        static string evalcode(string uri)
+        {
+            return @"(async function () {
+              var vod_url;
+              var vod_script = await httpReq('" + uri + @"', false, {dataType: 'text'});
+
+              var XMLHttpRequest = function () { 
+                 this.open = function (method, url) {
+	                vod_url = url;
+                 };
+                 this.send = function () {};
+              };
+  
+              eval(vod_script);
+              return vod_url;
+            })();";
         }
     }
 }
