@@ -14,7 +14,7 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
 
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                return OnError(string.Empty);
+                return OnError("arg");
 
             var oninvk = new VideoCDNInvoke
             (
@@ -27,19 +27,19 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => 
             {
-                if (!AppInit.IsAndrod)
+                if (!AppInit.IsAndrod && !AppInit.VCDN.corseu)
                     AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
 
                 var res = oninvk.Embed(arg.kinopoisk_id, arg.imdb_id);
 
-                if (!AppInit.IsAndrod)
+                if (!AppInit.IsAndrod && !AppInit.VCDN.corseu)
                     AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
 
                 return res;
             });
 
             if (content == null)
-                return OnError(string.Empty);
+                return OnError("content");
 
             return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }

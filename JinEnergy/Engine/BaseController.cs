@@ -11,7 +11,9 @@ namespace JinEnergy.Engine
 
         public static string OnError(string msg)
         {
-            AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);
+            if (!string.IsNullOrEmpty(msg))
+                AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);
+
             return string.Empty;
         }
 

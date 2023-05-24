@@ -1,15 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Web;
 using Lampac.Engine.CORE;
-using Lampac.Models.LITE.KinoPub;
 using Newtonsoft.Json.Linq;
-using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
-using System.Text.RegularExpressions;
 using Online;
 using Shared.Engine.CORE;
+using Shared.Engine.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -56,230 +51,39 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
                 return OnError();
 
-            if (original_language != "en")
-                clarification = 1;
-
-            postid = postid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), imdb_id, kinopoisk_id) : postid;
-            if (postid == 0)
-                return OnError();
-
             var proxy = proxyManager.Get();
 
-            string memKey = $"kinopub:{postid}";
-            if (!memoryCache.TryGetValue(memKey, out RootObject root))
+            var oninvk = new KinoPubInvoke
+            (
+               host,
+               AppInit.conf.KinoPub.corsHost(),
+               AppInit.conf.KinoPub.token,
+               ongettourl => HttpClient.Get(AppInit.conf.KinoPub.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(AppInit.conf.KinoPub, onstreamtofile, proxy: proxy)
+            );
+
+            if (postid == 0)
             {
-                root = await HttpClient.Get<RootObject>($"{AppInit.conf.KinoPub.apihost}/v1/items/{postid}?access_token={AppInit.conf.KinoPub.token}", timeoutSeconds: 8, proxy: proxy);
-                if (root?.item?.seasons == null && root?.item?.videos == null)
+                if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                    return OnError();
+
+                if (original_language != "en")
+                    clarification = 1;
+
+                postid = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, clarification, imdb_id, kinopoisk_id));
+
+                if (postid == 0)
+                    return OnError();
+
+                if (postid == -1)
                     return OnError(proxyManager);
-
-                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(10));
             }
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
+            var root = await InvokeCache($"kinopub:post:{postid}", AppInit.conf.multiaccess ? 10 : 5, () => oninvk.Post(postid));
+            if (root == null)
+                return OnError(proxyManager);
 
-            if (root?.item?.videos != null)
-            {
-                #region Фильм
-                foreach (var v in root.item.videos)
-                {
-                    #region voicename
-                    string voicename = string.Empty;
-
-                    if (v.audios != null)
-                    {
-                        foreach (var audio in v.audios)
-                        {
-                            if (audio.lang == "eng")
-                            {
-                                if (!voicename.Contains(audio.lang))
-                                    voicename += "eng, ";
-                            }
-                            else
-                            {
-                                string a = audio?.author?.title ?? audio?.type?.title;
-                                if (a != null)
-                                {
-                                    a = $"{a} ({audio.lang})";
-                                    if (!voicename.Contains(a))
-                                        voicename += $"{a}, ";
-                                }
-                            }
-                        }
-
-                        voicename = Regex.Replace(voicename, "[, ]+$", "");
-                    }
-                    #endregion
-
-                    if (AppInit.conf.KinoPub.filetype == "hls4")
-                    {
-                        string hls = HostStreamProxy(AppInit.conf.KinoPub, v.files[0].url.hls4, proxy: proxy);
-                        html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
-                    }
-                    else
-                    {
-                        #region subtitle
-                        string subtitles = string.Empty;
-
-                        if (v.subtitles != null)
-                        {
-                            foreach (var sub in v.subtitles)
-                            {
-                                string suburl = HostStreamProxy(AppInit.conf.KinoPub, sub.url, proxy: proxy);
-                                subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
-                            }
-
-                            subtitles = Regex.Replace(subtitles, ",$", "");
-                        }
-                        #endregion
-
-                        #region streansquality
-                        string streansquality = string.Empty;
-
-                        foreach (var f in v.files)
-                        {
-                            string l = HostStreamProxy(AppInit.conf.KinoPub, f.url.http, proxy: proxy);
-                            streansquality += $"\"{f.quality}\":\"" + l + "\",";
-                        }
-
-                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-                        #endregion
-
-                        string mp4 = HostStreamProxy(AppInit.conf.KinoPub, v.files[0].url.http, proxy: proxy);
-                        html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>";
-                    }
-                }
-                #endregion
-            }
-            else
-            {
-                #region Сериал
-                firstjson = true;
-
-                if (s == -1)
-                {
-                    #region Сезоны
-                    foreach (var season in root.item.seasons)
-                    {
-                        string link = $"{host}/lite/kinopub?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.number}";
-
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.number} сезон" + "</div></div></div>";
-                        firstjson = false;
-                    }
-                    #endregion
-                }
-                else
-                {
-                    #region Серии
-                    foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
-                    {
-                        #region voicename
-                        string voicename = string.Empty;
-
-                        if (episode.audios != null)
-                        {
-                            foreach (var audio in episode.audios)
-                            {
-                                string a = audio.author?.title ?? audio.lang;
-                                if (a != null && !voicename.Contains(a) && a != "rus")
-                                    voicename += $"{a}, ";
-                            }
-
-                            voicename = Regex.Replace(voicename, "[, ]+$", "");
-                        }
-                        #endregion
-
-                        if (AppInit.conf.KinoPub.filetype == "hls4")
-                        {
-                            string hls = HostStreamProxy(AppInit.conf.KinoPub, episode.files[0].url.hls4, proxy: proxy);
-
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
-                            firstjson = false;
-                        }
-                        else
-                        {
-                            #region subtitle
-                            string subtitles = string.Empty;
-
-                            if (episode.subtitles != null)
-                            {
-                                foreach (var sub in episode.subtitles)
-                                {
-                                    string suburl = HostStreamProxy(AppInit.conf.KinoPub, sub.url, proxy: proxy);
-                                    subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
-                                }
-
-                                subtitles = Regex.Replace(subtitles, ",$", "");
-                            }
-                            #endregion
-
-                            #region streansquality
-                            string streansquality = string.Empty;
-
-                            foreach (var f in episode.files)
-                            {
-                                string l = HostStreamProxy(AppInit.conf.KinoPub, f.url.http, proxy: proxy);
-                                streansquality += $"\"{f.quality}\":\"" + l + "\",";
-                            }
-
-                            streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-                            #endregion
-
-                            string mp4 = HostStreamProxy(AppInit.conf.KinoPub, episode.files[0].url.http, proxy: proxy);
-
-                            html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>";
-                            firstjson = false;
-                        }
-                    }
-                    #endregion
-                }
-                #endregion
-            }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
+            return Content(oninvk.Html(root, AppInit.conf.KinoPub.filetype, title, original_title, postid, s), "text/html; charset=utf-8");
         }
-
-
-        #region search
-        async ValueTask<int> search(string title, string imdb_id, long kinopoisk_id)
-        {
-            if (string.IsNullOrWhiteSpace(title))
-                return 0;
-
-            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return 0;
-
-            string memKey = $"kinopub:search:{title}:{imdb_id}:{kinopoisk_id}";
-            if (!memoryCache.TryGetValue(memKey, out JArray items))
-            {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.KinoPub.apihost}/v1/items/search?q={HttpUtility.UrlEncode(title)}&access_token={AppInit.conf.KinoPub.token}&field=title&perpage=200", timeoutSeconds: 8, proxy: proxyManager.Get());
-                if (root == null)
-                {
-                    proxyManager.Refresh();
-                    return 0;
-                }
-
-                items = root.Value<JArray>("items");
-                if (items == null)
-                {
-                    proxyManager.Refresh();
-                    return 0;
-                }
-
-                memoryCache.Set(memKey, items, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
-            }
-
-            foreach (var item in items)
-            {
-                if (item.Value<int?>("kinopoisk") is int _kp && _kp > 0 && _kp == kinopoisk_id)
-                    return item.Value<int>("id");
-
-                if ($"tt{item.Value<int?>("imdb")}" == imdb_id)
-                    return item.Value<int>("id");
-            }
-
-            return 0;
-        }
-        #endregion
     }
 }

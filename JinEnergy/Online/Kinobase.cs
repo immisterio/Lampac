@@ -24,7 +24,7 @@ namespace JinEnergy.Online
                streamfile => streamfile
             );
 
-            var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, uri => JSRuntime.InvokeAsync<string?>("eval", evalcode(uri))));
+            var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, code => JSRuntime.InvokeAsync<string?>("eval", evalcode(code))));
             if (content == null)
                 return OnError("content");
 
@@ -32,11 +32,10 @@ namespace JinEnergy.Online
         }
 
 
-        static string evalcode(string uri)
+        static string evalcode(string code)
         {
-            return @"(async function () {
+            return @"(function () {
               var vod_url;
-              var vod_script = await httpReq('" + uri + @"', false, {dataType: 'text'});
 
               var XMLHttpRequest = function () { 
                  this.open = function (method, url) {
@@ -44,8 +43,9 @@ namespace JinEnergy.Online
                  };
                  this.send = function () {};
               };
+
+              "+ code + @"
   
-              eval(vod_script);
               return vod_url;
             })();";
         }

@@ -69,19 +69,19 @@ namespace Shared.Engine.Online
             if (news == null)
                 return null;
 
-            string MOVIE_ID = new Regex("var MOVIE_ID = ([0-9]+)").Match(news).Groups[1].Value;
-            string IDENTIFIER = new Regex("var IDENTIFIER = \"([^\"]+)").Match(news).Groups[1].Value;
-            string PLAYER_CUID = new Regex("var PLAYER_CUID = \"([^\"]+)").Match(news).Groups[1].Value;
+            string MOVIE_ID = Regex.Match(news, "var MOVIE_ID = ([0-9]+)").Groups[1].Value;
+            string IDENTIFIER = Regex.Match(news, "var IDENTIFIER = \"([^\"]+)").Groups[1].Value;
+            string PLAYER_CUID = Regex.Match(news, "var PLAYER_CUID = \"([^\"]+)").Groups[1].Value;
 
-            //string? userdata = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&IDENTIFIER={IDENTIFIER}&player_type=new&file_type=hls&_=1684592281");
-            //if (userdata == null)
-            //    return null;
-
-            string? voduri = await oneval($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&IDENTIFIER={IDENTIFIER}&player_type=new&file_type=hls&_=1684592281");
-            if (string.IsNullOrEmpty(voduri))
+            string? evalcode = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&IDENTIFIER={IDENTIFIER}&player_type=new&file_type=hls&_=1684592281");
+            if (evalcode == null)
                 return null;
 
-            content = await onget(apihost + voduri);
+            string? vod_url = await oneval(evalcode);
+            if (string.IsNullOrEmpty(vod_url))
+                return null;
+
+            content = await onget(apihost + vod_url);
             if (content == null)
                 return null;
 

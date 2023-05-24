@@ -110,10 +110,10 @@ namespace JinEnergy.Online
             if (AppInit.VoKino.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";
 
-            //if (conf.KinoPub.enable)
-            //    online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";
+            if (AppInit.KinoPub.enable)
+                online += "{\"name\":\"KinoPub\",\"url\":\"lite/kinopub\"},";
 
-            if (AppInit.Filmix.enable && AppInit.Filmix.pro)
+            if (AppInit.Filmix.enable)
                 online += "{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},";
 
             //if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
@@ -140,9 +140,6 @@ namespace JinEnergy.Online
             if (AppInit.Voidboost.enable)
                 online += "{\"name\":\"Voidboost\",\"url\":\"lite/voidboost\"},";
 
-            if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
-                online += "{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},";
-
             if (AppInit.Ashdi.enable)
                 online += "{\"name\":\"Ashdi (UKR)\",\"url\":\"lite/ashdi\"},";
 
@@ -164,23 +161,23 @@ namespace JinEnergy.Online
             if (AppInit.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
                 online += "{\"name\":\"CDNmovies\",\"url\":\"lite/cdnmovies\"},";
 
-            //if (serial == -1 || isanime)
-            //{
-            //    if (conf.AnilibriaOnline.enable)
-            //        online += "{\"name\":\"" + (conf.AnilibriaOnline.displayname ?? "Anilibria") + "\",\"url\":\"{localhost}/anilibria\"},";
+            if (serial == -1 || isanime)
+            {
+                if (AppInit.AnilibriaOnline.enable)
+                    online += "{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},";
 
-            //    if (conf.Animevost.enable)
-            //        online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
+                //    if (conf.Animevost.enable)
+                //        online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
 
-            //    if (conf.Animebesst.enable)
-            //        online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
+                //    if (conf.Animebesst.enable)
+                //        online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
 
-            //    if (conf.AnimeGo.enable)
-            //        online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
+                //    if (conf.AnimeGo.enable)
+                //        online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
 
-            //    if (conf.AniMedia.enable)
-            //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
-            //}
+                //    if (conf.AniMedia.enable)
+                //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
+            }
 
             //if (conf.Kinotochka.enable)
             //    online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";

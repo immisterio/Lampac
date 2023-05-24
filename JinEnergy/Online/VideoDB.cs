@@ -20,7 +20,8 @@ namespace JinEnergy.Online
             var oninvk = new VideoDBInvoke
             (
                null,
-               (url, head) => JsHttpClient.Get(url, addHeaders: head),
+               AppInit.VideoDB.corsHost(),
+               (url, head) => JsHttpClient.Get(AppInit.VideoDB.corsHost(url), addHeaders: head),
                onstreamtofile => onstreamtofile
                //AppInit.log
             );

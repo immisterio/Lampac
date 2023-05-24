@@ -4,9 +4,9 @@ namespace Lampac.Models.LITE
 {
     public class KinoPubSettings : BaseSettings
     {
-        public KinoPubSettings(string? apihost = null)
+        public KinoPubSettings(string? host = null)
         {
-            this.apihost = apihost;
+            this.host = host;
         }
 
         public string? token { get; set; }

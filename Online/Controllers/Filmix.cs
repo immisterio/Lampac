@@ -43,9 +43,9 @@ namespace Lampac.Controllers.LITE
             var oninvk = new FilmixInvoke
             (
                host,
-               AppInit.conf.Filmix.host,
+               AppInit.conf.Filmix.corsHost(),
                AppInit.conf.Filmix.token,
-               ongettourl => HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy),
+               ongettourl => HttpClient.Get(AppInit.conf.Filmix.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
                onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, onstreamtofile, proxy: proxy)
             );
 

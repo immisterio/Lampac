@@ -7,6 +7,7 @@ using Shared.Engine.reCAPTCHA;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -35,13 +36,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.Kinobase, streamfile, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) }, proxy: proxy)
             );
 
-            var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(title, year, evalcode => 
-            {
-                string result = null;
-                new Jint.Engine().SetValue("eval", new Action<string>(i => result = i)).Execute(evalcode);
-                return ValueTask.FromResult(result);
-            }));
-
+            var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(title, year, evalcode => HttpClient.Post("http://bwa.to:5696", $"eval={HttpUtility.UrlEncode(evalcode)}")));
             if (content == null)
                 return OnError(proxyManager);
 

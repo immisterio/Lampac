@@ -22,7 +22,8 @@ namespace Lampac.Controllers.LITE
             var oninvk = new VideoDBInvoke
             (
                host,
-               (url, head) => HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy, addHeaders: head),
+               AppInit.conf.VideoDB.corsHost(),
+               (url, head) => HttpClient.Get(AppInit.conf.VideoDB.corsHost(url), timeoutSeconds: 8, proxy: proxy, addHeaders: head),
                streamfile => HostStreamProxy(AppInit.conf.VideoDB, streamfile, proxy: proxy)
             );
 

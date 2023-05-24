@@ -61,20 +61,20 @@ namespace Shared.Engine.Online
                 if (item == null)
                     continue;
 
+                string link = host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}";
+
+                string name = item.title ?? string.Empty;
+                if (!string.IsNullOrEmpty(item.original_title))
+                    name += $" / {item.original_title}";
+
+                similars.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{name} ({item.year})" + "</div></div></div>");
+                firstjson = false;
+
                 if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
                     (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
-
-                    string link = host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}";
-
-                    string name = item.title ?? string.Empty;
-                    if (!string.IsNullOrEmpty(item.original_title))
-                        name += $" / {item.original_title}";
-
-                    similars.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{name} ({item.year})" + "</div></div></div>");
-                    firstjson = false;
                 }
             }
 
@@ -131,11 +131,14 @@ namespace Shared.Engine.Online
 
                     foreach (int q in new int[] { 2160, 1440, 1080, 720, 480 })
                     {
-                        if (hidefree720 && q > 480)
-                            continue;
+                        if (!pro)
+                        {
+                            if (hidefree720 && q > 480)
+                                continue;
 
-                        if (!pro && q > 720)
-                            continue;
+                            if (q > 720)
+                                continue;
+                        }
 
                         if (!v.link.Contains($"{q},"))
                             continue;
@@ -207,11 +210,14 @@ namespace Shared.Engine.Online
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
-                            if (hidefree720 && lq > 480)
-                                continue;
+                            if (!pro)
+                            {
+                                if (hidefree720 && lq > 480)
+                                    continue;
 
-                            if (!pro && lq > 720)
-                                continue;
+                                if (lq > 720)
+                                    continue;
+                            }
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
                             streams.Add((onstreamfile.Invoke(l), $"{lq}p"));

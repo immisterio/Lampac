@@ -125,7 +125,7 @@ namespace Lampac
 
         public SisiConf sisi = new SisiConf() { heightPicture = 200 };
 
-        public OnlineConf online = new OnlineConf() { findkp = "alloha", checkOnlineSearch = true };
+        public OnlineConf online = new OnlineConf() { findkp = "all", checkOnlineSearch = true };
 
         public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf", maxiptohour = 10 };
 

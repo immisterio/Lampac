@@ -62,7 +62,7 @@ namespace Shared.Model
 
         public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online");
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings(string.Empty);
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay.site");
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://cdnmovies.nl");
 
@@ -88,7 +88,7 @@ namespace Shared.Model
         public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
 
 
-        public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://www.anilibria.tv", apihost: "https://api.anilibria.tv");
+        public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv");
 

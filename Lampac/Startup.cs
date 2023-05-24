@@ -84,7 +84,7 @@ namespace Lampac
             #endregion
 
             #region Update KinoPub device
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
+            if (AppInit.conf.KinoPub.enable && !string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
             {
                 try
                 {

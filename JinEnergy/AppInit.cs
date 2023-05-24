@@ -2,9 +2,7 @@
 using Lampac.Models.LITE;
 using Lampac.Models.SISI;
 using Microsoft.JSInterop;
-using Microsoft.VisualBasic;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace JinEnergy
 {
