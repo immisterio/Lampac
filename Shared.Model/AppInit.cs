@@ -46,7 +46,10 @@ namespace Shared.Model
 
         public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv");
 
-        public OnlinesSettings Kinokrad { get; set; } = new OnlinesSettings("https://kinokrad.cc", streamproxy: true);
+        /// <summary>
+        /// убрали собственный cdn
+        /// </summary>
+        public OnlinesSettings Kinokrad { get; set; } = new OnlinesSettings("https://kinokrad.cc", streamproxy: true, enable: false);
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinotochka.co", streamproxy: true);
 
@@ -71,9 +74,9 @@ namespace Shared.Model
 
         public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("http://api.vokino.tv", enable: false, streamproxy: true);
 
-        public OnlinesSettings VideoAPI { get; set; } = new OnlinesSettings("https://videoapi.tv", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O");
+        public OnlinesSettings VideoAPI { get; set; } = new OnlinesSettings("https://videoapi.tv", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O", enable: false);
 
-        public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("https://iframe.video", "https://videoframe.space", enable: false);
+        public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("https://iframe.video", "https://videoframe.space");
 
         public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("https://apivb.info", token: "5e2fe4c70bafd9a7414c4f170ee1b192");
 
@@ -90,12 +93,12 @@ namespace Shared.Model
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv");
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
         public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 
-        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.animebesst.org", streamproxy: true);
+        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.best", streamproxy: true);
     }
 }

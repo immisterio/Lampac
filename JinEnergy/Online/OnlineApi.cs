@@ -107,14 +107,20 @@ namespace JinEnergy.Online
             bool isanime = arg.original_language == "ja";
             bool life = parse_arg(args, "life")?.ToLower() == "true";
 
-            if (AppInit.VoKino.enable && (serial == -1 || serial == 0))
-                online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";
+            if (AppInit.VideoDB.enable)
+                online += "{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},";
+
+            if (AppInit.VCDN.enable)
+                online += "{\"name\":\"VideoCDN\",\"url\":\"lite/vcdn\"},";
 
             if (AppInit.KinoPub.enable)
                 online += "{\"name\":\"KinoPub\",\"url\":\"lite/kinopub\"},";
 
             if (AppInit.Filmix.enable)
                 online += "{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},";
+
+            if (AppInit.VoKino.enable && (serial == -1 || serial == 0))
+                online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";
 
             //if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
             //    online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
@@ -125,17 +131,11 @@ namespace JinEnergy.Online
             if (AppInit.Rezka.enable)
                 online += "{\"name\":\"Rezka\",\"url\":\"lite/rezka\"},";
 
-            if (AppInit.VideoDB.enable)
-                online += "{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},";
-
             if (AppInit.Kinobase.enable)
                 online += "{\"name\":\"Kinobase\",\"url\":\"lite/kinobase\"},";
 
             //if (conf.Zetflix.enable)
             //    online += "{\"name\":\"" + (conf.Zetflix.displayname ?? "Zetflix") + "\",\"url\":\"{localhost}/zetflix\"},";
-
-            if (AppInit.VCDN.enable)
-                online += "{\"name\":\"VideoCDN\",\"url\":\"lite/vcdn\"},";
 
             if (AppInit.Voidboost.enable)
                 online += "{\"name\":\"Voidboost\",\"url\":\"lite/voidboost\"},";
@@ -192,9 +192,6 @@ namespace JinEnergy.Online
 
             if (AppInit.Redheadsound.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},";
-
-            //    if (!string.IsNullOrWhiteSpace(conf.VideoAPI.token) && (serial == -1 || serial == 0))
-            //        online += "{\"name\":\"" + (conf.VideoAPI.displayname ?? "VideoAPI (ENG)") + "\",\"url\":\"{localhost}/videoapi\"},";
             }
 
             //if (conf.IframeVideo.enable && (serial == -1 || serial == 0))

@@ -100,7 +100,7 @@ namespace Shared.Engine.Online
                 {
                     foreach (var similar in result.similar)
                     {
-                        string link = host + $"lite/rezka?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}";
+                        string link = host + $"lite/rezka?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
                         html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>");
                         firstjson = false;
@@ -140,8 +140,9 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    string json = new Regex("\"id\":\"cdnplayer\",\"streams\":\"([^\"]+)\"").Match(result.content).Groups[1].Value;
-                    var links = getStreamLink(json.Replace("\\", ""));
+                    var links = getStreamLink(Regex.Match(result.content, "\"id\":\"cdnplayer\",\"streams\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", ""));
+                    if (links.Count == 0)
+                        return string.Empty;
 
                     string streansquality = string.Empty;
                     foreach (var l in links)

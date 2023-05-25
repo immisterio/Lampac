@@ -123,9 +123,9 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager);
 
                     string link = null, reservedlink = null;
-                    foreach (string row in search.Split("searchitem").Skip(1))
+                    foreach (string row in search.Split("storyID-").Skip(1))
                     {
-                        var g = Regex.Match(row, "<h3><a href=\"(https?://[^/]+/[^\"]+\\.html)\"([^>]+)?>([^\\(]+) \\(([0-9]{4})\\)</a></h3>").Groups;
+                        var g = Regex.Match(row, "<a href=\"(https?://[^/]+/[^\"]+\\.html)\"([^>]+)?>([^\\(]+) \\(([0-9]{4})\\)</a>").Groups;
 
                         if (g[3].Value.ToLower().Trim() == title.ToLower())
                         {

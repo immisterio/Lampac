@@ -79,14 +79,19 @@ namespace Lampac.Controllers.LITE
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=720", timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
+                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
                 {
+                    ("DNT", "1"),
                     ("Origin", AppInit.conf.IframeVideo.cdnhost),
+                    ("P-REF", string.Empty),
                     ("Referer", $"{AppInit.conf.IframeVideo.cdnhost}/"),
                     ("Sec-Fetch-Dest", "empty"),
                     ("Sec-Fetch-Mode", "cors"),
                     ("Sec-Fetch-Site", "same-origin"),
-                    ("X-REF", "no-referer")
+                    ("X-REF", $"{AppInit.conf.IframeVideo.host}/"),
+                    ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\"")
                 });
 
                 urim3u8 = Regex.Match(json ?? "", "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
@@ -131,7 +136,19 @@ namespace Lampac.Controllers.LITE
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");
 
-                res.content = await HttpClient.Get(res.path, referer: "https://kinoplayer.online/", timeoutSeconds: 8, proxy: proxy);
+                res.content = await HttpClient.Get(res.path, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
+                {
+                    ("DNT", "1"),
+                    ("Referer", $"{AppInit.conf.IframeVideo.host}/"),
+                    ("Sec-Fetch-Dest", "iframe"),
+                    ("Sec-Fetch-Mode", "navigate"),
+                    ("Sec-Fetch-Site", "cross-site"),
+                    ("Upgrade-Insecure-Requests", "1"),
+                    ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\"")
+                });
+
                 if (res.content == null)
                 {
                     proxyManager.Refresh();

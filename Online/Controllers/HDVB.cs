@@ -131,7 +131,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
                     return OnError(proxyManager);
 
-                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>() 
+                var header = new List<(string name, string val)>()
                 {
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -144,10 +144,24 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
                     ("x-csrf-token", csrftoken)
-                });
+                };
 
-                if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
+                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: header);
+                if (urim3u8 == null)
                     return OnError(proxyManager);
+
+                if (!urim3u8.Contains("/index.m3u8"))
+                {
+                    file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                    file = Regex.Replace(file, "^/playlist/", "/");
+                    file = Regex.Replace(file, "\\.txt$", "");
+                    if (string.IsNullOrWhiteSpace(file))
+                        return OnError(proxyManager);
+
+                    urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: header);
+                    if (urim3u8 == null)
+                        return OnError(proxyManager);
+                }
 
                 memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
