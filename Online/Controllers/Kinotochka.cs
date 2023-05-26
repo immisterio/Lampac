@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, int year, int serial, string newsuri, int s = -1)
         {
             if (!AppInit.conf.Kinotochka.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                        string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -122,42 +122,14 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Фильм
-                string memKey = $"kinotochka:view:{title}:{year}";
+                if (kinopoisk_id == 0)
+                    return OnError();
+
+                string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
-                    if (search == null)
-                        return OnError(proxyManager);
-
-                    string link = null, reservedlink = null;
-                    foreach (string row in search.Split("sres-wrap clearfix").Skip(1))
-                    {
-                        var g = Regex.Match(row, "<h2>([^\\(]+) \\(([0-9]{4})\\)</h2>").Groups;
-
-                        if (g[1].Value.ToLower().Trim() == title.ToLower())
-                        {
-                            reservedlink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                            if (string.IsNullOrWhiteSpace(reservedlink))
-                                continue;
-
-                            if (g[2].Value == year.ToString())
-                            {
-                                link = reservedlink;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (string.IsNullOrWhiteSpace(link))
-                    {
-                        if (string.IsNullOrWhiteSpace(reservedlink))
-                            return OnError(proxyManager);
-
-                        link = reservedlink;
-                    }
-
-                    string news = await HttpClient.Get(link, timeoutSeconds: 8, proxy: proxy);
-                    file = Regex.Match(news ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
+                    string embed = await HttpClient.Get($"{AppInit.conf.Kinotochka.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy);
+                    file = Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(file))
                         return OnError(proxyManager);

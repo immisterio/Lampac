@@ -21,9 +21,9 @@ namespace JinEnergy.Online
             int serial = int.Parse(parse_arg("serial", args) ?? "0");
 
             #region getAlloha / getVSDN / getTabus
-            async ValueTask<string?> getAlloha(string imdb)
+            async Task<string?> getAlloha(string imdb)
             {
-                string? json = await JsHttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 5);
+                string? json = await JsHttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 4);
                 if (json == null)
                     return null;
 
@@ -34,26 +34,26 @@ namespace JinEnergy.Online
                 return null;
             }
 
-            async ValueTask<string?> getVSDN(string imdb)
+            async Task<string?> getVSDN(string imdb)
             {
-                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
+                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 4);
                 if (json == null)
                     return null;
 
-                string kpid = Regex.Match(json, "\"kp_id\":\"([0-9]+)\"").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
                 if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
                 return null;
             }
 
-            async ValueTask<string?> getTabus(string imdb)
+            async Task<string?> getTabus(string imdb)
             {
-                string? json = await JsHttpClient.Get("https://api.bhcesh.me/list?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb, timeoutSeconds: 5);
+                string? json = await JsHttpClient.Get("https://api.bhcesh.me/franchise/details?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 4);
                 if (json == null)
                     return null;
 
-                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"([0-9]+)\"").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
                 if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
@@ -86,7 +86,10 @@ namespace JinEnergy.Online
             {
                 if (!eids.TryGetValue(imdb_id, out kinopoisk_id))
                 {
-                    kinopoisk_id = await getAlloha(imdb_id) ?? await getVSDN(imdb_id) ?? await getTabus(imdb_id);
+                    var tasks = new Task<string?>[] { getAlloha(imdb_id), getVSDN(imdb_id), getTabus(imdb_id) };
+                    await Task.WhenAll(tasks);
+
+                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
                     eids.TryAdd(imdb_id, kinopoisk_id);
                 }
             }
@@ -179,23 +182,17 @@ namespace JinEnergy.Online
                 //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
             }
 
-            //if (conf.Kinotochka.enable)
-            //    online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";
-
-            if (serial == -1 || serial == 0 || (serial == 1 && !isanime))
+            if (serial == -1 || serial == 0)
             {
-            //    if (conf.Kinokrad.enable)
-            //        online += "{\"name\":\"" + (conf.Kinokrad.displayname ?? "Kinokrad") + "\",\"url\":\"{localhost}/kinokrad\"},";
+                //if (conf.IframeVideo.enable)
+                //    online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
 
-            //    if (conf.Kinoprofi.enable)
-            //        online += "{\"name\":\"" + (conf.Kinoprofi.displayname ?? "Kinoprofi") + "\",\"url\":\"{localhost}/kinoprofi\"},";
+                if (AppInit.Kinotochka.enable)
+                    online += "{\"name\":\"Kinotochka\",\"url\":\"lite/kinotochka\"},";
 
-            if (AppInit.Redheadsound.enable && (serial == -1 || serial == 0))
-                online += "{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},";
+                if (AppInit.Redheadsound.enable)
+                    online += "{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},";
             }
-
-            //if (conf.IframeVideo.enable && (serial == -1 || serial == 0))
-            //    online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
 
 
             return $"[{Regex.Replace(online, ",$", "")}]";

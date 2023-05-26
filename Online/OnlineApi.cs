@@ -11,6 +11,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using IO = System.IO;
 using System.Reflection;
+using Newtonsoft.Json;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers
 {
@@ -51,13 +53,19 @@ namespace Lampac.Controllers
 
 
         #region externalids
+        static Dictionary<string, string> externalids = new Dictionary<string, string>();
+
         [Route("externalids")]
         async public Task<ActionResult> Externalids(long id, string imdb_id, int serial)
         {
+            if (IO.File.Exists("cache/externalids/master.json"))
+                externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
+
             #region getAlloha / getVSDN / getTabus
-            async ValueTask<string> getAlloha(string imdb)
+            async Task<string> getAlloha(string imdb)
             {
-                string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 5);
+                var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
+                string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -68,26 +76,28 @@ namespace Lampac.Controllers
                 return null;
             }
 
-            async ValueTask<string> getVSDN(string imdb)
+            async Task<string> getVSDN(string imdb)
             {
-                string json = await HttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 5);
+                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VCDN);
+                string json = await HttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
-                string kpid = Regex.Match(json, "\"kp_id\":\"([0-9]+)\"").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
                 if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
                 return null;
             }
 
-            async ValueTask<string> getTabus(string imdb)
+            async Task<string> getTabus(string imdb)
             {
-                string json = await HttpClient.Get("https://api.bhcesh.me/list?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb, timeoutSeconds: 5);
+                var proxyManager = new ProxyManager("collaps", AppInit.conf.Collaps);
+                string json = await HttpClient.Get("https://api.bhcesh.me/franchise/details?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
-                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"([0-9]+)\"").Groups[1].Value;
+                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
                 if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
                     return kpid;
 
@@ -122,31 +132,45 @@ namespace Lampac.Controllers
 
             if (!string.IsNullOrWhiteSpace(imdb_id))
             {
-                string path = $"cache/externalids/{imdb_id}";
-                if (IO.File.Exists(path))
-                {
-                    kinopoisk_id = IO.File.ReadAllText(path);
-                }
-                else
-                {
-                    switch (AppInit.conf.online.findkp ?? "all")
-                    {
-                        case "alloha":
-                            kinopoisk_id = await getAlloha(imdb_id);
-                            break;
-                        case "vsdn":
-                            kinopoisk_id = await getVSDN(imdb_id);
-                            break;
-                        case "tabus":
-                            kinopoisk_id = await getTabus(imdb_id);
-                            break;
-                        default:
-                            kinopoisk_id = await getAlloha(imdb_id) ?? await getVSDN(imdb_id) ?? await getTabus(imdb_id);
-                            break;
-                    }
+                externalids.TryGetValue(imdb_id, out kinopoisk_id);
 
-                    if (!string.IsNullOrEmpty(kinopoisk_id))
-                        IO.File.WriteAllText(path, kinopoisk_id);
+                if (string.IsNullOrEmpty(kinopoisk_id))
+                { 
+                    string path = $"cache/externalids/{imdb_id}";
+                    if (IO.File.Exists(path))
+                    {
+                        kinopoisk_id = IO.File.ReadAllText(path);
+                        externalids.TryAdd(imdb_id, kinopoisk_id);
+                    }
+                    else
+                    {
+                        switch (AppInit.conf.online.findkp ?? "all")
+                        {
+                            case "alloha":
+                                kinopoisk_id = await getAlloha(imdb_id);
+                                break;
+                            case "vsdn":
+                                kinopoisk_id = await getVSDN(imdb_id);
+                                break;
+                            case "tabus":
+                                kinopoisk_id = await getTabus(imdb_id);
+                                break;
+                            default:
+                                {
+                                    var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
+                                    await Task.WhenAll(tasks);
+
+                                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
+                                    break;
+                                }
+                        }
+
+                        if (!string.IsNullOrEmpty(kinopoisk_id))
+                        {
+                            externalids.TryAdd(imdb_id, kinopoisk_id);
+                            IO.File.WriteAllText(path, kinopoisk_id);
+                        }
+                    }
                 }
             }
             #endregion
