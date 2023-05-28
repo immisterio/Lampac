@@ -35,18 +35,24 @@ namespace JinEnergy.Online
         static string evalcode(string code)
         {
             return @"(function () {
-              var vod_url;
-
-              var XMLHttpRequest = function () { 
-                 this.open = function (method, url) {
-	                vod_url = url;
-                 };
-                 this.send = function () {};
-              };
-
-              "+ code + @"
+              var vod_url, params, $ = {}; 
+			  $.get = function (u, p) { vod_url = u; params = p; }; 
+			  
+			  var XMLHttpRequest = function XMLHttpRequest() { this.open = function (m, u) { vod_url = u; }; this.send = function () {}; }; 
+			  
+			  try 
+			  { 
+			      " + code + @"
+			  } 
+			  catch (e) {} 
+			  
+			  if (params) { 
+			      for (var name in params) { 
+			          vod_url = Lampa.Utils.addUrlComponent(vod_url, name + '=' + encodeURIComponent(params[name])); 
+			      } 
+			  }
   
-              return vod_url;
+			  return vod_url;
             })();";
         }
     }
