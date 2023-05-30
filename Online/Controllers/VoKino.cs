@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
             else
             {
                 string deviceid = new string(DateTime.Now.ToBinary().ToString().Reverse().ToArray()).Substring(0, 8);
-                var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.host}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get());
+                var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get());
 
                 html = $"В init.conf для VoKino укажите token <br><br><b>{token_request.Value<string>("authToken")}</b>";
             }

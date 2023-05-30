@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.KinoPub
+﻿namespace Lampac.Models.LITE.KinoPub
 {
     public class Episode
     {
+        public long id { get; set; }
+
         public int number { get; set; }
 
         public string title { get; set; }

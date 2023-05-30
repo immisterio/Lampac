@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmixpro")]
         async public Task<ActionResult> Pro()
         {
-            var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.host}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=");
+            var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=");
 
             string html = "1. Откройте <a href='https://filmix.ac/consoles'>https://filmix.ac/consoles</a> <br>";
             html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";

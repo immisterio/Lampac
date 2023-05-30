@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                var token_request = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.apihost}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy);
+                var token_request = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy);
 
                 string html = "1. Откройте <a href='https://kino.pub/device'>https://kino.pub/device</a> <br>";
                 html += $"2. Введите код активации <b>{token_request.Value<string>("user_code")}</b><br>";
@@ -33,11 +33,11 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                var device_token = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.apihost}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy);
+                var device_token = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy);
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
-                await HttpClient.Post($"{AppInit.conf.KinoPub.apihost}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", "&title=LAMPAC", proxy: proxy);
+                await HttpClient.Post($"{AppInit.conf.KinoPub.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", "&title=LAMPAC", proxy: proxy);
 
                 return Content($"В init.conf укажите token <b>{device_token.Value<string>("access_token")}</b>", "text/html; charset=utf-8");
             }

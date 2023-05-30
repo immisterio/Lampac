@@ -24,11 +24,11 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var result = await InvokeCache(arg.id, $"eneyida:view:{arg.original_title}:{arg.year}:{href}:{arg.clarification}", () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
-            if (result == null)
-                return OnError("result");
+            var content = await InvokeCache(arg.id, $"eneyida:view:{arg.original_title}:{arg.year}:{href}:{arg.clarification}", () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
+            if (content == null)
+                return OnError("content");
 
-            return oninvk.Html(result, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
+            return oninvk.Html(content, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
         }
     }
 }

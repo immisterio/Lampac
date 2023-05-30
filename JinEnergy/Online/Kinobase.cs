@@ -36,9 +36,9 @@ namespace JinEnergy.Online
         {
             return @"(function () {
               var vod_url, params, $ = {}; 
-			  $.get = function (u, p) { vod_url = u; params = p; }; 
+			  $.get = function (u, p) { if (u && u.startsWith('/vod/')) { vod_url = u; params = p; } }; 
 			  
-			  var XMLHttpRequest = function XMLHttpRequest() { this.open = function (m, u) { vod_url = u; }; this.send = function () {}; }; 
+			  var XMLHttpRequest = function XMLHttpRequest() { this.open = function (m, u) { if (u && u.startsWith('/vod/')) { vod_url = u; } }; this.send = function () {}; }; 
 			  
 			  try 
 			  { 

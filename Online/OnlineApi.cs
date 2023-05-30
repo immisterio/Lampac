@@ -61,7 +61,7 @@ namespace Lampac.Controllers
             if (IO.File.Exists("cache/externalids/master.json"))
                 externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
 
-            #region getAlloha / getVSDN / getTabus
+            #region getAlloha / getVSDN / getTabus / getCDNmovies
             async Task<string> getAlloha(string imdb)
             {
                 var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
@@ -94,6 +94,20 @@ namespace Lampac.Controllers
             {
                 var proxyManager = new ProxyManager("collaps", AppInit.conf.Collaps);
                 string json = await HttpClient.Get("https://api.bhcesh.me/franchise/details?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 4, proxy: proxyManager.Get());
+                if (json == null)
+                    return null;
+
+                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                    return kpid;
+
+                return null;
+            }
+
+            async Task<string> getCDNmovies(string imdb)
+            {
+                var proxyManager = new ProxyManager("cdnmovies", AppInit.conf.CDNmovies);
+                string json = await HttpClient.Get("https://cdnmovies.net/api/short?token=02d56099082ad5ad586d7fe4e2493dd9&imdb_id=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -155,12 +169,15 @@ namespace Lampac.Controllers
                             case "tabus":
                                 kinopoisk_id = await getTabus(imdb_id);
                                 break;
+                            case "cdnmovies":
+                                kinopoisk_id = await getCDNmovies(imdb_id);
+                                break;
                             default:
                                 {
-                                    var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
+                                    var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id), getCDNmovies(imdb_id) };
                                     await Task.WhenAll(tasks);
 
-                                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
+                                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result ?? tasks[3].Result;
                                     break;
                                 }
                         }

@@ -29,11 +29,11 @@ namespace JinEnergy.Online
                onstreamtofile => onstreamtofile
             );
 
-            var voices = await InvokeCache(arg.id, $"cdnmovies:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
-            if (voices == null)
+            var content = await InvokeCache(arg.id, $"cdnmovies:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
+            if (content == null)
                 return OnError("content");
 
-            return oninvk.Html(voices, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
+            return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
         }
     }
 }

@@ -1,210 +1,42 @@
-﻿using System;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
-using System.Collections.Generic;
 using Lampac.Engine.CORE;
-using Newtonsoft.Json.Linq;
-using System.Web;
-using System.Linq;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Engine.Online;
 
 namespace Lampac.Controllers.LITE
 {
     public class Zetflix : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("zetflix", AppInit.conf.Zetflix);
-
         [HttpGet]
         [Route("lite/zetflix")]
-        async public Task<ActionResult> Index(int id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
+        async public Task<ActionResult> Index(long id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
-            if (kinopoisk_id == 0 || id == 0 || !AppInit.conf.Zetflix.enable)
+            if (kinopoisk_id == 0 || !AppInit.conf.Zetflix.enable)
                 return OnError();
 
-            var root = await embed(kinopoisk_id, s);
-            if (root.pl == null)
-                return OnError(proxyManager);
-
+            ProxyManager proxyManager = new ProxyManager("zetflix", AppInit.conf.Zetflix);
             var proxy = proxyManager.Get();
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
+            var oninvk = new ZetflixInvoke
+            (
+               host,
+               AppInit.conf.Zetflix.corsHost(),
+               (url, head) => HttpClient.Get(url.Contains(".cub.watch") ? url : AppInit.conf.Zetflix.corsHost(url), addHeaders: head, timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(AppInit.conf.Zetflix, onstreamtofile, proxy: proxy)
+               //AppInit.log
+            );
 
-            if (root.movie)
-            {
-                #region Фильм
-                foreach (var pl in root.pl)
-                {
-                    string name = pl.Value<string>("title");
-                    string file = pl.Value<string>("file");
+            var content = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, s));
+            if (content?.pl == null)
+                return OnError(proxyManager);
 
-                    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
-                        continue;
+            int number_of_seasons = 1;
+            if (!content.movie && s == -1 && id > 0)
+                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", 60, () => oninvk.number_of_seasons(id));
 
-                    string streansquality = string.Empty;
-                    List<(string link, string quality)> streams = new List<(string, string)>();
-
-                    foreach (var quality in new List<string> { "2160", "2060", "1440", "1080", "720", "480", "360", "240" })
-                    {
-                        string link = new Regex($"\\[{quality}p?\\]" + "([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Match(file).Groups[1].Value;
-                        if (string.IsNullOrEmpty(link))
-                            continue;
-
-                        link = HostStreamProxy(AppInit.conf.Zetflix, link, proxy: proxy);
-
-                        streams.Add((link, $"{quality}p"));
-                        streansquality += $"\"{quality}p\":\"" + link + "\",";
-                    }
-
-                    streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
-                    firstjson = false;
-                }
-                #endregion
-            }
-            else
-            {
-                #region Сериал
-                if (s == -1)
-                {
-                    int number_of_seasons = 1;
-
-                    var themoviedb = await HttpClient.Get<JObject>($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", proxy: proxy, timeoutSeconds: 8);
-                    if (themoviedb != null)
-                    {
-                        number_of_seasons = themoviedb.Value<int>("number_of_seasons");
-                        if (1 > number_of_seasons)
-                            number_of_seasons = 1;
-                    }
-
-                    for (int i = 1; i <= number_of_seasons; i++)
-                    {
-                        string link = $"{host}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={i}";
-
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{i} сезон" + "</div></div></div>";
-                        firstjson = false;
-                    }
-                }
-                else
-                {
-                    #region Перевод
-                    foreach (var pl in root.pl)
-                    {
-                        string perevod = pl.Value<string>("title");
-
-                        if (html.Contains(perevod))
-                            continue;
-
-                        if (string.IsNullOrWhiteSpace(t))
-                            t = perevod;
-
-                        string link = $"{host}/lite/zetflix?id={id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
-                        string active = t == perevod ? "active" : "";
-
-                        html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>";
-                    }
-
-                    html += "</div><div class=\"videos__line\">";
-                    #endregion
-
-                    #region Серии
-                    foreach (var pl in root.pl.Reverse())
-                    {
-                        string perevod = pl.Value<string>("title");
-                        if (perevod != t)
-                            continue;
-
-                        var item = pl.Value<JArray>("folder").First;
-                        string name = item.Value<string>("comment");
-                        string file = item.Value<string>("file");
-
-                        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
-                            continue;
-
-                        string streansquality = string.Empty;
-                        List<(string link, string quality)> streams = new List<(string, string)>();
-
-                        foreach (var quality in new List<string> { "2160", "2060", "1440", "1080", "720", "480", "360", "240" })
-                        {
-                            string link = new Regex($"\\[{quality}p?\\]" + "([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Match(file).Groups[1].Value;
-                            if (string.IsNullOrEmpty(link))
-                                continue;
-
-                            link = HostStreamProxy(AppInit.conf.Zetflix, link, proxy: proxy);
-
-                            streams.Add((link, $"{quality}p"));
-                            streansquality += $"\"{quality}p\":\"" + link + "\",";
-                        }
-
-                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({name})" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
-                        firstjson = false;
-                    }
-                    #endregion
-                }
-                #endregion
-            }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }
-
-
-        #region embed
-        async ValueTask<(JArray pl, bool movie)> embed(long kinopoisk_id, int s)
-        {
-            string memKey = $"zetfix:view:{kinopoisk_id}:{s}";
-
-            if (!memoryCache.TryGetValue(memKey, out (JArray pl, bool movie) cache))
-            {
-                string host = await getHost();
-                string html = await HttpClient.Get($"{host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>()
-                {
-                    ("dnt", "1"),
-                    ("pragma", "no-cache"),
-                    ("referer", $"{host}/iplayer/player.php?id=JTJGaXBsYXllciUyRnZpZGVvZGIucGhwJTNGa3AlM0Q0NDcxMDU0JTI2c2Vhc29uJTNEMSUyNmVwaXNvZGUlM0Q2JTI2cG9zdGVyJTNEaHR0cHMlM0ElMkYlMkZ6ZXRmaXgub25saW5lJTJGdXBsb2FkcyUyRnBvc3RzJTJGMjAyMS0wNyUyRjE2MjUxMjY0NTVfbW9uYXJoaTYuanBnJTI2enZ1ayUzRFNESStNZWRpYSUyQ1ZTSStNb3Njb3clMkMlRDAlOUYlRDAlQjglRDElODQlRDAlQjAlRDAlQjMlRDAlQkUlRDElODAlMkNOZXRmbGl4JTJDTG9zdEZpbG0=&poster=aHR0cHM6Ly96ZXRmaXgub25saW5lL3VwbG9hZHMvcG9zdHMvMjAyMS0wNy8xNjI1MTI2NDU1X21vbmFyaGk2LmpwZw=="),
-                    ("upgrade-insecure-requests", "1")
-                });
-
-                string file = new Regex("file:([^\n\r]+,\\])").Match(html).Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(file))
-                    return (null, false);
-
-                cache.movie = !file.Contains("\"comment\":");
-                cache.pl = JsonConvert.DeserializeObject<JArray>(file);
-                memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
-            }
-
-            return cache;
-        }
-        #endregion
-
-        #region getHost
-        async ValueTask<string> getHost()
-        {
-            if (AppInit.conf.Zetflix.corseu)
-                return $"{AppInit.corseuhost}/{AppInit.conf.Zetflix.host}";
-
-            string memKey = "zetfix:getHost";
-
-            if (!memoryCache.TryGetValue(memKey, out string location))
-            {
-                location = await HttpClient.GetLocation(AppInit.conf.Zetflix.host, timeoutSeconds: 8, proxy: proxyManager.Get(), referer: "https://www.google.com/");
-
-                if (string.IsNullOrWhiteSpace(location))
-                    return AppInit.conf.Zetflix.host;
-
-                location = Regex.Match(location, "^(https?://[^/]+)").Groups[1].Value;
-                memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(20));
-            }
-
-            return location;
-        }
-        #endregion
     }
 }

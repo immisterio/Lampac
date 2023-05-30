@@ -121,6 +121,8 @@ namespace JinEnergy
 
         public static OnlinesSettings CDNmovies => conf.CDNmovies;
 
+        public static OnlinesSettings VDBmovies => conf.VDBmovies;
+
 
         public static OnlinesSettings VCDN => conf.VCDN;
 

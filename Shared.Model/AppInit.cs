@@ -69,6 +69,8 @@ namespace Shared.Model
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://cdnmovies.nl");
 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://cdnmovies.net", token: "02d56099082ad5ad586d7fe4e2493dd9");
+
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5");
 

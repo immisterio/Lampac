@@ -25,11 +25,11 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var result = await InvokeCache(arg.id, $"anilibriaonline:{arg.title}", () => oninvk.Embed(arg.title));
-            if (result == null)
-                return OnError("result");
+            var content = await InvokeCache(arg.id, $"anilibriaonline:{arg.title}", () => oninvk.Embed(arg.title));
+            if (content == null)
+                return OnError("content");
 
-            return oninvk.Html(result, arg.title, code, arg.year);
+            return oninvk.Html(content, arg.title, code, arg.year);
         }
     }
 }
