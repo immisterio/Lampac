@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.Kodik
+﻿namespace Lampac.Models.LITE.Kodik
 {
     public class Season
     {

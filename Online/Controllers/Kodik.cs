@@ -5,20 +5,35 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 using System.Web;
-using Newtonsoft.Json.Linq;
-using System.Linq;
 using Lampac.Engine.CORE;
 using System.Security.Cryptography;
 using System.Text;
-using Lampac.Models.LITE.Kodik;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Engine.Online;
 
 namespace Lampac.Controllers.LITE
 {
     public class Kodik : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("kodik", AppInit.conf.Kodik);
+
+        #region InitKodikInvoke
+        public KodikInvoke InitKodikInvoke()
+        {
+            var proxy = proxyManager.Get();
+
+            return new KodikInvoke
+            (
+                host,
+                AppInit.conf.Kodik.apihost,
+                AppInit.conf.Kodik.token,
+                (uri, head) => HttpClient.Get(AppInit.conf.Kodik.corsHost(uri), timeoutSeconds: 8, proxy: proxy),
+                (uri, data) => HttpClient.Post(AppInit.conf.Kodik.corsHost(uri), data, timeoutSeconds: 8, proxy: proxy),
+                streamfile => HostStreamProxy(AppInit.conf.Kodik, streamfile, proxy: proxy)
+            );
+        }
+        #endregion
 
         [HttpGet]
         [Route("lite/kodik")]
@@ -30,83 +45,16 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();
 
-            JToken results = await search(imdb_id, kinopoisk_id, s);
-            if (results == null)
+            var oninvk = InitKodikInvoke();
+
+            var content = await InvokeCache($"kodik:view:{kinopoisk_id}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id, s));
+            if (content == null)
+                return OnError(proxyManager);
+
+            if (content.Count == 0)
                 return OnError();
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
-            if (results[0].Value<string>("type") is "foreign-movie" or "soviet-cartoon" or "foreign-cartoon" or "russian-cartoon" or "anime" or "russian-movie")
-            {
-                #region Фильм
-                foreach (var data in results)
-                {
-                    string link = data.Value<string>("link");
-                    string voice = data.Value<JObject>("translation").Value<string>("title");
-
-                    string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}";
-                    string streamlink = $"{url.Replace("/video", "/video.m3u8")}&play=true";
-
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({voice})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>";
-                    firstjson = false;
-                }
-                #endregion
-            }
-            else
-            {
-                #region Сериал
-                if (s == -1)
-                {
-                    foreach (var item in results.Reverse())
-                    {
-                        int season = item.Value<int>("last_season");
-                        string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season}";
-
-                        if (html.Contains($"{season} сезон"))
-                            continue;
-
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season} сезон" + "</div></div></div>";
-                        firstjson = false;
-                    }
-                }
-                else
-                {
-                    #region Перевод
-                    foreach (var item in results)
-                    {
-                        string id = item.Value<string>("id");
-                        if (string.IsNullOrWhiteSpace(id))
-                            continue;
-
-                        string name = item.Value<JObject>("translation").Value<string>("title") ?? "оригинал";
-                        if (html.Contains(name) || !results.First(i => i.Value<string>("id") == id).Value<JObject>("seasons").ToObject<Dictionary<string, Season>>().ContainsKey(s.ToString()))
-                            continue;
-
-                        if (string.IsNullOrWhiteSpace(kid))
-                            kid = id;
-
-                        string link = $"{host}/lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&kid={id}";
-
-                        html += "<div class=\"videos__button selector " + (kid == id ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>";
-                    }
-
-                    html += "</div><div class=\"videos__line\">";
-                    #endregion
-
-                    foreach (var episode in results.First(i => i.Value<string>("id") == kid).Value<JObject>("seasons").ToObject<Dictionary<string, Season>>()[s.ToString()].episodes)
-                    {
-                        string url = $"{host}/lite/kodik/video?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
-                        string streamlink = $"{url.Replace("/video", "/video.m3u8")}&play=true";
-
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
-                        firstjson = false;
-                    }
-                }
-                #endregion
-            }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, kid, s, true), "text/html; charset=utf-8");
         }
 
         #region Video - API
@@ -182,111 +130,19 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Kodik.enable)
                 return OnError();
 
-            var proxy = proxyManager.Get();
+            var oninvk = InitKodikInvoke();
 
-            string memKey = $"kodik:view:VideoParse:{link}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
-            {
-                string iframe = await HttpClient.Get($"http:{link}", referer: "https://animego.org/", proxy: proxy, timeoutSeconds: 8);
-                if (iframe == null) 
-                    return OnError(proxyManager);
-
-                string _frame = Regex.Replace(iframe, "[\n\r\t ]+", "");
-                string d_sign = new Regex("d_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
-                string pd_sign = new Regex("pd_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
-                string ref_sign = new Regex("ref_sign=\"([^\"]+)\"").Match(_frame).Groups[1].Value;
-                string type = new Regex("videoInfo.type='([^']+)'").Match(_frame).Groups[1].Value;
-                string hash = new Regex("videoInfo.hash='([^']+)'").Match(_frame).Groups[1].Value;
-                string id = new Regex("videoInfo.id='([^']+)'").Match(_frame).Groups[1].Value;
-
-                string json = await HttpClient.Post($"{AppInit.conf.Kodik.linkhost}/gvi", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D", proxy: proxy, timeoutSeconds: 8);
-                if (json == null)
-                    return OnError(proxyManager);
-
-                streams = new List<(string q, string url)>();
-
-                var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
-                while (match.Success)
-                {
-                    if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                    {
-                        int zCharCode = Convert.ToInt32('Z');
-
-                        string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e => {
-                            int eCharCode = Convert.ToInt32(e.Value[0]);
-                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 13) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
-                        });
-
-                        string decodedString = DecodeUrlBase64(src);
-
-                        if (decodedString.StartsWith("//"))
-                            decodedString = $"http:{decodedString}";
-
-                        streams.Insert(0, ($"{match.Groups[1].Value}p", decodedString));
-                    }
-
-                    match = match.NextMatch();
-                }
-
-                if (streams.Count == 0)
-                    return OnError(proxyManager);
-
-                memoryCache.Set(memKey, streams, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
-            }
-
-            string streansquality = string.Empty;
-            foreach (var l in streams)
-            {
-                string hls = HostStreamProxy(AppInit.conf.Kodik, l.url, proxy: proxy);
-                streansquality += $"\"{l.q}\":\"" + hls + "\",";
-            }
-
-            string name = title ?? original_title;
-            if (episode > 0)
-                name += $" ({episode} серия)";
+            string result = await InvokeCache($"kodik:video:{link}:{play}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.VideoParse(AppInit.conf.Kodik.linkhost, title, original_title, link, episode, play));
+            if (result == null)
+                return OnError(proxyManager);
 
             if (play)
-                return Redirect(streams[0].url);
+                return Redirect(result);
 
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            return Content(result, "application/json; charset=utf-8");
         }
         #endregion
 
-
-        #region search
-        async ValueTask<JToken> search(string imdb_id, long kinopoisk_id, int s)
-        {
-            string memKey = $"kodik:view:{kinopoisk_id}:{imdb_id}:{s}";
-
-            if (!memoryCache.TryGetValue(memKey, out JToken results))
-            {
-                string url = $"{AppInit.conf.Kodik.apihost}/search?token={AppInit.conf.Kodik.token}&limit=100&with_episodes=true";
-                if (kinopoisk_id > 0)
-                    url += $"&kinopoisk_id={kinopoisk_id}";
-
-                if (!string.IsNullOrWhiteSpace(imdb_id))
-                    url += $"&imdb_id={imdb_id}";
-
-                if (s > 0)
-                    url += $"&season={s}";
-
-                var root = await HttpClient.Get<JObject>(url, timeoutSeconds: 8, proxy: proxyManager.Get());
-                if (root == null || !root.ContainsKey("results"))
-                {
-                    proxyManager.Refresh();
-                    return null;
-                }
-
-                results = root.GetValue("results");
-                if (results.Count() == 0)
-                    return null;
-
-                memoryCache.Set(memKey, results, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
-            }
-
-            return results;
-        }
-        #endregion
 
         #region HMAC
         static string HMAC(string key, string message)
@@ -295,14 +151,6 @@ namespace Lampac.Controllers.LITE
             {
                 return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(message))).Replace("-", "").ToLower();
             }
-        }
-        #endregion
-
-        #region DecodeUrlBase64
-        static string DecodeUrlBase64(string s)
-        {
-            s = s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=');
-            return Encoding.UTF8.GetString(Convert.FromBase64String(s));
         }
         #endregion
     }

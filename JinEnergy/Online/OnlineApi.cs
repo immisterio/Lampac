@@ -110,6 +110,27 @@ namespace JinEnergy.Online
             bool isanime = arg.original_language == "ja";
             bool life = parse_arg(args, "life")?.ToLower() == "true";
 
+            if (isanime)
+            {
+                if (AppInit.Kodik.enable)
+                    online += "{\"name\":\"Kodik\",\"url\":\"lite/kodik\"},";
+
+                if (AppInit.AnilibriaOnline.enable)
+                    online += "{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},";
+
+                //    if (conf.Animevost.enable)
+                //        online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
+
+                //    if (conf.Animebesst.enable)
+                //        online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
+
+                //    if (conf.AnimeGo.enable)
+                //        online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
+
+                //    if (conf.AniMedia.enable)
+                //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
+            }
+
             if (AppInit.VoKino.enable && serial == 0)
                 online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";
 
@@ -149,9 +170,6 @@ namespace JinEnergy.Online
             if (AppInit.Eneyida.enable)
                 online += "{\"name\":\"Eneyida (UKR)\",\"url\":\"lite/eneyida\"},";
 
-            //if (!string.IsNullOrWhiteSpace(conf.Kodik.token))
-            //    online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
-
             //if (conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
             //    online += "{\"name\":\"" + (conf.Lostfilmhd.displayname ?? "LostfilmHD") + "\",\"url\":\"{localhost}/lostfilmhd\"},";
 
@@ -166,24 +184,6 @@ namespace JinEnergy.Online
 
             //if (!string.IsNullOrWhiteSpace(conf.HDVB.token))
             //    online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
-
-            if (isanime)
-            {
-                if (AppInit.AnilibriaOnline.enable)
-                    online += "{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},";
-
-                //    if (conf.Animevost.enable)
-                //        online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
-
-                //    if (conf.Animebesst.enable)
-                //        online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
-
-                //    if (conf.AnimeGo.enable)
-                //        online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
-
-                //    if (conf.AniMedia.enable)
-                //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
-            }
 
             if (serial == 0)
             {
