@@ -74,7 +74,7 @@ namespace Lampac.Controllers.LITE
                 string result = null;
                 string googleReCaptchaResponse = api.GetTaskSolution().GRecaptchaResponse;
                 if (googleReCaptchaResponse != null)
-                    result = await HttpClient.Post($"{AppInit.conf.Kinobase.host}/check", $"g-recaptcha-response={googleReCaptchaResponse}&return_uri=%2F", timeoutSeconds: 8, proxy: proxy);
+                    result = await HttpClient.Post($"{AppInit.conf.Kinobase.host}/check?cm=re", $"g-recaptcha-response={googleReCaptchaResponse}&return_uri=%2F", timeoutSeconds: 8, proxy: proxy);
 
                 return Content(result ?? "null");
             }

@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE;
+using Lampac.Models.LITE.KinoPub;
 using Shared.Model.Online.Rezka;
 using System.Text;
 using System.Text.Json;
@@ -83,7 +84,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, string? title, string? original_title, int clarification, int year, int s, string? href)
+        public string Html(EmbedModel result, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
         {
             bool firstjson = true;
             var html = new StringBuilder();
@@ -203,7 +204,11 @@ namespace Shared.Engine.Online
                             eshash.Add(m.Groups[4].Value);
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups[3].Value}";
 
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[3].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[4].Value + "</div></div>");
+                            string streamlink = string.Empty;
+                            if (showstream)
+                                streamlink = ",\"stream\":\"" + $"{link}&play=true" + "\"";
+
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[3].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"" + streamlink + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[4].Value + "</div></div>");
                             firstjson = false;
                         }
                         #endregion
@@ -243,7 +248,7 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes root, EmbedModel result, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s)
+        public string Serial(Episodes root, EmbedModel result, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream)
         {
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -303,7 +308,11 @@ namespace Shared.Engine.Online
                     {
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups[1].Value}";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[2].Value + "</div></div>";
+                        string streamlink = string.Empty;
+                        if (showstream)
+                            streamlink = ",\"stream\":\"" + $"{link}&play=true" + "\"";
+
+                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"" + streamlink + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[2].Value + "</div></div>";
                         firstjson = false;
                     }
 

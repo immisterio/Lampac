@@ -76,7 +76,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            string result = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, t, s, e, play));
+            string result = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, t, s, e, play));
             if (result == null)
                 return OnError(proxyManager);
 

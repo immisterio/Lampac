@@ -37,7 +37,7 @@ namespace JinEnergy.Online
             if (content == null)
                 return OnError("content");
 
-            return oninvk.Html(content, arg.title, arg.original_title, clarification, arg.year, s, href);
+            return oninvk.Html(content, arg.title, arg.original_title, clarification, arg.year, s, href, false);
         }
 
 
@@ -65,7 +65,7 @@ namespace JinEnergy.Online
             if (content == null)
                 return OnError("content");
 
-            return oninvk.Serial(root, content, arg.title, arg.original_title, clarification, arg.year, href, arg.id, t, s);
+            return oninvk.Serial(root, content, arg.title, arg.original_title, clarification, arg.year, href, arg.id, t, s, false);
         }
         #endregion
 

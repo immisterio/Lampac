@@ -38,9 +38,18 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke(html ?? "html null");
 
-            string? file = new Regex("file:([^\n\r]+,\\])").Match(html ?? "").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(file))
+            if (html == null)
                 return null;
+
+            string? file = Regex.Match(html, "file:([^\n\r]+,?\\])").Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(file))
+                    return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true };
+
+                return null;
+            }    
 
             file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
                         .Replace("},]", "}]");
