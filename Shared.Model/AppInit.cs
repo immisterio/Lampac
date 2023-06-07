@@ -5,7 +5,7 @@ namespace Shared.Model
 {
     public class AppInit
     {
-        public static string corseuhost { get; set; } = "https://cors.eu.org";
+        public static string corseuhost { get; set; } = "https://6a0e.misisi-2021.workers.dev";
 
 
         public string? corsehost { get; set; }
@@ -16,7 +16,7 @@ namespace Shared.Model
 
         public SisiSettings Ebalovo { get; set; } = new SisiSettings("https://www.ebalovo.pro", streamproxy: true);
 
-        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com");
+        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com", streamproxy: true);
 
         public SisiSettings HQporner { get; set; } = new SisiSettings("https://m.hqporner.com");
 

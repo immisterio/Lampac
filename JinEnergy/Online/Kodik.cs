@@ -26,6 +26,9 @@ namespace JinEnergy.Online
             string? kid = parse_arg("kid", args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
 
+            if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
+                return OnError("arg");
+
             var content = await InvokeCache(arg.id, $"kodik:view:{arg.kinopoisk_id}:{arg.imdb_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, s));
             if (content == null || content.Count == 0)
                 return OnError("content");

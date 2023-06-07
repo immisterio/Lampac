@@ -110,14 +110,15 @@ namespace JinEnergy.Online
             bool isanime = arg.original_language == "ja";
             bool life = parse_arg(args, "life")?.ToLower() == "true";
 
-            if (isanime)
-            {
-                if (AppInit.Kodik.enable)
-                    online += "{\"name\":\"Kodik\",\"url\":\"lite/kodik\"},";
 
-                if (AppInit.AnilibriaOnline.enable)
-                    online += "{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},";
+            if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
+                online += "{\"name\":\"Kodik\",\"url\":\"lite/kodik\"},";
 
+            if (AppInit.AnilibriaOnline.enable && isanime)
+                online += "{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},";
+
+            //if (isanime)
+            //{
                 //    if (conf.Animevost.enable)
                 //        online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
 
@@ -129,7 +130,7 @@ namespace JinEnergy.Online
 
                 //    if (conf.AniMedia.enable)
                 //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
-            }
+            //}
 
             if (AppInit.VoKino.enable && serial == 0)
                 online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";

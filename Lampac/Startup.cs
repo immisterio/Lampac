@@ -104,16 +104,6 @@ namespace Lampac
             }
             #endregion
 
-            #region fix 
-            try
-            {
-                string json = File.ReadAllText("Lampac.runtimeconfig.json");
-                if (json != null && json.Contains(": 309715200,"))
-                    File.WriteAllText("Lampac.runtimeconfig.json", json.Replace(": 309715200,", ": 409715200,"));
-            }
-            catch { }
-            #endregion
-
             //AppInit.conf.Toloka.login = new Models.JAC.LoginSettings() { u = "user", p = "passwd" };
             //System.IO.File.WriteAllText("example.conf", Newtonsoft.Json.JsonConvert.SerializeObject(AppInit.conf, Newtonsoft.Json.Formatting.Indented));
 

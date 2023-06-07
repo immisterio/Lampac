@@ -28,6 +28,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
+        /// <returns>
+        /// 0 - Данные не получены
+        /// 1 - Нет нужного контента 
+        /// </returns>
         async public ValueTask<int> Search(string? title, string? original_title, int clarification, string? imdb_id, long kinopoisk_id)
         {
             string? searchtitle = clarification == 1 ? title : (original_title ?? title);
@@ -36,21 +40,23 @@ namespace Shared.Engine.Online
 
             string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(searchtitle)}&access_token={token}&field=title&perpage=200");
             if (json == null)
-                return -1;
+                return 0;
 
             try
             {
                 var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
-                if (items == null)
-                    return -1;
-
-                foreach (var item in items)
+                if (items != null)
                 {
-                    if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
-                        return item.id;
+                    foreach (var item in items)
+                    {
+                        if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
+                            return item.id;
 
-                    if ($"tt{item.imdb}" == imdb_id)
-                        return item.id;
+                        if ($"tt{item.imdb}" == imdb_id)
+                            return item.id;
+                    }
+
+                    return -1;
                 }
             }
             catch { }

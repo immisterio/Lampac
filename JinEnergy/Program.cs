@@ -1,9 +1,10 @@
 using JinEnergy;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 
+
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.Logging.SetMinimumLevel(LogLevel.None);
 var webAssemblyHost = builder.Build();
 
 AppInit.JSRuntime = webAssemblyHost.Services.GetRequiredService<IJSRuntime>();

@@ -341,13 +341,13 @@ namespace JacRed.Controllers
 
             if (!ModInit.conf.mergeduplicates || rqnum)
             {
-                tsort = torrents.Values.ToList();
+                tsort = torrents.Values.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName)).ToList();
             }
             else 
             {
                 Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)> temp = new Dictionary<string, (TorrentDetails, string, string, List<string>)>();
 
-                foreach (var torrent in torrents.Values.ToList())
+                foreach (var torrent in torrents.Values.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName)).ToList())
                 {
                     var magnetLink = MagnetLink.Parse(torrent.magnet);
                     string hex = magnetLink.InfoHash.ToHex();

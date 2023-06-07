@@ -73,10 +73,10 @@ namespace Lampac.Controllers.LITE
                 postid = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, clarification, imdb_id, kinopoisk_id));
 
                 if (postid == 0)
-                    return OnError();
+                    return OnError(proxyManager);
 
                 if (postid == -1)
-                    return OnError(proxyManager);
+                    return OnError();
             }
 
             var root = await InvokeCache($"kinopub:post:{postid}", AppInit.conf.multiaccess ? 10 : 5, () => oninvk.Post(postid));

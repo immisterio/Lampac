@@ -24,7 +24,7 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
 
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                return OnError("imdb_id");
+                return OnError("arg");
 
             var content = await InvokeCache(arg.id, $"voidboost:view:{arg.kinopoisk_id}:{arg.imdb_id}:{t}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, t));
             if (content == null)
