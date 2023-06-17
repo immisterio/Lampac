@@ -38,9 +38,9 @@ namespace Lampac.Controllers.LITE
 
                     catalog = new List<(string title, string uri, string s)>();
 
-                    foreach (string row in search.Split("class=\"shortstory\"").Skip(1))
+                    foreach (string row in search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"").Skip(1))
                     {
-                        var g = Regex.Match(row, "<h2><a href=\"(https?://[^\"]+\\.html)\"[^>]+>([^<]+)</a></h2>").Groups;
+                        var g = Regex.Match(row, "class=\"shortstory-listab-title\"><a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
 
                         if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                         {
@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
                             if (!g[2].Value.Contains("сезон") || g[2].Value.Contains("1 сезон"))
                                 season = "1";
 
-                            if (g[2].Value.ToLower().StartsWith(title.ToLower()))
+                            if (g[2].Value.ToLower().Contains(title.ToLower()))
                                 catalog.Add((g[2].Value, g[1].Value, season));
                         }
                     }
@@ -84,11 +84,11 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager);
 
                     links = new List<(string episode, string uri)>();
-                    var match = Regex.Match(videoList, "\"id\":\"([0-9]+)\",\"link\":\"(https?:)?//([^\"]+)\"");
+                    var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?//([^\"]+)\"");
                     while (match.Success)
                     {
-                        if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
-                            links.Add((match.Groups[1].Value, match.Groups[3].Value));
+                        if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[4].Value))
+                            links.Add((match.Groups[1].Value, match.Groups[4].Value));
 
                         match = match.NextMatch();
                     }

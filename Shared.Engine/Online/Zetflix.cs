@@ -41,7 +41,7 @@ namespace Shared.Engine.Online
             if (html == null)
                 return null;
 
-            string? file = Regex.Match(html, "file:([^\n\r]+,?\\])").Groups[1].Value;
+            string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\]),").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
             {
                 file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;

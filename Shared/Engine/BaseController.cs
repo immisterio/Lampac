@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Model.Base;
 
@@ -33,12 +34,12 @@ namespace Lampac.Engine
             string key = "BaseController:mylocalip";
             if (!memoryCache.TryGetValue(key, out string userIp))
             {
-                string ipinfo = await HttpClient.Get("https://ipinfo.io/", timeoutSeconds: 5);
-                userIp = Regex.Match(ipinfo ?? string.Empty, "\"userIp\":\"([^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(userIp))
+                var myip = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/my_ip");
+                if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
                     return null;
 
-                memoryCache.Set(key, userIp, DateTime.Now.AddHours(1));
+                userIp = myip.Value<string>("ip");
+                memoryCache.Set(key, userIp, DateTime.Now.AddMinutes(20));
             }
 
             return userIp;

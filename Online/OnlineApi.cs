@@ -286,7 +286,7 @@ namespace Lampac.Controllers
             if (conf.Eneyida.enable)
                 online += "{\"name\":\"" + (conf.Eneyida.displayname ?? "Eneyida (UKR)") + "\",\"url\":\"{localhost}/eneyida\"},";
 
-            if (conf.Kodik.enable)
+            if (conf.Kodik.enable && (original_language is "ja" or "ko" or "zh"))
                 online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
 
             if (conf.Seasonvar.enable && (serial == -1 || serial == 1))

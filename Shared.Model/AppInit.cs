@@ -1,14 +1,19 @@
 ﻿using Lampac.Models.SISI;
 using Lampac.Models.LITE;
+using Lampac.Models.AppConf;
 
 namespace Shared.Model
 {
     public class AppInit
     {
-        public static string corseuhost { get; set; } = "https://6a0e.misisi-2021.workers.dev";
+        public static string corseuhost { get; set; } = "https://cors.bwa.workers.dev";
+
+        public static string rsizehost { get; set; } = "https://rsize.bwa.workers.dev";
 
 
         public string? corsehost { get; set; }
+
+        public SisiConf sisi { get; set; } = new SisiConf() { heightPicture = 200 };
 
         public SisiSettings BongaCams { get; set; } = new SisiSettings("https://rus.bongacams.com");
 
@@ -95,7 +100,11 @@ namespace Shared.Model
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
+
+        /// <summary>
+        /// cdn сервер сдох
+        /// </summary>
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", enable: false, streamproxy: true);
 
         public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true);
 
