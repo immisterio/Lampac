@@ -1,5 +1,5 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
+﻿using Lampac.Models.SISI;
+using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -29,40 +29,43 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 50 };
 
-            string section = StringConvert.FindLastText(html, "mixed-section") ?? html;
+            string section = html.Contains("mixed-section") ? html.Split("mixed-section")[1] : html;
 
             foreach (string row in Regex.Split(section, "(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)").Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(row) || row.Contains("badge_premium"))
                     continue;
 
-                var g = new Regex("__nam[^\"]+\" href=\"https?://[^/]+/([^\"]+)\"([^>]+)?>(<!--[^-]+-->)?([^<]+)", RegexOptions.IgnoreCase).Match(row).Groups;
+                var g = Regex.Match(row, "__nam[^\"]+\" href=\"https?://[^/]+/([^\"]+)\"([^>]+)?>(<!--[^-]+-->)?([^<]+)").Groups;
                 string title = g[4].Value;
                 string href = g[1].Value;
 
-                if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(title))
+                if (!string.IsNullOrEmpty(href) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string duration = new Regex("<div class=\"thumb-image-container__duration\">([^<]+)</div>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                    string duration = Regex.Match(row, "<div class=\"thumb-image-container__duration\">([^<]+)</div>").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(duration))
                     {
-                        duration = new Regex("<span data-role-video-duration>([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                        duration = Regex.Match(row, "<span data-role-video-duration>([^<]+)</span>").Groups[1].Value;
                         if (string.IsNullOrWhiteSpace(duration))
-                            duration = new Regex("datetime=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                            duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
                     }
 
-                    string img = new Regex("class=\"thumb-image-container__image\" src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(img))
-                        img = new Regex("<noscript><img src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                    string img = Regex.Match(row, "class=\"thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
+                    if (!img.StartsWith("http"))
+                        img = Regex.Match(row, "<noscript><img src=\"([^\"]+)\"").Groups[1].Value.Trim();
+
+                    if (!img.StartsWith("http"))
+                        continue;
 
                     var pl = new PlaylistItem()
                     {
                         name = title,
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(href)}",
+                        video = $"{uri}?uri={href}",
                         picture = img,
                         quality = row.Contains("-hd") ? "HD" : row.Contains("-uhd") ? "4K" : null,
-                        time = duration,
+                        time = duration?.Trim(),
                         json = true
                     };
 
@@ -114,25 +117,33 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult)
         {
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{uri}");
-            string stream_link = new Regex("\"hls\":{\"url\":\"([^\"]+)\"").Match(html ?? "").Groups[1].Value.Replace("\\", "");
-            if (string.IsNullOrWhiteSpace(stream_link))
+            string? html = await onresult.Invoke($"{host}/{url}");
+            if (html == null)
+                return null;
+
+            string stream_link = Regex.Match(html, "\"h264\":\\[\\{\"url\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+            if (!stream_link.Contains(".m3u"))
                 return null;
 
             if (stream_link.StartsWith("/"))
                 stream_link = host + stream_link;
 
-            if (!stream_link.Contains(".m3u"))
-                return null;
-
-            return new Dictionary<string, string>()
+            return new StreamItem()
             {
-                ["auto"] = stream_link
+                qualitys = new Dictionary<string, string>()
+                {
+                    ["auto"] = stream_link
+                },
+                recomends = Playlist(uri, html, pl =>
+                {
+                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    return pl;
+                })
             };
         }
     }

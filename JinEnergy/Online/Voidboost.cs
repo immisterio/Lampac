@@ -18,7 +18,7 @@ namespace JinEnergy.Online
         #endregion
 
         [JSInvokable("lite/voidboost")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);
@@ -36,7 +36,7 @@ namespace JinEnergy.Online
 
         #region Serial
         [JSInvokable("lite/voidboost/serial")]
-        async public static Task<string> Serial(string args)
+        async public static ValueTask<string> Serial(string args)
         {
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);
@@ -55,7 +55,7 @@ namespace JinEnergy.Online
 
         #region Movie
         [JSInvokable("lite/voidboost/movie")]
-        async public static Task<string> Movie(string args)
+        async public static ValueTask<string> Movie(string args)
         {
             string? t = parse_arg("t", args);
             int s = int.Parse(parse_arg("s", args) ?? "0");

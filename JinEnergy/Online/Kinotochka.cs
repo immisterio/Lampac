@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class KinotochkaController : BaseController
     {
         [JSInvokable("lite/kinotochka")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
 

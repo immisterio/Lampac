@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class XhamsterController : BaseController
     {
         [JSInvokable("xmr")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args) ?? "newest";
@@ -17,18 +17,14 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = XhamsterTo.Menu(null, sort),
-                list = XhamsterTo.Playlist("xmr/vidosik", html)
-            };
+            return OnResult(XhamsterTo.Playlist("xmr/vidosik", html), XhamsterTo.Menu(null, sort));
         }
 
 
         [JSInvokable("xmr/vidosik")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
-            var stream_links = await XhamsterTo.StreamLinks(AppInit.Xhamster.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(url));
+            var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", AppInit.Xhamster.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(url));
             if (stream_links == null)
                 return OnError("stream_links");
 

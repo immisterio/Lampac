@@ -31,24 +31,24 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 90 };
 
-            foreach (string row in Regex.Split(html, "<div class=\"video-preview-screen").Skip(1))
+            foreach (string row in html.Split("<div class=\"video-preview-screen").Skip(1))
             {
-                if (string.IsNullOrWhiteSpace(row) || row.Contains("<span class=\"line-private\">"))
+                if (row.Contains("<span class=\"line-private\">"))
                     continue;
 
-                var g = new Regex($"<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups;
-                string quality = new Regex("<span class=\"quality\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                var g = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string duration = new Regex("<i class=\"fa fa-clock-o\"></i>([^<]+)</div>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    var img = new Regex("data-src=\"(https?:)?//((statics.cdntrex.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)", RegexOptions.IgnoreCase).Match(row).Groups;
+                    string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>").Groups[1].Value;
+                    string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>").Groups[1].Value.Trim();
+                    var img = Regex.Match(row, "data-src=\"(https?:)?//((statics.cdntrex.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)").Groups;
 
                     var pl = new PlaylistItem()
                     {
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(g[1].Value)}",
+                        video = $"{uri}?uri={g[1].Value}",
                         name = g[2].Value,
                         picture = $"https://{img[2].Value}",
                         quality = !string.IsNullOrEmpty(quality) ? quality : null,

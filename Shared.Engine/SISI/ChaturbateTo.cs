@@ -1,8 +1,5 @@
 ﻿using Lampac.Models.SISI;
-using Shared.Model;
-using System;
 using System.Text.RegularExpressions;
-using System.Web;
 
 namespace Shared.Engine.SISI
 {
@@ -23,27 +20,31 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 100 };
 
             foreach (string row in html.Split("class=\"room_list_room").Skip(1))
             {
                 if (row.Contains(">Private</li>"))
                     continue;
 
-                string baba = new Regex("data-room=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                string baba = Regex.Match(row, "data-room=\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(baba))
                 {
-                    baba = new Regex("class=\"broadcaster-cell\" href=\"/([^/]+)/\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    if (string.IsNullOrWhiteSpace(baba))
+                    baba = Regex.Match(row, "class=\"broadcaster-cell\" href=\"/([^/]+)/\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(baba))
                         continue;
                 }
 
+                string img = Regex.Match(row, " src=\"([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(img))
+                    continue;
+
                 var pl = new PlaylistItem()
                 {
-                    name = baba,
+                    name = baba.Trim(),
                     quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
                     video = $"{uri}?baba={baba}",
-                    picture = new Regex(" src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value,
+                    picture = img,
                     json = true
                 };
 

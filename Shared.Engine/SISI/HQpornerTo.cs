@@ -30,19 +30,19 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 50 };
 
             foreach (string row in html.Split("<div class=\"img-container\">").Skip(1))
             {
-                var g = new Regex("href=\"/([^\"]+)\" class=\"atfib\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups;
+                var g = Regex.Match(row, "href=\"/([^\"]+)\" class=\"atfib\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"").Groups;
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string duration = new Regex("class=\"fa fa-clock-o\" [^>]+></i>([^<]+)", RegexOptions.IgnoreCase).Match(Regex.Replace(row, "[\n\r\t]+", "")).Groups[1].Value.Trim();
+                    string duration = new Regex("class=\"fa fa-clock-o\" [^>]+></i>([^<]+)").Match(Regex.Replace(row, "[\n\r\t]+", "")).Groups[1].Value.Trim();
 
                     var pl = new PlaylistItem()
                     {
                         name = g[3].Value.Trim(),
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(g[1].Value)}",
+                        video = $"{uri}?uri={g[1].Value}",
                         picture = "https://" + g[2].Value,
                         time = duration,
                         json = true
@@ -105,7 +105,7 @@ namespace Shared.Engine.SISI
             if (html == null)
                 return null;
 
-            string uriframe = new Regex("<iframe src=\"//([^/]+/video/[^/]+/)\"").Match(html).Groups[1].Value;
+            string uriframe = Regex.Match(html, "<iframe src=\"//([^/]+/video/[^/]+/)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(uriframe))
                 return null;
 

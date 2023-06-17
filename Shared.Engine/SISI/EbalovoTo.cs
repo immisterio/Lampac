@@ -1,5 +1,4 @@
 ﻿using Lampac.Models.SISI;
-using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -29,27 +28,27 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 35 };
 
-            foreach (string row in Regex.Split(Regex.Replace(html, "[\n\r\t]+", ""), "<div class=\"item\">"))
+            foreach (string row in html.Split("<div class=\"item\">"))
             {
-                if (string.IsNullOrWhiteSpace(row) || !row.Contains("<div class=\"item-info\">"))
+                if (!row.Contains("<div class=\"item-info\">"))
                     continue;
 
-                string link = new Regex($"<a href=\"https?://[^/]+/(video/[^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                string title = new Regex("<div class=\"item-title\">([^<]+)</div>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                string link = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\"").Groups[1].Value;
+                string title = Regex.Match(row, "<div class=\"item-title\">([^<]+)</div>").Groups[1].Value;
 
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
                 {
-                    string duration = new Regex(" data-eb=\"([^;\"]+);", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    var img = new Regex("( )src=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
+                    string duration = Regex.Match(row, " data-eb=\"([^;\"]+);").Groups[1].Value.Trim();
+                    var img = Regex.Match(row, "( )src=\"(([^\"]+)/[0-9]+.jpg)\"").Groups;
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
-                        img = new Regex("(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"", RegexOptions.IgnoreCase).Match(row).Groups;
+                        img = Regex.Match(row, "(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"").Groups;
 
                     var pl = new PlaylistItem()
                     {
-                        name = title,
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(link)}",
+                        name = title.Trim(),
+                        video = $"{uri}?uri={link}",
                         picture = img[2].Value,
                         time = duration,
                         json = true
@@ -103,22 +102,24 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onlocation = null)
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onlocation = null)
         {
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{uri}");
+            string? html = await onresult.Invoke($"{host}/{url}");
+            if (html == null)
+                return null;
 
             string? stream_link = null;
-            var match = new Regex($"(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html ?? "");
+            var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
             while (match.Success)
             {
                 stream_link = match.Groups[1].Value;
                 match = match.NextMatch();
             }
 
-            if (string.IsNullOrWhiteSpace(stream_link))
+            if (string.IsNullOrEmpty(stream_link))
                 return null;
 
             if (onlocation != null)
@@ -130,9 +131,13 @@ namespace Shared.Engine.SISI
                 stream_link = location;
             }
 
-            return new Dictionary<string, string>()
+            return new StreamItem()
             {
-                ["auto"] = stream_link
+                qualitys = new Dictionary<string, string>()
+                {
+                    ["auto"] = stream_link
+                },
+                recomends = Playlist(uri, html)
             };
         }
     }

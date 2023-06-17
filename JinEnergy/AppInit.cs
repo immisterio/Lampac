@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using Lampac.Models.AppConf;
 using Lampac.Models.LITE;
 using Lampac.Models.SISI;
 using Microsoft.JSInterop;
@@ -65,6 +66,8 @@ namespace JinEnergy
 
 
         public static bool IsAndrod { get; private set; }
+
+        public static SisiConf sisi => conf.sisi;
 
         public static SisiSettings BongaCams => conf.BongaCams;
 

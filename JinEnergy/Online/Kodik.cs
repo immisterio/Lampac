@@ -20,7 +20,7 @@ namespace JinEnergy.Online
         #endregion
 
         [JSInvokable("lite/kodik")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             string? kid = parse_arg("kid", args);
@@ -39,7 +39,7 @@ namespace JinEnergy.Online
 
         #region VideoParse
         [JSInvokable("lite/kodik/video")]
-        async public static Task<string> VideoParse(string args)
+        async public static ValueTask<string> VideoParse(string args)
         {
             var arg = defaultArgs(args);
             int episode = int.Parse(parse_arg("episode", args) ?? "0");

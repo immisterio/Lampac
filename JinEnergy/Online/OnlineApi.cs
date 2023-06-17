@@ -1,5 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -11,7 +12,7 @@ namespace JinEnergy.Online
         static Dictionary<string, string?> eids = new Dictionary<string, string?>();
 
         [JSInvokable("externalids")]
-        async public static Task<string> Externalids(string args)
+        async public static ValueTask<string> Externalids(string args)
         {
             long id = long.Parse(parse_arg("id", args) ?? "0");
             if (id == 0)
@@ -103,7 +104,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/events")]
         public static string Events(string args)
         {
-            string online = string.Empty;
+            var online = new StringBuilder();
 
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
@@ -112,94 +113,64 @@ namespace JinEnergy.Online
 
 
             if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
-                online += "{\"name\":\"Kodik\",\"url\":\"lite/kodik\"},";
+                online.Append("{\"name\":\"Kodik\",\"url\":\"lite/kodik\"},");
 
             if (AppInit.AnilibriaOnline.enable && isanime)
-                online += "{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},";
-
-            //if (isanime)
-            //{
-                //    if (conf.Animevost.enable)
-                //        online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
-
-                //    if (conf.Animebesst.enable)
-                //        online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
-
-                //    if (conf.AnimeGo.enable)
-                //        online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
-
-                //    if (conf.AniMedia.enable)
-                //        online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
-            //}
+                online.Append("{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},");
 
             if (AppInit.VoKino.enable && serial == 0)
-                online += "{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},";
+                online.Append("{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},");
 
             if (AppInit.VideoDB.enable)
-                online += "{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},";
+                online.Append("{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},");
 
             if (AppInit.VCDN.enable)
-                online += "{\"name\":\"VideoCDN\",\"url\":\"lite/vcdn\"},";
+                online.Append("{\"name\":\"VideoCDN\",\"url\":\"lite/vcdn\"},");
 
             if (AppInit.Zetflix.enable)
-                online += "{\"name\":\"Zetflix\",\"url\":\"lite/zetflix\"},";
+                online.Append("{\"name\":\"Zetflix\",\"url\":\"lite/zetflix\"},");
 
             if (AppInit.Filmix.enable)
-                online += "{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},";
+                online.Append("{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},");
 
             if (AppInit.KinoPub.enable)
-                online += "{\"name\":\"KinoPub\",\"url\":\"lite/kinopub\"},";
-
-            //if (!string.IsNullOrWhiteSpace(conf.Bazon.token))
-            //    online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
-
-            //if (!string.IsNullOrWhiteSpace(conf.Alloha.token))
-            //    online += "{\"name\":\"" + (conf.Alloha.displayname ?? "Alloha") + "\",\"url\":\"{localhost}/alloha\"},";
+                online.Append("{\"name\":\"KinoPub\",\"url\":\"lite/kinopub\"},");
 
             if (AppInit.Rezka.enable)
-                online += "{\"name\":\"Rezka\",\"url\":\"lite/rezka\"},";
+                online.Append("{\"name\":\"Rezka\",\"url\":\"lite/rezka\"},");
 
             if (AppInit.Kinobase.enable)
-                online += "{\"name\":\"Kinobase\",\"url\":\"lite/kinobase\"},";
+                online.Append("{\"name\":\"Kinobase\",\"url\":\"lite/kinobase\"},");
 
             if (AppInit.Voidboost.enable)
-                online += "{\"name\":\"Voidboost\",\"url\":\"lite/voidboost\"},";
+                online.Append("{\"name\":\"Voidboost\",\"url\":\"lite/voidboost\"},");
 
             if (AppInit.Ashdi.enable)
-                online += "{\"name\":\"Ashdi (UKR)\",\"url\":\"lite/ashdi\"},";
+                online.Append("{\"name\":\"Ashdi (UKR)\",\"url\":\"lite/ashdi\"},");
 
             if (AppInit.Eneyida.enable)
-                online += "{\"name\":\"Eneyida (UKR)\",\"url\":\"lite/eneyida\"},";
-
-            //if (conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
-            //    online += "{\"name\":\"" + (conf.Lostfilmhd.displayname ?? "LostfilmHD") + "\",\"url\":\"{localhost}/lostfilmhd\"},";
+                online.Append("{\"name\":\"Eneyida (UKR)\",\"url\":\"lite/eneyida\"},");
 
             if (AppInit.Collaps.enable)
-                online += "{\"name\":\"Collaps\",\"url\":\"lite/collaps\"},";
+                online.Append("{\"name\":\"Collaps\",\"url\":\"lite/collaps\"},");
 
             if (AppInit.VDBmovies.enable)
-                online += "{\"name\":\"VDBmovies\",\"url\":\"lite/vdbmovies\"},";
+                online.Append("{\"name\":\"VDBmovies\",\"url\":\"lite/vdbmovies\"},");
 
             if (AppInit.CDNmovies.enable && serial == 1 && !isanime)
-                online += "{\"name\":\"CDNmovies\",\"url\":\"lite/cdnmovies\"},";
-
-            //if (!string.IsNullOrWhiteSpace(conf.HDVB.token))
-            //    online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
+                online.Append("{\"name\":\"CDNmovies\",\"url\":\"lite/cdnmovies\"},");
 
             if (serial == 0)
             {
-                //if (conf.IframeVideo.enable)
-                //    online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
-
                 if (AppInit.Kinotochka.enable)
-                    online += "{\"name\":\"Kinotochka\",\"url\":\"lite/kinotochka\"},";
+                    online.Append("{\"name\":\"Kinotochka\",\"url\":\"lite/kinotochka\"},");
 
                 if (AppInit.Redheadsound.enable)
-                    online += "{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},";
+                    online.Append("{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},");
             }
 
 
-            return $"[{Regex.Replace(online, ",$", "")}]";
+            return $"[{Regex.Replace(online.ToString(), ",$", "")}]";
         }
         #endregion
     }

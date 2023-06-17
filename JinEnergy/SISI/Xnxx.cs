@@ -7,12 +7,12 @@ namespace JinEnergy.SISI
     public class XnxxController : BaseController
     {
         [JSInvokable("xnx")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? search = parse_arg("search", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await XnxxTo.InvokeHtml(AppInit.Xnxx.host, search, pg, url => JsHttpClient.Get(url));
+            string? html = await XnxxTo.InvokeHtml(AppInit.Xnxx.corsHost(), search, pg, url => JsHttpClient.Get(url));
             if (html == null)
                 return OnError("html");
 
@@ -25,9 +25,9 @@ namespace JinEnergy.SISI
 
 
         [JSInvokable("xnx/vidosik")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
-            var stream_links = await XnxxTo.StreamLinks(AppInit.Xnxx.host, parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
+            var stream_links = await XnxxTo.StreamLinks(AppInit.Xnxx.corsHost(), parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
             if (stream_links == null)
                 return OnError("stream_links");
 

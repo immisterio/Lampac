@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
-using System.Linq;
 using Shared.Engine.CORE;
 using SISI;
+using Lampac.Models.SISI;
 
 namespace Lampac.Controllers.PornHub
 {
@@ -27,32 +26,17 @@ namespace Lampac.Controllers.PornHub
             var proxyManager = new ProxyManager("phub", AppInit.conf.PornHub);
             var proxy = proxyManager.Get();
 
-            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
+            if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks(AppInit.conf.PornHub.host, vkey, url =>
-                {
-                    return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
-                    {
-                        ("accept-language", "ru-RU,ru;q=0.9"),
-                        ("sec-ch-ua", "\"Chromium\";v=\"94\", \"Google Chrome\";v=\"94\", \";Not A Brand\";v=\"99\""),
-                        ("sec-ch-ua-mobile", "?0"),
-                        ("sec-ch-ua-platform", "\"Windows\""),
-                        ("sec-fetch-dest", "document"),
-                        ("sec-fetch-mode", "navigate"),
-                        ("sec-fetch-site", "none"),
-                        ("sec-fetch-user", "?1"),
-                        ("upgrade-insecure-requests", "1"),
-                        ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36"),
-                    });
-                });
+                stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", AppInit.conf.PornHub.host, vkey, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders));
 
-                if (stream_links == null || stream_links.Count == 0)
+                if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
 
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.PornHub, v.Value, proxy: proxy)));
+            return OnResult(stream_links, AppInit.conf.PornHub, proxy);
         }
     }
 }

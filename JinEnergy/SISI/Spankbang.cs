@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class SpankbangController : BaseController
     {
         [JSInvokable("sbg")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -26,9 +26,9 @@ namespace JinEnergy.SISI
 
 
         [JSInvokable("sbg/vidosik")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
-            var stream_links = await SpankbangTo.StreamLinks(AppInit.Spankbang.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(url));
+            var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", AppInit.Spankbang.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(url));
             if (stream_links == null)
                 return OnError("stream_links");
 

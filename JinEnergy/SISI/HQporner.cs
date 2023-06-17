@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class HQpornerController : BaseController
     {
         [JSInvokable("hqr")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -17,16 +17,12 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = HQpornerTo.Menu(null, sort),
-                list = HQpornerTo.Playlist("hqr/vidosik", html)
-            };
+            return OnResult(HQpornerTo.Playlist("hqr/vidosik", html), HQpornerTo.Menu(null, sort));
         }
 
 
         [JSInvokable("hqr/vidosik")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
             var stream_links = await HQpornerTo.StreamLinks(AppInit.HQporner.corsHost(), parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), iframeurl => JsHttpClient.Get(AppInit.HQporner.corsHost(iframeurl)));
             if (stream_links == null)

@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class EneyidaController : BaseController
     {
         [JSInvokable("lite/eneyida")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             string? href = parse_arg("href", args);

@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class CollapsController : BaseController
     {
         [JSInvokable("lite/collaps")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");

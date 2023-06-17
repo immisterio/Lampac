@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class AshdiController : BaseController
     {
         [JSInvokable("lite/ashdi")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");

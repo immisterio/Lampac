@@ -117,8 +117,6 @@ namespace Lampac
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, index = "lampa-main/index.html" };
 
-        public SisiConf sisi = new SisiConf() { heightPicture = 200 };
-
         public OnlineConf online = new OnlineConf() { findkp = "all", checkOnlineSearch = true };
 
         public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf", maxiptohour = 10 };

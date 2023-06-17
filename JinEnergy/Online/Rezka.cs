@@ -19,7 +19,7 @@ namespace JinEnergy.Online
         #endregion
 
         [JSInvokable("lite/rezka")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);
@@ -43,7 +43,7 @@ namespace JinEnergy.Online
 
         #region Serial
         [JSInvokable("lite/rezka/serial")]
-        async public static Task<string> Serial(string args)
+        async public static ValueTask<string> Serial(string args)
         {
             var arg = defaultArgs(args);
             int t = int.Parse(parse_arg("t", args) ?? "0");
@@ -71,7 +71,7 @@ namespace JinEnergy.Online
 
         #region Movie
         [JSInvokable("lite/rezka/movie")]
-        async public static Task<string> Movie(string args)
+        async public static ValueTask<string> Movie(string args)
         {
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");

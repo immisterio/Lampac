@@ -1,5 +1,5 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
+﻿using Lampac.Models.SISI;
+using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -28,28 +28,28 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 105 };
 
-            foreach (string row in Regex.Split(html, "<div class=\"video-item").Skip(1))
+            foreach (string row in html.Split("<div class=\"video-item").Skip(1))
             {
-                if (string.IsNullOrWhiteSpace(row) || !row.Contains("<div class=\"stats\">"))
+                if (!row.Contains("<div class=\"stats\">"))
                     continue;
 
-                string link = Regex.Match(row, "<a href=\"/([^\"]+)\"", RegexOptions.IgnoreCase).Groups[1].Value;
-                string title = Regex.Match(row, "class=\"(n|name)\">([^<]+)<", RegexOptions.IgnoreCase).Groups[2].Value;
+                string link = Regex.Match(row, "<a href=\"/([^\"]+)\"").Groups[1].Value;
+                string title = Regex.Match(row, "class=\"(n|name)\">([^<]+)<").Groups[2].Value;
 
                 if (!string.IsNullOrWhiteSpace(link) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string quality = new Regex("<span class=\"h\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
-                    string duration = new Regex("<span class=\"l\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
-                    string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                    string quality = Regex.Match(row, "<span class=\"h\">([^<]+)</span>").Groups[1].Value;
+                    string duration = Regex.Match(row, "<span class=\"l\">([^<]+)</span>").Groups[1].Value.Trim();
+                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value;
                     img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
 
                     var pl = new PlaylistItem()
                     {
                         name = title,
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(link)}",
-                        quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
+                        video = $"{uri}?uri={link}",
+                        quality = string.IsNullOrEmpty(quality) ? null : quality,
                         picture = img,
                         time = duration,
                         json = true
@@ -103,27 +103,34 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult)
         {
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{uri}");
-            string? stream_data = StringConvert.FindLastText(html ?? "", "stream_data", "</script>");
-
-            if (string.IsNullOrWhiteSpace(stream_data))
+            string? html = await onresult.Invoke($"{host}/{url}");
+            if (string.IsNullOrEmpty(html))
                 return null;
 
-            var stream_links = new Dictionary<string, string>();
+            var stream_links = new Dictionary<int, string>();
 
-            var match = new Regex("'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'").Match(stream_data);
+            var match = new Regex("'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'").Match(html);
             while (match.Success)
             {
-                stream_links.TryAdd($"{match.Groups[1].Value}{match.Groups[2].Value}", match.Groups[3].Value);
+                int q = $"{match.Groups[1].Value}{match.Groups[2].Value}" == "4k" ? 2160 : int.Parse(match.Groups[1].Value);
+                stream_links.TryAdd(q, match.Groups[3].Value);
                 match = match.NextMatch();
             }
 
-            return stream_links.OrderByDescending(i => i.Key == "4k").ThenByDescending(i => int.Parse(i.Key.Replace("p", "").Replace("k", ""))).ToDictionary(k => k.Key, v => v.Value);
+            return new StreamItem()
+            {
+                qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
+                recomends = Playlist(uri, html, pl =>
+                {
+                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    return pl;
+                })
+            };
         }
     }
 }

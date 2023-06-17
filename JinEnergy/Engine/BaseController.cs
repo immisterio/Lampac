@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using Lampac.Models.SISI;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -72,6 +73,28 @@ namespace JinEnergy.Engine
 
             IMemoryCache.Set(memKey, val);
             return val;
+        }
+
+
+        public static dynamic OnResult(List<PlaylistItem> playlists, List<MenuItem> menu)
+        {
+            if (AppInit.IsAndrod || !AppInit.sisi.rsize)
+                return new { menu, list = playlists };
+
+            return new
+            {
+                menu,
+                list = playlists.Select(pl => new
+                {
+                    pl.name,
+                    pl.video,
+                    picture = $"{Shared.Model.AppInit.rsizehost}/{pl.picture}",
+                    pl.time,
+                    pl.json,
+                    pl.quality,
+                    pl.qualitys
+                })
+            };
         }
     }
 }

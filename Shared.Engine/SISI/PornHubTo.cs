@@ -1,5 +1,6 @@
-﻿using Lampac.Engine.CORE;
+﻿using Lampac.Models.LITE.Kinobase;
 using Lampac.Models.SISI;
+using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -29,24 +30,39 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false)
         {
-            var playlists = new List<PlaylistItem>();
-            string videoCategory = StringConvert.FindLastText(html, "id=\"videoCategory\"") ??
-                                   StringConvert.FindLastText(html, "id=\"content-tv-container\"") ??
-                                   StringConvert.FindLastText(html, "id=\"lazyVids\"") ??
-                                   StringConvert.FindLastText(html, "id=\"videoSearchResult\"") ?? html;
+            string? videoCategory = null;
+            var playlists = new List<PlaylistItem>() { Capacity = 35 };
 
-            foreach (string row in Regex.Split(videoCategory, "(pcVideoListItem |data-video-segment|<li data-id=)").Skip(1))
+            if (related)
             {
-                if (string.IsNullOrWhiteSpace(row) || row.Contains("premiumIcon") || row.Contains("Porn in русский"))
-                    continue;
+                var ids = html.Split("id=\"relatedVideosCenter\"");
+                if (ids.Length > 1)
+                    videoCategory = ids[1];
+            }
+            else if (html.Contains("id=\"videoCategory\""))
+            {
+                var ids = html.Split("id=\"videoCategory\"");
+                if (ids.Length > 1)
+                    videoCategory = ids[1];
+            }
+            else
+            {
+                var videorows = Regex.Split(html, "id=\"(content-tv-container|lazyVids|videoSearchResult)\"");
+                if (videorows.Length > 2)
+                    videoCategory = videorows[2];
+            }
 
-                string rowfix = Regex.Replace(row, "[\n\r\t]+", "");
+            if (videoCategory == null)
+                return playlists;
 
+            string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : "<li data-id=";
+            foreach (string row in videoCategory.Split("<h2>Languages</h2>")[0].Split(splitkey).Skip(1))
+            {
                 string? m(string pattern, int index = 1)
                 {
-                    string res = Regex.Match(rowfix, pattern, RegexOptions.IgnoreCase).Groups[index].Value.Trim();
+                    string res = Regex.Match(row, pattern).Groups[index].Value;
                     if (string.IsNullOrWhiteSpace(res))
                         return null;
 
@@ -54,29 +70,33 @@ namespace Shared.Engine.SISI
                 }
 
                 string? vkey = m("(-|_)vkey=\"([^\"]+)\"", 2) ?? m("viewkey=([^\"]+)\"");
-                string? title = m("<a href=\"/[^\"]+\" title=\"([^\"]+)\"") ??
-                               m("class=\"videoTitle\">([^<]+)<") ??
-                               m("href=\"/view_[^\"]+\" onclick=[^>]+>([^<]+)<");
+                if (vkey == null)
+                    continue;
 
-                if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(vkey))
+                string? title = m("href=\"/[^\"]+\" title=\"([^\"]+)\"") ?? m("class=\"videoTitle\">([^<]+)<") ?? m("href=\"/view_[^\"]+\" onclick=[^>]+>([^<]+)<");
+                if (title == null)
+                    continue;
+
+                string? img = m("data-mediumthumb=\"(https?://[^\"]+)\"") ?? m("data-path=\"(https?://[^\"]+)\"")?.Replace("{index}", "3") ?? m("<img src=\"([^\"]+)\"");
+                if (img == null)
+                    continue;
+
+                var pl = new PlaylistItem()
                 {
-                    string? img = m("(data-mediumthumb|data-path)=\"(https?://[^\"]+)\"", 2) ?? m("<img src=\"([^\"]+)\"");
-                    string? duration = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<");
+                    name = title,
+                    video = $"{uri}?vkey={vkey}",
+                    picture = img,
+                    time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<"),
+                    json = true
+                };
 
-                    var pl = new PlaylistItem()
-                    {
-                        name = title,
-                        video = $"{uri}?vkey={vkey}",
-                        picture = img ?? string.Empty,
-                        time = duration,
-                        json = true
-                    };
+                if (onplaylist != null)
+                    pl = onplaylist.Invoke(pl);
 
-                    if (onplaylist != null)
-                        pl = onplaylist.Invoke(pl);
+                playlists.Add(pl);
 
-                    playlists.Add(pl);
-                }
+                if (playlists.Count == 32)
+                    break;
             }
 
             return playlists;
@@ -154,78 +174,70 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? vkey, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? vkey, Func<string, ValueTask<string?>> onresult)
         {
-            if (string.IsNullOrWhiteSpace(vkey))
+            if (string.IsNullOrEmpty(vkey))
                 return null;
 
             string? html = await onresult.Invoke($"{host}/view_video.php?viewkey={vkey}");
             if (html == null)
                 return null;
 
-            string? hls = null;
-            foreach (string l in getDirectLinks(html))
-            {
-                if (l.Contains("urlset/master.m3u8"))
-                    hls = l;
-            }
+            string? hls = getDirectLinks(html);
 
-            if (string.IsNullOrWhiteSpace(hls))
+            if (string.IsNullOrEmpty(hls))
             {
                 hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                if (string.IsNullOrWhiteSpace(hls))
+                if (string.IsNullOrEmpty(hls))
                     return null;
             }
 
-            return new Dictionary<string, string>()
+            return new StreamItem()
             {
-                ["auto"] = hls.Replace("///", "//")
+                qualitys = new Dictionary<string, string>()
+                {
+                    ["auto"] = hls.Replace("///", "//")
+                },
+                recomends = Playlist(uri, html, related: true, onplaylist: pl => 
+                {
+                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    return pl;
+                })
             };
         }
 
 
 
         #region getDirectLinks
-        static List<string> getDirectLinks(string pageCode)
+        static string? getDirectLinks(string pageCode)
         {
-            List<string> vars = new List<string>();
-            var getmediaLinks = new List<string>();
+            var vars = new List<(string name, string param)>();
 
-            string mainParamBody = Regex.Match(pageCode, "var player_mp4_seek = \"[^\"]+\";[\n\r\t ]+(// var[^\n\r]+[\n\r\t ]+)?([^\n\r]+)").Groups[2].Value.Trim();
+            string mainParamBody = Regex.Match(pageCode, "var player_mp4_seek = \"[^\"]+\";[\n\r\t ]+(// var[^\n\r]+[\n\r\t ]+)?([^\n\r]+)").Groups[2].Value;
             mainParamBody = Regex.Replace(mainParamBody, "/\\*.*?\\*/", "");
             mainParamBody = mainParamBody.Replace("\" + \"", "");
 
+            foreach (Match currVar in Regex.Matches(mainParamBody, "var ([^=]+)=([^;]+);"))
+                vars.Add((currVar.Groups[1].Value, currVar.Groups[2].Value.Replace("\"", "").Replace(" + ", "")));
 
-            MatchCollection varMc = Regex.Matches(mainParamBody, "var ([^=]+)=([^;]+);");
-            foreach (Match currVar in varMc)
-            {
-                string name = currVar.Groups[1].Value;
-                string param = currVar.Groups[2].Value.Replace("\"", "").Replace(" + ", "");
-                vars.Add(name + ";" + param);
-            }
-
-            MatchCollection qualMc = Regex.Matches(mainParamBody, "var media_([0-9]+)=(.*?);", RegexOptions.Singleline);
-            foreach (Match m in qualMc)
+            string mediapattern = mainParamBody.Contains("var media_4=") && mainParamBody.Contains("var media_5=") ? "var media_(4)=(.*?);" : "var media_([0-9]+)=(.*?);";
+            foreach (Match m in Regex.Matches(mainParamBody, mediapattern, RegexOptions.Singleline))
             {
                 string link = "";
-                string[] parts = m.Groups[2].Value.Replace(" ", "").Split('+');
-                foreach (string curr in parts)
+                foreach (string curr in m.Groups[2].Value.Replace(" ", "").Split('+'))
                 {
-                    string? line = vars.Find(x => x.StartsWith(curr));
-                    if (line == null)
+                    string? param = vars.Find(x => x.name == curr).param;
+                    if (param == null)
                         continue;
 
-                    if (line.Split(';').Length > 1)
-                    {
-                        string? newVal = line.Split(';')[1];
-                        link += newVal;
-                    }
+                    link += param;
                 }
 
-                getmediaLinks.Add(link);
+                if (link.Contains("urlset/master.m3u8"))
+                    return link;
             }
 
-            return getmediaLinks;
+            return null;
         }
         #endregion
     }

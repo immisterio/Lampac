@@ -11,7 +11,7 @@ namespace JinEnergy.Online
     public class VDBmoviesController : BaseController
     {
         [JSInvokable("lite/vdbmovies")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");

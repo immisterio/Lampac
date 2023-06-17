@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class EpornerController : BaseController
     {
         [JSInvokable("epr")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -17,18 +17,14 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = EpornerTo.Menu(null, sort),
-                list = EpornerTo.Playlist("epr/vidosik", html)
-            };
+            return OnResult(EpornerTo.Playlist("epr/vidosik", html), EpornerTo.Menu(null, sort));
         }
 
 
         [JSInvokable("epr/vidosik")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
-            var stream_links = await EpornerTo.StreamLinks(AppInit.Eporner.corsHost(), parse_arg("uri", args), 
+            var stream_links = await EpornerTo.StreamLinks("epr/vidosik", AppInit.Eporner.corsHost(), parse_arg("uri", args), 
                                htmlurl => JsHttpClient.Get(htmlurl), 
                                jsonurl => JsHttpClient.Get(AppInit.Eporner.corsHost(jsonurl)));
 

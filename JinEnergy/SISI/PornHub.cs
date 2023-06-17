@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class PornHubController : BaseController
     {
         [JSInvokable("phub")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -17,18 +17,14 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = PornHubTo.Menu(null, sort),
-                list = PornHubTo.Playlist("phub/vidosik", html)
-            };
+            return OnResult(PornHubTo.Playlist("phub/vidosik", html), PornHubTo.Menu(null, sort));
         }
 
 
         [JSInvokable("phub/vidosik")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
-            var stream_links = await PornHubTo.StreamLinks(AppInit.PornHub.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(url));
+            var stream_links = await PornHubTo.StreamLinks("phub/vidosik", AppInit.PornHub.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(url));
             if (stream_links == null)
                 return OnError("stream_links");
 

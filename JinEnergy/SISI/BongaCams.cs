@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class BongaCamsController : BaseController
     {
         [JSInvokable("bgs")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
@@ -16,11 +16,7 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = BongaCamsTo.Menu(null, sort),
-                list = BongaCamsTo.Playlist(html)
-            };
+            return OnResult(BongaCamsTo.Playlist(html), BongaCamsTo.Menu(null, sort));
         }
     }
 }

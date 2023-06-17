@@ -60,5 +60,20 @@ namespace SISI
                 })
             });
         }
+
+        public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<(string name, string val)> headers = null)
+        {
+            return new JsonResult(new
+            {
+                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy)),
+                recomends = stream_links.recomends.Select(pl => new
+                {
+                    pl.name,
+                    pl.video,
+                    picture = HostImgProxy(0, 110, pl.picture, headers: headers),
+                    pl.json
+                })
+            });
+        }
     }
 }

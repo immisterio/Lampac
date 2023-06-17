@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.SISI;
+using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -28,25 +29,25 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 70 };
 
             foreach (string row in Regex.Split(html, "<div class=\"mb( hdy)?\"").Skip(1))
             {
-                var g = new Regex("<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>", RegexOptions.IgnoreCase).Match(row).Groups;
-                string quality = new Regex("<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", RegexOptions.IgnoreCase).Match(row).Groups[2].Value;
+                var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>").Groups;
+                string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)").Groups[2].Value;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string img = new Regex(" data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                    string img = Regex.Match(row, " data-src=\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(img))
-                        img = new Regex("<img src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                        img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
 
-                    string duration = new Regex("<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[2].Value.Trim();
+                    string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>").Groups[2].Value.Trim();
 
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(g[1].Value)}",
+                        video = $"{uri}?uri={g[1].Value}",
                         picture = img,
                         quality = quality,
                         time = duration,
@@ -111,17 +112,17 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>> onjson, Func<string, string>? onlog = null)
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>> onjson, Func<string, string>? onlog = null)
         {
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{uri}");
+            string? html = await onresult.Invoke($"{host}/{url}");
             if (html == null)
                 return null;
 
-            string vid = new Regex("vid ?= ?'([^']+)'").Match(html).Groups[1].Value;
-            string hash = new Regex("hash ?= ?'([^']+)'").Match(html).Groups[1].Value;
+            string vid = Regex.Match(html, "vid ?= ?'([^']+)'").Groups[1].Value;
+            string hash = Regex.Match(html, "hash ?= ?'([^']+)'").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(vid) || string.IsNullOrWhiteSpace(hash))
                 return null;
 
@@ -141,7 +142,16 @@ namespace Shared.Engine.SISI
             }
 
             onlog?.Invoke("stream_links: " + stream_links.Count);
-            return stream_links;
+
+            return new StreamItem()
+            {
+                qualitys = stream_links,
+                recomends = Playlist(uri, html, pl =>
+                {
+                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    return pl;
+                })
+            };
         }
 
 

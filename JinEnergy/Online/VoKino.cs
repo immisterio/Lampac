@@ -7,7 +7,7 @@ namespace JinEnergy.Online
     public class VoKinoController : BaseController
     {
         [JSInvokable("lite/vokino")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
 

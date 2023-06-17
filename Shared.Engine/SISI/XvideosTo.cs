@@ -17,25 +17,25 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>();
+            var playlists = new List<PlaylistItem>() { Capacity = 40 };
 
-            foreach (string row in Regex.Split(html, "<div class=\"thumb-inside\">").Skip(1))
+            foreach (string row in html.Split("<div class=\"thumb-inside\">").Skip(1))
             {
-                var g = new Regex($"<a href=\"/(prof-video-click/[^\"]+|video[0-9]+/[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups;
-                string qmark = new Regex("<span class=\"video-hd-mark\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                var g = Regex.Match(row, "<a href=\"/(prof-video-click/[^\"]+|video[0-9]+/[^\"]+)\" title=\"([^\"]+)\"").Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string duration = new Regex("<span class=\"duration\">([^<]+)</span>", RegexOptions.IgnoreCase).Match(row).Groups[1].Value.Trim();
+                    string qmark = Regex.Match(row, "<span class=\"video-hd-mark\">([^<]+)</span>").Groups[1].Value;
+                    string duration = Regex.Match(row, "<span class=\"duration\">([^<]+)</span>").Groups[1].Value.Trim();
 
-                    string img = new Regex("data-src=\"([^\"]+)\"", RegexOptions.IgnoreCase).Match(row).Groups[1].Value;
+                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value;
                     img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/");
                     img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase);
 
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{uri}?uri={HttpUtility.UrlEncode(g[1].Value)}",
+                        video = $"{uri}?uri={g[1].Value}",
                         picture = img,
                         quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
                         time = duration,

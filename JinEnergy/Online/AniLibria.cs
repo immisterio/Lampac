@@ -8,7 +8,7 @@ namespace JinEnergy.Online
     public class AniLibriaController : BaseController
     {
         [JSInvokable("lite/anilibria")]
-        async public static Task<string> Index(string args)
+        async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
             string? code = parse_arg("code", args);

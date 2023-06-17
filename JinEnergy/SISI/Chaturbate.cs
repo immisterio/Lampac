@@ -7,7 +7,7 @@ namespace JinEnergy.SISI
     public class ChaturbateController : BaseController
     {
         [JSInvokable("chu")]
-        async public static Task<dynamic> Index(string args)
+        async public static ValueTask<dynamic> Index(string args)
         {
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
@@ -16,16 +16,12 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = ChaturbateTo.Menu(null, sort),
-                list = ChaturbateTo.Playlist("chu/potok", html)
-            };
+            return OnResult(ChaturbateTo.Playlist("chu/potok", html), ChaturbateTo.Menu(null, sort));
         }
 
 
         [JSInvokable("chu/potok")]
-        async public static Task<dynamic> Stream(string args)
+        async public static ValueTask<dynamic> Stream(string args)
         {
             var stream_links = await ChaturbateTo.StreamLinks(AppInit.Chaturbate.corsHost(), parse_arg("baba", args), url => JsHttpClient.Get(url));
             if (stream_links == null)
