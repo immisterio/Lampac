@@ -11,6 +11,7 @@ using System.Text;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
+using Shared.Model.Online.Kodik;
 
 namespace Lampac.Controllers.LITE
 {
@@ -37,24 +38,45 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string kid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1)
         {
             if (!AppInit.conf.Kodik.enable)
                 return OnError();
 
-            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return OnError();
-
+            List<Result> content = null;
             var oninvk = InitKodikInvoke();
 
-            var content = await InvokeCache($"kodik:view:{kinopoisk_id}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id, s));
-            if (content == null)
-                return OnError(proxyManager);
+            if (clarification == 1)
+            {
+                if (string.IsNullOrWhiteSpace(title))
+                    return OnError();
 
-            if (content.Count == 0)
-                return OnError();
+                var res = await InvokeCache($"kodik:search:{title}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(title));
+                if (res?.result == null)
+                    return OnError(proxyManager);
 
-            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, kid, s, true), "text/html; charset=utf-8");
+                if (res.result.Count == 0)
+                    return OnError();
+
+                if (string.IsNullOrEmpty(pick))
+                    return Content(res.html ?? string.Empty, "text/html; charset=utf-8");
+
+                content = oninvk.Embed(res.result, pick);
+            }
+            else
+            {
+                if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                    return OnError();
+
+                content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id, s));
+                if (content == null)
+                    return OnError(proxyManager);
+
+                if (content.Count == 0)
+                    return OnError();
+            }
+
+            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true), "text/html; charset=utf-8");
         }
 
         #region Video - API

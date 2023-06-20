@@ -1,6 +1,7 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Online.Kodik;
 
 namespace JinEnergy.Online
 {
@@ -24,16 +25,36 @@ namespace JinEnergy.Online
         {
             var arg = defaultArgs(args);
             string? kid = parse_arg("kid", args);
+            string? pick = parse_arg("pick", args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
 
-            if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                return OnError("arg");
+            List<Result>? content = null;
 
-            var content = await InvokeCache(arg.id, $"kodik:view:{arg.kinopoisk_id}:{arg.imdb_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, s));
-            if (content == null || content.Count == 0)
-                return OnError("content");
+            if (arg.clarification == 1)
+            {
+                if (string.IsNullOrWhiteSpace(arg.title))
+                    return OnError("arg");
 
-            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, kid, s, false);
+                var res = await InvokeCache(arg.id, $"kodik:search:{arg.title}", () => oninvk.Embed(arg.title));
+                if (res?.result == null || res.result.Count == 0)
+                    return OnError("content");
+
+                if (string.IsNullOrEmpty(pick))
+                    return res.html ?? string.Empty;
+
+                content = oninvk.Embed(res.result, pick);
+            }
+            else
+            {
+                if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
+                    return OnError("arg");
+
+                content = await InvokeCache(arg.id, $"kodik:search:{arg.kinopoisk_id}:{arg.imdb_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, s));
+                if (content == null || content.Count == 0)
+                    return OnError("content");
+            }
+
+            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false);
         }
 
 

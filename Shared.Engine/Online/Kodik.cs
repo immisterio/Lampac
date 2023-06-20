@@ -51,10 +51,65 @@ namespace Shared.Engine.Online
             }
             catch { return null; }
         }
+
+
+        public async ValueTask<EmbedModel?> Embed(string title)
+        {
+            try
+            {
+                string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(title)}&with_episodes=true";
+
+                var root = JsonSerializer.Deserialize<RootObject>(await onget(url, null));
+                if (root?.results == null)
+                    return null;
+
+                bool firstjson = true;
+                var html = new StringBuilder();
+                html.Append("<div class=\"videos__line\">");
+
+                var hash = new HashSet<string>();
+                string enc_title = HttpUtility.UrlEncode(title);
+
+                foreach (var similar in root.results)
+                {
+                    string pick = similar.title.ToLower().Trim();
+                    if (hash.Contains(pick))
+                        continue;
+
+                    hash.Add(pick);
+                    string link = host + $"lite/kodik?title={enc_title}&clarification=1&pick={HttpUtility.UrlEncode(pick)}";
+
+                    html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>");
+                    firstjson = false;
+                }
+
+                return new EmbedModel()
+                {
+                    html = html + "</div>",
+                    result = root.results
+                };
+            }
+            catch { return null; }
+        }
+
+        public List<Result> Embed(List<Result> results, string pick)
+        {
+            var content = new List<Result>();
+
+            foreach (var i in results)
+            {
+                if (i.title == null || i.title.ToLower().Trim() != pick)
+                    continue;
+
+                content.Add(i);
+            }
+
+            return content;
+        }
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string? kid, int s, bool showstream)
+        public string Html(List<Result> results, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream)
         {
             bool firstjson = true;
             var html = new StringBuilder();
@@ -85,13 +140,16 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
+                string? enc_pick = HttpUtility.UrlEncode(pick);
+
                 if (s == -1)
                 {
-                    HashSet<int> hash = new HashSet<int>();
+                    var hash = new HashSet<int>();
+
                     foreach (var item in results.AsEnumerable().Reverse())
                     {
                         int season = item.last_season;
-                        string link = host + $"lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season}";
+                        string link = host + $"lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={season}";
 
                         if (hash.Contains(season))
                             continue;
@@ -121,7 +179,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrWhiteSpace(kid))
                             kid = id;
 
-                        string link = host + $"lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&kid={id}";
+                        string link = host + $"lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}";
 
                         html.Append("<div class=\"videos__button selector " + (kid == id ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
                     }

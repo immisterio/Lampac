@@ -6,6 +6,8 @@ namespace Shared.Model.Online.Kodik
     {
         public string id { get; set; }
 
+        public string title { get; set; }
+
         public string type { get; set; }
 
         public string link { get; set; }
