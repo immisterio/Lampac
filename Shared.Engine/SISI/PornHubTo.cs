@@ -1,5 +1,4 @@
-﻿using Lampac.Models.LITE.Kinobase;
-using Lampac.Models.SISI;
+﻿using Lampac.Models.SISI;
 using Shared.Model;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -86,6 +85,7 @@ namespace Shared.Engine.SISI
                     name = title,
                     video = $"{uri}?vkey={vkey}",
                     picture = img,
+                    preview = m("data-mediabook=\"(https?://[^\"]+)\""),
                     time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<"),
                     json = true
                 };

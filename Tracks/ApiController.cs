@@ -75,7 +75,7 @@ namespace Lampac.Controllers
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
                     process.StartInfo.FileName = AppInit.conf.ffprobe.os == "linux" ? "ffprobe" : $"ffprobe/{AppInit.conf.ffprobe.os}.exe";
-                    process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {media}";
+                    process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams \"{media}\"";
                     process.Start();
 
                     outPut = await process.StandardOutput.ReadToEndAsync();

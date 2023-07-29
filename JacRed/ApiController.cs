@@ -31,7 +31,7 @@ namespace JacRed.Controllers
 
         #region Jackett
         [Route("/api/v2.0/indexers/{status}/results")]
-        public ActionResult Jackett(string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        public ActionResult Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
             bool rqnum = false, setcache = false;
             var torrents = new Dictionary<string, TorrentDetails>();
@@ -118,6 +118,9 @@ namespace JacRed.Controllers
                         // Точная выборка по name или originalname
                         if ((_n != null && _n == name) || (_o != null && _o == originalname))
                         {
+                            if (Regex.IsMatch(t.title, " (сезон|сери(и|я|й))", RegexOptions.IgnoreCase))
+                                continue;
+
                             if (is_serial == 1)
                             {
                                 #region Фильм
@@ -442,6 +445,27 @@ namespace JacRed.Controllers
 
                         if (torrent.createTime > t.torrent.createTime)
                             t.torrent.createTime = torrent.createTime;
+
+                        if (torrent.voices != null && torrent.voices.Count > 0)
+                        {
+                            if (t.torrent.voices == null)
+                                t.torrent.voices = new HashSet<string>();
+
+                            foreach (var v in torrent.voices)
+                                t.torrent.voices.Add(v);
+                        }
+
+                        if (torrent.languages != null && torrent.languages.Count > 0)
+                        {
+                            if (t.torrent.languages == null)
+                                t.torrent.languages = new HashSet<string>();
+
+                            foreach (var v in torrent.languages)
+                                t.torrent.languages.Add(v);
+                        }
+
+                        if (t.torrent.ffprobe == null)
+                            t.torrent.ffprobe = torrent.ffprobe;
                     }
                 }
 
@@ -450,9 +474,13 @@ namespace JacRed.Controllers
             }
             #endregion
 
+            var result = tsort.OrderByDescending(i => i.createTime).Take(2_000);
+            if (apikey == "rus")
+                result = result.Where(i => i.languages != null && i.languages.Contains("rus"));
+
             jval = JsonConvert.SerializeObject(new
             {
-                Results = tsort.OrderByDescending(i => i.createTime).Take(2_000).Select(i => new
+                Results = result.Select(i => new
                 {
                     Tracker = i.trackerName,
                     Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
@@ -463,8 +491,23 @@ namespace JacRed.Controllers
                     CategoryDesc = categoryDesc,
                     Seeders = i.sid,
                     Peers = i.pir,
-                    MagnetUri = i.magnet
-                })
+                    MagnetUri = i.magnet,
+                    info = new
+                    {
+                        i.name,
+                        i.originalname,
+                        i.sizeName,
+                        i.relased,
+                        i.videotype,
+                        i.quality,
+                        i.voices,
+                        seasons = i.seasons != null && i.seasons.Count > 0 ? i.seasons : null,
+                        i.types
+                    },
+                    languages = i.languages != null && i.languages.Count > 0 ? i.languages : null,
+                    i.ffprobe
+                }),
+                jacred = true
             });
 
             if (setcache && !ModInit.conf.evercache)

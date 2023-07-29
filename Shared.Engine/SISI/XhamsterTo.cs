@@ -52,7 +52,7 @@ namespace Shared.Engine.SISI
                             duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
                     }
 
-                    string img = Regex.Match(row, "class=\"thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
+                    string img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
                     if (!img.StartsWith("http"))
                         img = Regex.Match(row, "<noscript><img src=\"([^\"]+)\"").Groups[1].Value.Trim();
 

@@ -8,6 +8,8 @@
 
         public string? picture { get; set; }
 
+        public string? preview { get; set; }
+
         public string? quality { get; set; }
 
         public string? time { get; set; }

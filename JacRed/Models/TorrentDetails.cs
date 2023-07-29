@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JacRed.Models.Tracks;
+using System;
 using System.Collections.Generic;
 
 namespace JacRed.Models.Details
@@ -44,6 +45,11 @@ namespace JacRed.Models.Details
         public HashSet<string> voices { get; set; } = new HashSet<string>();
 
         public HashSet<int> seasons { get; set; } = new HashSet<int>();
+
+
+        public HashSet<string> languages { get; set; }
+
+        public List<ffStream> ffprobe { get; set; }
 
 
         public object Clone()

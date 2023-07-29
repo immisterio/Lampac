@@ -26,6 +26,9 @@ namespace TorrServer
 
         public static void loaded()
         {
+            if (File.Exists(@"C:\ProgramData\lampac\disabts"))
+                return;
+
             if (Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
                 homedir = $"{Directory.GetCurrentDirectory()}/torrserver";
