@@ -37,6 +37,8 @@ namespace Shared.Model
 
         public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com", streamproxy: true);
 
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("https://rt.pornhubpremium.com", enable: false, streamproxy: true);
+
 
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", streamproxy: true);

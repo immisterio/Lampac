@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string? search, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string?> InvokeHtml(string host, string? search, string? sort, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = $"{host}/";
 
@@ -21,6 +21,9 @@ namespace Shared.Engine.SISI
 
                 if (!string.IsNullOrWhiteSpace(sort))
                     url += $"?o={sort}";
+
+                if (!string.IsNullOrWhiteSpace(hd))
+                    url += (url.Contains("?") ? "&" : "?") + $"hd={hd}";
             }
 
             if (pg > 1)
@@ -29,10 +32,10 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
         {
             string? videoCategory = null;
-            var playlists = new List<PlaylistItem>() { Capacity = 35 };
+            var playlists = new List<PlaylistItem>() { Capacity = prem ? 50 : 35 };
 
             if (related)
             {
@@ -95,14 +98,14 @@ namespace Shared.Engine.SISI
 
                 playlists.Add(pl);
 
-                if (playlists.Count == 32)
+                if (playlists.Count == (prem ? 48 : 32))
                     break;
             }
 
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? sort)
+        public static List<MenuItem> Menu(string? host, string? sort, string? hd = null, bool prem = false)
         {
             #region getSortName
             string getSortName(string? sort, string emptyName)
@@ -134,14 +137,15 @@ namespace Shared.Engine.SISI
             #endregion
 
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
+            string url = host + (prem ? "pornhubpremium" : "phub");
 
-            return new List<MenuItem>()
+            var menu = new List<MenuItem>()
             {
                 new MenuItem()
                 {
                     title = "Поиск",
                     search_on = "search_on",
-                    playlist_url = host + "phub",
+                    playlist_url = url,
                 },
                 new MenuItem()
                 {
@@ -152,26 +156,60 @@ namespace Shared.Engine.SISI
                         new MenuItem()
                         {
                             title = "Недавно в избранном",
-                            playlist_url = host + "phub"
+                            playlist_url = url + $"?hd={hd}"
                         },
                         new MenuItem()
                         {
                             title = "Новейшее",
-                            playlist_url = host + "phub?sort=cm"
+                            playlist_url = url + $"?hd={hd}&sort=cm"
                         },
                         new MenuItem()
                         {
                             title = "Самые горячие",
-                            playlist_url = host + "phub?sort=ht"
+                            playlist_url = url + $"?hd={hd}&sort=ht"
                         },
                         new MenuItem()
                         {
                             title = "Лучшие",
-                            playlist_url = host + "phub?sort=tr"
+                            playlist_url = url + $"?hd={hd}&sort=tr"
                         }
                     }
                 }
             };
+
+            if (prem)
+            {
+                menu.Add(new MenuItem()
+                {
+                    title = $"Качество: {(hd == "2" ? "1080p" : hd == "3" ? "1440p" : hd == "4" ? "2160p" : "все")}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                    {
+                        new MenuItem()
+                        {
+                            title = "Все",
+                            playlist_url = url + $"?sort={sort}"
+                        },
+                        new MenuItem()
+                        {
+                            title = "2160p",
+                            playlist_url = url + $"?sort={sort}&hd=4"
+                        },
+                        new MenuItem()
+                        {
+                            title = "1440p",
+                            playlist_url = url + $"?sort={sort}&hd=3"
+                        },
+                        new MenuItem()
+                        {
+                            title = "1080p",
+                            playlist_url = url + $"?sort={sort}&hd=2"
+                        }
+                    }
+                });
+            }
+
+            return menu;
         }
 
         async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? vkey, Func<string, ValueTask<string?>> onresult)
@@ -220,7 +258,7 @@ namespace Shared.Engine.SISI
             foreach (Match currVar in Regex.Matches(mainParamBody, "var ([^=]+)=([^;]+);"))
                 vars.Add((currVar.Groups[1].Value, currVar.Groups[2].Value.Replace("\"", "").Replace(" + ", "")));
 
-            string mediapattern = mainParamBody.Contains("var media_4=") && mainParamBody.Contains("var media_5=") ? "var media_(4)=(.*?);" : "var media_([0-9]+)=(.*?);";
+            string mediapattern = /*mainParamBody.Contains("var media_4=") && mainParamBody.Contains("var media_5=") ? "var media_(4)=(.*?);" : */"var media_([0-9]+)=(.*?);";
             foreach (Match m in Regex.Matches(mainParamBody, mediapattern, RegexOptions.Singleline))
             {
                 string link = "";

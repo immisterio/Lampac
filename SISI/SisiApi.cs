@@ -80,6 +80,15 @@ namespace SISI
                 }
             }
 
+            if (conf.PornHubPremium.enable)
+            {
+                channels.Add(new
+                {
+                    title = "pornhubpremium.com",
+                    playlist_url = $"{host}/pornhubpremium"
+                });
+            }
+
             if (conf.PornHub.enable)
             {
                 channels.Add(new

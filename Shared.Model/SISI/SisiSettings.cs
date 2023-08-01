@@ -11,5 +11,7 @@ namespace Lampac.Models.SISI
             this.useproxy = useproxy;
             this.streamproxy = streamproxy;
         }
+
+        public string? cookie { get; set; }
     }
 }
