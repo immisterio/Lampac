@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
                 (url, data) => HttpClient.Post(AppInit.conf.Rezka.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>
                 {
                     ("X-App-Hdrezka-App", "1"),
-                    ("Cookie", AppInit.conf.Rezka.сookie)
+                    ("Cookie", AppInit.conf.Rezka.cookie)
                 }),
                 streamfile => HostStreamProxy(AppInit.conf.Rezka, streamfile, proxy: proxy)
             );

@@ -109,7 +109,7 @@ namespace JacRed.Controllers
                 {
                     foreach (var t in FileDB.OpenRead(val.Key).Values)
                     {
-                        if (t.types == null)
+                        if (t.types == null || t.title.Contains(" КПК"))
                             continue;
 
                         string name = StringConvert.SearchName(t.name);
@@ -118,14 +118,14 @@ namespace JacRed.Controllers
                         // Точная выборка по name или originalname
                         if ((_n != null && _n == name) || (_o != null && _o == originalname))
                         {
-                            if (Regex.IsMatch(t.title, " (сезон|сери(и|я|й))", RegexOptions.IgnoreCase))
-                                continue;
-
                             if (is_serial == 1)
                             {
                                 #region Фильм
                                 if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
                                 {
+                                    if (Regex.IsMatch(t.title, " (сезон|сери(и|я|й))", RegexOptions.IgnoreCase))
+                                        continue;
+
                                     if (year > 0)
                                     {
                                         if (t.relased == year || t.relased == (year - 1) || t.relased == (year + 1))
@@ -252,7 +252,7 @@ namespace JacRed.Controllers
                                     continue;
                             }
 
-                            if (t.types == null)
+                            if (t.types == null || t.title.Contains(" КПК"))
                                 continue;
 
                             if (is_serial == 1)
@@ -508,7 +508,8 @@ namespace JacRed.Controllers
                     i.ffprobe
                 }),
                 jacred = true
-            });
+
+            }, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
             if (setcache && !ModInit.conf.evercache)
                 memoryCache.Set(memoryKey, jval, DateTime.Now.AddMinutes(10));

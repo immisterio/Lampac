@@ -73,7 +73,11 @@ namespace Lampac.Engine.CORE
             if (string.IsNullOrWhiteSpace(val))
                 return null;
 
-            return Regex.Replace(val.ToLower(), "[^a-zA-Zа-яА-Я0-9Ёё]+", "").Replace("ё", "е").Replace("щ", "ш");
+            val = Regex.Replace(val.ToLower(), "[^a-zA-Zа-яА-Я0-9Ёё]+", "").Replace("ё", "е").Replace("щ", "ш");
+            if (string.IsNullOrWhiteSpace(val))
+                return null;
+
+            return val;
         }
         #endregion
     }
