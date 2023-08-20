@@ -13,7 +13,7 @@ namespace JinEnergy.SISI
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await PornHubTo.InvokeHtml(AppInit.PornHub.corsHost(), search, sort, pg, url => JsHttpClient.Get(url));
+            string? html = await PornHubTo.InvokeHtml(AppInit.PornHub.corsHost(), search, sort, null, pg, url => JsHttpClient.Get(url));
             if (html == null)
                 return OnError("html");
 

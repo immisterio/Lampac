@@ -146,7 +146,7 @@ namespace Lampac
 
         public TrackerSettings Underverse = new TrackerSettings("https://underver.se", enable: false);
 
-        public TrackerSettings Selezen = new TrackerSettings("https://selezen.org", enable: false, priority: "torrent");
+        public TrackerSettings Selezen = new TrackerSettings("https://open.selezen.org", enable: false, priority: "torrent");
 
         public TrackerSettings Lostfilm = new TrackerSettings("https://www.lostfilm.tv", enable: false);
 
@@ -154,7 +154,7 @@ namespace Lampac
 
         public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
 
-        public TrackerSettings Anifilm = new TrackerSettings("https://anifilm.tv");
+        public TrackerSettings Anifilm = new TrackerSettings("https://anifilm.net");
 
 
         public ProxySettings proxy = new ProxySettings();

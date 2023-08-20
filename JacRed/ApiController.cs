@@ -476,7 +476,7 @@ namespace JacRed.Controllers
 
             var result = tsort.OrderByDescending(i => i.createTime).Take(2_000);
             if (apikey == "rus")
-                result = result.Where(i => i.languages != null && i.languages.Contains("rus"));
+                result = result.Where(i => (i.languages != null && i.languages.Contains("rus")) || (i.types != null && (i.types.Contains("sport") || i.types.Contains("tvshow") || i.types.Contains("docuserial"))));
 
             jval = JsonConvert.SerializeObject(new
             {

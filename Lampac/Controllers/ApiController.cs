@@ -23,6 +23,12 @@ namespace Lampac.Controllers
             return Content("api work", contentType: "text/plain; charset=utf-8");
         }
 
+        [Route("/version")]
+        public ActionResult Version()
+        {
+            return Content("76", contentType: "text/plain; charset=utf-8");
+        }
+
         #region app.min.js
         [Route("lampa-{type}/app.min.js")]
         public ActionResult LampaApp(string type)
@@ -176,11 +182,23 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/ts.js\",\"status\": 1,\"name\": \"TorrServer\",\"author\": \"lampac\"},";
+
+                    if (AppInit.conf.accsdb.enable)
+                    {
+                        if (!memoryCache.TryGetValue($"ApiController:deny.js:{lite}", out string denyfile))
+                        {
+                            denyfile = IO.File.ReadAllText("plugins/deny.js");
+                            memoryCache.Set($"ApiController:deny.js:{lite}", denyfile, DateTime.Now.AddMinutes(5));
+                        }
+
+                        file = file.Replace("{deny}", denyfile.Replace("{cubMesage}", AppInit.conf.accsdb.cubMesage));
+                    }
                 }
             }
 
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
             file = file.Replace("{localhost}", host);
+            file = file.Replace("{deny}", string.Empty);
 
             if (AppInit.modules != null && (AppInit.modules.FirstOrDefault(i => i.dll == "Jackett.dll" && i.enable) != null || AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null))
                 file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));

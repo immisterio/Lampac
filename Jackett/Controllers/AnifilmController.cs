@@ -19,14 +19,14 @@ namespace Lampac.Controllers.CRON
     public class AnifilmController : BaseController
     {
         #region parseMagnet
-        static string TorrentFileMemKey(string tid) => $"anifilm:parseMagnet:{tid}";
+        static string TorrentFileMemKey(string url) => $"anifilm:parseMagnet:{url}";
 
-        async public Task<ActionResult> parseMagnet(string tid, bool usecache)
+        async public Task<ActionResult> parseMagnet(string url, bool usecache)
         {
             if (!AppInit.conf.Anifilm.enable)
                 return Content("disable");
 
-            string key = TorrentFileMemKey(tid);
+            string key = TorrentFileMemKey(url);
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
@@ -40,15 +40,34 @@ namespace Lampac.Controllers.CRON
 
             var proxyManager = new ProxyManager("anifilm", AppInit.conf.Anifilm);
 
-            _t = await HttpClient.Download($"{AppInit.conf.Anifilm.host}/{tid}", referer: $"{AppInit.conf.Anifilm.host}/", timeoutSeconds: 10, proxy: proxyManager.Get());
-            if (_t != null && BencodeTo.Magnet(_t) != null)
+            var fullNews = await HttpClient.Get(url, timeoutSeconds: 8, proxy: proxyManager.Get());
+            if (fullNews == null)
+                return Content("error");
+
             {
-                await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
-                return File(_t, "application/x-bittorrent");
+                string tid = null;
+                string[] releasetorrents = fullNews.Split("<li class=\"release__torrents-item\">");
+
+                string _rnews = releasetorrents.FirstOrDefault(i => i.Contains("href=\"/releases/download-torrent/") && i.Contains(" 1080p "));
+                if (!string.IsNullOrWhiteSpace(_rnews))
+                    tid = Regex.Match(_rnews, "href=\"/(releases/download-torrent/[0-9]+)\">скачать</a>").Groups[1].Value;
+
+                if (string.IsNullOrWhiteSpace(tid))
+                    tid = Regex.Match(fullNews, "href=\"/(releases/download-torrent/[0-9]+)\">скачать</a>").Groups[1].Value;
+
+                if (!string.IsNullOrWhiteSpace(tid))
+                {
+                    _t = await HttpClient.Download($"{AppInit.conf.Anifilm.host}/{tid}", referer: $"{AppInit.conf.Anifilm.host}/", timeoutSeconds: 10, proxy: proxyManager.Get());
+                    if (_t != null && BencodeTo.Magnet(_t) != null)
+                    {
+                        await TorrentCache.Write(key, _t);
+                        Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                        return File(_t, "application/x-bittorrent");
+                    }
+                    else if (AppInit.conf.jac.emptycache)
+                        Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                }
             }
-            else if (AppInit.conf.jac.emptycache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
@@ -96,67 +115,55 @@ namespace Lampac.Controllers.CRON
             }
             #endregion
 
-            #region Локальный метод - Match
-            string Match(string pattern, int index = 1)
+            foreach (string row in cread.html.Split("class=\"releases__item\"").Skip(1))
             {
-                string res = HttpUtility.HtmlDecode(new Regex(pattern, RegexOptions.IgnoreCase).Match(cread.html).Groups[index].Value.Trim());
-                res = Regex.Replace(res, "[\n\r\t ]+", " ");
-                return res.Trim();
-            }
-            #endregion
+                #region Локальный метод - Match
+                string Match(string pattern, int index = 1)
+                {
+                    string res = HttpUtility.HtmlDecode(new Regex(pattern, RegexOptions.IgnoreCase).Match(row).Groups[index].Value.Trim());
+                    res = Regex.Replace(res, "[\n\r\t ]+", " ");
+                    return res.Trim();
+                }
+                #endregion
 
-            #region Данные раздачи
-            string url = Match("<a href=\"/(releases/[^\"]+)\"");
-            string name = Match("class=\"release__title-primary\" itemprop=\"name\">([^<]+)</h1>");
-            string originalname = Match("itemprop=\"alternativeHeadline\">([^<]+)</span>");
-            string episodes = Match("([0-9]+(-[0-9]+)?) из [0-9]+ эп.,");
+                if (string.IsNullOrWhiteSpace(row))
+                    continue;
 
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(originalname))
-                return false;
+                #region Данные раздачи
+                string url = Match("<a href=\"/(releases/[^\"]+)\"");
+                string name = Match("<a class=\"releases__title-russian\" [^>]+>([^<]+)</a>");
+                string originalname = Match("<span class=\"releases__title-original\">([^<]+)</span>");
+                string episodes = Match("([0-9]+(-[0-9]+)?) из [0-9]+ эп.,");
 
-            if (!int.TryParse(Match("<a href=\"/releases/releases/[^\"]+\">([0-9]{4})</a> г\\."), out int relased) || relased == 0)
-                return false;
-
-            url = $"{AppInit.conf.Anifilm.host}/{url}";
-            string title = $"{name} / {originalname}";
-
-            if (!string.IsNullOrWhiteSpace(episodes))
-                title += $" ({episodes})";
-            #endregion
-
-            string tid = null;
-            string[] releasetorrents = cread.html.Split("<li class=\"release__torrents-item\">");
-
-            string _rnews = releasetorrents.FirstOrDefault(i => i.Contains("href=\"/releases/download-torrent/") && i.Contains(" 1080p "));
-            if (!string.IsNullOrWhiteSpace(_rnews))
-            {
-                tid = Regex.Match(_rnews, "href=\"/(releases/download-torrent/[0-9]+)\">скачать</a>").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(tid))
-                    title += " [1080p]";
-            }
-
-            if (string.IsNullOrWhiteSpace(tid))
-            {
-                tid = Regex.Match(cread.html, "href=\"/(releases/download-torrent/[0-9]+)\">скачать</a>").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(tid))
+                if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(originalname))
                     return false;
+
+                if (!int.TryParse(Match("<a href=\"/releases/releases/[^\"]+\">([0-9]{4})</a> г\\."), out int relased) || relased == 0)
+                    return false;
+
+                url = $"{AppInit.conf.Anifilm.host}/{url}";
+                string title = $"{name} / {originalname}";
+
+                if (!string.IsNullOrWhiteSpace(episodes))
+                    title += $" ({episodes})";
+                #endregion
+
+                if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(url)))
+                    return false;
+
+                torrents.Add(new TorrentDetails()
+                {
+                    trackerName = "anifilm",
+                    types = new string[] { "anime" },
+                    url = url,
+                    title = title,
+                    sid = 1,
+                    parselink = $"{host}/anifilm/parsemagnet?url={HttpUtility.UrlEncode(url)}" + (!validrq ? "&usecache=true" : ""),
+                    name = name,
+                    originalname = originalname,
+                    relased = relased
+                });
             }
-
-            if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(tid)))
-                return false;
-
-            torrents.Add(new TorrentDetails()
-            {
-                trackerName = "anifilm",
-                types = new string[] { "anime" },
-                url = url,
-                title = title,
-                sid = 1,
-                parselink = $"{host}/anifilm/parsemagnet?tid={HttpUtility.UrlEncode(tid)}" + (!validrq ? "&usecache=true" : ""),
-                name = name,
-                originalname = originalname,
-                relased = relased
-            });
 
             return true;
         }
