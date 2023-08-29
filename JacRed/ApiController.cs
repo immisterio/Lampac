@@ -42,7 +42,7 @@ namespace JacRed.Controllers
             if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original) &&
                 mNum.Success)
             {
-                if (Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z]{4}"))
+                if (Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z0-9]{2}"))
                 {
                     rqnum = true;
                     var g = mNum.Groups;
@@ -105,7 +105,11 @@ namespace JacRed.Controllers
                 string _o = StringConvert.SearchName(title_original);
 
                 // Быстрая выборка по совпадению ключа в имени
-                foreach (var val in FileDB.masterDb.Where(i => (_n != null && i.Key.StartsWith($"{_n}:")) || (_o != null && i.Key.EndsWith($":{_o}"))).Take(ModInit.conf.maxreadfile))
+                var mdb = FileDB.masterDb.Where(i => (_n != null && i.Key.StartsWith($"{_n}:")) || (_o != null && i.Key.EndsWith($":{_o}")));
+                if (!ModInit.conf.evercache)
+                    mdb = mdb.Take(ModInit.conf.maxreadfile);
+
+                foreach (var val in mdb)
                 {
                     foreach (var t in FileDB.OpenRead(val.Key).Values)
                     {
@@ -234,7 +238,7 @@ namespace JacRed.Controllers
                 }
                 #endregion
             }
-            else if (!string.IsNullOrWhiteSpace(query) && query.Length > 3)
+            else if (!string.IsNullOrWhiteSpace(query) && query.Length > 1)
             {
                 #region Обычный поиск
                 string _s = StringConvert.SearchName(query);
@@ -242,7 +246,11 @@ namespace JacRed.Controllers
                 #region torrentsSearch
                 void torrentsSearch(bool exact)
                 {
-                    foreach (var val in FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s)).Take(ModInit.conf.maxreadfile))
+                    var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s));
+                    if (!ModInit.conf.evercache)
+                        mdb = mdb.Take(ModInit.conf.maxreadfile);
+
+                    foreach (var val in mdb)
                     {
                         foreach (var t in FileDB.OpenRead(val.Key).Values)
                         {
@@ -342,11 +350,7 @@ namespace JacRed.Controllers
             #region Объединить дубликаты
             var tsort = new List<TorrentDetails>();
 
-            if (!ModInit.conf.mergeduplicates || rqnum)
-            {
-                tsort = torrents.Values.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName)).ToList();
-            }
-            else 
+            if (ModInit.conf.mergeduplicates || (rqnum && ModInit.conf.mergenumduplicates))
             {
                 Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)> temp = new Dictionary<string, (TorrentDetails, string, string, List<string>)>();
 
@@ -472,6 +476,10 @@ namespace JacRed.Controllers
                 foreach (var item in temp.Select(i => i.Value.torrent))
                     tsort.Add(item);
             }
+            else
+            {
+                tsort = torrents.Values.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName)).ToList();
+            }
             #endregion
 
             var result = tsort.OrderByDescending(i => i.createTime).Take(2_000);
@@ -570,7 +578,7 @@ namespace JacRed.Controllers
             }
             #endregion
 
-            if (string.IsNullOrWhiteSpace(search) || 3 >= search.Length)
+            if (string.IsNullOrWhiteSpace(search) || search.Length == 1)
                 return Json(torrents);
 
             string _s = StringConvert.SearchName(search);
@@ -602,9 +610,13 @@ namespace JacRed.Controllers
             else
             {
                 #region Поиск по совпадению ключа в имени
-                foreach (var mdb in FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s) || (_altsearch != null && i.Key.Contains(_altsearch))).Take(ModInit.conf.maxreadfile))
+                var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s) || (_altsearch != null && i.Key.Contains(_altsearch)));
+                if (!ModInit.conf.evercache)
+                    mdb = mdb.Take(ModInit.conf.maxreadfile);
+
+                foreach (var val in mdb)
                 {
-                    foreach (var t in FileDB.OpenRead(mdb.Key).Values)
+                    foreach (var t in FileDB.OpenRead(val.Key).Values)
                     {
                         if (t.types == null)
                             continue;

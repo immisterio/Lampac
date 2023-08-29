@@ -45,9 +45,11 @@ namespace Jackett
 
         public bool mergeduplicates = true;
 
+        public bool mergenumduplicates = true;
+
         public string[] trackers = new string[] { "rutracker", "rutor", "kinozal", "nnmclub", "megapeer", "bitru", "toloka", "lostfilm", "baibako", "torrentby", "hdrezka", "selezen", "animelayer", "anilibria", "anifilm" };
 
-        public int maxreadfile = 80;
+        public int maxreadfile = 200;
 
         public bool evercache = false;
 
