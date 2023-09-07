@@ -147,7 +147,10 @@ namespace JinEnergy.Online
 
                     string file = m.file;
                     if (file.Contains("["))
-                        file = Regex.Match(file, "(https?://[^\\[\\|,\n\r\t ]+/360\\.m3u8)").Groups[1].Value.Replace("/360.m3u8", "/hls.m3u8");
+                    {
+                        file = Regex.Match(file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[1].Value;
+                        file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
+                    }
 
                     html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + (arg.title ?? arg.original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.title + "</div></div>");
                     firstjson = false;
@@ -182,7 +185,12 @@ namespace JinEnergy.Online
                     foreach (var item in embed.serial[sid].folder)
                     {
                         string episode = Regex.Match(item.title, "^([0-9]+)").Groups[1].Value;
-                        string file = Regex.Replace(item.folder[0].file, "/[0-9]+.m3u8", "/hls.m3u8");
+
+                        string file = item.folder[0].file;
+                        if (file.Contains("["))
+                            file = Regex.Match(file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[1].Value;
+
+                        file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
 
                         html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{arg.title ?? arg.original_title} ({episode} cерия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} cерия" + "</div></div>");
                         firstjson = false;
