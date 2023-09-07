@@ -76,7 +76,7 @@ namespace Shared.Model
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://cdnmovies.nl");
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://cdnmovies.net", token: "02d56099082ad5ad586d7fe4e2493dd9");
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://1f29036bcf55d.sarnage.cc"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
 
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5");
@@ -91,7 +91,7 @@ namespace Shared.Model
 
         public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("http://api.seasonvar.ru", enable: false);
 
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.service-kp.com") { uhd = true };
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true };
 
         public BazonSettings Bazon { get; set; } = new BazonSettings("https://bazon.cc", "", true);
 
