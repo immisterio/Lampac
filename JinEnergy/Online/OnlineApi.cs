@@ -113,56 +113,59 @@ namespace JinEnergy.Online
 
 
             if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
-                online.Append("{\"name\":\"Kodik\",\"url\":\"lite/kodik\"},");
+                online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
 
             if (AppInit.AnilibriaOnline.enable && isanime)
-                online.Append("{\"name\":\"Anilibria\",\"url\":\"lite/anilibria\"},");
+                online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
 
-            if (AppInit.VoKino.enable && serial == 0)
-                online.Append("{\"name\":\"VoKino\",\"url\":\"lite/vokino\"},");
-
-            if (AppInit.VideoDB.enable)
-                online.Append("{\"name\":\"VideoDB\",\"url\":\"lite/videodb\"},");
-
-            if (AppInit.VCDN.enable)
-                online.Append("{\"name\":\"VideoCDN\",\"url\":\"lite/vcdn\"},");
-
-            if (AppInit.Zetflix.enable)
-                online.Append("{\"name\":\"Zetflix\",\"url\":\"lite/zetflix\"},");
+            if (AppInit.VoKino.enable && serial == 0 && !isanime)
+                online.Append("{\"name\":\"VoKino - 4K HDR\",\"url\":\"lite/vokino\"},");
 
             if (AppInit.Filmix.enable)
-                online.Append("{\"name\":\"Filmix\",\"url\":\"lite/filmix\"},");
+                online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix\"},");
 
             if (AppInit.KinoPub.enable)
-                online.Append("{\"name\":\"KinoPub\",\"url\":\"lite/kinopub\"},");
+                online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub\"},");
+
+            if (arg.kinopoisk_id > 0)
+                online.Append("{\"name\":\"Bazon - 4K\",\"url\":\"lite/bazon\"},");
+
+            if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
+                online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");
+
+            if (AppInit.VCDN.enable)
+                online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
+
+            if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
+                online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
 
             if (AppInit.Rezka.enable)
-                online.Append("{\"name\":\"Rezka\",\"url\":\"lite/rezka\"},");
+                online.Append("{\"name\":\"Rezka - 4K\",\"url\":\"lite/rezka\"},");
 
             if (AppInit.Kinobase.enable)
-                online.Append("{\"name\":\"Kinobase\",\"url\":\"lite/kinobase\"},");
+                online.Append("{\"name\":\"Kinobase - 1080p\",\"url\":\"lite/kinobase\"},");
 
             if (AppInit.Voidboost.enable)
-                online.Append("{\"name\":\"Voidboost\",\"url\":\"lite/voidboost\"},");
+                online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
 
-            if (AppInit.Ashdi.enable)
-                online.Append("{\"name\":\"Ashdi (UKR)\",\"url\":\"lite/ashdi\"},");
+            if (AppInit.Ashdi.enable && arg.kinopoisk_id > 0)
+                online.Append("{\"name\":\"Ashdi (UKR) - 1080p\",\"url\":\"lite/ashdi\"},");
 
             if (AppInit.Eneyida.enable)
-                online.Append("{\"name\":\"Eneyida (UKR)\",\"url\":\"lite/eneyida\"},");
+                online.Append("{\"name\":\"Eneyida (UKR) - 1080p\",\"url\":\"lite/eneyida\"},");
 
             if (AppInit.Collaps.enable)
-                online.Append("{\"name\":\"Collaps\",\"url\":\"lite/collaps\"},");
+                online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
 
             if (AppInit.VDBmovies.enable)
-                online.Append("{\"name\":\"VDBmovies\",\"url\":\"lite/vdbmovies\"},");
+                online.Append("{\"name\":\"VDBmovies - 1080p\",\"url\":\"lite/vdbmovies\"},");
 
-            if (AppInit.CDNmovies.enable && serial == 1 && !isanime)
+            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 online.Append("{\"name\":\"CDNmovies\",\"url\":\"lite/cdnmovies\"},");
 
             if (serial == 0)
             {
-                if (AppInit.Kinotochka.enable)
+                if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
                     online.Append("{\"name\":\"Kinotochka\",\"url\":\"lite/kinotochka\"},");
 
                 if (AppInit.Redheadsound.enable)

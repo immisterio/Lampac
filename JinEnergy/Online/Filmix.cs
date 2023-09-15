@@ -107,11 +107,11 @@ namespace JinEnergy.Online
                     client.Timeout = TimeSpan.FromSeconds(2);
                     client.MaxResponseContentBufferSize = 1_000_000; // 1MB
 
-                    string url = $"https://nl107.cdnsqu.com/s/{FXFS}{hash}/UHD_90/In.deurim.2023.WEBRip.1080p_1080.mp4";
+                    string url = $"http://nl201.cdnsqu.com/s/{FXFS}{hash}/HD_56/Rudrangi.2023.P.WEB-DL.1O8Op_1080.mp4";
 
                     using (HttpResponseMessage response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, url), HttpCompletionOption.ResponseHeadersRead))
                     {
-                        if (((int)response.StatusCode) is 429 or 400)
+                        if (((int)response.StatusCode) is 429 or 404 or  400)
                             return false;
 
                         return true;
