@@ -48,6 +48,17 @@ namespace Lampac.Engine.Middlewares
                     if (string.IsNullOrWhiteSpace(account_email) || AppInit.conf.accsdb.accounts.FirstOrDefault(i => i.ToLower() == account_email) == null || 
                         IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip, out ips))
                     {
+                        if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
+                        {
+                            string href = Regex.Replace(httpContext.Request.Path.Value, "^/(proxy|proxyimg([^/]+)?)/", "") + httpContext.Request.QueryString.Value;
+
+                            if (href.Contains(".themoviedb.org") || href.Contains(".tmdb.org"))
+                            {
+                                httpContext.Response.Redirect(href);
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
                             httpContext.Response.StatusCode = 404;
