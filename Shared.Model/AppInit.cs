@@ -62,7 +62,7 @@ namespace Shared.Model
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio", streamproxy: true);
 
-        public OnlinesSettings Kinoprofi { get; set; } = new OnlinesSettings("https://kinoprofi.io", apihost: "https://api.kinoprofi.io", streamproxy: true);
+        public OnlinesSettings Kinoprofi { get; set; } = new OnlinesSettings("https://kinoprofi.io", apihost: "https://api.kinoprofi.io", streamproxy: true, enable: false);
 
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true);
 
@@ -91,7 +91,7 @@ namespace Shared.Model
 
         public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("http://api.seasonvar.ru", enable: false);
 
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true };
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true, enable = true };
 
         public BazonSettings Bazon { get; set; } = new BazonSettings("https://bazon.cc", "", true);
 
