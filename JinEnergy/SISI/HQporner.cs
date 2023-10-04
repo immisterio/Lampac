@@ -11,13 +11,14 @@ namespace JinEnergy.SISI
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
+            string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await HQpornerTo.InvokeHtml(AppInit.HQporner.corsHost(), search, sort, pg, url => JsHttpClient.Get(url));
+            string? html = await HQpornerTo.InvokeHtml(AppInit.HQporner.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(url));
             if (html == null)
                 return OnError("html");
 
-            return OnResult(HQpornerTo.Playlist("hqr/vidosik", html), HQpornerTo.Menu(null, sort));
+            return OnResult(HQpornerTo.Playlist("hqr/vidosik", html), HQpornerTo.Menu(null, sort, c));
         }
 
 

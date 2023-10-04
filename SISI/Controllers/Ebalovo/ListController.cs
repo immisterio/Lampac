@@ -15,18 +15,18 @@ namespace Lampac.Controllers.Ebalovo
     {
         [HttpGet]
         [Route("elo")]
-        async public Task<JsonResult> Index(string search, string sort, int pg = 1)
+        async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
         {
             if (!AppInit.conf.Ebalovo.enable)
                 return OnError("disable");
 
-            string memKey = $"elo:{search}:{sort}:{pg}";
+            string memKey = $"elo:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("elo", AppInit.conf.Ebalovo);
                 var proxy = proxyManager.Get();
 
-                string html = await EbalovoTo.InvokeHtml(AppInit.conf.Ebalovo.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await EbalovoTo.InvokeHtml(AppInit.conf.Ebalovo.host, search, sort, c, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -38,7 +38,7 @@ namespace Lampac.Controllers.Ebalovo
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, EbalovoTo.Menu(host, sort));
+            return OnResult(playlists, EbalovoTo.Menu(host, sort, c));
         }
     }
 }

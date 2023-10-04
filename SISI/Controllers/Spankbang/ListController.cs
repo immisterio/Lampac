@@ -19,13 +19,13 @@ namespace Lampac.Controllers.Spankbang
             ("cache-control", "no-cache"),
             ("dnt", "1"),
             ("pragma", "no-cache"),
-            ("sec-ch-ua", "\"Chromium\";v=\"112\", \"Google Chrome\";v=\"112\", \"Not:A-Brand\";v=\"99\""),
+            ("sec-ch-ua", "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\""),
             ("sec-ch-ua-mobile", "?0"),
             ("sec-ch-ua-platform", "\"Windows\""),
             ("sec-fetch-dest", "empty"),
             ("sec-fetch-mode", "cors"),
             ("sec-fetch-site", "cross-site"),
-            ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36")
+            ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
         };
         #endregion
 

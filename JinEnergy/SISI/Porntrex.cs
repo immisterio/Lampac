@@ -11,15 +11,16 @@ namespace JinEnergy.SISI
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
+            string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await PorntrexTo.InvokeHtml(AppInit.Porntrex.corsHost(), search, sort, pg, url => JsHttpClient.Get(url));
+            string? html = await PorntrexTo.InvokeHtml(AppInit.Porntrex.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(url));
             if (html == null)
                 return OnError("html");
 
             return new
             {
-                menu = PorntrexTo.Menu(null, sort),
+                menu = PorntrexTo.Menu(null, sort, c),
                 list = PorntrexTo.Playlist("ptx/vidosik", html, pl => 
                 {
                     pl.picture = $"{Shared.Model.AppInit.corseuhost}/{pl.picture}";

@@ -8,6 +8,7 @@ using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.Xhamster
 {
@@ -15,19 +16,23 @@ namespace Lampac.Controllers.Xhamster
     {
         [HttpGet]
         [Route("xmr")]
-        async public Task<JsonResult> Index(string search, string sort = "newest", int pg = 1)
+        [Route("xmrgay")]
+        [Route("xmrsml")]
+        async public Task<JsonResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
             if (!AppInit.conf.Xhamster.enable)
                 return OnError("disable");
 
             pg++;
-            string memKey = $"xmr:{search}:{sort}:{pg}";
+            string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
+
+            string memKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("xmr", AppInit.conf.Xhamster);
                 var proxy = proxyManager.Get();
 
-                string html = await XhamsterTo.InvokeHtml(AppInit.conf.Xhamster.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await XhamsterTo.InvokeHtml(AppInit.conf.Xhamster.host, plugin, search, c, q, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -39,7 +44,7 @@ namespace Lampac.Controllers.Xhamster
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, XhamsterTo.Menu(host, sort));
+            return OnResult(playlists, XhamsterTo.Menu(host, plugin, c, q, sort));
         }
     }
 }

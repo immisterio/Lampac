@@ -11,13 +11,14 @@ namespace JinEnergy.SISI
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
+            string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
-            string? html = await EpornerTo.InvokeHtml(AppInit.Eporner.corsHost(), search, sort, pg, url => JsHttpClient.Get(url));
+            string? html = await EpornerTo.InvokeHtml(AppInit.Eporner.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(url));
             if (html == null)
                 return OnError("html");
 
-            return OnResult(EpornerTo.Playlist("epr/vidosik", html), EpornerTo.Menu(null, sort));
+            return OnResult(EpornerTo.Playlist("epr/vidosik", html), EpornerTo.Menu(null, sort, c));
         }
 
 

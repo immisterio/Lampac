@@ -15,19 +15,19 @@ namespace Lampac.Controllers.Eporner
     {
         [HttpGet]
         [Route("epr")]
-        async public Task<JsonResult> Index(string search, string sort, int pg = 1)
+        async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
         {
             if (!AppInit.conf.Eporner.enable)
                 return OnError("disable");
 
             pg += 1;
-            string memKey = $"epr:{search}:{sort}:{pg}";
+            string memKey = $"epr:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("epr", AppInit.conf.Eporner);
                 var proxy = proxyManager.Get();
 
-                string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, c, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -39,7 +39,7 @@ namespace Lampac.Controllers.Eporner
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, EpornerTo.Menu(host, sort));
+            return OnResult(playlists, EpornerTo.Menu(host, sort, c));
         }
     }
 }

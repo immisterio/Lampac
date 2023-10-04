@@ -6,11 +6,34 @@ namespace Shared.Engine.SISI
 {
     public static class XvideosTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string? search, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string?> InvokeHtml(string host, string plugin, string? search, string? sort, string? c, int pg, Func<string, ValueTask<string?>> onresult)
         {
-            string url = $"{host}/new/{pg}";
+            string url;
+
             if (!string.IsNullOrWhiteSpace(search))
+            {
                 url = $"{host}/?k={HttpUtility.UrlEncode(search)}&p={pg}";
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(c))
+                {
+                    url = $"{host}/c/s:{(sort == "top"  ? "rating" : "uploaddate")}/{c}/{pg}";
+                }
+                else
+                {
+                    if (sort == "top")
+                    {
+                        url = $"{host}/{(plugin == "xdsgay" ? "best-of-gay" : plugin == "xdssml" ? "best-of-shemale" : "best")}/{DateTime.Today.AddMonths(-1):yyyy-MM}";
+                    }
+                    else
+                    {
+                        url = plugin == "xdsgay" ? $"{host}/gay" : plugin == "xdssml" ? $"{host}/shemale" : $"{host}/new";
+                    }
+
+                    url += $"/{pg}";
+                }
+            }
 
             return onresult.Invoke(url);
         }
@@ -52,19 +75,267 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host)
+        public static List<MenuItem> Menu(string? host, string plugin, string? sort, string? c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
+            string url = host + plugin;
 
-            return new List<MenuItem>()
+            var menu = new List<MenuItem>()
             {
                 new MenuItem()
                 {
                     title = "Поиск",
                     search_on = "search_on",
-                    playlist_url = host + "xds",
+                    playlist_url = url,
+                },
+                new MenuItem()
+                {
+                    title = $"Ориентация: {(plugin == "xdsgay" ? "Геи" : plugin == "xdssml" ? "Трансы" :"Гетеро")}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                    {
+                        new MenuItem()
+                        {
+                            title = "Гетеро",
+                            playlist_url = host + "xds",
+                        },
+                        new MenuItem()
+                        {
+                            title = "Геи",
+                            playlist_url = host + "xdsgay",
+                        },
+                        new MenuItem()
+                        {
+                            title = "Трансы",
+                            playlist_url = host + "xdssml",
+                        }
+                    }
+                },
+                new MenuItem()
+                {
+                    title = $"Сортировка: {(sort == "top" ? "Лучшие" : "Новое")}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                    {
+                        new MenuItem()
+                        {
+                            title = "Новое",
+                            playlist_url = url + $"?c={c}"
+                        },
+                        new MenuItem()
+                        {
+                            title = "Лучшие",
+                            playlist_url = url + $"?c={c}&sort=top"
+                        }
+                    }
                 }
             };
+
+            if (plugin == "xds")
+            {
+                var submenu = new List<MenuItem>()
+                {
+                    new MenuItem()
+                    {
+                        title = "Все",
+                        playlist_url = url
+                    },
+                    new MenuItem()
+                    {
+                        title = "Азиат",
+                        playlist_url = url + $"?sort={sort}&c=Asian_Woman-32"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Анал",
+                        playlist_url = url + $"?sort={sort}&c=Anal-12"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Арабки",
+                        playlist_url = url + $"?sort={sort}&c=Arab-159"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Бисексуалы",
+                        playlist_url = url + $"?sort={sort}&c=Bi_Sexual-62"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Блондинки",
+                        playlist_url = url + $"?sort={sort}&c=Blonde-20"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Большие Попы",
+                        playlist_url = url + $"?sort={sort}&c=Big_Ass-24"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Большие Сиськи",
+                        playlist_url = url + $"?sort={sort}&c=Big_Tits-23"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Большие яйца",
+                        playlist_url = url + $"?sort={sort}&c=Big_Cock-34"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Брюнетки",
+                        playlist_url = url + $"?sort={sort}&c=Brunette-25"
+                    },
+                    new MenuItem()
+                    {
+                        title = "В масле",
+                        playlist_url = url + $"?sort={sort}&c=Oiled-22"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Веб камеры",
+                        playlist_url = url + $"?sort={sort}&c=Cam_Porn-58"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Гэнгбэнг",
+                        playlist_url = url + $"?sort={sort}&c=Gangbang-69"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Зияющие отверстия",
+                        playlist_url = url + $"?sort={sort}&c=Gapes-167"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Зрелые",
+                        playlist_url = url + $"?sort={sort}&c=Mature-38"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Индийский",
+                        playlist_url = url + $"?sort={sort}&c=Indian-89"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Испорченная семья",
+                        playlist_url = url + $"?sort={sort}&c=Fucked_Up_Family-81"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Кончает внутрь",
+                        playlist_url = url + $"?sort={sort}&c=Creampie-40"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Куколд / Горячая Жена",
+                        playlist_url = url + $"?sort={sort}&c=Cuckold-237"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Латинки",
+                        playlist_url = url + $"?sort={sort}&c=Latina-16"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Лесбиянки",
+                        playlist_url = url + $"?sort={sort}&c=Lesbian-26"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Любительское порно",
+                        playlist_url = url + $"?sort={sort}&c=Amateur-65"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Мамочки. МИЛФ",
+                        playlist_url = url + $"?sort={sort}&c=Milf-19"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Межрассовые",
+                        playlist_url = url + $"?sort={sort}&c=Interracial-27"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Минет",
+                        playlist_url = url + $"?sort={sort}&c=Blowjob-15"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Нижнее бельё",
+                        playlist_url = url + $"?sort={sort}&c=Lingerie-83"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Попки",
+                        playlist_url = url + $"?sort={sort}&c=Ass-14"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Рыжие",
+                        playlist_url = url + $"?sort={sort}&c=Redhead-31"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Сквиртинг",
+                        playlist_url = url + $"?sort={sort}&c=Squirting-56"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Соло",
+                        playlist_url = url + $"?sort={sort}&c=Solo_and_Masturbation-33"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Сперма",
+                        playlist_url = url + $"?sort={sort}&c=Cumshot-18"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Тинейджеры",
+                        playlist_url = url + $"?sort={sort}&c=Teen-13"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Фемдом",
+                        playlist_url = url + $"?sort={sort}&c=Femdom-235"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Фистинг",
+                        playlist_url = url + $"?sort={sort}&c=Fisting-165"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Черные Женщины",
+                        playlist_url = url + $"?sort={sort}&c=bbw-51"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Черный",
+                        playlist_url = url + $"?sort={sort}&c=Black_Woman-30"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Чулки,колготки",
+                        playlist_url = url + $"?sort={sort}&c=Stockings-28"
+                    },
+                    new MenuItem()
+                    {
+                        title = "ASMR",
+                        playlist_url = url + $"?sort={sort}&c=ASMR-229"
+                    }
+                };
+
+                menu.Add(new MenuItem()
+                {
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"c={c}"))?.title ?? "все"}",
+                    playlist_url = "submenu",
+                    submenu = submenu
+                });
+            }
+
+            return menu;
         }
 
         async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)

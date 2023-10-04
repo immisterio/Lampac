@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
-using Shared.Model.Base;
 using SISI;
 
 namespace Lampac.Controllers.BongaCams

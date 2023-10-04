@@ -7,20 +7,27 @@ namespace JinEnergy.SISI
     public class XvideosController : BaseController
     {
         [JSInvokable("xds")]
-        async public static ValueTask<dynamic> Index(string args)
+        public static ValueTask<dynamic> Index(string args) => result(args, "xds");
+
+        [JSInvokable("xdsgay")]
+        public static ValueTask<dynamic> Gay(string args) => result(args, "xdsgay");
+
+        [JSInvokable("xdssml")]
+        public static ValueTask<dynamic> Shemale(string args) => result(args, "xdssml");
+
+
+        async static ValueTask<dynamic> result(string args, string plugin)
         {
             string? search = parse_arg("search", args);
+            string? c = parse_arg("c", args);
+            string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await XvideosTo.InvokeHtml(AppInit.Xvideos.corsHost(), search, pg, url => JsHttpClient.Get(url));
+            string? html = await XvideosTo.InvokeHtml(AppInit.Xvideos.corsHost(), plugin, search, sort, c, pg, url => JsHttpClient.Get(url));
             if (html == null)
                 return OnError("html");
 
-            return new
-            {
-                menu = XvideosTo.Menu(null),
-                list = XvideosTo.Playlist("xds/vidosik", html)
-            };
+            return OnResult(XvideosTo.Playlist("xds/vidosik", html), XvideosTo.Menu(null, plugin, sort, c));
         }
 
 
