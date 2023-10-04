@@ -15,10 +15,13 @@ namespace Lampac.Controllers.Chaturbate
     {
         [HttpGet]
         [Route("chu")]
-        async public Task<JsonResult> Index(string sort, int pg = 1)
+        async public Task<JsonResult> Index(string search, string sort, int pg = 1)
         {
             if (!AppInit.conf.Chaturbate.enable)
                 return OnError("disable");
+
+            if (!string.IsNullOrEmpty(search))
+                return OnError("no search");
 
             string memKey = $"Chaturbate:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

@@ -44,7 +44,7 @@ namespace Lampac.Controllers.Xhamster
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, XhamsterTo.Menu(host, plugin, c, q, sort));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null);
         }
     }
 }

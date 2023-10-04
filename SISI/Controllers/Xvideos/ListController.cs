@@ -43,7 +43,7 @@ namespace Lampac.Controllers.Xvideos
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, XvideosTo.Menu(host, plugin, sort, c));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null);
         }
     }
 }

@@ -65,7 +65,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, PornHubTo.Menu(host, plugin, sort, c));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? PornHubTo.Menu(host, plugin, sort, c) : null);
         }
 
 
@@ -94,7 +94,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, PornHubTo.Menu(host, "pornhubpremium", sort, c, hd));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? PornHubTo.Menu(host, "pornhubpremium", sort, c, hd) : null);
         }
     }
 }

@@ -15,10 +15,13 @@ namespace Lampac.Controllers.BongaCams
     {
         [HttpGet]
         [Route("bgs")]
-        async public Task<JsonResult> Index(string sort, int pg = 1)
+        async public Task<JsonResult> Index(string search, string sort, int pg = 1)
         {
             if (!AppInit.conf.BongaCams.enable)
                 return OnError("disable");
+
+            if (!string.IsNullOrEmpty(search))
+                return OnError("no search");
 
             var proxyManager = new ProxyManager("bgs", AppInit.conf.BongaCams);
             var proxy = proxyManager.Get();

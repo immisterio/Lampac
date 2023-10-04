@@ -39,7 +39,7 @@ namespace Lampac.Controllers.Eporner
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, EpornerTo.Menu(host, sort, c));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? EpornerTo.Menu(host, sort, c) : null);
         }
     }
 }

@@ -54,7 +54,7 @@ namespace Lampac.Controllers.Spankbang
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, SpankbangTo.Menu(host, sort));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null);
         }
     }
 }

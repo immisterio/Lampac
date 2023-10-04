@@ -38,7 +38,7 @@ namespace Lampac.Controllers.Xnxx
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, XnxxTo.Menu(host));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null);
         }
     }
 }

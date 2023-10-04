@@ -38,7 +38,7 @@ namespace Lampac.Controllers.Ebalovo
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, EbalovoTo.Menu(host, sort, c));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null);
         }
     }
 }

@@ -57,8 +57,8 @@ namespace SISI
             {
                 channels.Add(new
                 {
-                    title = "Sexy Time",
-                    playlist_url = "http://vi.sisi.am/xdb"
+                    title = "faphouse.com",
+                    playlist_url = "https://vi.sisi.am/fph"
                 });
             }
 
