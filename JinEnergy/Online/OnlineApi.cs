@@ -127,9 +127,6 @@ namespace JinEnergy.Online
             if (AppInit.KinoPub.enable)
                 online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub\"},");
 
-            if (serial == 0 && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"Bazon - 4K\",\"url\":\"lite/bazon\"},");
-
             if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");
 
@@ -158,7 +155,7 @@ namespace JinEnergy.Online
                 online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
 
             if (AppInit.VDBmovies.enable)
-                online.Append("{\"name\":\"VDBmovies - 1080p\",\"url\":\"lite/vdbmovies\"},");
+                online.Append("{\"name\":\"VDBmovies - 720p\",\"url\":\"lite/vdbmovies\"},");
 
             if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 online.Append("{\"name\":\"CDNmovies\",\"url\":\"lite/cdnmovies\"},");

@@ -39,18 +39,15 @@ namespace JinEnergy.Online
             #region embed
             EmbedModel? embed = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.imdb_id}:{arg.kinopoisk_id}", async () =>
             {
-                string? html = await JsHttpClient.Get($"{AppInit.VDBmovies.corsHost()}?kp={arg.kinopoisk_id}&imdb={arg.imdb_id}");
+                string? html = await JsHttpClient.Get($"{AppInit.VDBmovies.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", addHeaders: new List<(string name, string val)>()
+                {
+                    ("Origin", "https://cdnmovies.net"),
+                    ("Referer", "https://cdnmovies.net/")
+                });
+
                 string file = Regex.Match(html ?? "", "file: ?'(#[^']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
-                {
-                    if (arg.kinopoisk_id == 0)
-                        return null;
-
-                    html = await JsHttpClient.Get($"https://cdnmovies-stream.online/kinopoisk/{arg.kinopoisk_id}/iframe");
-                    file = Regex.Match(html ?? "", "file: ?'(#[^']+)'").Groups[1].Value;
-                    if (string.IsNullOrEmpty(file))
-                        return null;
-                }
+                    return null;
 
                 try
                 {
@@ -145,8 +142,11 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(m.file))
                         continue;
 
-                    string file = Regex.Match(m.file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[1].Value;
-                    file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
+                    string file = Regex.Matches(m.file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
+                    //file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
+
+                    if (string.IsNullOrEmpty(file))
+                        continue;
 
                     html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + (arg.title ?? arg.original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.title + "</div></div>");
                     firstjson = false;
@@ -182,8 +182,8 @@ namespace JinEnergy.Online
                     {
                         string episode = Regex.Match(item.title, "^([0-9]+)").Groups[1].Value;
 
-                        string file = Regex.Match(item.folder[0].file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[1].Value;
-                        file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
+                        string file = Regex.Matches(item.folder[0].file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
+                        //file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
 
                         html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{arg.title ?? arg.original_title} ({episode} cерия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} cерия" + "</div></div>");
                         firstjson = false;
