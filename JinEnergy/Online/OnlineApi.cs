@@ -127,7 +127,7 @@ namespace JinEnergy.Online
             if (AppInit.KinoPub.enable)
                 online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub\"},");
 
-            if (arg.kinopoisk_id > 0)
+            if (serial == 0 && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Bazon - 4K\",\"url\":\"lite/bazon\"},");
 
             if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)

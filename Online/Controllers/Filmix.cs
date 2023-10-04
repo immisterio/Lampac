@@ -78,8 +78,6 @@ namespace Lampac.Controllers.LITE
             if (AppInit.conf.Filmix.pro != false || !string.IsNullOrEmpty(AppInit.conf.Filmix.token))
                 return null;
 
-            string hashfimix = null;
-
             string FXFS = await HttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 2);
 
             if (!string.IsNullOrEmpty(FXFS))
@@ -91,11 +89,8 @@ namespace Lampac.Controllers.LITE
                     "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
                 };
 
-                hashfimix = FXFS + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
+                return FXFS + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
             }
-
-            if (!string.IsNullOrEmpty(hashfimix))
-                return hashfimix;
 
             return null;
         }
