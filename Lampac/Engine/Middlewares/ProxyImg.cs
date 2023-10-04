@@ -46,10 +46,8 @@ namespace Lampac.Engine.Middlewares
 
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
 
-                string dhash = Regex.Replace(href, "(\\?|&).*", "", RegexOptions.IgnoreCase);
-                var decryptLink = ProxyLink.Decrypt(dhash, httpContext.Connection.RemoteIpAddress.ToString());
-
-                if (!href.Contains("image.tmdb.org"))
+                var decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), httpContext.Connection.RemoteIpAddress.ToString());
+                if (AppInit.conf.serverproxy.encrypt && !href.Contains("image.tmdb.org"))
                     href = decryptLink.uri;
 
                 if (string.IsNullOrWhiteSpace(href))

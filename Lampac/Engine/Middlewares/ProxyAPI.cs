@@ -50,10 +50,8 @@ namespace Lampac.Engine.Middlewares
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
 
-                string dhash = Regex.Replace(servUri, "(\\?|&).*", "", RegexOptions.IgnoreCase);
-                var decryptLink = CORE.ProxyLink.Decrypt(dhash, reqip);
-
-                if (!servUri.Contains("api.themoviedb.org"))
+                var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
+                if (AppInit.conf.serverproxy.encrypt && !servUri.Contains("api.themoviedb.org"))
                     servUri = decryptLink.uri;
 
                 if (string.IsNullOrWhiteSpace(servUri))
@@ -117,7 +115,11 @@ namespace Lampac.Engine.Middlewares
                                     if (uri.Contains("#") || uri.Contains("\"") || uri.StartsWith("http"))
                                         return m.Groups[0].Value;
 
-                                    if (uri.StartsWith("/"))
+                                    if (uri.StartsWith("//"))
+                                    {
+                                        uri = "https:" + uri;
+                                    }
+                                    else if (uri.StartsWith("/"))
                                     {
                                         uri = hlshost + uri;
                                     }
@@ -136,7 +138,11 @@ namespace Lampac.Engine.Middlewares
                                     if (uri.Contains("\"") || uri.StartsWith("http"))
                                         return m.Groups[0].Value;
 
-                                    if (uri.StartsWith("/"))
+                                    if (uri.StartsWith("//"))
+                                    {
+                                        uri = "https:" + uri;
+                                    }
+                                    else if (uri.StartsWith("/"))
                                     {
                                         uri = hlshost + uri;
                                     }

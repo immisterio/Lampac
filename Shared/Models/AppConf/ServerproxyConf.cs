@@ -8,6 +8,8 @@ namespace Lampac.Models.AppConf
 
         public bool encrypt { get; set; }
 
+        public bool verifyip { get; set; }
+
         public bool allow_tmdb { get; set; }
 
 

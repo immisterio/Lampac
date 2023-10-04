@@ -100,7 +100,7 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = Environment.OSVersion.Platform == PlatformID.Unix ? "linux" : "win" };
 
-        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, allow_tmdb = true };
+        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true };
 
         public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
 

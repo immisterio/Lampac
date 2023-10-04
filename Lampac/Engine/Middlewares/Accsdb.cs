@@ -52,7 +52,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             string href = Regex.Replace(httpContext.Request.Path.Value, "^/(proxy|proxyimg([^/]+)?)/", "") + httpContext.Request.QueryString.Value;
 
-                            if (href.Contains(".themoviedb.org") || href.Contains(".tmdb.org"))
+                            if (href.Contains(".themoviedb.org") || href.Contains(".tmdb.org") || href.StartsWith("http"))
                             {
                                 httpContext.Response.Redirect(href);
                                 return Task.CompletedTask;

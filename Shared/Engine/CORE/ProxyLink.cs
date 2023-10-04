@@ -16,7 +16,7 @@ namespace Lampac.Engine.CORE
             if (!AppInit.conf.serverproxy.encrypt)
                 return uri;
 
-            string hash = CrypTo.md5(uri + reqip);
+            string hash = CrypTo.md5(uri + (AppInit.conf.serverproxy.verifyip ? reqip : string.Empty));
             if (string.IsNullOrWhiteSpace(hash))
                 return string.Empty;
 
@@ -47,7 +47,7 @@ namespace Lampac.Engine.CORE
 
             if (links.TryGetValue(hash, out ProxyLinkModel val))
             {
-                if (reqip == null || reqip == val.reqip)
+                if (!AppInit.conf.serverproxy.verifyip || reqip == null || reqip == val.reqip)
                     return (val.headers, val.proxy, val.uri);
             }
 
