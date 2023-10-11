@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Lampac;
 using Lampac.Engine;
+using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 using IO = System.IO;
 
 namespace SISI
@@ -48,19 +52,10 @@ namespace SISI
 
 
         [Route("sisi")]
-        public ActionResult Index()
+        async public Task<ActionResult> Index()
         {
             var conf = AppInit.conf;
             var channels = new List<dynamic>();
-
-            if (conf.sisi.xdb)
-            {
-                channels.Add(new
-                {
-                    title = "faphouse.com",
-                    playlist_url = "https://vi.sisi.am/fph"
-                });
-            }
 
             if (AppInit.modules != null)
             {
@@ -186,6 +181,33 @@ namespace SISI
                     title = "chaturbate.com",
                     playlist_url = $"{host}/chu"
                 });
+            }
+
+            if (conf.sisi.xdb)
+            {
+                try
+                {
+                    var ch = await HttpClient.Get<JObject>("http://vi.sisi.am", timeoutSeconds: 4);
+
+                    foreach (var pl in ch.GetValue("channels"))
+                    {
+                        string title = pl.Value<string>("title");
+                        string playlist_url = pl.Value<string>("playlist_url");
+
+                        if (playlist_url.Contains("/bookmarks"))
+                            continue;
+
+                        if (channels.FirstOrDefault(i => i.title == title) != null)
+                            continue;
+
+                        channels.Add(new
+                        {
+                            title,
+                            playlist_url
+                        });
+                    }
+                }
+                catch { }
             }
 
             return Json(new

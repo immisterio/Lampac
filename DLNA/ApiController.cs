@@ -608,7 +608,7 @@ namespace Lampac.Controllers
                         var array = await HttpClient.Download(thumb);
                         if (array != null)
                         {
-                            Directory.CreateDirectory("dlna/thumbs/");
+                            Directory.CreateDirectory("dlna/thumbs");
                             await IO.File.WriteAllBytesAsync($"dlna/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", array);
                         }
                     }

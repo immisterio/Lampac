@@ -81,9 +81,6 @@ namespace JinEnergy.Online
                 }
             }
 
-            if (string.IsNullOrEmpty(hashfimix))
-                hashfimix = await JsHttpClient.Get($"https://bwa.to/temp/FXFS.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 5);
-
             if (!string.IsNullOrEmpty(hashfimix))
                 return hashfimix;
 

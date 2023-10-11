@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.SISI;
 using Lampac.Models.LITE;
 using Lampac.Models.AppConf;
+using System.Text.RegularExpressions;
 
 namespace Shared.Model
 {
@@ -8,7 +9,13 @@ namespace Shared.Model
     {
         public static string corseuhost { get; set; } = "https://cors.bwa.workers.dev";
 
-        public static string rsizehost { get; set; } = "https://rsize.bwa.workers.dev";
+        public static string? rsizehost(string? url, int width = 0, int height = 200) 
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            return "https://image-resizing.sisi.am" + $"/{(width == 0 ? "-" : width)}:{(height == 0 ? "-" : height)}/{Regex.Replace(url, "^https?://", "")}";
+        }
 
 
         public string? corsehost { get; set; }

@@ -13,11 +13,17 @@ using IO = System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
 using Shared.Engine.CORE;
+using System.IO;
 
 namespace Lampac.Controllers
 {
     public class OnlineApiController : BaseController
     {
+        static OnlineApiController()
+        {
+            Directory.CreateDirectory("cache/externalids");
+        }
+
         #region online.js
         [HttpGet]
         [Route("online.js")]
@@ -216,6 +222,9 @@ namespace Lampac.Controllers
         [Route("lite/events")]
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
+            if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
+                return Content("{\"accsdb\":true,\"msg\":\"Добавьте imdb на themoviedb.org\"}");
+
             string online = string.Empty;
             bool isanime = original_language == "ja";
 

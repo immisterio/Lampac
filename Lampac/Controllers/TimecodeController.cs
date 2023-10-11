@@ -13,6 +13,11 @@ namespace Lampac.Controllers
 {
     public class TimecodeController : BaseController
     {
+        static TimecodeController()
+        {
+            Directory.CreateDirectory("cache/timecode");
+        }
+
         #region timecode.js
         [HttpGet]
         [Route("timecode.js")]

@@ -121,9 +121,6 @@ namespace JinEnergy.Online
             if (AppInit.VoKino.enable && serial == 0 && !isanime)
                 online.Append("{\"name\":\"VoKino - 4K HDR\",\"url\":\"lite/vokino\"},");
 
-            if (AppInit.Filmix.enable)
-                online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix\"},");
-
             if (AppInit.KinoPub.enable)
                 online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub\"},");
 
@@ -144,6 +141,9 @@ namespace JinEnergy.Online
 
             if (AppInit.Voidboost.enable)
                 online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
+
+            if (AppInit.Filmix.enable)
+                online.Append("{\"name\":\"Filmix - 720p\",\"url\":\"lite/filmix\"},");
 
             if (AppInit.Ashdi.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Ashdi (UKR) - 1080p\",\"url\":\"lite/ashdi\"},");
