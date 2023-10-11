@@ -10,6 +10,7 @@ using System.Net;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Buffers;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -52,13 +53,16 @@ namespace Lampac.Engine.Middlewares
 
                 var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
                 if (AppInit.conf.serverproxy.encrypt && !servUri.Contains("api.themoviedb.org"))
-                    servUri = decryptLink.uri;
+                    servUri = decryptLink?.uri;
 
                 if (string.IsNullOrWhiteSpace(servUri))
                 {
                     httpContext.Response.StatusCode = 404;
                     return;
                 }
+
+                if (decryptLink == null)
+                    decryptLink = new Shared.Models.ProxyLinkModel(reqip, null, null, null);
 
                 string validArgs(string uri)
                 {
@@ -84,25 +88,33 @@ namespace Lampac.Engine.Middlewares
                         handler.Proxy = decryptLink.proxy;
                     }
 
-                    var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri));
+                    var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), httpContext.Request.Path.Value.Contains(".m3u") || httpContext.Request.Path.Value.Contains(".ts"));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
                     if ((int)response.StatusCode is 301 or 302 or 303 || response.Headers.Location != null)
                     {
-                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, reqip, decryptLink.headers, decryptLink.proxy)}"));
+                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}"));
                         return;
                     }
 
-                    if (response.Content.Headers.TryGetValues("Content-Type", out var contentType) && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")
+                    response.Content.Headers.TryGetValues("Content-Type", out var contentType);
+                    if (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain"))
                     {
                         using (HttpContent content = response.Content)
                         {
                             if (response.StatusCode == HttpStatusCode.OK)
                             {
-                                string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
-                                string m3u8 = Regex.Replace(Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync()), "(https?://[^\n\r\"\\# ]+)", m =>
+                                if (response.Content.Headers.ContentLength > 625000)
                                 {
-                                    return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, reqip, decryptLink.headers, decryptLink.proxy)}");
+                                    httpContext.Response.ContentType = "text/plain";
+                                    await httpContext.Response.WriteAsync("ContentLength > 5MB", httpContext.RequestAborted);
+                                    return;
+                                }
+
+                                string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
+                                string m3u8 = Regex.Replace(Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted)), "(https?://[^\n\r\"\\# ]+)", m =>
+                                {
+                                    return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, decryptLink)}");
                                 });
 
                                 string hlshost = Regex.Match(servUri, "(https?://[^/]+)/").Groups[1].Value;
@@ -128,7 +140,7 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, reqip, decryptLink.headers, decryptLink.proxy)}");
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}");
                                 });
 
                                 m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
@@ -151,16 +163,32 @@ namespace Lampac.Engine.Middlewares
                                         uri = hlspatch + uri;
                                     }
 
-                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, reqip, decryptLink.headers, decryptLink.proxy)}");
+                                    return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}");
                                 });
 
-                                httpContext.Response.ContentType = contentType.First();
-                                await httpContext.Response.WriteAsync(m3u8);
+                                httpContext.Response.ContentLength = m3u8.Length;
+                                httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
+                                await httpContext.Response.WriteAsync(m3u8, httpContext.RequestAborted);
+                            }
+                            else
+                            {
+                                httpContext.Response.StatusCode = (int)response.StatusCode;
+                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted);
                             }
                         }
                     }
                     else
                     {
+                        if (httpContext.Request.Path.Value.Contains(".ts"))
+                        {
+                            if (response.Content.Headers.ContentLength > 20000000)
+                            {
+                                httpContext.Response.ContentType = "text/plain";
+                                await httpContext.Response.WriteAsync("ContentLength > 20MB", httpContext.RequestAborted);
+                                return;
+                            }
+                        }
+
                         await CopyProxyHttpResponse(httpContext, response);
                     }
                 }
@@ -173,7 +201,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<(string name, string val)> headers, Uri uri)
+        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<(string name, string val)> headers, Uri uri, bool ishls)
         {
             var request = context.Request;
 
@@ -186,15 +214,18 @@ namespace Lampac.Engine.Middlewares
             }
 
             #region Headers
-            foreach (var header in request.Headers)
+            if (!ishls)
             {
-                if (header.Key.ToLower() is "origin" or "user-agent" or "referer" or "content-disposition")
-                    continue;
-
-                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
+                foreach (var header in request.Headers)
                 {
-                    //Console.WriteLine(header.Key + ": " + String.Join(" ", header.Value.ToArray()));
-                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    if (header.Key.ToLower() is "origin" or "user-agent" or "referer" or "content-disposition")
+                        continue;
+
+                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
+                    {
+                        //Console.WriteLine(header.Key + ": " + String.Join(" ", header.Value.ToArray()));
+                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    }
                 }
             }
 
@@ -220,6 +251,7 @@ namespace Lampac.Engine.Middlewares
         {
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;
+            response.ContentLength = responseMessage.Content.Headers.ContentLength;
 
             #region UpdateHeaders
             void UpdateHeaders(HttpHeaders headers)
@@ -272,10 +304,21 @@ namespace Lampac.Engine.Middlewares
             if (!destination.CanWrite)
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
-            byte[] buffer = new byte[81920];
-            int bytesRead;
-            while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
-                await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+            try
+            {
+                int bytesRead;
+                while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
+                    await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+            //await responseStream.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
         }
         #endregion
     }

@@ -5,6 +5,8 @@ using Lampac.Engine.CORE;
 using NetVips;
 using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -28,7 +30,7 @@ namespace Lampac.Engine.Middlewares
         }
         #endregion
 
-        async public Task InvokeAsync(HttpContext httpContext)
+        async public Task InvokeAsync(HttpContext httpContext, IMemoryCache memoryCache)
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
@@ -71,6 +73,13 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
+                string memKeyErrorDownload = $"ProxyImg:ErrorDownload:{href}";
+                if (memoryCache.TryGetValue(memKeyErrorDownload, out _))
+                {
+                    httpContext.Response.Redirect(href);
+                    return;
+                }
+
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
 
                 var array = await HttpClient.Download(href, timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: decryptLink.headers);
@@ -78,6 +87,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
+                    memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(10));
                     return;
                 }
 
