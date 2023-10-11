@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.SISI;
+using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -52,7 +53,13 @@ namespace Shared.Engine.SISI
                         video = $"{uri}?uri={g[1].Value}",
                         picture = "https://" + g[2].Value,
                         time = duration,
-                        json = true
+                        json = true,
+                        bookmark = new Bookmark()
+                        {
+                            site = "hqr",
+                            href = g[1].Value,
+                            image = "https://" + g[2].Value
+                        }
                     };
 
                     if (onplaylist != null)

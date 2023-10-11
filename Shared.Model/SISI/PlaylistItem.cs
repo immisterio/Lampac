@@ -1,4 +1,6 @@
-﻿namespace Lampac.Models.SISI
+﻿using Shared.Model.SISI;
+
+namespace Lampac.Models.SISI
 {
     public class PlaylistItem
     {
@@ -17,5 +19,7 @@
         public bool json { get; set; }
 
         public Dictionary<string, string>? qualitys { get; set; }
+
+        public Bookmark? bookmark { get; set; }
     }
 }

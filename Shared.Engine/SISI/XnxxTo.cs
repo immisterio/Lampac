@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.SISI;
+using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -36,7 +37,13 @@ namespace Shared.Engine.SISI
                         picture = img,
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
-                        json = true
+                        json = true,
+                        bookmark = new Bookmark()
+                        {
+                            site = "xnx",
+                            href = g[1].Value,
+                            image = img
+                        }
                     };
 
                     if (onplaylist != null)

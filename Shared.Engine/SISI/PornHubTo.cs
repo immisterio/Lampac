@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.SISI;
 using Shared.Model;
+using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -74,6 +75,7 @@ namespace Shared.Engine.SISI
                 return playlists;
 
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : "<li data-id=";
+
             foreach (string row in videoCategory.Split("<h2>Languages</h2>")[0].Split(splitkey).Skip(1))
             {
                 string? m(string pattern, int index = 1)
@@ -104,7 +106,13 @@ namespace Shared.Engine.SISI
                     picture = img,
                     preview = m("data-mediabook=\"(https?://[^\"]+)\""),
                     time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<"),
-                    json = true
+                    json = true,
+                    bookmark = new Bookmark()
+                    {
+                        site = prem ? "phubprem" : "phub",
+                        href = vkey,
+                        image = img
+                    }
                 };
 
                 if (onplaylist != null)
@@ -191,7 +199,7 @@ namespace Shared.Engine.SISI
                 }
             };
 
-            if (plugin == "pornhubpremium")
+            if (plugin == "pornhubpremium" || plugin == "phubprem")
             {
                 menu.Insert(1, new MenuItem()
                 {
@@ -432,7 +440,7 @@ namespace Shared.Engine.SISI
                     submenu = submenu
                 });
             }
-            else if (plugin == "phub")
+            else if (plugin == "phub" || plugin == "phubprem")
             {
                 var submenu = new List<MenuItem>()
                 {
@@ -888,11 +896,10 @@ namespace Shared.Engine.SISI
             if (html == null)
                 return null;
 
-            string? hls = getDirectLinks(html);
-
+            string? hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+urlset\\\\/master\\.m3u[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(hls))
             {
-                hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                hls = getDirectLinks(html);
                 if (string.IsNullOrEmpty(hls))
                     return null;
             }
@@ -901,11 +908,11 @@ namespace Shared.Engine.SISI
             {
                 qualitys = new Dictionary<string, string>()
                 {
-                    ["auto"] = hls.Replace("///", "//")
+                    ["auto"] = hls.Replace("\\", "").Replace("///", "//")
                 },
                 recomends = Playlist(uri, html, related: true, onplaylist: pl => 
                 {
-                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
                     return pl;
                 })
             };

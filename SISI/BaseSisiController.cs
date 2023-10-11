@@ -39,7 +39,8 @@ namespace SISI
                     pl.time,
                     pl.json,
                     pl.quality,
-                    pl.qualitys
+                    pl.qualitys,
+                    pl.bookmark
                 })
             });
         }
@@ -58,7 +59,8 @@ namespace SISI
                     pl.time,
                     pl.json,
                     pl.quality,
-                    pl.qualitys
+                    pl.qualitys,
+                    pl.bookmark
                 })
             });
         }

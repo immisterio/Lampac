@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.LITE.KinoPub;
 using Lampac.Models.SISI;
 using Shared.Model;
+using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -95,7 +96,13 @@ namespace Shared.Engine.SISI
                         picture = img,
                         quality = row.Contains("-hd") ? "HD" : row.Contains("-uhd") ? "4K" : null,
                         time = duration?.Trim(),
-                        json = true
+                        json = true,
+                        bookmark = new Bookmark()
+                        {
+                            site = "xmr",
+                            href = href,
+                            image = img
+                        }
                     };
 
                     if (onplaylist != null)
@@ -1093,7 +1100,7 @@ namespace Shared.Engine.SISI
                 },
                 recomends = Playlist(uri, html, pl =>
                 {
-                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
                     return pl;
                 })
             };

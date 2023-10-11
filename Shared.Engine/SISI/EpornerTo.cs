@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.SISI;
 using Shared.Model;
+using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -44,6 +45,12 @@ namespace Shared.Engine.SISI
         {
             var playlists = new List<PlaylistItem>() { Capacity = 70 };
 
+            if (html.Contains("class=\"toptopbelinset\""))
+                html = html.Split("class=\"toptopbelinset\"")[1];
+
+            if (html.Contains("class=\"relatedtext\""))
+                html = html.Split("class=\"relatedtext\"")[1];
+
             foreach (string row in Regex.Split(html, "<div class=\"mb( hdy)?\"").Skip(1))
             {
                 var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>").Groups;
@@ -64,7 +71,13 @@ namespace Shared.Engine.SISI
                         picture = img,
                         quality = quality,
                         time = duration,
-                        json = true
+                        json = true,
+                        bookmark = new Bookmark()
+                        {
+                            site = "epr",
+                            href = g[1].Value,
+                            image = img
+                        }
                     };
 
                     if (onplaylist != null)
@@ -526,7 +539,7 @@ namespace Shared.Engine.SISI
                 qualitys = stream_links,
                 recomends = Playlist(uri, html, pl =>
                 {
-                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
                     return pl;
                 })
             };

@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.SISI;
 using Shared.Model;
+using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -52,7 +53,13 @@ namespace Shared.Engine.SISI
                         quality = string.IsNullOrEmpty(quality) ? null : quality,
                         picture = img,
                         time = duration,
-                        json = true
+                        json = true,
+                        bookmark = new Bookmark()
+                        {
+                            site = "sbg",
+                            href = link,
+                            image = img
+                        }
                     };
 
                     if (onplaylist != null)
@@ -127,7 +134,7 @@ namespace Shared.Engine.SISI
                 qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
                 recomends = Playlist(uri, html, pl =>
                 {
-                    pl.picture = $"{AppInit.rsizehost}/recomends/{pl.picture}";
+                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
                     return pl;
                 })
             };
