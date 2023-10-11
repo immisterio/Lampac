@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xvideos
     public class ViewController : BaseSisiController
     {
         [HttpGet]
-        [Route("xds/vidosik")]
+        [Route("xds/vidosik.m3u8")]
         async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.Xvideos.enable)

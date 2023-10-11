@@ -13,7 +13,7 @@ namespace Lampac.Controllers.PornHub
     public class ViewController : BaseSisiController
     {
         [HttpGet]
-        [Route("phub/vidosik")]
+        [Route("phub/vidosik.m3u8")]
         async public Task<ActionResult> Index(string vkey)
         {
             if (!AppInit.conf.PornHub.enable)
@@ -41,22 +41,22 @@ namespace Lampac.Controllers.PornHub
 
 
         [HttpGet]
-        [Route("pornhubpremium/vidosik")]
+        [Route("phubprem/vidosik.m3u8")]
         async public Task<ActionResult> Prem(string vkey)
         {
             if (!AppInit.conf.PornHubPremium.enable)
                 return OnError("disable");
 
-            string memKey = $"pornhubpremium:vidosik:{vkey}";
+            string memKey = $"phubprem:vidosik:{vkey}";
             if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
-            var proxyManager = new ProxyManager("pornhubpremium", AppInit.conf.PornHubPremium);
+            var proxyManager = new ProxyManager("phubprem", AppInit.conf.PornHubPremium);
             var proxy = proxyManager.Get();
 
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks($"{host}/pornhubpremium/vidosik", AppInit.conf.PornHubPremium.host, vkey, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders(AppInit.conf.PornHubPremium.cookie)));
+                stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", AppInit.conf.PornHubPremium.host, vkey, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders(AppInit.conf.PornHubPremium.cookie)));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);

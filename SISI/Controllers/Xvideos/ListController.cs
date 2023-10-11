@@ -35,7 +35,7 @@ namespace Lampac.Controllers.Xvideos
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", html);
+                playlists = XvideosTo.Playlist($"{host}/xds/vidosik.m3u8", html);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));

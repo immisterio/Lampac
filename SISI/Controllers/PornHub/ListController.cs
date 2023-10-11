@@ -57,7 +57,7 @@ namespace Lampac.Controllers.PornHub
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = PornHubTo.Playlist($"{host}/phub/vidosik", html);
+                playlists = PornHubTo.Playlist($"{host}/phub/vidosik.m3u8", html);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
@@ -70,23 +70,23 @@ namespace Lampac.Controllers.PornHub
 
 
         [HttpGet]
-        [Route("pornhubpremium")]
+        [Route("phubprem")]
         async public Task<JsonResult> Prem(string search, string sort, string hd, int c, int pg = 1)
         {
             if (!AppInit.conf.PornHubPremium.enable)
                 return OnError("disable");
 
-            string memKey = $"pornhubpremium:list:{search}:{sort}:{hd}:{pg}";
+            string memKey = $"phubprem:list:{search}:{sort}:{hd}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("pornhubpremium", AppInit.conf.PornHubPremium);
+                var proxyManager = new ProxyManager("phubprem", AppInit.conf.PornHubPremium);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(AppInit.conf.PornHubPremium.host, "pornhubpremium", search, sort, 0, hd, pg, url => HttpClient.Get(url, timeoutSeconds: 14, proxy: proxy, httpversion: 2, addHeaders: httpheaders(AppInit.conf.PornHubPremium.cookie)));
+                string html = await PornHubTo.InvokeHtml(AppInit.conf.PornHubPremium.host, "phubprem", search, sort, c, hd, pg, url => HttpClient.Get(url, timeoutSeconds: 14, proxy: proxy, httpversion: 2, addHeaders: httpheaders(AppInit.conf.PornHubPremium.cookie)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = PornHubTo.Playlist($"{host}/pornhubpremium/vidosik", html, prem: true);
+                playlists = PornHubTo.Playlist($"{host}/phubprem/vidosik.m3u8", html, prem: true);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
@@ -94,7 +94,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? PornHubTo.Menu(host, "pornhubpremium", sort, c, hd) : null);
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? PornHubTo.Menu(host, "phubprem", sort, c, hd) : null);
         }
     }
 }

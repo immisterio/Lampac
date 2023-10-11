@@ -88,7 +88,7 @@ namespace JinEnergy.Engine
                 {
                     pl.name,
                     pl.video,
-                    picture = $"{Shared.Model.AppInit.rsizehost}/{pl.picture}",
+                    picture = Shared.Model.AppInit.rsizehost(pl.picture),
                     pl.preview,
                     pl.time,
                     pl.json,
