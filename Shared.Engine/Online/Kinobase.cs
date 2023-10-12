@@ -156,6 +156,7 @@ namespace Shared.Engine.Online
                             {
                                 string url = onstreamfile(smatch.Groups[2].Value);
                                 html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + smatch.Groups[1].Value + "</div></div>");
+                                html.Append($"<!--{quality}p-->");
                                 end = true;
                                 firstjson = true;
                             }

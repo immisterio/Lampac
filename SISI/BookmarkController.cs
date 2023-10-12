@@ -24,7 +24,7 @@ namespace SISI
         {
             string md5user = getuser(box_mac, account_email);
             if (md5user == null)
-                return OnError("disable");
+                return OnError("access denied");
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
             var bookmarks = await bookmarkCache.Read();

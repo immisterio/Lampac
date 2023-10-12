@@ -80,7 +80,7 @@ namespace SISI
                 channels.Add(new
                 {
                     title = "pornhubpremium.com",
-                    playlist_url = $"{host}/pornhubpremium"
+                    playlist_url = $"{host}/phubprem"
                 });
             }
 
@@ -191,7 +191,7 @@ namespace SISI
 
                     foreach (var pl in ch.GetValue("channels"))
                     {
-                        string title = pl.Value<string>("title");
+                        string title = pl.Value<string>("title").Replace("pornhubpremium.com", "phubprem.com");
                         string playlist_url = pl.Value<string>("playlist_url");
 
                         if (playlist_url.Contains("/bookmarks"))
