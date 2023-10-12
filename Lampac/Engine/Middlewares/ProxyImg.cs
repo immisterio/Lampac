@@ -34,23 +34,33 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
-                if (!AppInit.conf.serverproxy.enable || (!AppInit.conf.serverproxy.allow_tmdb && httpContext.Request.Path.Value.Contains(".tmdb.org")))
-                {
-                    httpContext.Response.StatusCode = 403;
-                    return;
-                }
-
-                if (HttpMethods.IsOptions(httpContext.Request.Method))
-                {
-                    httpContext.Response.StatusCode = 405;
-                    return;
-                }
-
+                Shared.Models.ProxyLinkModel decryptLink = null;
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
 
-                var decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), httpContext.Connection.RemoteIpAddress.ToString());
-                if (AppInit.conf.serverproxy.encrypt && !href.Contains("image.tmdb.org"))
-                    href = decryptLink.uri;
+                if (AppInit.conf.serverproxy.encrypt)
+                {
+                    if (href.Contains(".tmdb.org"))
+                    {
+                        if (!AppInit.conf.serverproxy.allow_tmdb)
+                        {
+                            httpContext.Response.StatusCode = 403;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), httpContext.Connection.RemoteIpAddress.ToString());
+                        href = decryptLink?.uri;
+                    }
+                }
+                else
+                {
+                    if (!AppInit.conf.serverproxy.enable)
+                    {
+                        httpContext.Response.StatusCode = 403;
+                        return;
+                    }
+                }
 
                 if (string.IsNullOrWhiteSpace(href))
                 {
@@ -82,7 +92,7 @@ namespace Lampac.Engine.Middlewares
 
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: decryptLink.headers);
+                var array = await HttpClient.Download(href, timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: decryptLink?.headers);
                 if (array == null)
                 {
                     proxyManager.Refresh();

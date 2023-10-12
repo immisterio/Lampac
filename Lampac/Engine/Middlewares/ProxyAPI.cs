@@ -29,31 +29,35 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
-                if (!AppInit.conf.serverproxy.enable)
-                {
-                    httpContext.Response.StatusCode = 403;
-                    return;
-                }
-
-                if (!AppInit.conf.serverproxy.allow_tmdb && (httpContext.Request.Path.Value.Contains(".themoviedb.org") || httpContext.Request.Path.Value.Contains(".tmdb.org")))
-                {
-                    httpContext.Response.StatusCode = 403;
-                    return;
-                }
-
-                if (HttpMethods.IsOptions(httpContext.Request.Method))
-                {
-                    httpContext.Response.StatusCode = 405;
-                    return;
-                }
-
+                Shared.Models.ProxyLinkModel decryptLink = null;
                 string reqip = httpContext.Connection.RemoteIpAddress.ToString();
                 string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
 
-                var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
-                if (AppInit.conf.serverproxy.encrypt && !servUri.Contains("api.themoviedb.org"))
-                    servUri = decryptLink?.uri;
+                if (AppInit.conf.serverproxy.encrypt)
+                {
+                    if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
+                    {
+                        if (!AppInit.conf.serverproxy.allow_tmdb)
+                        {
+                            httpContext.Response.StatusCode = 403;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
+                        servUri = decryptLink?.uri;
+                    }
+                }
+                else
+                {
+                    if (!AppInit.conf.serverproxy.enable)
+                    {
+                        httpContext.Response.StatusCode = 403;
+                        return;
+                    }
+                }
 
                 if (string.IsNullOrWhiteSpace(servUri))
                 {
