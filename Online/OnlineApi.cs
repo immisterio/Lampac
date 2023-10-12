@@ -109,20 +109,6 @@ namespace Lampac.Controllers
 
                 return null;
             }
-
-            async Task<string> getCDNmovies(string imdb)
-            {
-                var proxyManager = new ProxyManager("cdnmovies", AppInit.conf.CDNmovies);
-                string json = await HttpClient.Get("https://cdnmovies.net/api/short?token=02d56099082ad5ad586d7fe4e2493dd9&imdb_id=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
-                if (json == null)
-                    return null;
-
-                string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
-                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
-                    return kpid;
-
-                return null;
-            }
             #endregion
 
             #region get imdb_id
@@ -135,13 +121,22 @@ namespace Lampac.Controllers
                 }
                 else
                 {
-                    string cat = serial == 1 ? "tv" : "movie";
-                    string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 5);
-                    if (!string.IsNullOrWhiteSpace(json))
+                    string mkey = $"externalids:locktmdb:{serial}:{id}";
+                    if (!memoryCache.TryGetValue(mkey, out _))
                     {
-                        imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                        if (!string.IsNullOrWhiteSpace(imdb_id))
-                            IO.File.WriteAllText(path, imdb_id);
+                        memoryCache.Set(mkey, 0 , DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+
+                        string cat = serial == 1 ? "tv" : "movie";
+                        string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 8);
+                        if (!string.IsNullOrWhiteSpace(json))
+                        {
+                            imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                            if (!string.IsNullOrWhiteSpace(imdb_id))
+                            {
+                                memoryCache.Remove(mkey);
+                                IO.File.WriteAllText(path, imdb_id);
+                            }
+                        }
                     }
                 }
             }
@@ -175,15 +170,12 @@ namespace Lampac.Controllers
                             case "tabus":
                                 kinopoisk_id = await getTabus(imdb_id);
                                 break;
-                            case "cdnmovies":
-                                kinopoisk_id = await getCDNmovies(imdb_id);
-                                break;
                             default:
                                 {
-                                    var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id), getCDNmovies(imdb_id) };
+                                    var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
                                     await Task.WhenAll(tasks);
 
-                                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result ?? tasks[3].Result;
+                                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
                                     break;
                                 }
                         }
@@ -223,7 +215,7 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
             if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
-                return Content("{\"accsdb\":true,\"msg\":\"Добавьте imdb на themoviedb.org\"}");
+                return Json(new { accsdb = true, msg = $"Добавьте \"IMDB ID\" {(serial == 1 ? "сериала" : "фильма")} на https://www.themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids" });
 
             string online = string.Empty;
             bool isanime = original_language == "ja";
