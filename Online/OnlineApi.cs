@@ -363,10 +363,10 @@ namespace Lampac.Controllers
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
-                    var match = Regex.Match(online, "(\\{\"name\":\"[^\"]+\",\"url\":\"\\{localhost\\}/([^\"]+)\"\\},)");
+                    var match = Regex.Match(online, "\\{\"name\":\"([^\"]+)\",\"url\":\"\\{localhost\\}/([^\"]+)\"\\},");
                     while (match.Success)
                     {
-                        if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                        if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                             tasks.Add(checkSearch(links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
 
                         match = match.NextMatch();
@@ -397,14 +397,96 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string code, string balanser,
+        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string balanser,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
             string res = await HttpClient.Get($"{host}/lite/{balanser}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
-            links.Add((code.Replace("},", $",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "},"), index, work));
+
+            string quality = string.Empty;
+
+            #region определение качества
+            if (work)
+            {
+                if (serial == -1 || serial == 0)
+                {
+                    foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
+                    {
+                        if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
+                        {
+                            if (q == "2160")
+                            {
+                                if (balanser == "kinopub")
+                                    quality = " - 4K HDR";
+                                else
+                                {
+                                    quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
+                                }
+                            }
+                            else
+                            {
+                                quality = $" - {q}p";
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                if (quality == string.Empty)
+                {
+                    switch (balanser)
+                    {
+                        case "bazon":
+                        case "filmix":
+                        case "fxapi":
+                        case "kinopub":
+                        case "vokino":
+                        case "rezka":
+                            quality = " ~ 2160p";
+                            break;
+                        case "alloha":
+                        case "videodb":
+                        case "kinobase":
+                        case "zetflix":
+                        case "vcdn":
+                        case "ashdi":
+                        case "eneyida":
+                        case "kodik":
+                        case "hdvb":
+                        case "anilibria":
+                        case "animedia":
+                        case "redheadsound":
+                        case "iframevideo":
+                        case "animego":
+                            quality = " ~ 1080p";
+                            break;
+                        case "voidboost":
+                        case "collaps":
+                        case "animevost":
+                        case "animebesst":
+                        case "lostfilmhd":
+                            quality = " ~ 720p";
+                            break;
+                        case "kinokrad":
+                        case "kinoprofi":
+                        case "kinotochka":
+                        case "seasonvar":
+                            quality = " - 480p";
+                            break;
+                        case "cdnmovies":
+                            quality = " - 360p";
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            #endregion
+
+            links.Add(("{" + $"\"name\":\"{name + quality}\",\"url\":\""+"{localhost}"+$"/{balanser}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "},", index, work));
 
             memoryCache.Set($"ApiController:checkOnlineSearch:{id}", (links.Count == tasks.Count, tasks.Count, string.Join("", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(10));
         }
