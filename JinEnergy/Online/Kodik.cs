@@ -33,11 +33,11 @@ namespace JinEnergy.Online
             if (arg.clarification == 1)
             {
                 if (string.IsNullOrWhiteSpace(arg.title))
-                    return OnError("arg");
+                    return EmptyError("arg");
 
                 var res = await InvokeCache(arg.id, $"kodik:search:{arg.title}", () => oninvk.Embed(arg.title));
                 if (res?.result == null || res.result.Count == 0)
-                    return OnError("content");
+                    return EmptyError("content");
 
                 if (string.IsNullOrEmpty(pick))
                     return res.html ?? string.Empty;
@@ -47,11 +47,11 @@ namespace JinEnergy.Online
             else
             {
                 if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                    return OnError("arg");
+                    return EmptyError("arg");
 
                 content = await InvokeCache(arg.id, $"kodik:search:{arg.kinopoisk_id}:{arg.imdb_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, s));
                 if (content == null || content.Count == 0)
-                    return OnError("content");
+                    return EmptyError("content");
             }
 
             return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false);
@@ -66,11 +66,11 @@ namespace JinEnergy.Online
             int episode = int.Parse(parse_arg("episode", args) ?? "0");
             string? link = parse_arg("link", args);
             if (link == null)
-                return OnError("link");
+                return EmptyError("link");
 
             string? result = await InvokeCache(0, $"kodik:video:{link}", () => oninvk.VideoParse(AppInit.Kodik.linkhost, arg.title, arg.original_title, link, episode, false));
             if (result == null)
-                return OnError("result");
+                return EmptyError("result");
 
             return result;
         }

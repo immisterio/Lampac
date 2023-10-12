@@ -14,7 +14,7 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
 
             if (arg.kinopoisk_id == 0)
-                return OnError("arg");
+                return EmptyError("arg");
 
             var oninvk = new ZetflixInvoke
             (
@@ -27,7 +27,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"zetfix:view:{arg.kinopoisk_id}:{s}", () => oninvk.Embed(arg.kinopoisk_id, s));
             if (content?.pl == null)
-                return OnError("content");
+                return EmptyError("content");
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && arg.id > 0)

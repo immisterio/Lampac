@@ -26,7 +26,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"eneyida:view:{arg.original_title}:{arg.year}:{href}:{arg.clarification}", () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
         }

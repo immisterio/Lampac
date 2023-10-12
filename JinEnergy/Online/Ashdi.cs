@@ -14,7 +14,7 @@ namespace JinEnergy.Online
             int t = int.Parse(parse_arg("t", args) ?? "-1");
 
             if (arg.kinopoisk_id == 0)
-                return OnError("kinopoisk_id");
+                return EmptyError("kinopoisk_id");
 
             var oninvk = new AshdiInvoke
             (
@@ -26,7 +26,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"ashdi:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }

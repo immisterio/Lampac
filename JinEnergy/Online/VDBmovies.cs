@@ -19,7 +19,7 @@ namespace JinEnergy.Online
             int sid = int.Parse(parse_arg("sid", args) ?? "-1");
 
             if (serial == -1 || (string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0))
-                return OnError("arg");
+                return EmptyError("arg");
 
             #region iframe_src
             //string? iframe_src = await InvokeCache(arg.id, $"cdnmoviesdb:iframe_src:{arg.imdb_id}:{arg.kinopoisk_id}", async () => 
@@ -107,7 +107,7 @@ namespace JinEnergy.Online
             });
 
             if (embed == null)
-                return OnError("embed");
+                return EmptyError("embed");
             #endregion
 
             bool firstjson = true;

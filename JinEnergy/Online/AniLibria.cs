@@ -14,7 +14,7 @@ namespace JinEnergy.Online
             string? code = parse_arg("code", args);
 
             if (string.IsNullOrEmpty(arg.title))
-                return OnError("arg");
+                return EmptyError("arg");
             
             var oninvk = new AniLibriaInvoke
             (
@@ -27,7 +27,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"anilibriaonline:{arg.title}", () => oninvk.Embed(arg.title));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.title, code, arg.year);
         }

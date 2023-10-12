@@ -27,19 +27,19 @@ namespace JinEnergy.Online
             if (postid == 0)
             {
                 if (arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id))
-                    return OnError("arg");
+                    return EmptyError("arg");
 
                 if (arg.original_language != "en")
                     clarification = 1;
 
                 postid = await InvStructCache(arg.id, $"kinopub:search:{arg.title}:{clarification}:{arg.imdb_id}", () => oninvk.Search(arg.title, arg.original_title, clarification, arg.imdb_id, arg.kinopoisk_id));
                 if (postid == 0 || postid == -1)
-                    return OnError("postid");
+                    return EmptyError("postid");
             }
 
             var root = await InvokeCache(arg.id, $"kinopub:post:{postid}", () => oninvk.Post(postid));
             if (root == null)
-                return OnError("root");
+                return EmptyError("root");
 
             return oninvk.Html(root, AppInit.KinoPub.filetype, arg.title, arg.original_title, postid, s);
         }

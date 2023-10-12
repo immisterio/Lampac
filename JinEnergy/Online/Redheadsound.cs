@@ -16,7 +16,7 @@ namespace JinEnergy.Online
                 clarification = 1;
 
             if (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0)
-                return OnError("title");
+                return EmptyError("title");
 
             var oninvk = new RedheadsoundInvoke
             (
@@ -29,7 +29,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"redheadsound:view:{arg.title}:{arg.year}:{clarification}", () => oninvk.Embed(clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.title);
         }

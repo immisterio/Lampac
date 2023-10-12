@@ -13,7 +13,7 @@ namespace JinEnergy.Online
             int s = int.Parse(parse_arg("s", args) ?? "-1");
 
             if (string.IsNullOrEmpty(arg.title) || arg.year == 0)
-                return OnError("year");
+                return EmptyError("year");
 
             var oninvk = new KinobaseInvoke
             (
@@ -26,7 +26,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, code => JSRuntime.InvokeAsync<string?>("eval", evalcode(code))));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.title, arg.year, s);
         }

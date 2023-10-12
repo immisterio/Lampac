@@ -15,7 +15,7 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
 
             if (arg.kinopoisk_id == 0)
-                return OnError("kinopoisk_id");
+                return EmptyError("kinopoisk_id");
 
             var oninvk = new VideoDBInvoke
             (
@@ -28,7 +28,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"videodb:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id, arg.serial));
             if (content?.pl == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
         }

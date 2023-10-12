@@ -12,11 +12,11 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
 
             if (arg.kinopoisk_id == 0)
-                return OnError("kinopoisk_id");
+                return EmptyError("kinopoisk_id");
 
             string? file = await InvokeCache(arg.id, $"kinotochka:{arg.kinopoisk_id}", () => Embed(arg.kinopoisk_id));
             if (string.IsNullOrEmpty(file))
-                return OnError("file");
+                return EmptyError("file");
 
             foreach (string f in file.Split(",").Reverse())
             {
@@ -26,7 +26,7 @@ namespace JinEnergy.Online
                 return "<div class=\"videos__line\"><div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + f + "\",\"title\":\"" + arg.title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div></div>";
             }
 
-            return OnError("play_url");
+            return EmptyError("play_url");
         }
 
 

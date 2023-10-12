@@ -24,11 +24,11 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
 
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                return OnError("arg");
+                return EmptyError("arg");
 
             var content = await InvokeCache(arg.id, $"voidboost:view:{arg.kinopoisk_id}:{arg.imdb_id}:{t}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, t));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t);
         }
@@ -43,7 +43,7 @@ namespace JinEnergy.Online
             int s = int.Parse(parse_arg("s", args) ?? "0");
 
             if (string.IsNullOrWhiteSpace(t))
-                return OnError("t");
+                return EmptyError("t");
 
             string? html = await InvokeCache(0, $"voidboost:view:serial:{t}:{s}", () => oninvk.Serial(arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s, false));
             if (html == null)
@@ -63,7 +63,7 @@ namespace JinEnergy.Online
 
             string? result = await InvokeCache(0, $"rezka:view:stream:{t}:{s}:{e}", () => oninvk.Movie(parse_arg("title", args), parse_arg("original_title", args), t, s, e, false));
             if (result == null)
-                return string.Empty;
+                return EmptyError("result");
 
             return result;
         }

@@ -14,7 +14,7 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
 
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                return OnError("arg");
+                return EmptyError("arg");
 
             var oninvk = new VideoCDNInvoke
             (
@@ -39,7 +39,7 @@ namespace JinEnergy.Online
             });
 
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }

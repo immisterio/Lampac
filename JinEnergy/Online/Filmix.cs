@@ -42,7 +42,7 @@ namespace JinEnergy.Online
 
             var player_links = await InvokeCache(arg.id, $"filmix:post:{postid}", () => oninvk.Post(postid));
             if (player_links == null)
-                return OnError("player_links");
+                return EmptyError("player_links");
 
             return oninvk.Html(player_links, (hashfimix != null ? true : AppInit.Filmix.pro), postid, arg.title, arg.original_title, t, s);
         }
@@ -69,7 +69,7 @@ namespace JinEnergy.Online
                     "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
                 };
 
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 2; i++)
                 {
                     string hash = chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
                     bool res = await checkHash(FXFS, hash);
@@ -101,10 +101,10 @@ namespace JinEnergy.Online
             {
                 using (var client = new HttpClient())
                 {
-                    client.Timeout = TimeSpan.FromSeconds(2);
+                    client.Timeout = TimeSpan.FromSeconds(7);
                     client.MaxResponseContentBufferSize = 1_000_000; // 1MB
 
-                    string url = $"http://nl201.cdnsqu.com/s/{FXFS}{hash}/HD_56/Rudrangi.2023.P.WEB-DL.1O8Op_1080.mp4";
+                    string url = $"http://nl201.cdnsqu.com/s/{FXFS}{hash}/HD_56/Mission.Impossible.CLEAN.2023_1080.mp4";
 
                     using (HttpResponseMessage response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, url), HttpCompletionOption.ResponseHeadersRead))
                     {

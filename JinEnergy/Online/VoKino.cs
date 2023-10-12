@@ -12,7 +12,7 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
 
             if (arg.kinopoisk_id == 0 || !AppInit.VoKino.enable || string.IsNullOrEmpty(AppInit.VoKino.token))
-                return OnError("kinopoisk_id");
+                return EmptyError("kinopoisk_id");
 
             var oninvk = new VoKinoInvoke
             (
@@ -25,7 +25,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"vokino:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.title, arg.original_title);
         }

@@ -27,7 +27,7 @@ namespace JinEnergy.Online
             string? href = parse_arg("href", args);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0))
-                return OnError("arg");
+                return EmptyError("arg");
 
             int clarification = arg.clarification;
             if (arg.original_language != "en")
@@ -35,7 +35,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(arg.id, $"rezka:view:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}", () => oninvk.Embed(arg.title, arg.original_title, clarification, arg.year, href));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Html(content, arg.title, arg.original_title, clarification, arg.year, s, href, false);
         }
@@ -51,11 +51,11 @@ namespace JinEnergy.Online
             string? href = parse_arg("href", args);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0))
-                return OnError("arg");
+                return EmptyError("arg");
 
             Episodes? root = await InvokeCache(0, $"rezka:view:serial:{arg.id}:{t}", () => oninvk.SerialEmbed(arg.id, t));
             if (root == null)
-                return OnError("root");
+                return EmptyError("root");
 
             int clarification = arg.clarification;
             if (arg.original_language != "en")
@@ -63,7 +63,7 @@ namespace JinEnergy.Online
 
             var content = await InvokeCache(0, $"rezka:view:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}", () => oninvk.Embed(arg.title, arg.original_title, clarification, arg.year, href));
             if (content == null)
-                return OnError("content");
+                return EmptyError("content");
 
             return oninvk.Serial(root, content, arg.title, arg.original_title, clarification, arg.year, href, arg.id, t, s, false);
         }
@@ -81,7 +81,7 @@ namespace JinEnergy.Online
 
             string? result = await InvokeCache(0, $"rezka:view:get_cdn_series:{arg.id}:{t}:{director}:{s}:{e}", () => oninvk.Movie(arg.title, arg.original_title, arg.id, t, director, s, e, false));
             if (result == null)
-                return OnError("result");
+                return EmptyError("result");
 
             return result;
         }
