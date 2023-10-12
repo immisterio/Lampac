@@ -79,5 +79,10 @@ namespace SISI
                 })
             });
         }
+
+        public JsonResult OnResult(Dictionary<string, string> stream_links, Istreamproxy proxyconf, WebProxy proxy)
+        {
+            return new JsonResult(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy)));
+        }
     }
 }

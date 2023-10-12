@@ -537,11 +537,7 @@ namespace Shared.Engine.SISI
             return new StreamItem()
             {
                 qualitys = stream_links,
-                recomends = Playlist(uri, html, pl =>
-                {
-                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
-                    return pl;
-                })
+                recomends = Playlist(uri, html)
             };
         }
 

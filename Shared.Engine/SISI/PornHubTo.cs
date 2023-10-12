@@ -910,11 +910,7 @@ namespace Shared.Engine.SISI
                 {
                     ["auto"] = hls.Replace("\\", "").Replace("///", "//")
                 },
-                recomends = Playlist(uri, html, related: true, onplaylist: pl => 
-                {
-                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
-                    return pl;
-                })
+                recomends = Playlist(uri, html, related: true)
             };
         }
 

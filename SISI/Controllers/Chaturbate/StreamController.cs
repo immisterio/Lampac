@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +32,7 @@ namespace Lampac.Controllers.Chaturbate
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
             }
 
-            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Chaturbate, v.Value, proxy: proxy)));
+            return OnResult(stream_links, AppInit.conf.Chaturbate, proxy);
         }
     }
 }

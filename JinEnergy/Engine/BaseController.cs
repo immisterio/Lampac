@@ -1,4 +1,5 @@
-﻿using Lampac.Models.SISI;
+﻿using JinEnergy.Model;
+using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System.Text.RegularExpressions;
@@ -10,7 +11,15 @@ namespace JinEnergy.Engine
     {
         public static IJSRuntime? JSRuntime => AppInit.JSRuntime;
 
-        public static string OnError(string msg)
+        public static ResultModel OnError(string msg)
+        {
+            if (!string.IsNullOrEmpty(msg))
+                AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);
+
+            return new ResultModel() { error = "html" };
+        }
+
+        public static string EmptyError(string msg)
         {
             if (!string.IsNullOrEmpty(msg))
                 AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);
@@ -76,26 +85,60 @@ namespace JinEnergy.Engine
         }
 
 
-        public static dynamic OnResult(List<PlaylistItem> playlists, List<MenuItem> menu)
+        public static ResultModel OnResult(List<MenuItem> menu, List<PlaylistItem> playlists)
         {
-            if (AppInit.IsAndrod || !AppInit.sisi.rsize)
-                return new { menu, list = playlists };
+            if (playlists == null || playlists.Count == 0)
+                return OnError("playlists.Count == 0");
 
-            return new
+            return new ResultModel() { menu = menu, list = playlists };
+        }
+
+        public static ResultModel OnResult(Dictionary<string, string> stream_links)
+        {
+            if (stream_links == null || stream_links.Count == 0)
+                return OnError("stream_links.Count == 0");
+
+            return new ResultModel()
             {
-                menu,
-                list = playlists.Select(pl => new
-                {
-                    pl.name,
-                    pl.video,
-                    picture = Shared.Model.AppInit.rsizehost(pl.picture),
-                    pl.preview,
-                    pl.time,
-                    pl.json,
-                    pl.quality,
-                    pl.qualitys
-                })
+                qualitys = stream_links
             };
+        }
+
+        public static ResultModel OnResult(StreamItem stream_links, bool isebalovo = false)
+        {
+            if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
+                return OnError("qualitys.Count == 0");
+
+            List<PlaylistItem>? recomends = null;
+            if (stream_links.recomends != null && stream_links.recomends.Count > 0)
+            {
+                recomends = new List<PlaylistItem>();
+                foreach (var pl in stream_links.recomends)
+                {
+                    recomends.Add(new PlaylistItem() 
+                    {
+                        name = pl.name,
+                        video = pl.video,
+                        picture = isebalovo ? $"https://vi.sisi.am/poster.jpg?href={pl.picture}&r=200" : rsizehost(pl.picture, 100),
+                        json = pl.json
+                    });
+                }
+            }
+
+            return new ResultModel()
+            {
+                qualitys = stream_links.qualitys,
+                recomends = recomends
+            };
+        }
+
+
+        public static string? rsizehost(string? url, int height = 200, int width = 0)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            return "https://image-resizing.sisi.am" + $"/{(width == 0 ? "-" : width)}:{(height == 0 ? "-" : height)}/{Regex.Replace(url, "^https?://", "")}";
         }
     }
 }

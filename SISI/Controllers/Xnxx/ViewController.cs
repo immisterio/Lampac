@@ -5,7 +5,6 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.Engine.SISI;
-using System.Linq;
 using Shared.Engine.CORE;
 using SISI;
 
@@ -34,7 +33,7 @@ namespace Lampac.Controllers.Xnxx
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Xnxx, v.Value, proxy: proxy)));
+            return OnResult(stream_links, AppInit.conf.Xnxx, proxy);
         }
     }
 }

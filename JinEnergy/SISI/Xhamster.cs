@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using JinEnergy.Model;
 using Microsoft.JSInterop;
 using Shared.Engine.SISI;
 
@@ -7,16 +8,16 @@ namespace JinEnergy.SISI
     public class XhamsterController : BaseController
     {
         [JSInvokable("xmr")]
-        public static ValueTask<dynamic> Index(string args) => result(args, "xmr");
+        public static ValueTask<ResultModel> Index(string args) => result(args, "xmr");
 
         [JSInvokable("xmrgay")]
-        public static ValueTask<dynamic> Gay(string args) => result(args, "xmrgay");
+        public static ValueTask<ResultModel> Gay(string args) => result(args, "xmrgay");
 
         [JSInvokable("xmrsml")]
-        public static ValueTask<dynamic> Shemale(string args) => result(args, "xmrsml");
+        public static ValueTask<ResultModel> Shemale(string args) => result(args, "xmrsml");
 
 
-        async static ValueTask<dynamic> result(string args, string plugin)
+        async static ValueTask<ResultModel> result(string args, string plugin)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args) ?? "newest";
@@ -28,18 +29,22 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return OnResult(XhamsterTo.Playlist("xmr/vidosik", html), XhamsterTo.Menu(null, plugin, c, q, sort));
+            return OnResult(XhamsterTo.Menu(null, plugin, c, q, sort), XhamsterTo.Playlist("xmr/vidosik", html, pl =>
+            {
+                pl.picture = rsizehost(pl.picture);
+                return pl;
+            }));
         }
 
 
         [JSInvokable("xmr/vidosik")]
-        async public static ValueTask<dynamic> Stream(string args)
+        async public static ValueTask<ResultModel> Stream(string args)
         {
             var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", AppInit.Xhamster.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(url));
             if (stream_links == null)
                 return OnError("stream_links");
 
-            return stream_links;
+            return OnResult(stream_links);
         }
     }
 }

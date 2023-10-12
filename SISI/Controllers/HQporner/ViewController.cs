@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Linq;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
@@ -36,7 +35,7 @@ namespace Lampac.Controllers.HQporner
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.HQporner, v.Value, proxy: proxy)));
+            return OnResult(stream_links, AppInit.conf.HQporner, proxy);
         }
     }
 }

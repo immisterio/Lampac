@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Linq;
 using Lampac.Engine.CORE;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
@@ -38,11 +37,7 @@ namespace Lampac.Controllers.Spankbang
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Json(new
-            {
-                stream_links.recomends,
-                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Spankbang, v.Value, proxy: proxy))
-            });
+            return OnResult(stream_links, AppInit.conf.Spankbang, proxy);
         }
     }
 }

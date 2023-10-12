@@ -1,5 +1,4 @@
-﻿using Lampac.Models.LITE.KinoPub;
-using Lampac.Models.SISI;
+﻿using Lampac.Models.SISI;
 using Shared.Model;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
@@ -1098,11 +1097,7 @@ namespace Shared.Engine.SISI
                 {
                     ["auto"] = stream_link
                 },
-                recomends = Playlist(uri, html, pl =>
-                {
-                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
-                    return pl;
-                })
+                recomends = Playlist(uri, html)
             };
         }
     }

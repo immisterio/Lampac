@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
-using System.Linq;
 using Shared.Engine.CORE;
 using SISI;
 using Lampac.Models.SISI;
@@ -36,11 +35,7 @@ namespace Lampac.Controllers.Eporner
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 2));
             }
 
-            return Json(new
-            {
-                stream_links.recomends,
-                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Eporner, v.Value, proxy: proxy))
-            });
+            return OnResult(stream_links, AppInit.conf.Eporner, proxy);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using JinEnergy.Model;
 using Microsoft.JSInterop;
 using Shared.Engine.SISI;
 
@@ -7,13 +8,13 @@ namespace JinEnergy.SISI
     public class PornHubController : BaseController
     {
         [JSInvokable("phub")]
-        public static ValueTask<dynamic> Index(string args) => result(args, "phub");
+        public static ValueTask<ResultModel> Index(string args) => result(args, "phub");
 
         [JSInvokable("phubgay")]
-        public static ValueTask<dynamic> Gay(string args) => result(args, "phubgay");
+        public static ValueTask<ResultModel> Gay(string args) => result(args, "phubgay");
 
         [JSInvokable("phubsml")]
-        public static ValueTask<dynamic> Shemale(string args) => result(args, "phubsml");
+        public static ValueTask<ResultModel> Shemale(string args) => result(args, "phubsml");
 
 
         static List<(string name, string val)> headers = new List<(string name, string val)>()
@@ -32,7 +33,7 @@ namespace JinEnergy.SISI
         };
 
 
-        async static ValueTask<dynamic> result(string args, string plugin)
+        async static ValueTask<ResultModel> result(string args, string plugin)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -43,18 +44,22 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return OnResult(PornHubTo.Playlist("phub/vidosik", html), PornHubTo.Menu(null, plugin, sort, c));
+            return OnResult(PornHubTo.Menu(null, plugin, sort, c), PornHubTo.Playlist("phub/vidosik", html, pl =>
+            {
+                pl.picture = rsizehost(pl.picture);
+                return pl;
+            }));
         }
 
 
         [JSInvokable("phub/vidosik")]
-        async public static ValueTask<dynamic> Stream(string args)
+        async public static ValueTask<ResultModel> Stream(string args)
         {
             var stream_links = await PornHubTo.StreamLinks("phub/vidosik", AppInit.PornHub.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(url, addHeaders: headers));
             if (stream_links == null)
                 return OnError("stream_links");
 
-            return stream_links;
+            return OnResult(stream_links);
         }
     }
 }

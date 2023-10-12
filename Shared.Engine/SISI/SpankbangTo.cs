@@ -132,11 +132,7 @@ namespace Shared.Engine.SISI
             return new StreamItem()
             {
                 qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
-                recomends = Playlist(uri, html, pl =>
-                {
-                    pl.picture = AppInit.rsizehost(pl.picture, 0, 100);
-                    return pl;
-                })
+                recomends = Playlist(uri, html)
             };
         }
     }

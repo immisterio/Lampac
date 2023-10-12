@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using JinEnergy.Model;
 using Microsoft.JSInterop;
 using Shared.Engine.SISI;
 
@@ -7,7 +8,7 @@ namespace JinEnergy.SISI
     public class PorntrexController : BaseController
     {
         [JSInvokable("ptx")]
-        async public static ValueTask<dynamic> Index(string args)
+        async public static ValueTask<ResultModel> Index(string args)
         {
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -18,15 +19,11 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return new
+            return OnResult(PorntrexTo.Menu(null, sort, c), PorntrexTo.Playlist("ptx/vidosik", html, pl =>
             {
-                menu = PorntrexTo.Menu(null, sort, c),
-                list = PorntrexTo.Playlist("ptx/vidosik", html, pl => 
-                {
-                    pl.picture = $"{Shared.Model.AppInit.corseuhost}/{pl.picture}";
-                    return pl;
-                })
-            };
+                pl.picture = rsizehost(pl.picture);
+                return pl;
+            }));
         }
 
 

@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using JinEnergy.Model;
 using Microsoft.JSInterop;
 using Shared.Engine.SISI;
 
@@ -7,7 +8,7 @@ namespace JinEnergy.SISI
     public class BongaCamsController : BaseController
     {
         [JSInvokable("bgs")]
-        async public static ValueTask<dynamic> Index(string args)
+        async public static ValueTask<ResultModel> Index(string args)
         {
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
@@ -25,7 +26,11 @@ namespace JinEnergy.SISI
             if (html == null)
                 return OnError("html");
 
-            return OnResult(BongaCamsTo.Playlist(html), BongaCamsTo.Menu(null, sort));
+            return OnResult(BongaCamsTo.Menu(null, sort), BongaCamsTo.Playlist(html, pl =>
+            {
+                pl.picture = rsizehost(pl.picture);
+                return pl;
+            }));
         }
     }
 }

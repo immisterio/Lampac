@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Linq;
 using Lampac.Engine.CORE;
 using System;
 using Microsoft.Extensions.Caching.Memory;
@@ -34,7 +33,7 @@ namespace Lampac.Controllers.Xvideos
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Json(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(AppInit.conf.Xvideos, v.Value, proxy: proxy)));
+            return OnResult(stream_links, AppInit.conf.Xvideos, proxy);
         }
     }
 }
