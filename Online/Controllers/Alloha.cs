@@ -20,27 +20,27 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1)
         {
             if (!AppInit.conf.Alloha.enable)
                 return OnError("disable");
 
-            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return OnError("imdb");
+            var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
+            if (result.data == null)
+                return OnError("data", proxyManager, result.refresh_proxy);
 
-            JToken data = await search(imdb_id, kinopoisk_id);
-            if (data == null)
-                return OnError("data", proxyManager);
+            JToken data = result.data;
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
+            string defaultargs = $"&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&serial={serial}&year={year}&original_language={original_language}";
 
-            if (data.Value<int>("category") is 1 or 3)
+            if (result.category_id is 1 or 3)
             {
                 #region Фильм
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
-                    string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={translation.Key}";
+                    string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
                     string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"voice_name\":\"" + translation.Value["quality"].ToString() + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + translation.Value["name"].ToString() + "</div></div>";
@@ -55,7 +55,7 @@ namespace Lampac.Controllers.LITE
                 {
                     foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
                     {
-                        string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Key}";
+                        string link = $"{host}/lite/alloha?s={season.Key}" + defaultargs;
 
                         html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
                         firstjson = false;
@@ -76,7 +76,7 @@ namespace Lampac.Controllers.LITE
                             if (string.IsNullOrWhiteSpace(activTranslate))
                                 activTranslate = translation.Key;
 
-                            string link = $"{host}/lite/alloha?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={translation.Key}";
+                            string link = $"{host}/lite/alloha?s={s}&t={translation.Key}" + defaultargs;
 
                             html += "<div class=\"videos__button selector " + (activTranslate == translation.Key ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value.translation + "</div>";
                         }
@@ -90,7 +90,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrWhiteSpace(activTranslate) && !episode.Value.translation.ContainsKey(activTranslate))
                             continue;
 
-                        string link = $"{host}/lite/alloha/video?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&t={activTranslate}&s={s}&e={episode.Key}";
+                        string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}" + defaultargs;
                         string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
@@ -163,21 +163,57 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region search
-        async ValueTask<JToken> search(string imdb_id, long kinopoisk_id)
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
+            if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
+                memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";
 
-            if (!memoryCache.TryGetValue(memKey, out JToken data))
+            if (!memoryCache.TryGetValue(memKey, out (int category_id, JToken data) res))
             {
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
-                if (root == null || !root.ContainsKey("data"))
-                    return null;
+                if (memKey.Contains(":viewsearch:"))
+                {
+                    if (string.IsNullOrWhiteSpace(title) || year == 0)
+                        return default;
 
-                data = root.GetValue("data");
-                memoryCache.Set(memKey, data, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                    var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    if (root == null || !root.ContainsKey("data"))
+                        return (true, 0, null);
+
+                    foreach (var item in root.Value<JArray>("data"))
+                    {
+                        if (item.Value<string>("name")?.ToLower()?.Trim() == title.ToLower())
+                        {
+                            int y = item.Value<int>("year");
+                            if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))
+                            {
+                                if (original_language == "ru" && item.Value<string>("country")?.ToLower() != "россия")
+                                    continue;
+
+                                res.data = item;
+                                res.category_id = item.Value<int>("category_id");
+                                break;
+                            }
+                        }
+                    }
+
+                    if (res.data == null)
+                        return default;
+                }
+                else
+                {
+                    var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    if (root == null || !root.ContainsKey("data"))
+                        return (true, 0, null);
+
+                    res.data = root.GetValue("data");
+                    res.category_id = res.data.Value<int>("category");
+                }
+
+                memoryCache.Set(memKey, res, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 
-            return data;
+            return (false, res.category_id, res.data);
         }
         #endregion
     }
