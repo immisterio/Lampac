@@ -13,7 +13,7 @@ namespace Lampac.Controllers.Xnxx
     public class ViewController : BaseSisiController
     {
         [HttpGet]
-        [Route("xnx/vidosik.m3u8")]
+        [Route("xnx/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
             if (!AppInit.conf.Xnxx.enable)

@@ -55,7 +55,14 @@ namespace SISI
         async public Task<ActionResult> Index()
         {
             var conf = AppInit.conf;
-            var channels = new List<dynamic>();
+            var channels = new List<dynamic>() 
+            {
+                new
+                {
+                    title = "Закладки",
+                    playlist_url = $"{host}/sisi/bookmarks"
+                }
+            };
 
             if (AppInit.modules != null)
             {

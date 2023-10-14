@@ -15,8 +15,8 @@ namespace SISI
     {
         static BookmarkController() 
         {
-            Directory.CreateDirectory("cache/bookmarks/img");
-            Directory.CreateDirectory("cache/bookmarks/preview");
+            Directory.CreateDirectory("wwwroot/bookmarks/img");
+            Directory.CreateDirectory("wwwroot/bookmarks/preview");
         }
 
         [Route("sisi/bookmarks")]
@@ -46,11 +46,11 @@ namespace SISI
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.bookmark.image.StartsWith("cache/") ? $"{host}/{pl.bookmark.image}" : pl.bookmark.image),
+                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.bookmark.image.StartsWith("bookmarks/") ? $"{host}/{pl.bookmark.image}" : pl.bookmark.image),
                     pl.time,
                     pl.json,
                     pl.quality,
-                    preview = pl.preview != null && pl.preview.StartsWith("cache/") ? $"{host}/{pl.preview}" : null,
+                    preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") ? $"{host}/{pl.preview}" : null,
                     bookmark = new Bookmark() { uid = pl.bookmark.uid }
                 })
             });
@@ -73,9 +73,9 @@ namespace SISI
             if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
             {
                 #region download image
-                string pimg = $"cache/bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
+                string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
 
-                if (System.IO.File.Exists(pimg))
+                if (System.IO.File.Exists($"wwwroot/{pimg}"))
                 {
                     data.bookmark.image = pimg;
                 }
@@ -84,8 +84,8 @@ namespace SISI
                     var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 5);
                     if (image != null)
                     {
-                        Directory.CreateDirectory($"cache/bookmarks/img/{uid.Substring(0, 2)}");
-                        await System.IO.File.WriteAllBytesAsync(pimg, image);
+                        Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+                        await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
                         data.bookmark.image = pimg;
                     }
                 }
@@ -94,9 +94,9 @@ namespace SISI
                 #region download preview
                 if (data.preview != null)
                 {
-                    string path = $"cache/bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
+                    string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
 
-                    if (System.IO.File.Exists(path))
+                    if (System.IO.File.Exists($"wwwroot/{path}"))
                     {
                         data.preview = path;
                     }
@@ -105,8 +105,8 @@ namespace SISI
                         var preview = await HttpClient.Download(data.preview, timeoutSeconds: 8);
                         if (preview != null)
                         {
-                            Directory.CreateDirectory($"cache/bookmarks/preview/{uid.Substring(0, 2)}");
-                            await System.IO.File.WriteAllBytesAsync(path, preview);
+                            Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+                            await System.IO.File.WriteAllBytesAsync($"wwwroot/{path}", preview);
                             data.preview = path;
                         }
                     }

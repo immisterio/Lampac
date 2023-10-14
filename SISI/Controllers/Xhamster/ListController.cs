@@ -36,7 +36,7 @@ namespace Lampac.Controllers.Xhamster
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = XhamsterTo.Playlist($"{host}/xmr/vidosik.m3u8", html);
+                playlists = XhamsterTo.Playlist($"{host}/xmr/vidosik", html);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));

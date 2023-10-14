@@ -57,7 +57,7 @@ namespace Lampac.Controllers.PornHub
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = PornHubTo.Playlist($"{host}/phub/vidosik.m3u8", html);
+                playlists = PornHubTo.Playlist($"{host}/phub/vidosik", html);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
@@ -86,7 +86,7 @@ namespace Lampac.Controllers.PornHub
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = PornHubTo.Playlist($"{host}/phubprem/vidosik.m3u8", html, prem: true);
+                playlists = PornHubTo.Playlist($"{host}/phubprem/vidosik", html, prem: true);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));

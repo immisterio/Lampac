@@ -30,7 +30,7 @@ namespace Lampac.Controllers.Xnxx
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = XnxxTo.Playlist($"{host}/xnx/vidosik.m3u8", html);
+                playlists = XnxxTo.Playlist($"{host}/xnx/vidosik", html);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));

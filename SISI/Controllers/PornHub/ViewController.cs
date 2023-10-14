@@ -13,7 +13,7 @@ namespace Lampac.Controllers.PornHub
     public class ViewController : BaseSisiController
     {
         [HttpGet]
-        [Route("phub/vidosik.m3u8")]
+        [Route("phub/vidosik")]
         async public Task<ActionResult> Index(string vkey)
         {
             if (!AppInit.conf.PornHub.enable)
@@ -41,7 +41,7 @@ namespace Lampac.Controllers.PornHub
 
 
         [HttpGet]
-        [Route("phubprem/vidosik.m3u8")]
+        [Route("phubprem/vidosik")]
         async public Task<ActionResult> Prem(string vkey)
         {
             if (!AppInit.conf.PornHubPremium.enable)
