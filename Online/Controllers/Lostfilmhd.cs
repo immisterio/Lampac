@@ -49,9 +49,9 @@ namespace Lampac.Controllers.LITE
             {
                 if (content.seasons[s.ToString()] is JObject jb)
                 {
-                    foreach (var episode in jb.ToObject<Dictionary<string, Dictionary<string, object>>>())
+                    foreach (var episode in jb.ToObject<Dictionary<string, object>>())
                     {
-                        string link = $"{host}/lite/lostfilmhd/video?title={HttpUtility.UrlEncode(title)}&iframe={HttpUtility.UrlEncode(content.iframe_src)}&s={s}&e={episode.Key}&v={episode.Value.First().Key.Split('#')[0]}";
+                        string link = $"{host}/lite/lostfilmhd/video?title={HttpUtility.UrlEncode(title)}&iframe={HttpUtility.UrlEncode(content.iframe_src)}&s={s}&e={episode.Key}";
                         string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
@@ -79,10 +79,10 @@ namespace Lampac.Controllers.LITE
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}:{v}";
+            string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}"; // :{v}
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}&voice={v}", referer: AppInit.conf.Lostfilmhd.host, proxy: proxy, timeoutSeconds: 10);
+                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}"/* + $"&voice={v}"*/, referer: AppInit.conf.Lostfilmhd.host, proxy: proxy, timeoutSeconds: 10);
                 if (html == null)
                     return OnError(proxyManager);
 
