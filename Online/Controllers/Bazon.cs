@@ -26,8 +26,9 @@ namespace Lampac.Controllers.LITE
 
             if (checksearch)
             {
-                if (await search(kinopoisk_id))
-                    return Content("data-json=");
+                var res = await search(kinopoisk_id);
+                if (res.succes)
+                    return Content($"data-json= <!--{res.max_qual}p-->");
 
                 return OnError(proxyManager);
             }
@@ -154,14 +155,21 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<bool> search(long kinopoisk_id)
+        async ValueTask<(bool succes, string max_qual)> search(long kinopoisk_id)
         {
             string memKey = $"bazon:checksearch:{kinopoisk_id}";
 
-            if (!memoryCache.TryGetValue(memKey, out bool results))
+            if (!memoryCache.TryGetValue(memKey, out (bool succes, string max_qual) results))
             {
                 var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token={AppInit.conf.Bazon.token}&kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
-                results = root != null && root.ContainsKey("results");
+                results.succes = root != null && root.ContainsKey("results");
+
+                if (results.succes)
+                {
+                    var item = root.GetValue("results").First;
+                    results.max_qual = item.Value<string>("max_qual");
+                }
+
                 memoryCache.Set(memKey, results, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
             }
 

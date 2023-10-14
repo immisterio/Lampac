@@ -23,14 +23,14 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
             if (!AppInit.conf.Alloha.enable)
-                return OnError();
+                return OnError("disable");
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return OnError();
+                return OnError("imdb");
 
             JToken data = await search(imdb_id, kinopoisk_id);
             if (data == null)
-                return OnError(proxyManager);
+                return OnError("data", proxyManager);
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -111,14 +111,14 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
         {
             if (!AppInit.conf.Alloha.enable)
-                return OnError();
+                return OnError("disable");
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
             if (AppInit.conf.Alloha.localip)
             {
                 userIp = await mylocalip();
                 if (userIp == null)
-                    return OnError();
+                    return OnError("userIp");
             }
 
             string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}";
@@ -138,14 +138,14 @@ namespace Lampac.Controllers.LITE
 
                 string json = await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (json == null || !json.Contains("\"status\":\"success\""))
-                    return OnError();
+                    return OnError("json");
 
                 _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\"]+\\.m3u8)").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(_cache.m3u8))
                 {
                     _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"(https?://[^;\"]+\\.m3u8)").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(_cache.m3u8))
-                        return OnError();
+                        return OnError("m3u8");
                 }
 
                 string subtitle = Regex.Match(json.Replace("\\", ""), "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;

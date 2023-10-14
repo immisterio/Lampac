@@ -91,6 +91,9 @@ namespace Shared.Engine.Online
             if (news == null)
                 return null;
 
+            if (news.Contains("full_content fx_row"))
+                result.quel = Regex.Match(news.Split("full_content fx_row")[1].Split("full__favourite")[0], " (1080p|720p|480p)</div>").Groups[1].Value;
+
             string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
@@ -179,7 +182,7 @@ namespace Shared.Engine.Online
                 #endregion
 
                 hls = onstreamfile.Invoke(hls);
-                html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>");
+                html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel) +"</div></div>");
                 #endregion
             }
             else

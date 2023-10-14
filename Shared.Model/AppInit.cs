@@ -92,7 +92,7 @@ namespace Shared.Model
 
         public BazonSettings Bazon { get; set; } = new BazonSettings("https://bazon.cc", "", true);
 
-        public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.alloha.tv", "https://torso.as.alloeclub.com", "", "", true);
+        public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.alloha.tv", "https://torso-as.newplayjj.com:9443", "", "", true);
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
 

@@ -197,12 +197,21 @@ namespace Lampac.Controllers
         #region events
         [HttpGet]
         [Route("lifeevents")]
-        public ActionResult LifeEvents(long id)
+        public ActionResult LifeEvents(long id, string imdb_id, long kinopoisk_id, int serial)
         {
             string json = null;
+            JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
             if (memoryCache.TryGetValue($"ApiController:checkOnlineSearch:{id}", out (bool ready, int tasks, string online) res))
             {
+                if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
+                {
+                    if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
+                        return error($"Добавьте \"IMDB ID\" {(serial == 1 ? "сериала" : "фильма")} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids");
+
+                    return error($"Не удалось найти онлайн для {(serial == 1 ? "сериала" : "фильма")}");
+                }
+
                 string online = res.online?.Replace("{localhost}", $"{host}/lite") ?? string.Empty;
                 json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{Regex.Replace(online, ",$", "")}]" + "}";
             }
@@ -210,13 +219,11 @@ namespace Lampac.Controllers
             return Content(json ?? "{\"ready\":false,\"tasks\":0,\"online\":[]}", contentType: "application/javascript; charset=utf-8");
         }
 
+
         [HttpGet]
         [Route("lite/events")]
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
-            if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
-                return Json(new { accsdb = true, msg = $"Добавьте \"IMDB ID\" {(serial == 1 ? "сериала" : "фильма")} на https://www.themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids" });
-
             string online = string.Empty;
             bool isanime = original_language == "ja";
 
@@ -427,6 +434,9 @@ namespace Lampac.Controllers
                     }
                 }
 
+                if (quality == string.Empty && balanser == "vokino")
+                    quality = res.Contains("4K HDR") ? " - 4K HDR" : res.Contains("4K ") ? " - 4K" : string.Empty;
+
                 if (quality == string.Empty)
                 {
                     switch (balanser)
@@ -446,20 +456,20 @@ namespace Lampac.Controllers
                         case "vcdn":
                         case "ashdi":
                         case "eneyida":
-                        case "kodik":
                         case "hdvb":
                         case "anilibria":
                         case "animedia":
                         case "redheadsound":
                         case "iframevideo":
                         case "animego":
+                        case "lostfilmhd":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":
                         case "collaps":
                         case "animevost":
                         case "animebesst":
-                        case "lostfilmhd":
+                        case "kodik":
                             quality = " ~ 720p";
                             break;
                         case "kinokrad":

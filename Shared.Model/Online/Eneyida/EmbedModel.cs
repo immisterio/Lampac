@@ -6,6 +6,8 @@ namespace Shared.Model.Online.Eneyida
     {
         public string? content { get; set; }
 
+        public string? quel { get; set; }
+
         public List<Voice> serial { get; set; }
 
         public List<Similar>? similars { get; set; }

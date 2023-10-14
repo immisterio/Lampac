@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
             List<Result> content = null;
             var oninvk = InitKodikInvoke();
 
-            if (clarification == 1)
+            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
             {
                 if (string.IsNullOrWhiteSpace(title))
                     return OnError();
