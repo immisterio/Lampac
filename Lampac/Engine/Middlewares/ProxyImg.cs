@@ -34,6 +34,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
+                #region Проверки
                 Shared.Models.ProxyLinkModel decryptLink = null;
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
 
@@ -67,8 +68,21 @@ namespace Lampac.Engine.Middlewares
                     httpContext.Response.StatusCode = 404;
                     return;
                 }
+                #endregion
 
-                string outFile = getFolder(href);
+                #region width / height
+                int width = 0;
+                int height = 0;
+
+                if (httpContext.Request.Path.Value.StartsWith("/proxyimg:"))
+                {
+                    var gimg = Regex.Match(httpContext.Request.Path.Value, "/proxyimg:([0-9]+):([0-9]+)").Groups;
+                    width = int.Parse(gimg[1].Value);
+                    height = int.Parse(gimg[2].Value);
+                }
+                #endregion
+
+                string outFile = getFolder($"{href}:{width}:{height}");
 
                 if (File.Exists(outFile))
                 {
@@ -101,13 +115,8 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                if (httpContext.Request.Path.Value.StartsWith("/proxyimg:"))
+                if (width > 0 || height > 0)
                 {
-                    var gimg = Regex.Match(httpContext.Request.Path.Value, "/proxyimg:([0-9]+):([0-9]+)").Groups;
-
-                    int width = int.Parse(gimg[1].Value);
-                    int height = int.Parse(gimg[2].Value);
-
                     using (var image = Image.NewFromBuffer(array))
                     {
                         if (image.Width > width || image.Height > height)
