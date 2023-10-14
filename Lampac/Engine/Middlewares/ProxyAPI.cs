@@ -59,7 +59,7 @@ namespace Lampac.Engine.Middlewares
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(servUri))
+                if (string.IsNullOrWhiteSpace(servUri) || !servUri.StartsWith("http"))
                 {
                     httpContext.Response.StatusCode = 404;
                     return;
@@ -70,7 +70,7 @@ namespace Lampac.Engine.Middlewares
 
                 string validArgs(string uri)
                 {
-                    if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.enable)
+                    if (!AppInit.conf.accsdb.enable || string.IsNullOrWhiteSpace(account_email))
                         return uri;
 
                     return uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
