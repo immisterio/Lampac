@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Online.Kodik;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -63,11 +64,8 @@ namespace Shared.Engine.Online
                 if (root?.results == null)
                     return null;
 
-                bool firstjson = true;
-                var html = new StringBuilder();
-                html.Append("<div class=\"videos__line\">");
-
                 var hash = new HashSet<string>();
+                var stpl = new SimilarTpl(root.results.Count);
                 string enc_title = HttpUtility.UrlEncode(title);
 
                 foreach (var similar in root.results)
@@ -77,15 +75,19 @@ namespace Shared.Engine.Online
                         continue;
 
                     hash.Add(pick);
-                    string link = host + $"lite/kodik?title={enc_title}&clarification=1&pick={HttpUtility.UrlEncode(pick)}";
 
-                    html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>");
-                    firstjson = false;
+                    string? name = !string.IsNullOrEmpty(similar.title) && !string.IsNullOrEmpty(similar.title_orig) ? $"{similar.title} / {similar.title_orig}" : (similar.title ?? similar.title_orig);
+                    
+                    string details = similar.translation.title;
+                    if (similar.last_season > 0)
+                        details += $"{stpl.OnlineSplit} {similar.last_season}й сезон";
+
+                    stpl.Append(name, similar.year.ToString(), details, host + $"lite/kodik?title={enc_title}&clarification=1&pick={HttpUtility.UrlEncode(pick)}");
                 }
 
                 return new EmbedModel()
                 {
-                    html = html + "</div>",
+                    html = stpl.ToHtml(),
                     result = root.results
                 };
             }

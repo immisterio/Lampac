@@ -62,7 +62,7 @@ namespace Lampac.Controllers
         static Dictionary<string, string> externalids = new Dictionary<string, string>();
 
         [Route("externalids")]
-        async public Task<ActionResult> Externalids(long id, string imdb_id, int serial)
+        async public Task<ActionResult> Externalids(long id, string imdb_id, long kinopoisk_id, int serial)
         {
             if (IO.File.Exists("cache/externalids/master.json"))
                 externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
@@ -124,7 +124,7 @@ namespace Lampac.Controllers
                     string mkey = $"externalids:locktmdb:{serial}:{id}";
                     if (!memoryCache.TryGetValue(mkey, out _))
                     {
-                        memoryCache.Set(mkey, 0 , DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                        memoryCache.Set(mkey, 0 , DateTime.Now.AddHours(1));
 
                         string cat = serial == 1 ? "tv" : "movie";
                         string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 8);
@@ -132,10 +132,7 @@ namespace Lampac.Controllers
                         {
                             imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
                             if (!string.IsNullOrWhiteSpace(imdb_id))
-                            {
-                                memoryCache.Remove(mkey);
                                 IO.File.WriteAllText(path, imdb_id);
-                            }
                         }
                     }
                 }
@@ -143,66 +140,72 @@ namespace Lampac.Controllers
             #endregion
 
             #region get kinopoisk_id
-            string kinopoisk_id = null;
+            string kpid = null;
 
             if (!string.IsNullOrWhiteSpace(imdb_id))
             {
-                externalids.TryGetValue(imdb_id, out kinopoisk_id);
+                externalids.TryGetValue(imdb_id, out kpid);
 
-                if (string.IsNullOrEmpty(kinopoisk_id))
+                if (string.IsNullOrEmpty(kpid))
                 { 
                     string path = $"cache/externalids/{imdb_id}";
                     if (IO.File.Exists(path))
                     {
-                        kinopoisk_id = IO.File.ReadAllText(path);
-                        externalids.TryAdd(imdb_id, kinopoisk_id);
+                        kpid = IO.File.ReadAllText(path);
+                        externalids.TryAdd(imdb_id, kpid);
                     }
-                    else
+                    else if (kinopoisk_id == 0)
                     {
-                        switch (AppInit.conf.online.findkp ?? "all")
+                        string mkey = $"externalids:lockkpid:{imdb_id}";
+                        if (!memoryCache.TryGetValue(mkey, out _))
                         {
-                            case "alloha":
-                                kinopoisk_id = await getAlloha(imdb_id);
-                                break;
-                            case "vsdn":
-                                kinopoisk_id = await getVSDN(imdb_id);
-                                break;
-                            case "tabus":
-                                kinopoisk_id = await getTabus(imdb_id);
-                                break;
-                            default:
-                                {
-                                    var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
-                                    await Task.WhenAll(tasks);
+                            memoryCache.Set(mkey, 0, DateTime.Now.AddDays(1));
 
-                                    kinopoisk_id = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
+                            switch (AppInit.conf.online.findkp ?? "all")
+                            {
+                                case "alloha":
+                                    kpid = await getAlloha(imdb_id);
                                     break;
-                                }
-                        }
+                                case "vsdn":
+                                    kpid = await getVSDN(imdb_id);
+                                    break;
+                                case "tabus":
+                                    kpid = await getTabus(imdb_id);
+                                    break;
+                                default:
+                                    {
+                                        var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
+                                        await Task.WhenAll(tasks);
 
-                        if (!string.IsNullOrEmpty(kinopoisk_id))
-                        {
-                            externalids.TryAdd(imdb_id, kinopoisk_id);
-                            IO.File.WriteAllText(path, kinopoisk_id);
+                                        kpid = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
+                                        break;
+                                    }
+                            }
+
+                            if (!string.IsNullOrEmpty(kpid))
+                            {
+                                externalids.TryAdd(imdb_id, kpid);
+                                IO.File.WriteAllText(path, kpid);
+                            }
                         }
                     }
                 }
             }
             #endregion
 
-            return Json(new { imdb_id, kinopoisk_id });
+            return Json(new { imdb_id, kinopoisk_id = (kpid != null ? kpid : kinopoisk_id > 0 ? kinopoisk_id.ToString() : null) });
         }
         #endregion
 
         #region events
         [HttpGet]
         [Route("lifeevents")]
-        public ActionResult LifeEvents(long id, string imdb_id, long kinopoisk_id, int serial)
+        public ActionResult LifeEvents(long id, string imdb_id, long kinopoisk_id, int serial, string source)
         {
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
-            if (memoryCache.TryGetValue($"ApiController:checkOnlineSearch:{id}", out (bool ready, int tasks, string online) res))
+            if (memoryCache.TryGetValue(checkOnlineSearchKey(id, source), out (bool ready, int tasks, string online) res))
             {
                 if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
                 {
@@ -224,6 +227,9 @@ namespace Lampac.Controllers
         [Route("lite/events")]
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
+            if (source == "filmix" && string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
+                return Content("[{\"name\":\"Filmix\",\"url\":\""+host+"/lite/filmix?postid="+id+"\",\"index\":0,\"show\":true,\"balanser\":\"filmix\"}]", contentType: "application/javascript; charset=utf-8");
+
             string online = string.Empty;
             bool isanime = original_language == "ja";
 
@@ -259,7 +265,7 @@ namespace Lampac.Controllers
                 online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub\"},";
 
             if (conf.Filmix.enable)
-                online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix\"},";
+                online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
 
             if (conf.FilmixPartner.enable)
                 online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi\"},";
@@ -354,10 +360,10 @@ namespace Lampac.Controllers
             #region checkOnlineSearch
             if (conf.online.checkOnlineSearch && id > 0)
             {
-                string memkey = $"ApiController:checkOnlineSearch:{id}";
+                string memkey = checkOnlineSearchKey(id, source);
                 if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
                 {
-                    memoryCache.Set(memkey, string.Empty, DateTime.Now.AddSeconds(15));
+                    memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(15));
 
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
@@ -396,15 +402,18 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string balanser,
+        static string checkOnlineSearchKey(long id, string source) => $"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}";
+
+        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
-            string res = await HttpClient.Get($"{host}/lite/{balanser}?id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10);
+            string res = await HttpClient.Get($"{host}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
 
             string quality = string.Empty;
+            string balanser = uri.Split("?")[0];
 
             #region определение качества
             if (work)
@@ -488,9 +497,9 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            links.Add(("{" + $"\"name\":\"{name + quality}\",\"url\":\""+"{localhost}"+$"/{balanser}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "},", index, work));
+            links.Add(("{" + $"\"name\":\"{name + quality}\",\"url\":\""+"{localhost}"+$"/{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "},", index, work));
 
-            memoryCache.Set($"ApiController:checkOnlineSearch:{id}", (links.Count == tasks.Count, tasks.Count, string.Join("", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(10));
+            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join("", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(10));
         }
         #endregion
     }

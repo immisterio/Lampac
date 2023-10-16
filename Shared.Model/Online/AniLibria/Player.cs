@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.AniLibria
+﻿namespace Lampac.Models.LITE.AniLibria
 {
     public class Player
     {

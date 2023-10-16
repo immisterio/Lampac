@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string original_language, int postid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, string original_language, int postid, int s = -1)
         {
             if (!AppInit.conf.KinoPub.enable)
                 return OnError();
@@ -73,13 +73,15 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
-                    return OnError();
-
                 if (original_language != "en")
                     clarification = 1;
 
-                postid = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, clarification, imdb_id, kinopoisk_id));
+                var res = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id));
+
+                if (res.similars != null)
+                    return Content(res.similars, "text/html; charset=utf-8");
+
+                postid = res.id;
 
                 if (postid == 0)
                     return OnError(proxyManager);

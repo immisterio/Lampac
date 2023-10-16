@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,20 +25,17 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.AnimeGo.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
             if (pid == 0)
             {
                 #region Поиск
                 string memkey = $"animego:search:{title}";
-                if (!memoryCache.TryGetValue(memkey, out List<(string title, string pid, string s)> catalog))
+                if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s)> catalog))
                 {
                     string search = await HttpClient.Get($"{AppInit.conf.AnimeGo.host}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get());
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string pid, string s)>();
+                    catalog = new List<(string title, string year, string pid, string s)>();
 
                     foreach (string row in search.Split("class=\"p-poster__stack\"").Skip(1))
                     {
@@ -51,7 +49,7 @@ namespace Lampac.Controllers.LITE
                             if (animeyear == year.ToString() && name.ToLower() == title.ToLower())
                                 season = "1";
 
-                            catalog.Add((name, player_id, season));
+                            catalog.Add((name, Regex.Match(row, ">([0-9]{4})</a>").Groups[1].Value, player_id, season));
                         }
                     }
 
@@ -64,18 +62,24 @@ namespace Lampac.Controllers.LITE
                 if (catalog.Count == 1)
                     return LocalRedirect($"/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={catalog[0].pid}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
+                var stpl = new SimilarTpl(catalog.Count);
+
                 foreach (var res in catalog)
                 {
                     string link = $"{host}/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={res.pid}&s={res.s}";
 
-                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
-                    firstjson = false;
+                    stpl.Append(res.title, res.year, string.Empty, link);
                 }
+
+                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
             else 
             {
                 #region Серии
+                bool firstjson = true;
+                string html = "<div class=\"videos__line\">";
+
                 string memKey = $"animego:playlist:{pid}";
                 if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
@@ -159,10 +163,10 @@ namespace Lampac.Controllers.LITE
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
                     firstjson = true;
                 }
+
+                return Content(html + "</div>", "text/html; charset=utf-8");
                 #endregion
             }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
 

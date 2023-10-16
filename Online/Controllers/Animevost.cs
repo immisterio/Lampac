@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -23,20 +24,17 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Animevost.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
                 string memkey = $"animevost:search:{title}";
-                if (!memoryCache.TryGetValue(memkey, out List<(string title, string uri, string s)> catalog))
+                if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
                     string search = await HttpClient.Post($"{AppInit.conf.Animevost.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string uri, string s)>();
+                    catalog = new List<(string title, string year, string uri, string s)>();
 
                     foreach (string row in search.Split("class=\"shortstory\"").Skip(1))
                     {
@@ -49,7 +47,7 @@ namespace Lampac.Controllers.LITE
                             if (animeyear == year.ToString() && g[2].Value.ToLower().StartsWith(title.ToLower()))
                                 season = "1";
 
-                            catalog.Add((g[2].Value, g[1].Value, season));
+                            catalog.Add((g[2].Value, animeyear, g[1].Value, season));
                         }
                     }
 
@@ -62,18 +60,24 @@ namespace Lampac.Controllers.LITE
                 if (catalog.Count == 1)
                     return LocalRedirect($"/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
+                var stpl = new SimilarTpl(catalog.Count);
+
                 foreach (var res in catalog)
                 {
                     string link = $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
 
-                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
-                    firstjson = false;
+                    stpl.Append(res.title, res.year, string.Empty, link);
                 }
+
+                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
             else 
             {
                 #region Серии
+                bool firstjson = true;
+                string html = "<div class=\"videos__line\">";
+
                 string memKey = $"animevost:playlist:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out List<(string episode, string id)> links))
                 {
@@ -106,10 +110,10 @@ namespace Lampac.Controllers.LITE
                     html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.episode})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.episode + "</div></div>";
                     firstjson = true;
                 }
+
+                return Content(html + "</div>", "text/html; charset=utf-8");
                 #endregion
             }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
 

@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.LITE;
 using Shared.Model.Online.Rezka;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -51,7 +52,7 @@ namespace Shared.Engine.Online
                     if (result.similar == null)
                         result.similar = new List<SimilarModel>();
 
-                    result.similar.Add(new SimilarModel($"{name} {g[3].Value}", g[1].Value));
+                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value));
 
                     if (title != null && (name.Contains(" / ") && name.Contains(title.ToLower()) || name == title.ToLower()))
                     {
@@ -85,33 +86,34 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel result, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
         {
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
             string? enc_href = HttpUtility.UrlEncode(href);
 
-            #region similar
+            #region similar html
             if (result.content == null)
             {
                 if (string.IsNullOrWhiteSpace(href) && result.similar != null && result.similar.Count > 0)
                 {
+                    var stpl = new SimilarTpl(result.similar.Count);
+
                     foreach (var similar in result.similar)
                     {
                         string link = host + $"lite/rezka?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>");
-                        firstjson = false;
+                        stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
 
-                    return html + "</div>";
+                    return stpl.ToHtml();
                 }
 
                 return string.Empty;
             }
             #endregion
+
+            bool firstjson = true;
+            var html = new StringBuilder();
+            html.Append("<div class=\"videos__line\">");
 
             if (!result.content.Contains("data-season_id="))
             {

@@ -10,6 +10,10 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 using System.Web;
 using Online;
+using Shared.Model.Online.Filmix;
+using Shared.Model.Templates;
+using System.Text.Json;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,12 +21,25 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int postid, int t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1)
         {
-            if (!AppInit.conf.FilmixPartner.enable || string.IsNullOrWhiteSpace(AppInit.conf.Filmix.host))
+            if (!AppInit.conf.FilmixPartner.enable)
                 return OnError();
 
-            postid = postid == 0 ? await search(kinopoisk_id) : postid;
+            if (postid == 0)
+            {
+                if (kinopoisk_id > 0)
+                    postid = await search(kinopoisk_id);
+                else
+                {
+                    var res = await InvokeCache($"fxapi:search:{title}:{original_title}", 40, () => Search(title, original_title, year));
+                    if (res.id == 0)
+                        return Content(res.similars);
+
+                    postid = res.id;
+                }
+            }
+
             if (postid == 0)
                 return OnError();
 
@@ -188,6 +205,57 @@ namespace Lampac.Controllers.LITE
             }
 
             return postid;
+        }
+
+
+        async public ValueTask<(int id, string similars)> Search(string title, string original_title, int year)
+        {
+            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
+                return (0, null);
+
+            var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
+            var proxy = proxyManager.Get();
+
+            string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";
+
+            string json = await HttpClient.Get(AppInit.conf.Filmix.corsHost(uri), timeoutSeconds: 8, proxy: proxy);
+            if (json == null)
+            {
+                proxyManager.Refresh();
+                return (0, null);
+            }
+
+            var root = JsonSerializer.Deserialize<List<SearchModel>>(json);
+            if (root == null || root.Count == 0)
+                return (0, null);
+
+            var ids = new List<int>();
+            var stpl = new SimilarTpl(root.Count);
+
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            foreach (var item in root)
+            {
+                if (item == null)
+                    continue;
+
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/fxapi?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+
+                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
+                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                {
+                    if (item.year == year)
+                        ids.Add(item.id);
+                }
+            }
+
+            if (ids.Count == 1)
+                return (ids[0], null);
+
+            return (0, stpl.ToHtml());
         }
         #endregion
 

@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.LITE.Filmix;
 using Shared.Model.Online.Filmix;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -33,7 +34,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return (0, null);
 
-            string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
+            string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
            
             onlog?.Invoke("uri: " + uri);
             
@@ -50,9 +51,8 @@ namespace Shared.Engine.Online
             onlog?.Invoke("root.Count " + root.Count);
 
             var ids = new List<int>();
-            var similars = new StringBuilder();
+            var stpl = new SimilarTpl(root.Count);
 
-            bool firstjson = true;
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
@@ -61,14 +61,9 @@ namespace Shared.Engine.Online
                 if (item == null)
                     continue;
 
-                string link = host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}";
+                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}"  : (item.title ?? item.original_title);
 
-                string name = item.title ?? string.Empty;
-                if (!string.IsNullOrEmpty(item.original_title))
-                    name += $" / {item.original_title}";
-
-                similars.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{name} ({item.year})" + "</div></div></div>");
-                firstjson = false;
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}"); 
 
                 if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
                     (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
@@ -81,7 +76,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return (ids[0], null);
 
-            return (0, similars.ToString());
+            return (0, stpl.ToHtml());
         }
         #endregion
 
@@ -160,6 +155,9 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
+                if (player_links.playlist == null || player_links.playlist.Count == 0)
+                    return string.Empty;
+
                 string? enc_title = HttpUtility.UrlEncode(title);
                 string? enc_original_title = HttpUtility.UrlEncode(original_title);
 

@@ -3,6 +3,7 @@ using System.Web;
 using System.Text.Json;
 using Shared.Model.Online.VideoCDN;
 using System.Text;
+using Shared.Model.Templates;
 
 namespace Shared.Engine.Online
 {
@@ -10,18 +11,58 @@ namespace Shared.Engine.Online
     {
         #region VideoCDNInvoke
         string? host;
+        string iframeapihost;
         string apihost;
+        string token;
         Func<string, string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public VideoCDNInvoke(string? host, string apihost, Func<string, string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoCDNInvoke(string? host, string iframeapihost, string apihost, string token, Func<string, string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
+            this.iframeapihost = iframeapihost;
             this.apihost = apihost;
+            this.token = token;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+        }
+        #endregion
+
+        #region Search
+        public async ValueTask<string?> Search(string title, string? original_title)
+        {
+            if (string.IsNullOrWhiteSpace(title ?? original_title))
+                return null;
+
+            string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(original_title ?? title)}";
+
+            string? json = await onget.Invoke(uri, apihost);
+            if (json == null)
+                return null;
+
+            var root = JsonSerializer.Deserialize<SearchRoot>(json);
+            if (root?.data == null || root.data.Count == 0)
+                return null;
+
+            var stpl = new SimilarTpl(root.data.Count);
+
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            foreach (var item in root.data)
+            {
+                if (item.kp_id == 0 && string.IsNullOrEmpty(item.imdb_id))
+                    continue;
+
+                string year = item.add?.Split("-")?[0] ?? string.Empty;
+                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
+
+                stpl.Append(name, year, string.Empty, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
+            }
+
+            return stpl.ToHtml();
         }
         #endregion
 
@@ -29,7 +70,7 @@ namespace Shared.Engine.Online
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
         {
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-            string? content = await onget.Invoke($"{apihost}?{args}", "https://kinogo.biz/53104-avatar-2-2022.html");
+            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.biz/53104-avatar-2-2022.html");
             if (content == null)
                 return null;
 

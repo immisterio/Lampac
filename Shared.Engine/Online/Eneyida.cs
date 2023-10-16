@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Online.Eneyida;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -62,7 +63,8 @@ namespace Shared.Engine.Online
 
                     result.similars.Add(new Similar() 
                     {
-                        title  = $"{name} {g[2].Value}",
+                        title = name,
+                        year = g[2].Value,
                         href = newslink
                     });
 
@@ -135,15 +137,16 @@ namespace Shared.Engine.Online
             {
                 if (string.IsNullOrWhiteSpace(href) && result.similars != null && result.similars.Count > 0)
                 {
+                    var stpl = new SimilarTpl(result.similars.Count);
+
                     foreach (var similar in result.similars)
                     {
                         string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + similar.title + "</div></div></div>");
-                        firstjson = false;
+                        stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
 
-                    return html.ToString() + "</div>";
+                    return stpl.ToHtml();
                 }
 
                 return string.Empty;

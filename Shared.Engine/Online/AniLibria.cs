@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.AniLibria;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -43,13 +44,13 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(List<RootObject> result, string title, string? code, int year)
         {
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             if (!string.IsNullOrWhiteSpace(code) || (result.Count == 1 && result[0].season.year == year && result[0].names.ru?.ToLower() == title.ToLower()))
             {
                 #region Серии
+                bool firstjson = true;
+                var html = new StringBuilder();
+                html.Append("<div class=\"videos__line\">");
+
                 var root = string.IsNullOrWhiteSpace(code) ? result[0] : result.Find(i => i.code == code);
 
                 foreach (var episode in root.player.playlist.Select(i => i.Value))
@@ -76,24 +77,26 @@ namespace Shared.Engine.Online
                     html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + season + "\" e=\"" + episode.serie + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({episode.serie} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.serie} серия" + "</div></div>");
                     firstjson = false;
                 }
+
+                return html.ToString() + "</div>";
                 #endregion
             }
             else
             {
                 #region Поиск
+                var stpl = new SimilarTpl(result.Count);
                 string? enc_title = HttpUtility.UrlEncode(title);
 
                 foreach (var root in result)
                 {
-                    string link = host + $"lite/anilibria?title={enc_title}&code={root.code}";
+                    string? name = !string.IsNullOrEmpty(root.names.ru) && !string.IsNullOrEmpty(root.names.en) ? $"{root.names.ru} / {root.names.en}" : (root.names.ru ?? root.names.en);
 
-                    html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{root.names.ru ?? root.names.en} ({root.season.year})" + "</div></div></div>");
-                    firstjson = false;
+                    stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}");
                 }
+
+                return stpl.ToHtml();
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

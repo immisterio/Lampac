@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.LITE.KinoPub;
 using Shared.Model.Online.KinoPub;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -32,36 +33,66 @@ namespace Shared.Engine.Online
         /// 0 - Данные не получены
         /// 1 - Нет нужного контента 
         /// </returns>
-        async public ValueTask<int> Search(string? title, string? original_title, int clarification, string? imdb_id, long kinopoisk_id)
+        async public ValueTask<(int id, string? similars)> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
         {
             string? searchtitle = clarification == 1 ? title : (original_title ?? title);
             if (string.IsNullOrWhiteSpace(searchtitle))
-                return 0;
+                return (0, null);
 
             string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(searchtitle)}&access_token={token}&field=title&perpage=200");
             if (json == null)
-                return 0;
+                return (0, null);
 
             try
             {
                 var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
                 if (items != null)
                 {
-                    foreach (var item in items)
+                    if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                     {
-                        if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
-                            return item.id;
+                        var ids = new List<int>();
+                        var stpl = new SimilarTpl(items.Count);
 
-                        if ($"tt{item.imdb}" == imdb_id)
-                            return item.id;
+                        string? enc_title = HttpUtility.UrlEncode(title);
+                        string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+                        foreach (var item in items)
+                        {
+                            if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
+                            {
+                                stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+
+                                string _t = item.title.ToLower();
+                                string _s = searchtitle.ToLower();
+
+                                if (item.year == year && (_t.StartsWith(_s) || _t.EndsWith(_s)))
+                                    ids.Add(item.id);
+                            }
+                        }
+
+                        if (ids.Count == 1)
+                            return (ids[0], null);
+
+                        return (0, stpl.ToHtml());
                     }
+                    else
+                    {
+                        foreach (var item in items)
+                        {
+                            if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
+                                return (item.id, null);
 
-                    return -1;
+                            if ($"tt{item.imdb}" == imdb_id)
+                                return (item.id, null);
+                        }
+
+                        return (-1, null);
+                    }
                 }
             }
             catch { }
 
-            return 0;
+            return (0, null);
         }
         #endregion
 

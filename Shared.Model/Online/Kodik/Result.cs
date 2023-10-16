@@ -6,9 +6,13 @@ namespace Shared.Model.Online.Kodik
     {
         public string id { get; set; }
 
-        public string title { get; set; }
+        public string? title { get; set; }
+
+        public string? title_orig { get; set; }
 
         public string type { get; set; }
+
+        public int year { get; set; }
 
         public string link { get; set; }
 

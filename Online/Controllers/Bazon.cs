@@ -10,6 +10,7 @@ using System.Linq;
 using Lampac.Engine.CORE;
 using Online;
 using Shared.Engine.CORE;
+using Microsoft.AspNetCore.Http;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,10 +20,22 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/bazon")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, string t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, string t, int s = -1)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.Bazon.enable)
+            if (!AppInit.conf.Bazon.enable)
                 return OnError();
+
+            if (kinopoisk_id == 0)
+            {
+                string stitle = original_title ?? title;
+                if (string.IsNullOrEmpty(stitle) || year == 0)
+                    return OnError();
+
+                kinopoisk_id = await search(stitle, year);
+
+                if (kinopoisk_id == 0)
+                    return OnError();
+            }
 
             if (checksearch)
             {
@@ -174,6 +187,35 @@ namespace Lampac.Controllers.LITE
             }
 
             return results;
+        }
+
+
+        async ValueTask<long> search(string title, int year)
+        {
+            string memKey = $"bazon:searchkpid:{title}:{year}";
+
+            if (!memoryCache.TryGetValue(memKey, out long kinopoisk_id))
+            {
+                var root = await HttpClient.Get<JObject>($"https://bazon.cc/api/search?token={AppInit.conf.Bazon.token}&title={HttpUtility.UrlEncode($"{title} {year}")}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                if (root != null && root.ContainsKey("results"))
+                {
+                    HashSet<long> kpids = new HashSet<long>();
+
+                    foreach (var item in root.Value<JArray>("results"))
+                    {
+                        string kpid = item.Value<string>("kinopoisk_id");
+                        if (kpid != null && long.TryParse(kpid, out long _kpid) && _kpid > 0)
+                            kpids.Add(_kpid);
+                    }
+
+                    if (kpids.Count == 1)
+                        kinopoisk_id = kpids.First();
+                }
+
+                memoryCache.Set(memKey, kinopoisk_id, DateTime.Now.AddDays(1));
+            }
+
+            return kinopoisk_id;
         }
         #endregion
     }

@@ -13,17 +13,25 @@ namespace JinEnergy.Online
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             string? t = parse_arg("t", args);
 
-            if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                return EmptyError("arg");
-
             var oninvk = new VideoCDNInvoke
             (
                null,
                AppInit.VCDN.corsHost(),
+               AppInit.VCDN.corsHost(AppInit.VCDN.apihost!),
+               AppInit.VCDN.token!,
                (url, referer) => JsHttpClient.Get(AppInit.VCDN.corsHost(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
                streamfile => streamfile
                //AppInit.log
             );
+
+            if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
+            {
+                string? similars = await InvokeCache(arg.id, $"videocdn:search:{arg.title}:{arg.original_title}", () => oninvk.Search(arg.title!, arg.original_title));
+                if (similars == null)
+                    return EmptyError("similars");
+
+                return similars;
+            }
 
             var content = await InvokeCache(arg.id, $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => 
             {

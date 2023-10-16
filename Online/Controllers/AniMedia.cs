@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -23,9 +24,6 @@ namespace Lampac.Controllers.LITE
         {
             if (!AppInit.conf.AniMedia.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
 
             if (string.IsNullOrWhiteSpace(code))
             {
@@ -56,17 +54,23 @@ namespace Lampac.Controllers.LITE
                 if (catalog.Count == 1)
                     return LocalRedirect($"/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}&account_email={HttpUtility.UrlEncode(account_email)}");
 
+                var stpl = new SimilarTpl(catalog.Count);
+
                 foreach (var res in catalog)
                 {
                     string link = $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}";
 
-                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\",\"similar\":true}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + res.title + "</div></div></div>";
-                    firstjson = false;
+                    stpl.Append(res.title, string.Empty, string.Empty, link);
                 }
+
+                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
             else 
             {
+                bool firstjson = true;
+                string html = "<div class=\"videos__line\">";
+
                 if (s == -1)
                 {
                     #region Сезоны
@@ -139,9 +143,9 @@ namespace Lampac.Controllers.LITE
                     }
                     #endregion
                 }
-            }
 
-            return Content(html + "</div>", "text/html; charset=utf-8");
+                return Content(html + "</div>", "text/html; charset=utf-8");
+            }
         }
     }
 }
