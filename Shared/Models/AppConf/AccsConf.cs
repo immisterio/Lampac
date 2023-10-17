@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
 
 namespace Lampac.Models.AppConf
 {
@@ -14,6 +15,6 @@ namespace Lampac.Models.AppConf
 
         public string denyMesage { get; set; }
 
-        public HashSet<string> accounts { get; set; } = new HashSet<string>();
+        public ConcurrentDictionary<string, DateTime> accounts { get; set; } = new ConcurrentDictionary<string, DateTime>();
     }
 }

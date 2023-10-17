@@ -44,9 +44,14 @@ namespace Lampac.Controllers.LITE
                 if (!users.Contains($",freekassa,{MERCHANT_ORDER_ID}"))
                 {
                     string email = await System.IO.File.ReadAllTextAsync($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}");
-                    await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email.ToLower()},{DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths).ToFileTimeUtc()},freekassa,{MERCHANT_ORDER_ID}\n");
 
-                    AppInit.conf.accsdb.accounts.Add(email);
+                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out DateTime ex) && ex > DateTime.UtcNow)
+                        ex = ex.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                    else
+                        ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
+
+                    await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email.ToLower()},{ex.ToFileTimeUtc()},freekassa,{MERCHANT_ORDER_ID}\n"); 
+                    AppInit.conf.accsdb.accounts.TryUpdate(email, ex, ex);
                 }
 
                 return Content("YES");

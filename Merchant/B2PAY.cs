@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -84,9 +83,14 @@ namespace Lampac.Controllers.LITE
             if (!users.Contains($",b2pay,{orderNumber}"))
             {
                 var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
-                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"].ToLower()},{DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths).ToFileTimeUtc()},b2pay,{orderNumber}\n");
 
-                AppInit.conf.accsdb.accounts.Add(invoice["custom_field"]);
+                if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["custom_field"], out DateTime ex) && ex > DateTime.UtcNow)
+                    ex = ex.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                else
+                    ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
+
+                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"]},{ex.ToFileTimeUtc()},b2pay,{orderNumber}\n");
+                AppInit.conf.accsdb.accounts.TryUpdate(invoice["custom_field"], ex, ex);
             }
 
             return Content("ok");

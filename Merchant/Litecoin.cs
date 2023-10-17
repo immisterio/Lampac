@@ -129,9 +129,13 @@ namespace Lampac.Controllers.LITE
                             double cost = (double)AppInit.conf.Merchant.accessCost / (double)(AppInit.conf.Merchant.accessForMonths * 30);
                             int addday = (int)((trans.amount * kurs) / cost);
 
-                            await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email},{DateTime.UtcNow.AddDays(addday).ToFileTimeUtc()},litecoin\n");
+                            if (AppInit.conf.accsdb.accounts.TryGetValue(email, out DateTime ex) && ex > DateTime.UtcNow)
+                                ex = ex.AddDays(addday);
+                            else
+                                ex = DateTime.UtcNow.AddDays(addday);
 
-                            AppInit.conf.accsdb.accounts.Add(email);
+                            await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email},{ex.ToFileTimeUtc()},litecoin\n");
+                            AppInit.conf.accsdb.accounts.TryUpdate(email, ex, ex);
                         }
                         catch { }
                     }

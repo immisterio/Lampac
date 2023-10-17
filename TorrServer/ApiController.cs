@@ -110,7 +110,7 @@ namespace Lampac.Controllers
                     string login = decodedString[0].ToLower().Trim();
                     string passwd = decodedString[1];
 
-                    if (AppInit.conf.accsdb.accounts.Contains(login) && passwd == "ts")
+                    if (AppInit.conf.accsdb.accounts.TryGetValue(login, out DateTime ex) && ex > DateTime.UtcNow && passwd == "ts")
                     {
                         await TorAPI();
                         return;

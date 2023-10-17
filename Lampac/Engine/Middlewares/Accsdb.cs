@@ -45,7 +45,7 @@ namespace Lampac.Engine.Middlewares
                     HashSet<string> ips = null;
                     string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower()?.Trim();
 
-                    if (string.IsNullOrWhiteSpace(account_email) || AppInit.conf.accsdb.accounts.FirstOrDefault(i => i.ToLower() == account_email) == null || 
+                    if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex) || DateTime.UtcNow > ex || 
                         IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip, out ips))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))

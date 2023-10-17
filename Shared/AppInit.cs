@@ -45,7 +45,10 @@ namespace Lampac
                             if (data.Length > 1)
                             {
                                 if (long.TryParse(data[1], out long ex) && ex > utc)
-                                    cacheconf.Item1.accsdb.accounts.Add(data[0].Trim().ToLower());
+                                {
+                                    var e = DateTime.FromFileTimeUtc(ex);
+                                    cacheconf.Item1.accsdb.accounts.TryUpdate(data[0].Trim().ToLower(), e, e);
+                                }
                             }
                         }
                     }

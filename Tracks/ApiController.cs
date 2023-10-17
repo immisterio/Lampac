@@ -26,7 +26,7 @@ namespace Lampac.Controllers
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
                     return Content(string.Empty);
 
-                string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First() : "";
+                string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First().Key : "";
                 media = $"{host}/dlna/stream?path={path}&account_email={HttpUtility.UrlEncode(account_email)}";
             }
             else if (media.Contains("/stream/"))
