@@ -69,7 +69,7 @@ namespace Shared.Model
 
         public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online");
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay.site");
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay1.site");
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://cdnmovies.nl");
 
