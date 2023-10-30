@@ -53,7 +53,7 @@ namespace SISI
                 list = playlists.Select(pl => new
                 {
                     pl.name,
-                    pl.video,
+                    video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
                     picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture, headers: headers),
                     pl.preview,
                     pl.time,
@@ -73,7 +73,7 @@ namespace SISI
                 recomends = stream_links.recomends.Select(pl => new
                 {
                     pl.name,
-                    pl.video,
+                    video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
                     picture = HostImgProxy(0, 110, pl.picture, headers: headers),
                     pl.json
                 })

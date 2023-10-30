@@ -33,6 +33,12 @@ namespace Lampac
                     cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
                     cacheconf.Item2 = lastWriteTime;
 
+                    if (cacheconf.Item1 != null)
+                    {
+                        if (!string.IsNullOrEmpty(cacheconf.Item1.corsehost))
+                            corseuhost = cacheconf.Item1.corsehost;
+                    }
+
                     if (File.Exists("merchant/users.txt"))
                     {
                         long utc = DateTime.UtcNow.ToFileTimeUtc();

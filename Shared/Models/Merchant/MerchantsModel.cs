@@ -4,9 +4,9 @@ namespace Lampac.Models.Merchant
 {
     public class MerchantsModel
     {
-        public int accessCost { get; set; }
+        public int accessCost { get; set; } = 2;
 
-        public int accessForMonths { get; set; } = 12;
+        public int accessForMonths { get; set; } = 1;
 
         public int allowedDifference { get; set; }
 

@@ -31,13 +31,10 @@ namespace SISI
 
             string getvideLink(PlaylistItem pl)
             {
-                if (pl.bookmark.site is "elo" or "epr" or "ptx" or "hqr" or "sbg")
-                    return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
-
                 if (pl.bookmark.site is "phub" or "phubprem")
-                    return $"{host}/{pl.bookmark.site}/vidosik.m3u8?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
+                    return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
 
-                return $"{host}/{pl.bookmark.site}/vidosik.m3u8?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
+                return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
             }
 
             return new JsonResult(new

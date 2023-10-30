@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("kinotochka", AppInit.conf.Kinotochka);
             var proxy = proxyManager.Get();
 
+            // enable 720p
+            string cookie = AppInit.conf.Kinotochka.cookie ??  "PHPSESSID=i9g8i9lr3j8d5tsrrm5bg4ush7; _ga=GA1.1.1814511493.1698667196; cf_clearance=bBUeH48bPNG6ilgXkfKc0DdVNWW9hEnn0l8wC9xHBKU-1698670014-0-1-ecb48842.7f2ed8fe.bbb5d7a2-150.0.0; dle_user_id=476720; dle_password=8842d3a884231414bdca85a8b9c00a0b; dle_newpm=0; _ga_6EPB4E046E=GS1.1.1698670015.2.1.1698670096.0.0.0";
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
@@ -75,13 +78,13 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:playlist:{newsuri}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy);
+                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie);
                         string filetxt = Regex.Match(news ?? "", "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
 
                         if (string.IsNullOrWhiteSpace(filetxt))
                             return OnError(proxyManager);
 
-                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy);
+                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie);
                         if (root == null)
                             return OnError(proxyManager);
 
@@ -128,7 +131,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
-                    string embed = await HttpClient.Get($"{AppInit.conf.Kinotochka.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy);
+                    string embed = await HttpClient.Get($"{AppInit.conf.Kinotochka.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, cookie: cookie);
                     file = Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(file))
