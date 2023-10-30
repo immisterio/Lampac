@@ -58,7 +58,7 @@ namespace JinEnergy.Online
 
             string? hashfimix = null;
 
-            string? FXFS = await JsHttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 2);
+            string? FXFS = await JsHttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
 
             if (!string.IsNullOrEmpty(FXFS))
             {
@@ -69,10 +69,14 @@ namespace JinEnergy.Online
                     "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
                 };
 
-                for (int i = 0; i < 2; i++)
+                for (int i = 0; i < 3; i++)
                 {
                     string hash = chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
-                    bool res = await checkHash(FXFS, hash);
+
+                    if (i > 0)
+                        hash += chars[random.Next(0, chars.Length)];
+
+                    bool res = await checkHash(FXFS, hash, (i == 0 ? 7 : 5));
                     if (res)
                     {
                         hashfimix = $"{FXFS}{hash}";
@@ -95,16 +99,16 @@ namespace JinEnergy.Online
             return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");
         }
 
-        async static ValueTask<bool> checkHash(string FXFS, string hash)
+        async static ValueTask<bool> checkHash(string FXFS, string hash, int timeout)
         {
             try
             {
                 using (var client = new HttpClient())
                 {
-                    client.Timeout = TimeSpan.FromSeconds(7);
+                    client.Timeout = TimeSpan.FromSeconds(timeout);
                     client.MaxResponseContentBufferSize = 1_000_000; // 1MB
 
-                    string url = $"http://nl201.cdnsqu.com/s/{FXFS}{hash}/HD_56/Mission.Impossible.CLEAN.2023_1080.mp4";
+                    string url = $"https://nl107.cdnsqu.com/s/{FXFS}{hash}/UHD_090/Mission.Impossible.Dead.Reckoning.Part.One.2023.1080p.AMZN.WEB-DL_1440.mp4";
 
                     using (HttpResponseMessage response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, url), HttpCompletionOption.ResponseHeadersRead))
                     {

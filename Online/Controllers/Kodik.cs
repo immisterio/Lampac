@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
                 while (match.Success)
                 {
                     if (!string.IsNullOrWhiteSpace(match.Groups[3].Value))
-                        streams.Insert(0, ($"{match.Groups[1].Value}p", $"http://{match.Groups[3].Value}"));
+                        streams.Insert(0, ($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
 
                     match = match.NextMatch();
                 }

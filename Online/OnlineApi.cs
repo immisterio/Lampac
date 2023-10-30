@@ -227,9 +227,6 @@ namespace Lampac.Controllers
         [Route("lite/events")]
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
-            if (source == "filmix" && string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
-                return Content("[{\"name\":\"Filmix\",\"url\":\""+host+"/lite/filmix?postid="+id+"\",\"index\":0,\"show\":true,\"balanser\":\"filmix\"}]", contentType: "application/javascript; charset=utf-8");
-
             string online = string.Empty;
             bool isanime = original_language == "ja";
 
@@ -268,7 +265,7 @@ namespace Lampac.Controllers
                 online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
 
             if (conf.FilmixPartner.enable)
-                online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi\"},";
+                online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
 
             if (conf.Bazon.enable)
                 online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
@@ -372,7 +369,7 @@ namespace Lampac.Controllers
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            tasks.Add(checkSearch(links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial));
+                            tasks.Add(checkSearch(links, tasks, tasks.Count, match.Groups[1].Value, match.Groups[2].Value, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
 
                         match = match.NextMatch();
                     }
@@ -405,7 +402,7 @@ namespace Lampac.Controllers
         static string checkOnlineSearchKey(long id, string source) => $"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}";
 
         async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri,
-                               long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial)
+                               long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First().Key : "";
             string res = await HttpClient.Get($"{host}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10);
@@ -416,7 +413,7 @@ namespace Lampac.Controllers
             string balanser = uri.Split("?")[0];
 
             #region определение качества
-            if (work)
+            if (work && life)
             {
                 if (serial == -1 || serial == 0)
                 {

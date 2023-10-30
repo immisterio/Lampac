@@ -15,7 +15,8 @@ namespace Lampac.Engine.Middlewares
         public Task Invoke(HttpContext httpContext)
         {
             httpContext.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
-            httpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Accept, Content-Type");
+            httpContext.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
+            httpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Accept, Origin, Content-Type");
             httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
 
             if (httpContext.Request.Headers.TryGetValue("origin", out var origin))

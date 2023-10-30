@@ -244,7 +244,7 @@ namespace Shared.Engine.Online
                     string decodedString = DecodeUrlBase64(src);
 
                     if (decodedString.StartsWith("//"))
-                        decodedString = $"http:{decodedString}";
+                        decodedString = $"https:{decodedString}";
 
                     streams.Insert(0, ($"{match.Groups[1].Value}p", decodedString));
                 }

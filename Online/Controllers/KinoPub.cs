@@ -54,11 +54,11 @@ namespace Lampac.Controllers.LITE
             string filetype = AppInit.conf.KinoPub.filetype;
             string token = AppInit.conf.KinoPub.token;
 
-            if (string.IsNullOrEmpty(AppInit.conf.KinoPub.token))
-            {
-                filetype = "hls4";
-                token = "tke4plvt4gde68tt07fkmpuj9lnw2w16";
-            }
+            //if (string.IsNullOrEmpty(AppInit.conf.KinoPub.token))
+            //{
+            //    filetype = "hls4";
+            //    token = "tke4plvt4gde68tt07fkmpuj9lnw2w16";
+            //}
 
             var proxy = proxyManager.Get();
 

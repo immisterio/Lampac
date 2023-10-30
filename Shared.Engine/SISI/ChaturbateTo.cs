@@ -7,13 +7,13 @@ namespace Shared.Engine.SISI
     {
         public static ValueTask<string?> InvokeHtml(string host, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
         {
-            string url = host;
+            string url = host + "/api/ts/roomlist/room-list/?enable_recommendations=false&limit=90";
 
             if (!string.IsNullOrWhiteSpace(sort))
-                url += $"/{sort}/";
+                url += $"&genders={sort}";
 
             if (pg > 1)
-                url += $"?page={pg}";
+                url += $"&offset={pg * 90}";
 
             return onresult.Invoke(url);
         }
@@ -22,29 +22,25 @@ namespace Shared.Engine.SISI
         {
             var playlists = new List<PlaylistItem>() { Capacity = 100 };
 
-            foreach (string row in html.Split("class=\"room_list_room").Skip(1))
+            foreach (string row in html.Split("display_age").Skip(1))
             {
-                if (row.Contains(">Private</li>"))
+                if (!row.Contains("\"current_show\":\"public\""))
                     continue;
 
-                string baba = Regex.Match(row, "data-room=\"([^\"]+)\"").Groups[1].Value;
+                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(baba))
-                {
-                    baba = Regex.Match(row, "class=\"broadcaster-cell\" href=\"/([^/]+)/\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(baba))
-                        continue;
-                }
+                    continue;
 
-                string img = Regex.Match(row, " src=\"([^\"]+)\"").Groups[1].Value;
+                string img = Regex.Match(row, "\"img\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(img))
                     continue;
 
                 var pl = new PlaylistItem()
                 {
                     name = baba.Trim(),
-                    quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
+                    //quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
                     video = $"{uri}?baba={baba}",
-                    picture = img,
+                    picture = img.Replace("\\", ""),
                     json = true
                 };
 
@@ -61,40 +57,42 @@ namespace Shared.Engine.SISI
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
 
+            var sortmenu = new List<MenuItem>()
+            {
+                new MenuItem()
+                {
+                    title = "Лучшие",
+                    playlist_url = host + "chu"
+                },
+                new MenuItem()
+                {
+                    title = "Девушки",
+                    playlist_url = host + "chu?sort=f"
+                },
+                new MenuItem()
+                {
+                    title = "Пары",
+                    playlist_url = host + "chu?sort=c"
+                },
+                new MenuItem()
+                {
+                    title = "Парни",
+                    playlist_url = host + "chu?sort=m"
+                },
+                new MenuItem()
+                {
+                    title = "Транссексуалы",
+                    playlist_url = host + "chu?sort=t"
+                }
+            };
+
             return new List<MenuItem>()
             {
                 new MenuItem()
                 {
-                    title = $"Сортировка: {(string.IsNullOrWhiteSpace(sort) ? "лучшие" : sort)}",
+                    title = $"Сортировка: {sortmenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"={sort}"))?.title ?? "Лучшие" }",
                     playlist_url = "submenu",
-                    submenu = new List<MenuItem>()
-                    {
-                        new MenuItem()
-                        {
-                            title = "Лучшие",
-                            playlist_url = host + "chu"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Девушки",
-                            playlist_url = host + "chu?sort=female-cams"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Пары",
-                            playlist_url = host + "chu?sort=couple-cams"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Парни",
-                            playlist_url = host + "chu?sort=male-cams"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Транссексуалы",
-                            playlist_url = host + "chu?sort=trans-cams"
-                        }
-                    }
+                    submenu = sortmenu
                 }
             };
         }
