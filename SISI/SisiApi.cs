@@ -172,6 +172,15 @@ namespace SISI
                 });
             }
 
+            if (conf.Tizam.enable)
+            {
+                channels.Add(new
+                {
+                    title = "tizam.pw",
+                    playlist_url = $"{host}/tizam"
+                });
+            }
+
             if (conf.BongaCams.enable)
             {
                 channels.Add(new

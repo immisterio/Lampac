@@ -30,6 +30,8 @@ namespace Shared.Model
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("https://www.xnxx.com");
 
+        public SisiSettings Tizam { get; set; } = new SisiSettings("https://ww.tizam.pw", streamproxy: true);
+
         public SisiSettings Xvideos { get; set; } = new SisiSettings("https://www.xvideos.com");
 
         public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com", streamproxy: true);
