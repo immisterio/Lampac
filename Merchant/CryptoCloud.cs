@@ -71,13 +71,18 @@ namespace Lampac.Controllers.LITE
             {
                 var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/cryptocloud/{invoice_id}"));
 
-                if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["email"], out DateTime ex) && ex > DateTime.UtcNow)
-                    ex = ex.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["email"], out DateTime ex))
+                {
+                    ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : ex;
+                    AppInit.conf.accsdb.accounts[invoice["email"]] = ex;
+                }
                 else
+                {
                     ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                    AppInit.conf.accsdb.accounts.TryAdd(invoice["email"], ex);
+                }
 
                 await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["email"]},{ex.ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
-                AppInit.conf.accsdb.accounts.TryUpdate(invoice["email"], ex, ex);
             }
 
             return StatusCode(200);

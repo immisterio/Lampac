@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Lampac.Models.AppConf
 {
@@ -15,6 +15,6 @@ namespace Lampac.Models.AppConf
 
         public string denyMesage { get; set; }
 
-        public ConcurrentDictionary<string, DateTime> accounts { get; set; } = new ConcurrentDictionary<string, DateTime>();
+        public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
     }
 }

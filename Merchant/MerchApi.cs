@@ -7,13 +7,9 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("merchant/user")]
-        public ActionResult Index(string email)
+        public ActionResult Index(string account_email)
         {
-            email = email?.ToLower()?.Trim();
-            if (email != null && AppInit.conf.accsdb.accounts.ContainsKey(email))
-                return Json(AppInit.conf.accsdb.accounts[email]);
-
-            return Content(string.Empty);
+            return Json(AppInit.conf.accsdb.accounts[account_email]);
         }
     }
 }

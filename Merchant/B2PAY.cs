@@ -84,13 +84,18 @@ namespace Lampac.Controllers.LITE
             {
                 var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
 
-                if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["custom_field"], out DateTime ex) && ex > DateTime.UtcNow)
-                    ex = ex.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["custom_field"], out DateTime ex))
+                {
+                    ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : ex;
+                    AppInit.conf.accsdb.accounts[invoice["custom_field"]] = ex;
+                }
                 else
+                {
                     ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                    AppInit.conf.accsdb.accounts.TryAdd(invoice["custom_field"], ex);
+                }
 
                 await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"]},{ex.ToFileTimeUtc()},b2pay,{orderNumber}\n");
-                AppInit.conf.accsdb.accounts.TryUpdate(invoice["custom_field"], ex, ex);
             }
 
             return Content("ok");
