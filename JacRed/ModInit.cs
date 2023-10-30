@@ -25,7 +25,15 @@ namespace Jackett
 
                 if (cacheconf.Item2 != lastWriteTime)
                 {
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(File.ReadAllText("module/JacRed.conf"));
+                    string json = File.ReadAllText("module/JacRed.conf");
+
+                    if (json.Contains("abu.land"))
+                    {
+                        json = json.Replace("abu.land", "85.17.54.98");
+                        File.WriteAllText("module/JacRed.conf", json);
+                    }
+
+                    cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(json);
                     cacheconf.Item2 = lastWriteTime;
                 }
 
