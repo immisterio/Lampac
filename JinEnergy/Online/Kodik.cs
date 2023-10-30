@@ -30,7 +30,7 @@ namespace JinEnergy.Online
 
             List<Result>? content = null;
 
-            if (arg.clarification == 1)
+            if (arg.clarification == 1 || (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id)))
             {
                 if (string.IsNullOrWhiteSpace(arg.title))
                     return EmptyError("arg");

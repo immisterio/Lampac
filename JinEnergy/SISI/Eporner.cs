@@ -21,7 +21,7 @@ namespace JinEnergy.SISI
 
             return OnResult(EpornerTo.Menu(null, sort, c), EpornerTo.Playlist("epr/vidosik", html, pl =>
             {
-                pl.picture = rsizehost(pl.picture);
+                pl.picture = pl.picture; // rsizehost(pl.picture);
                 return pl;
             }));
         }
