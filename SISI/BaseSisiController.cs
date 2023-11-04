@@ -67,10 +67,16 @@ namespace SISI
 
         public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<(string name, string val)> headers = null)
         {
+            Dictionary<string, string> qualitys_proxy = null;
+
+            if (!proxyconf.streamproxy && proxyconf.qualitys_proxy)
+                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(new BaseSettings() { streamproxy = true }, v.Value, proxy: proxy));
+
             return new JsonResult(new
             {
                 qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy)),
-                recomends = stream_links.recomends.Select(pl => new
+                qualitys_proxy,
+                recomends = stream_links?.recomends?.Select(pl => new
                 {
                     pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
@@ -82,7 +88,7 @@ namespace SISI
 
         public JsonResult OnResult(Dictionary<string, string> stream_links, Istreamproxy proxyconf, WebProxy proxy)
         {
-            return new JsonResult(stream_links.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy)));
+            return OnResult(new StreamItem() { qualitys = stream_links }, proxyconf, proxy);
         }
     }
 }

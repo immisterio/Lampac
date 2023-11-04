@@ -6,6 +6,8 @@
 
         public bool streamproxy { get; set; }
 
+        public bool qualitys_proxy { get; set; }
+
         public ProxySettings? proxy { get; set; }
     }
 }

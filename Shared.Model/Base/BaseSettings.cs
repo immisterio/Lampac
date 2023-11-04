@@ -22,6 +22,7 @@
 
         public bool streamproxy { get; set; }
 
+        public bool qualitys_proxy { get; set; }
         #endregion
 
         #region cors
