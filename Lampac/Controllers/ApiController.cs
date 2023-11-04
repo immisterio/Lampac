@@ -26,7 +26,7 @@ namespace Lampac.Controllers
         [Route("/version")]
         public ActionResult Version()
         {
-            return Content("81", contentType: "text/plain; charset=utf-8");
+            return Content("82", contentType: "text/plain; charset=utf-8");
         }
 
         #region app.min.js
