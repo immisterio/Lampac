@@ -1,5 +1,7 @@
 ﻿using Lampac.Models.SISI;
 using Shared.Model.SISI;
+using Shared.Model.SISI.Xvideos;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -345,22 +347,57 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
         {
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrWhiteSpace(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{Regex.Replace(uri ?? "", "^([^/]+)/.*", "$1/_")}");
+            string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? "", "^([^/]+)/.*", "$1/_")}");
             string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html ?? "").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
 
+            #region getRelated
+            List<PlaylistItem>? getRelated()
+            {
+                var related = new List<PlaylistItem>();
+
+                string json = Regex.Match(html!, "video_related=([^\n\r]+);window").Groups[1].Value;
+                if (string.IsNullOrWhiteSpace(json) || !json.StartsWith("[") || !json.EndsWith("]"))
+                    return related;
+
+                try
+                {
+                    foreach (var r in JsonSerializer.Deserialize<List<Related>>(json))
+                    {
+                        if (string.IsNullOrEmpty(r.tf) || string.IsNullOrEmpty(r.u) || string.IsNullOrEmpty(r.i))
+                            continue;
+
+                        related.Add(new PlaylistItem()
+                        {
+                            name = r.tf,
+                            video = $"{uri}?uri={r.u.Remove(0, 1)}",
+                            picture = r.i,
+                            json = true
+                        });
+                    }
+                }
+                catch { }
+
+                return related;
+            }
+            #endregion
+
             string? m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
             if (m3u8 == null)
             {
-                return new Dictionary<string, string>()
+                return new StreamItem()
                 {
-                    ["auto"] = stream_link
+                    qualitys = new Dictionary<string, string>()
+                    {
+                        ["auto"] = stream_link
+                    },
+                    recomends = getRelated()
                 };
             }
 
@@ -377,7 +414,11 @@ namespace Shared.Engine.SISI
                     stream_links.TryAdd(q, $"{Regex.Replace(stream_link, "/hls.m3u8.*", "")}/{line}");
             }
 
-            return stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value);
+            return new StreamItem()
+            {
+                qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
+                recomends = getRelated()
+            };
         }
     }
 }
