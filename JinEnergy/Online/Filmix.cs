@@ -1,7 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
-using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
 {
@@ -19,15 +18,13 @@ namespace JinEnergy.Online
             if (arg.original_language != "en")
                 clarification = 1;
 
-            string? hashfimix = await InvokeCache(0, "filmix:hash", gofreehash);
-
             var oninvk = new FilmixInvoke
             (
                null,
                AppInit.Filmix.corsHost(),
-               hashfimix != null ? "bc170de3b2cafb09283b936011f054ed" : AppInit.Filmix.token,
+               AppInit.Filmix.token,
                ongettourl => JsHttpClient.Get(AppInit.Filmix.corsHost(ongettourl)),
-               onstreamtofile => replaceLink(hashfimix, onstreamtofile)
+               onstreamtofile => onstreamtofile
                //AppInit.log
             );
 
@@ -44,85 +41,7 @@ namespace JinEnergy.Online
             if (player_links == null)
                 return EmptyError("player_links");
 
-            return oninvk.Html(player_links, (hashfimix != null ? true : AppInit.Filmix.pro), postid, arg.title, arg.original_title, t, s);
-        }
-
-
-
-        static Random random = new Random();
-
-        async static ValueTask<string?> gofreehash()
-        {
-            if (AppInit.Filmix.pro != false || !string.IsNullOrEmpty(AppInit.Filmix.token))
-                return null;
-
-            string? hashfimix = null;
-
-            string? FXFS = await JsHttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
-
-            if (!string.IsNullOrEmpty(FXFS))
-            {
-                string[] chars = new string[]
-                {
-                    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-                    "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m",
-                    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
-                };
-
-                for (int i = 0; i < 3; i++)
-                {
-                    string hash = chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
-
-                    if (i > 0)
-                        hash += chars[random.Next(0, chars.Length)];
-
-                    bool res = await checkHash(FXFS, hash, (i == 0 ? 7 : 5));
-                    if (res)
-                    {
-                        hashfimix = $"{FXFS}{hash}";
-                        break;
-                    }
-                }
-            }
-
-            if (!string.IsNullOrEmpty(hashfimix))
-                return hashfimix;
-
-            return null;
-        }
-
-        static string replaceLink(string? hashfimix, string l)
-        {
-            if (string.IsNullOrEmpty(hashfimix))
-                return l;
-
-            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");
-        }
-
-        async static ValueTask<bool> checkHash(string FXFS, string hash, int timeout)
-        {
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    client.Timeout = TimeSpan.FromSeconds(timeout);
-                    client.MaxResponseContentBufferSize = 1_000_000; // 1MB
-
-                    string url = $"https://nl107.cdnsqu.com/s/{FXFS}{hash}/UHD_090/Mission.Impossible.Dead.Reckoning.Part.One.2023.1080p.AMZN.WEB-DL_1440.mp4";
-
-                    using (HttpResponseMessage response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, url), HttpCompletionOption.ResponseHeadersRead))
-                    {
-                        if (((int)response.StatusCode) is 429 or 404 or  400)
-                            return false;
-
-                        return true;
-                    }
-                }
-            }
-            catch
-            {
-                return false;
-            }
+            return oninvk.Html(player_links, AppInit.Filmix.pro, postid, arg.title, arg.original_title, t, s);
         }
     }
 }

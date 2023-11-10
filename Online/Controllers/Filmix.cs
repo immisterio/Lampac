@@ -5,8 +5,6 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
-using System.Text.RegularExpressions;
-using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -42,15 +40,13 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
             var proxy = proxyManager.Get();
 
-            string hashfimix = await gofreehash();
-
             var oninvk = new FilmixInvoke
             (
                host,
                AppInit.conf.Filmix.corsHost(),
-               hashfimix != null ? "bc170de3b2cafb09283b936011f054ed" : AppInit.conf.Filmix.token,
+               AppInit.conf.Filmix.token,
                ongettourl => HttpClient.Get(AppInit.conf.Filmix.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, replaceLink(hashfimix, onstreamtofile), proxy: proxy)
+               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, onstreamtofile, proxy: proxy)
             );
 
             if (postid == 0)
@@ -66,41 +62,7 @@ namespace Lampac.Controllers.LITE
             if (player_links == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(player_links, (hashfimix != null ? true : AppInit.conf.Filmix.pro), postid, title, original_title, t, s), "text/html; charset=utf-8");
-        }
-
-
-
-        static Random random = new Random();
-
-        async static ValueTask<string> gofreehash()
-        {
-            if (AppInit.conf.Filmix.pro != false || !string.IsNullOrEmpty(AppInit.conf.Filmix.token))
-                return null;
-
-            string FXFS = await HttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 2);
-
-            if (!string.IsNullOrEmpty(FXFS))
-            {
-                string[] chars = new string[]
-                {
-                    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-                    "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m",
-                    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
-                };
-
-                return FXFS + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
-            }
-
-            return null;
-        }
-
-        static string replaceLink(string hashfimix, string l)
-        {
-            if (string.IsNullOrEmpty(hashfimix))
-                return l;
-
-            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");
+            return Content(oninvk.Html(player_links, AppInit.conf.Filmix.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
         }
     }
 }

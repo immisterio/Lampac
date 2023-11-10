@@ -157,11 +157,7 @@ namespace Shared.Engine.Online
 
                     if (filetype == "hls4")
                     {
-                        string hls = v.files[0].url.hls4;
-                        //if (hls.Contains("/demo.m3u8"))
-                        //    hls = hls.Replace("/demo.m3u8", $"/{v.id}.m3u8").Replace("http://", "https://");
-
-                        html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(hls) + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>");
+                        html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(v.files[0].url.hls4) + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>");
                     }
                     else
                     {
@@ -239,11 +235,7 @@ namespace Shared.Engine.Online
 
                         if (filetype == "hls4")
                         {
-                            string hls = episode.files[0].url.hls4;
-                            //if (hls.Contains("/demo.m3u8"))
-                            //    hls = hls.Replace("/demo.m3u8", $"/{episode.id}.m3u8").Replace("http://", "https://");
-
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(hls) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(episode.files[0].url.hls4) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
                             firstjson = false;
                         }
                         else
