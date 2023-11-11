@@ -6,23 +6,24 @@ using System.Threading.Tasks;
 using System.Web;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
 using System.Collections.Concurrent;
-using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine.CORE;
+using JacRed.Engine;
+using JacRed.Models;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("torrentby/[action]")]
-    public class TorrentByController : BaseController
+    public class TorrentByController : JacBaseController
     {
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(int id, string magnet)
         {
-            if (!AppInit.conf.TorrentBy.enable || AppInit.conf.TorrentBy.priority != "torrent")
+            if (!jackett.TorrentBy.enable || jackett.TorrentBy.priority != "torrent")
                 return Content("disable");
 
             string key = $"torrentby:parseMagnet:{id}";
@@ -32,63 +33,54 @@ namespace Lampac.Controllers.JAC
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            var proxyManager = new ProxyManager("torrentby", AppInit.conf.TorrentBy);
+            var proxyManager = new ProxyManager("torrentby", jackett.TorrentBy);
 
-            _t = await HttpClient.Download($"{AppInit.conf.TorrentBy.host}/d.php?id={id}", referer: AppInit.conf.TorrentBy.host, timeoutSeconds: 10, proxy: proxyManager.Get());
+            _t = await HttpClient.Download($"{jackett.TorrentBy.host}/d.php?id={id}", referer: jackett.TorrentBy.host, timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
-                if (AppInit.conf.jac.cache)
+                if (jackett.cache)
                 {
                     await TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 
                 return File(_t, "application/x-bittorrent");
             }
-            else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            else if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
 
             proxyManager.Refresh();
             return Redirect(magnet);
         }
         #endregion
 
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat)
+
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat)
         {
-            if (!AppInit.conf.TorrentBy.enable)
-                return false;
+            if (!jackett.TorrentBy.enable)
+                return Task.FromResult(false);
 
-            #region Кеш html
-            string cachekey = $"torrentby:{cat}:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            string priority = cread.cache ? AppInit.conf.TorrentBy.priority : "magnet";
+            return JackettCache.Invoke($"torrentby:{cat}:{query}", torrents, () => parsePage(host, query, cat));
+        }
 
-            if (cread.emptycache)
-                return false;
 
-            if (!cread.cache)
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string cat)
+        {
+            var torrents = new List<TorrentDetails>();
+
+            #region html
+            var proxyManager = new ProxyManager("torrentby", jackett.TorrentBy);
+
+            string html = await HttpClient.Get($"{jackett.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}&search_in=0", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+
+            if (html == null)
             {
-                var proxyManager = new ProxyManager("torrentby", AppInit.conf.TorrentBy);
-
-                string html = await HttpClient.Get($"{AppInit.conf.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}&search_in=0", proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null)
-                {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
-                    priority = AppInit.conf.TorrentBy.priority;
-                }
-
-                if (cread.html == null)
-                {
-                    proxyManager.Refresh();
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
-                }
+                proxyManager.Refresh();
+                return null;
             }
             #endregion
 
-            foreach (string row in cread.html.Split("<tr class=\"ttable_col").Skip(1))
+            foreach (string row in html.Split("<tr class=\"ttable_col").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)
@@ -136,7 +128,7 @@ namespace Lampac.Controllers.JAC
                 if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(magnet))
                     continue;
 
-                url = $"{AppInit.conf.TorrentBy.host}/{url}";
+                url = $"{jackett.TorrentBy.host}/{url}";
                 #endregion
 
                 #region Парсим раздачи
@@ -352,8 +344,8 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        magnet = priority == "torrent" ? null : magnet,
-                        parselink = priority == "torrent" ? $"{host}/torrentby/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
+                        magnet = jackett.TorrentBy.priority == "torrent" ? null : magnet,
+                        parselink = jackett.TorrentBy.priority == "torrent" ? $"{host}/torrentby/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
                         createTime = createTime,
                         name = name,
                         originalname = originalname,
@@ -362,7 +354,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
     }
 }

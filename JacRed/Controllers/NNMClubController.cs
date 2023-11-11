@@ -6,19 +6,19 @@ using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
 using System.Collections.Concurrent;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
-using Lampac.Models.JAC;
 using System.Collections.Generic;
 using Shared;
 using Shared.Engine.CORE;
+using JacRed.Engine;
+using JacRed.Models;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("nnmclub/[action]")]
-    public class NNMClubController : BaseController
+    public class NNMClubController : JacBaseController
     {
         #region Cookie / TakeLogin
         static string Cookie;
@@ -41,28 +41,28 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
                     client.DefaultRequestHeaders.Add("cache-control", "no-cache");
                     client.DefaultRequestHeaders.Add("dnt", "1");
-                    client.DefaultRequestHeaders.Add("origin", AppInit.conf.NNMClub.host);
+                    client.DefaultRequestHeaders.Add("origin", jackett.NNMClub.host);
                     client.DefaultRequestHeaders.Add("pragma", "no-cache");
-                    client.DefaultRequestHeaders.Add("referer", $"{AppInit.conf.NNMClub.host}/");
+                    client.DefaultRequestHeaders.Add("referer", $"{jackett.NNMClub.host}/");
                     client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
                     var postParams = new Dictionary<string, string>
                     {
                         { "redirect", "%2F" },
-                        { "username", AppInit.conf.NNMClub.login.u },
-                        { "password", AppInit.conf.NNMClub.login.p },
+                        { "username", jackett.NNMClub.login.u },
+                        { "password", jackett.NNMClub.login.p },
                         { "autologin", "on" },
                         { "login", "%C2%F5%EE%E4" }
                     };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.NNMClub.host}/forum/login.php", postContent))
+                        using (var response = await client.PostAsync($"{jackett.NNMClub.host}/forum/login.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -91,29 +91,24 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string id) => $"nnmclub:parseMagnet:download:{id}";
-
-        static string TorrentMagnetMemKey(string id) => $"nnmclub:parseMagnet:{id}";
-
-
-        async public Task<ActionResult> parseMagnet(string id, bool usecache)
+        async public Task<ActionResult> parseMagnet(string id)
         {
-            if (!AppInit.conf.NNMClub.enable)
+            if (!jackett.NNMClub.enable)
                 return Content("disable");
 
             #region Кеш torrent
-            string keydownload = TorrentFileMemKey(id);
+            string keydownload = $"nnmclub:parseMagnet:download:{id}";
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _f))
                 return File(_f, "application/x-bittorrent");
 
-            string keymagnet = TorrentMagnetMemKey(id);
+            string keymagnet = $"nnmclub:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
                 return Redirect(_m);
             #endregion
 
-            #region usecache / emptycache
+            #region emptycache
             string keyerror = $"nnmclub:parseMagnet:{id}:error";
-            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            if (Startup.memoryCache.TryGetValue(keyerror, out _))
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -125,16 +120,16 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            var proxyManager = new ProxyManager("nnmclub", AppInit.conf.NNMClub);
+            var proxyManager = new ProxyManager("nnmclub", jackett.NNMClub);
 
             #region html
-            string html = await HttpClient.Get($"{AppInit.conf.NNMClub.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get(), timeoutSeconds: 10);
+            string html = await HttpClient.Get($"{jackett.NNMClub.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get(), timeoutSeconds: 10);
             string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html ?? string.Empty).Groups[1].Value;
 
             if (html == null || !html.Contains("NNM-Club</title>") || string.IsNullOrWhiteSpace(magnet))
             {
-                if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                if (jackett.emptycache && jackett.cache)
+                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
 
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -153,13 +148,13 @@ namespace Lampac.Controllers.JAC
                 string downloadid = new Regex("href=\"download\\.php\\?id=([0-9]+)\"").Match(html).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(downloadid))
                 {
-                    byte[] _t = await HttpClient.Download($"{AppInit.conf.NNMClub.host}/forum/download.php?id={downloadid}", cookie: Cookie, referer: AppInit.conf.NNMClub.host, timeoutSeconds: 10);
+                    byte[] _t = await HttpClient.Download($"{jackett.NNMClub.host}/forum/download.php?id={downloadid}", cookie: Cookie, referer: jackett.NNMClub.host, timeoutSeconds: 10);
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
-                        if (AppInit.conf.jac.cache)
+                        if (jackett.cache)
                         {
                             await TorrentCache.Write(keydownload, _t);
-                            Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                            Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                         }
 
                         return File(_t, "application/x-bittorrent");
@@ -168,57 +163,51 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            if (AppInit.conf.jac.cache)
+            if (jackett.cache)
             {
                 await TorrentCache.Write(keymagnet, magnet);
-                Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
             }
 
             return Redirect(magnet);
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!AppInit.conf.NNMClub.enable)
-                return false;
+            if (!jackett.NNMClub.enable)
+                return Task.FromResult(false);
 
-            #region Кеш html
-            string cachekey = $"nnmclub:{string.Join(":", cats ?? new string[] { })}:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            return JackettCache.Invoke($"nnmclub:{string.Join(":", cats ?? new string[] { })}:{query}", torrents, () => parsePage(host, query, cats));
+        }
+        #endregion
 
-            if (cread.emptycache)
-                return false;
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string[] cats)
+        {
+            var torrents = new List<TorrentDetails>();
 
-            if (!cread.cache)
+            #region html
+            var proxyManager = new ProxyManager("nnmclub", jackett.NNMClub);
+
+            string data = $"prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_shs=0&prev_shr=0&prev_sht=0&o=1&s=2&tm=-1&shf=1&sha=1&ta=-1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&pn=&submit=%CF%EE%E8%F1%EA";
+            string html = await HttpClient.Post($"{jackett.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+
+            if (html != null && html.Contains("NNM-Club</title>"))
             {
-                var proxyManager = new ProxyManager("nnmclub", AppInit.conf.NNMClub);
-
-                string data = $"prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_shs=0&prev_shr=0&prev_sht=0&o=1&s=2&tm=-1&shf=1&sha=1&ta=-1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&pn=&submit=%CF%EE%E8%F1%EA";
-                string html = await HttpClient.Post($"{AppInit.conf.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("NNM-Club</title>"))
-                {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
-                    validrq = true;
-
-                    if (!html.Contains(">Выход") && !string.IsNullOrWhiteSpace(AppInit.conf.NNMClub.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.NNMClub.login.p))
-                        TakeLogin();
-                }
-
-                if (cread.html == null)
-                {
-                    proxyManager.Refresh();
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
-                }
+                if (!html.Contains(">Выход") && !string.IsNullOrWhiteSpace(jackett.NNMClub.login.u) && !string.IsNullOrWhiteSpace(jackett.NNMClub.login.p))
+                    TakeLogin();
+            }
+            else if (html == null)
+            {
+                proxyManager.Refresh();
+                return null;
             }
             #endregion
 
-            foreach (string row in cread.html.Split("</tr>"))
+            foreach (string row in html.Split("</tr>"))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)
@@ -251,7 +240,7 @@ namespace Lampac.Controllers.JAC
                 if (tracker == "913" && !title.Contains("UKR"))
                     continue;
 
-                url = $"{AppInit.conf.NNMClub.host}/{url}";
+                url = $"{jackett.NNMClub.host}/{url}";
                 #endregion
 
                 #region Парсим раздачи
@@ -612,9 +601,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(viewtopic)) && !TorrentCache.Exists(TorrentMagnetMemKey(viewtopic)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "nnmclub",
@@ -624,7 +610,7 @@ namespace Lampac.Controllers.JAC
                         sid = sid,
                         pir = pir,
                         sizeName = sizeName,
-                        parselink = $"{host}/nnmclub/parsemagnet?id={viewtopic}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/nnmclub/parsemagnet?id={viewtopic}",
                         createTime = createTime,
                         name = name,
                         originalname = originalname,
@@ -633,7 +619,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

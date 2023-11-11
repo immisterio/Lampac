@@ -1,4 +1,6 @@
 ﻿using JacRed.Engine;
+using JacRed.Models.AppConf;
+using Lampac.Models.AppConf;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -25,15 +27,7 @@ namespace Jackett
 
                 if (cacheconf.Item2 != lastWriteTime)
                 {
-                    string json = File.ReadAllText("module/JacRed.conf");
-
-                    if (json.Contains("abu.land"))
-                    {
-                        json = json.Replace("abu.land", "85.17.54.98");
-                        File.WriteAllText("module/JacRed.conf", json);
-                    }
-
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(json);
+                    cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(File.ReadAllText("module/JacRed.conf"));
                     cacheconf.Item2 = lastWriteTime;
                 }
 
@@ -45,22 +39,17 @@ namespace Jackett
         public static void loaded()
         {
             Directory.CreateDirectory("cache/jacred");
+            Directory.CreateDirectory("cache/jackett");
+            Directory.CreateDirectory("cache/torrent");
+
             ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run());
         }
 
 
-        public string syncapi = null;
+        public string typesearch = "red";
 
-        public bool mergeduplicates = true;
+        public RedConf Red = new RedConf();
 
-        public bool mergenumduplicates = true;
-
-        public string[] trackers = new string[] { "rutracker", "rutor", "kinozal", "nnmclub", "megapeer", "bitru", "toloka", "lostfilm", "baibako", "torrentby", "hdrezka", "selezen", "animelayer", "anilibria", "anifilm" };
-
-        public int maxreadfile = 200;
-
-        public bool evercache = false;
-
-        public int syntime = 40;
+        public JacConf Jackett = new JacConf();
     }
 }

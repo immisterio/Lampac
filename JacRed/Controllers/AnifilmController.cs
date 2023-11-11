@@ -5,32 +5,31 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using Shared;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
+using JacRed.Engine;
+using JacRed.Models;
+using System.Collections.Generic;
 
-namespace Lampac.Controllers.CRON
+namespace Lampac.Controllers.JAC
 {
     [Route("anifilm/[action]")]
-    public class AnifilmController : BaseController
+    public class AnifilmController : JacBaseController
     {
         #region parseMagnet
-        static string TorrentFileMemKey(string url) => $"anifilm:parseMagnet:{url}";
-
-        async public Task<ActionResult> parseMagnet(string url, bool usecache)
+        async public Task<ActionResult> parseMagnet(string url)
         {
-            if (!AppInit.conf.Anifilm.enable)
+            if (!jackett.Anifilm.enable)
                 return Content("disable");
 
-            string key = TorrentFileMemKey(url);
+            string key = $"anifilm:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
             {
                 if (await TorrentCache.Read(key) is var tc && tc.cache)
                     return File(tc.torrent, "application/x-bittorrent");
@@ -38,7 +37,7 @@ namespace Lampac.Controllers.CRON
                 return Content("error");
             }
 
-            var proxyManager = new ProxyManager("anifilm", AppInit.conf.Anifilm);
+            var proxyManager = new ProxyManager("anifilm", jackett.Anifilm);
 
             var fullNews = await HttpClient.Get(url, timeoutSeconds: 8, proxy: proxyManager.Get());
             if (fullNews == null)
@@ -57,19 +56,19 @@ namespace Lampac.Controllers.CRON
 
                 if (!string.IsNullOrWhiteSpace(tid))
                 {
-                    _t = await HttpClient.Download($"{AppInit.conf.Anifilm.host}/{tid}", referer: $"{AppInit.conf.Anifilm.host}/", timeoutSeconds: 10, proxy: proxyManager.Get());
+                    _t = await HttpClient.Download($"{jackett.Anifilm.host}/{tid}", referer: $"{jackett.Anifilm.host}/", timeoutSeconds: 10, proxy: proxyManager.Get());
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
-                        if (AppInit.conf.jac.cache)
+                        if (jackett.cache)
                         {
                             await TorrentCache.Write(key, _t);
-                            Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                            Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                         }
 
                         return File(_t, "application/x-bittorrent");
                     }
-                    else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                        Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                    else if (jackett.emptycache && jackett.cache)
+                        Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
                 }
             }
 
@@ -81,47 +80,35 @@ namespace Lampac.Controllers.CRON
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            string memkey = $"anifilm:{query}";
+            if (!jackett.Anifilm.enable)
+                return Task.FromResult(false);
 
-            if (!AppInit.conf.Anifilm.enable || Startup.memoryCache.TryGetValue($"{memkey}:error", out _))
-                return false;
+            return JackettCache.Invoke($"anifilm:{query}", torrents, () => parsePage(host, query));
+        }
+        #endregion
 
-            #region Кеш html
-            string cachekey = $"anifilm:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query)
+        {
+            var torrents = new List<TorrentDetails>();
 
-            if (cread.emptycache)
-                return false;
+            #region html
+            var proxyManager = new ProxyManager("anifilm", jackett.Anifilm);
 
-            if (!cread.cache)
+            string html = await HttpClient.Get($"{jackett.Anifilm.host}/releases?title={HttpUtility.UrlEncode(query)}", timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get());
+
+            if (html == null || !html.Contains("id=\"ui-components\""))
             {
-                var proxyManager = new ProxyManager("anifilm", AppInit.conf.Anifilm);
-
-                string html = await HttpClient.Get($"{AppInit.conf.Anifilm.host}/releases?title={HttpUtility.UrlEncode(query)}", timeoutSeconds: AppInit.conf.jac.timeoutSeconds, proxy: proxyManager.Get());
-
-                if (html != null && html.Contains("id=\"ui-components\""))
-                {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
-                    validrq = true;
-                }
-
-                if (cread.html == null)
-                {
-                    proxyManager.Refresh();
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
-                }
+                proxyManager.Refresh();
+                return null;
             }
             #endregion
 
-            bool result = false;
-
-            foreach (string row in cread.html.Split("class=\"releases__item\"").Skip(1))
+            foreach (string row in html.Split("class=\"releases__item\"").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)
@@ -142,22 +129,17 @@ namespace Lampac.Controllers.CRON
                 string episodes = Match("([0-9]+(-[0-9]+)?) из [0-9]+ эп.,");
 
                 if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(originalname))
-                    return false;
+                    continue;
 
                 if (!int.TryParse(Match("<a href=\"/releases/releases/[^\"]+\">([0-9]{4})</a> г\\."), out int relased) || relased == 0)
-                    return false;
+                    continue;
 
-                url = $"{AppInit.conf.Anifilm.host}/{url}";
+                url = $"{jackett.Anifilm.host}/{url}";
                 string title = $"{name} / {originalname}";
 
                 if (!string.IsNullOrWhiteSpace(episodes))
                     title += $" ({episodes})";
                 #endregion
-
-                if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(url)))
-                    continue;
-
-                result = true;
 
                 torrents.Add(new TorrentDetails()
                 {
@@ -166,14 +148,14 @@ namespace Lampac.Controllers.CRON
                     url = url,
                     title = title,
                     sid = 1,
-                    parselink = $"{host}/anifilm/parsemagnet?url={HttpUtility.UrlEncode(url)}" + (!validrq ? "&usecache=true" : ""),
+                    parselink = $"{host}/anifilm/parsemagnet?url={HttpUtility.UrlEncode(url)}",
                     name = name,
                     originalname = originalname,
                     relased = relased
                 });
             }
 
-            return result;
+            return torrents;
         }
         #endregion
     }

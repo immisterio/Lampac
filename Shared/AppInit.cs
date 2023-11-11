@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System;
 using Lampac.Models.Module;
 using System.Reflection;
-using Lampac.Models.JAC;
 using Lampac.Models.AppConf;
 using Lampac.Models.DLNA;
 using Lampac.Models.Merchant;
@@ -115,11 +114,7 @@ namespace Lampac
 
         public string listenhost = null;
 
-        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = Environment.OSVersion.Platform == PlatformID.Unix ? "linux" : "win" };
-
-        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true };
-
-        public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
+        public string apikey = null;
 
         public bool multiaccess = false;
 
@@ -128,7 +123,14 @@ namespace Lampac
         public string anticaptchakey;
 
 
-        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 3, img = 1, torrent = 10 };
+        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = Environment.OSVersion.Platform == PlatformID.Unix ? "linux" : "win" };
+
+        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true };
+
+        public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
+
+
+        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 1, img = 1, torrent = 2 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true };
 
@@ -141,38 +143,6 @@ namespace Lampac
         public MerchantsModel Merchant = new MerchantsModel();
 
         public HashSet<Known> KnownProxies { get; set; }
-
-        public JacConf jac = new JacConf();
-
-
-        public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", priority: "torrent");
-
-        public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip");
-
-        public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by", priority: "torrent");
-
-        public TrackerSettings Kinozal = new TrackerSettings("http://kinozal.tv");
-
-        public TrackerSettings NNMClub = new TrackerSettings("https://nnmclub.to");
-
-        public TrackerSettings Bitru = new TrackerSettings("https://bitru.org");
-
-        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", enable: false);
-
-        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", enable: false, priority: "torrent");
-
-        public TrackerSettings Underverse = new TrackerSettings("https://underver.se", enable: false);
-
-        public TrackerSettings Selezen = new TrackerSettings("https://open.selezen.org", enable: false, priority: "torrent");
-
-        public TrackerSettings Lostfilm = new TrackerSettings("https://www.lostfilm.tv", enable: false);
-
-        public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv");
-
-        public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
-
-        public TrackerSettings Anifilm = new TrackerSettings("https://anifilm.net");
-
 
         public ProxySettings proxy = new ProxySettings();
 

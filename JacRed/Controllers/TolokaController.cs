@@ -8,15 +8,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
 using System.Collections.Concurrent;
-using Lampac.Models.JAC;
 using Shared;
+using JacRed.Engine;
+using JacRed.Models;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("toloka/[action]")]
-    public class TolokaController : BaseController
+    public class TolokaController : JacBaseController
     {
         #region Cookie / TakeLogin
         static string Cookie;
@@ -39,14 +39,14 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
                     var postParams = new Dictionary<string, string>
                     {
-                        { "username", AppInit.conf.Toloka.login.u },
-                        { "password", AppInit.conf.Toloka.login.p },
+                        { "username", jackett.Toloka.login.u },
+                        { "password", jackett.Toloka.login.p },
                         { "autologin", "on" },
                         { "ssl", "on" },
                         { "redirect", "index.php?" },
@@ -55,7 +55,7 @@ namespace Lampac.Controllers.JAC
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.Toloka.host}/login.php", postContent))
+                        using (var response = await client.PostAsync($"{jackett.Toloka.host}/login.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -89,19 +89,17 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string id) => $"toloka:parseMagnet:{id}";
-
-        async public Task<ActionResult> parseMagnet(string id, bool usecache)
+        async public Task<ActionResult> parseMagnet(string id)
         {
-            if (!AppInit.conf.Toloka.enable)
+            if (!jackett.Toloka.enable)
                 return Content("disable");
 
-            string key = TorrentFileMemKey(id);
+            string key = $"toloka:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");
 
-            #region usecache / emptycache
-            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            #region emptycache
+            if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
             {
                 if (await TorrentCache.Read(key) is var tc && tc.cache)
                     return File(tc.torrent, "application/x-bittorrent");
@@ -123,19 +121,19 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            byte[] _t = await HttpClient.Download($"{AppInit.conf.Toloka.host}/download.php?id={id}", cookie: Cookie, referer: AppInit.conf.Toloka.host, timeoutSeconds: 10);
+            byte[] _t = await HttpClient.Download($"{jackett.Toloka.host}/download.php?id={id}", cookie: Cookie, referer: jackett.Toloka.host, timeoutSeconds: 10);
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
-                if (AppInit.conf.jac.cache)
+                if (jackett.cache)
                 {
                     await TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 
                 return File(_t, "application/x-bittorrent");
             }
-            else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            else if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
@@ -144,60 +142,48 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!AppInit.conf.Toloka.enable)
-                return false;
+            if (!jackett.Toloka.enable)
+                return Task.FromResult(false);
+
+            return JackettCache.Invoke($"toloka:{string.Join(":", cats ?? new string[] { })}:{query}", torrents, () => parsePage(host, query, cats));
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string[] cats)
+        {
+            var torrents = new List<TorrentDetails>();
 
             #region Авторизация
             if (Cookie == null)
             {
                 if (await TakeLogin() == false)
-                    return false;
+                    return null;
             }
             #endregion
 
-            #region Кеш html
-            string cachekey = $"toloka:{string.Join(":", cats ?? new string[] { })}:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            #region html
+            bool firstrehtml = true;
+            rehtml: string html = await HttpClient.Get($"{jackett.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie, /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: jackett.timeoutSeconds);
 
-            if (cread.emptycache)
-                return false;
-
-            if (!cread.cache)
+            if (html != null && html.Contains("<html lang=\"uk\""))
             {
-                bool firstrehtml = true;
-                rehtml: string html = await HttpClient.Get($"{AppInit.conf.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie, /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("<html lang=\"uk\""))
+                if (!html.Contains(">Вихід"))
                 {
-                    if (html.Contains(">Вихід"))
-                    {
-                        cread.html = html;
-                        await HtmlCache.Write(cachekey, html);
-                        validrq = true;
-                    }
-                    else
-                    {
-                        if (!firstrehtml || await TakeLogin() == false)
-                            return false;
+                    if (!firstrehtml || await TakeLogin() == false)
+                        return null;
 
-                        firstrehtml = false;
-                        goto rehtml;
-                    }
-                }
-
-                if (cread.html == null)
-                {
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
+                    firstrehtml = false;
+                    goto rehtml;
                 }
             }
             #endregion
 
-            foreach (string row in cread.html.Split("</tr>"))
+            foreach (string row in html.Split("</tr>"))
             {
                 if (string.IsNullOrWhiteSpace(row) || Regex.IsMatch(row, "Збір коштів", RegexOptions.IgnoreCase))
                     continue;
@@ -231,7 +217,7 @@ namespace Lampac.Controllers.JAC
                 if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(downloadid) || string.IsNullOrWhiteSpace(tracker) || sizeName == "0 B")
                     continue;
 
-                url = $"{AppInit.conf.Toloka.host}/{url}";
+                url = $"{jackett.Toloka.host}/{url}";
                 #endregion
 
                 #region Парсим раздачи
@@ -438,9 +424,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(downloadid)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "toloka",
@@ -451,7 +434,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/toloka/parsemagnet?id={downloadid}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/toloka/parsemagnet?id={downloadid}",
                         name = name,
                         originalname = originalname,
                         relased = relased
@@ -459,7 +442,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

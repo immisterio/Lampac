@@ -4,7 +4,6 @@ using System.IO;
 using Jackett;
 using JacRed.Engine.CORE;
 using JacRed.Models;
-using JacRed.Models.Details;
 
 namespace JacRed.Engine
 {
@@ -32,7 +31,7 @@ namespace JacRed.Engine
             if (openWriteTask.TryGetValue(fdbkey, out WriteTaskModel val))
             {
                 val.openconnection -= 1;
-                if (val.openconnection <= 0 && !ModInit.conf.evercache)
+                if (val.openconnection <= 0 && !ModInit.conf.Red.evercache)
                     openWriteTask.TryRemove(fdbkey, out _);
             }
         }

@@ -1,48 +1,46 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json;
-using System.Text.RegularExpressions;
-using Lampac.Engine;
-using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.Caching.Memory;
-using System.Threading.Tasks;
-using System;
-using System.Web;
-using MonoTorrent;
-using JacRed.Models.Details;
 using JacRed.Engine;
 using Lampac;
-using Lampac.Engine.CORE;
 using Jackett;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Lampac.Engine.CORE;
+using Newtonsoft.Json;
+using System.Linq;
+using System.Globalization;
+using JacRed.Models;
 
 namespace JacRed.Controllers
 {
-    public class ApiController : BaseController
+    public class ApiController : JacBaseController
     {
+        #region Conf
         [Route("api/v1.0/conf")]
-        public JsonResult JacRedConf(string apikey)
+        public JsonResult JacConf(string apikey)
         {
             return Json(new
             {
-                apikey = string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey) || apikey == AppInit.conf.jac.apikey
+                apikey = string.IsNullOrWhiteSpace(AppInit.conf.apikey) || apikey == AppInit.conf.apikey
             });
         }
+        #endregion
 
-        #region Jackett
+        #region Indexers
         [Route("/api/v2.0/indexers/{status}/results")]
-        public ActionResult Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        async public Task<ActionResult> Indexers(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
-            bool rqnum = false, setcache = false;
-            var torrents = new Dictionary<string, TorrentDetails>();
-
             #region Запрос с NUM
-            var mNum = Regex.Match(query ?? string.Empty, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
+            bool rqnum = false;
 
-            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original) &&
-                mNum.Success)
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original))
             {
-                if (Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z0-9]{2}"))
+                var mNum = Regex.Match(query ?? string.Empty, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
+
+                if (mNum.Success && Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z0-9]{2}"))
                 {
                     rqnum = true;
                     var g = mNum.Groups;
@@ -54,460 +52,52 @@ namespace JacRed.Controllers
             }
             #endregion
 
-            #region category
-            if (is_serial == 0 && category != null)
+            IEnumerable<TorrentDetails> torrents = null;
+
+            if (ModInit.conf.typesearch == "red")
             {
-                string cat = category.FirstOrDefault().Value;
-                if (cat != null)
+                string memoryKey = $"{ModInit.conf.typesearch}:{query}:{rqnum}:{title}:{title_original}:{year}:{is_serial}";
+                if (!memoryCache.TryGetValue(memoryKey, out torrents))
                 {
-                    if (cat.Contains("5020") || cat.Contains("2010"))
-                        is_serial = 3; // tvshow
-                    else if (cat.Contains("5080"))
-                        is_serial = 4; // док
-                    else if (cat.Contains("5070"))
-                        is_serial = 5; // аниме
-                    else if (is_serial == 0)
-                    {
-                        if (cat.StartsWith("20"))
-                            is_serial = 1; // фильм
-                        else if (cat.StartsWith("50"))
-                            is_serial = 2; // сериал
-                    }
+                    var res = RedApi.Indexers(rqnum, apikey, query, title, title_original, year, is_serial, category);
+
+                    torrents = res.torrents;
+
+                    if (res.setcache && !red.evercache)
+                        memoryCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(10));
                 }
             }
-            #endregion
-
-            #region AddTorrents
-            void AddTorrents(TorrentDetails t)
+            else if (ModInit.conf.typesearch == "jackett")
             {
-                if (torrents.TryGetValue(t.url, out TorrentDetails val))
-                {
-                    if (t.updateTime > val.updateTime)
-                        torrents[t.url] = t;
-                }
-                else
-                {
-                    torrents.TryAdd(t.url, t);
-                }
-            }
-            #endregion
-
-            string memoryKey = $"{ModInit.conf.mergeduplicates}:{rqnum}:{title}:{title_original}:{year}:{is_serial}";
-            if (memoryCache.TryGetValue(memoryKey, out string jval))
-                return Content(jval, "application/json; charset=utf-8");
-
-            if (!string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(title_original))
-            {
-                #region Точный поиск
-                setcache = true;
-
-                string _n = StringConvert.SearchName(title);
-                string _o = StringConvert.SearchName(title_original);
-
-                // Быстрая выборка по совпадению ключа в имени
-                var mdb = FileDB.masterDb.Where(i => (_n != null && i.Key.StartsWith($"{_n}:")) || (_o != null && i.Key.EndsWith($":{_o}")));
-                if (!ModInit.conf.evercache)
-                    mdb = mdb.Take(ModInit.conf.maxreadfile);
-
-                foreach (var val in mdb)
-                {
-                    foreach (var t in FileDB.OpenRead(val.Key).Values)
-                    {
-                        if (t.types == null || t.title.Contains(" КПК"))
-                            continue;
-
-                        string name = StringConvert.SearchName(t.name);
-                        string originalname = StringConvert.SearchName(t.originalname);
-
-                        // Точная выборка по name или originalname
-                        if ((_n != null && _n == name) || (_o != null && _o == originalname))
-                        {
-                            if (is_serial == 1)
-                            {
-                                #region Фильм
-                                if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
-                                {
-                                    if (Regex.IsMatch(t.title, " (сезон|сери(и|я|й))", RegexOptions.IgnoreCase))
-                                        continue;
-
-                                    if (year > 0)
-                                    {
-                                        if (t.relased == year || t.relased == (year - 1) || t.relased == (year + 1))
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else if (is_serial == 2)
-                            {
-                                #region Сериал
-                                if (t.types.Contains("serial") || t.types.Contains("multserial") || t.types.Contains("anime") || t.types.Contains("docuserial") || t.types.Contains("tvshow"))
-                                {
-                                    if (year > 0)
-                                    {
-                                        if (t.relased >= (year - 1))
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else if (is_serial == 3)
-                            {
-                                #region tvshow
-                                if (t.types.Contains("tvshow"))
-                                {
-                                    if (year > 0)
-                                    {
-                                        if (t.relased >= (year - 1))
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else if (is_serial == 4)
-                            {
-                                #region docuserial / documovie
-                                if (t.types.Contains("docuserial") || t.types.Contains("documovie"))
-                                {
-                                    if (year > 0)
-                                    {
-                                        if (t.relased >= (year - 1))
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else if (is_serial == 5)
-                            {
-                                #region anime
-                                if (t.types.Contains("anime"))
-                                {
-                                    if (year > 0)
-                                    {
-                                        if (t.relased >= (year - 1))
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else
-                            {
-                                #region Неизвестно
-                                if (year > 0)
-                                {
-                                    if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("documovie"))
-                                    {
-                                        if (t.relased == year || t.relased == (year - 1) || t.relased == (year + 1))
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        if (t.relased >= (year - 1))
-                                            AddTorrents(t);
-                                    }
-                                }
-                                else
-                                {
-                                    AddTorrents(t);
-                                }
-                                #endregion
-                            }
-                        }
-                    }
-
-                }
-                #endregion
-            }
-            else if (!string.IsNullOrWhiteSpace(query) && query.Length > 1)
-            {
-                #region Обычный поиск
-                string _s = StringConvert.SearchName(query);
-
-                #region torrentsSearch
-                void torrentsSearch(bool exact)
-                {
-                    var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s));
-                    if (!ModInit.conf.evercache)
-                        mdb = mdb.Take(ModInit.conf.maxreadfile);
-
-                    foreach (var val in mdb)
-                    {
-                        foreach (var t in FileDB.OpenRead(val.Key).Values)
-                        {
-                            if (exact)
-                            {
-                                if (StringConvert.SearchName(t.name) != _s && StringConvert.SearchName(t.originalname) != _s)
-                                    continue;
-                            }
-
-                            if (t.types == null || t.title.Contains(" КПК"))
-                                continue;
-
-                            if (is_serial == 1)
-                            {
-                                if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 2)
-                            {
-                                if (t.types.Contains("serial") || t.types.Contains("multserial") || t.types.Contains("anime") || t.types.Contains("docuserial") || t.types.Contains("tvshow"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 3)
-                            {
-                                if (t.types.Contains("tvshow"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 4)
-                            {
-                                if (t.types.Contains("docuserial") || t.types.Contains("documovie"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 5)
-                            {
-                                if (t.types.Contains("anime"))
-                                    AddTorrents(t);
-                            }
-                            else
-                            {
-                                AddTorrents(t);
-                            }
-                        }
-
-                    }
-                }
-                #endregion
-
-                torrentsSearch(exact: true);
-                if (torrents.Count == 0)
-                    torrentsSearch(exact: false);
-                #endregion
-            }
-
-            #region getCategoryIds
-            HashSet<int> getCategoryIds(TorrentDetails t, out string categoryDesc)
-            {
-                categoryDesc = null;
-                HashSet<int> categoryIds = new HashSet<int>();
-
-                foreach (string type in t.types)
-                {
-                    switch (type)
-                    {
-                        case "movie":
-                            categoryDesc = "Movies";
-                            categoryIds.Add(2000);
-                            break;
-
-                        case "serial":
-                            categoryDesc = "TV";
-                            categoryIds.Add(5000);
-                            break;
-
-                        case "documovie":
-                        case "docuserial":
-                            categoryDesc = "TV/Documentary";
-                            categoryIds.Add(5080);
-                            break;
-
-                        case "tvshow":
-                            categoryDesc = "TV/Foreign";
-                            categoryIds.Add(5020);
-                            categoryIds.Add(2010);
-                            break;
-
-                        case "anime":
-                            categoryDesc = "TV/Anime";
-                            categoryIds.Add(5070);
-                            break;
-                    }
-                }
-
-                return categoryIds;
-            }
-            #endregion
-
-            #region Объединить дубликаты
-            var tsort = new List<TorrentDetails>();
-
-            if (ModInit.conf.mergeduplicates || (rqnum && ModInit.conf.mergenumduplicates))
-            {
-                Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)> temp = new Dictionary<string, (TorrentDetails, string, string, List<string>)>();
-
-                foreach (var torrent in torrents.Values.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName)).ToList())
-                {
-                    var magnetLink = MagnetLink.Parse(torrent.magnet);
-                    string hex = magnetLink.InfoHash.ToHex();
-
-                    if (!temp.TryGetValue(hex, out _))
-                    {
-                        temp.TryAdd(hex, ((TorrentDetails)torrent.Clone(), torrent.trackerName == "kinozal" ? torrent.title : null, magnetLink.Name, magnetLink.AnnounceUrls?.ToList() ?? new List<string>()));
-                    }
-                    else
-                    {
-                        var t = temp[hex];
-                        t.torrent.trackerName += $", {torrent.trackerName}";
-
-                        #region UpdateMagnet
-                        void UpdateMagnet()
-                        {
-                            string magnet = $"magnet:?xt=urn:btih:{hex.ToLower()}";
-
-                            if (!string.IsNullOrWhiteSpace(t.Name))
-                                magnet += $"&dn={HttpUtility.UrlEncode(t.Name)}";
-
-                            if (t.AnnounceUrls.Count > 0)
-                            {
-                                foreach (string announce in t.AnnounceUrls)
-                                {
-                                    string tr = announce.Contains("/") || announce.Contains(":") ? HttpUtility.UrlEncode(announce) : announce;
-
-                                    if (!magnet.Contains(tr))
-                                        magnet += $"&tr={tr}";
-                                }
-                            }
-
-                            t.torrent.magnet= magnet ;
-                        }
-                        #endregion
-
-                        if (string.IsNullOrWhiteSpace(t.Name) && !string.IsNullOrWhiteSpace(magnetLink.Name))
-                        {
-                            t.Name = magnetLink.Name;
-                            temp[hex] = t;
-                            UpdateMagnet();
-                        }
-
-                        if (magnetLink.AnnounceUrls != null && magnetLink.AnnounceUrls.Count > 0)
-                        {
-                            t.AnnounceUrls.AddRange(magnetLink.AnnounceUrls);
-                            UpdateMagnet();
-                        }
-
-                        #region UpdateTitle
-                        void UpdateTitle()
-                        {
-                            if (string.IsNullOrWhiteSpace(t.title))
-                                return;
-
-                            string title = t.title;
-
-                            if (t.torrent.voices != null && t.torrent.voices.Count > 0)
-                                title += $" | {string.Join(" | ", t.torrent.voices)}";
-
-                            t.torrent.title = title;
-                        }
-
-                        if (torrent.trackerName == "kinozal")
-                        {
-                            t.title = torrent.title;
-                            temp[hex] = t;
-                            UpdateTitle();
-                        }
-
-                        if (torrent.voices != null && torrent.voices.Count > 0)
-                        {
-                            if (t.torrent.voices == null)
-                            {
-                                t.torrent.voices = torrent.voices;
-                            }
-                            else
-                            {
-                                foreach (var v in torrent.voices)
-                                    t.torrent.voices.Add(v);
-                            }
-
-                            UpdateTitle();
-                        }
-                        #endregion
-
-                        if (torrent.sid > t.torrent.sid)
-                            t.torrent.sid = torrent.sid;
-
-                        if (torrent.pir > t.torrent.pir)
-                            t.torrent.pir = torrent.pir;
-
-                        if (torrent.createTime > t.torrent.createTime)
-                            t.torrent.createTime = torrent.createTime;
-
-                        if (torrent.voices != null && torrent.voices.Count > 0)
-                        {
-                            if (t.torrent.voices == null)
-                                t.torrent.voices = new HashSet<string>();
-
-                            foreach (var v in torrent.voices)
-                                t.torrent.voices.Add(v);
-                        }
-
-                        if (torrent.languages != null && torrent.languages.Count > 0)
-                        {
-                            if (t.torrent.languages == null)
-                                t.torrent.languages = new HashSet<string>();
-
-                            foreach (var v in torrent.languages)
-                                t.torrent.languages.Add(v);
-                        }
-
-                        if (t.torrent.ffprobe == null)
-                            t.torrent.ffprobe = torrent.ffprobe;
-                    }
-                }
-
-                foreach (var item in temp.Select(i => i.Value.torrent))
-                    tsort.Add(item);
+                torrents = await JackettApi.Indexers(host, query, title, title_original, year, is_serial, category);
             }
             else
             {
-                tsort = torrents.Values.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName)).ToList();
             }
-            #endregion
 
-            var result = tsort.OrderByDescending(i => i.createTime).Take(2_000);
-            if (apikey == "rus")
-                result = result.Where(i => (i.languages != null && i.languages.Contains("rus")) || (i.types != null && (i.types.Contains("sport") || i.types.Contains("tvshow") || i.types.Contains("docuserial"))));
-
-            jval = JsonConvert.SerializeObject(new
+            return Content(JsonConvert.SerializeObject(new
             {
-                Results = result.Select(i => new
+                Results = torrents.Where(i => i.sid > 0).OrderByDescending(i => i.createTime).Take(2_000).Select(i => new
                 {
                     Tracker = i.trackerName,
                     Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
                     Title = i.title,
-                    Size = i.size,
+                    Size = 0 > i.size ? getSizeInfo(i.sizeName) : i.size,
                     PublishDate = i.createTime,
                     Category = getCategoryIds(i, out string categoryDesc),
                     CategoryDesc = categoryDesc,
                     Seeders = i.sid,
                     Peers = i.pir,
                     MagnetUri = i.magnet,
-                    info = new
+                    Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
+                    Info = new
                     {
                         i.name,
                         i.originalname,
-                        i.sizeName,
                         i.relased,
-                        i.videotype,
                         i.quality,
+                        i.videotype,
+                        i.sizeName,
                         i.voices,
                         seasons = i.seasons != null && i.seasons.Count > 0 ? i.seasons : null,
                         i.types
@@ -515,20 +105,15 @@ namespace JacRed.Controllers
                     languages = i.languages != null && i.languages.Count > 0 ? i.languages : null,
                     i.ffprobe
                 }),
-                jacred = true
+                jacred = ModInit.conf.typesearch == "red"
 
-            }, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-
-            if (setcache && !ModInit.conf.evercache)
-                memoryCache.Set(memoryKey, jval, DateTime.Now.AddMinutes(10));
-
-            return Content(jval, "application/json; charset=utf-8");
+            }, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }), "application/json; charset=utf-8");
         }
         #endregion
 
-        #region Torrents
+        #region WebApi
         [Route("/api/v1.0/torrents")]
-        async public Task<JsonResult> Torrents(string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
+        async public Task<ActionResult> WebApi(string apikey, string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
         {
             #region search kp/imdb
             if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
@@ -541,7 +126,7 @@ namespace JacRed.Controllers
                     if (search.StartsWith("kp"))
                         uri = $"&kp={search.Remove(0, 2)}";
 
-                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 8);
+                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 7);
                     cache.original_name = root?.Value<JObject>("data")?.Value<string>("original_name");
                     cache.name = root?.Value<JObject>("data")?.Value<string>("name");
 
@@ -560,130 +145,31 @@ namespace JacRed.Controllers
             }
             #endregion
 
-            #region Выборка 
-            var torrents = new Dictionary<string, TorrentDetails>();
+            IEnumerable<TorrentDetails> torrents = null;
 
-            #region AddTorrents
-            void AddTorrents(TorrentDetails t)
+            if (ModInit.conf.typesearch == "red")
             {
-                if (torrents.TryGetValue(t.url, out TorrentDetails val))
-                {
-                    if (t.updateTime > val.updateTime)
-                        torrents[t.url] = t;
-                }
-                else
-                {
-                    torrents.TryAdd(t.url, t);
-                }
+                torrents = RedApi.WebApi(search, altname, exact, type, sort, tracker, voice, videotype, relased, quality, season);
             }
-            #endregion
-
-            if (string.IsNullOrWhiteSpace(search) || search.Length == 1)
-                return Json(torrents);
-
-            string _s = StringConvert.SearchName(search);
-            string _altsearch = StringConvert.SearchName(altname);
-
-            if (exact)
+            else if (ModInit.conf.typesearch == "jackett")
             {
-                #region Точный поиск
-                foreach (var mdb in FileDB.masterDb.Where(i => i.Key.StartsWith($"{_s}:") || i.Key.EndsWith($":{_s}") || (_altsearch != null && i.Key.Contains(_altsearch))))
-                {
-                    foreach (var t in FileDB.OpenRead(mdb.Key).Values)
-                    {
-                        if (t.types == null)
-                            continue;
-
-                        if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
-                        {
-                            string _n = StringConvert.SearchName(t.name);
-                            string _o = StringConvert.SearchName(t.originalname);
-
-                            if (_n == _s || _o == _s || (_altsearch != null && (_n == _altsearch || _o == _altsearch)))
-                                AddTorrents(t);
-                        }
-                    }
-
-                }
-                #endregion
+                torrents = await JackettApi.WebApi(host, search);
             }
             else
             {
-                #region Поиск по совпадению ключа в имени
-                var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s) || (_altsearch != null && i.Key.Contains(_altsearch)));
-                if (!ModInit.conf.evercache)
-                    mdb = mdb.Take(ModInit.conf.maxreadfile);
-
-                foreach (var val in mdb)
-                {
-                    foreach (var t in FileDB.OpenRead(val.Key).Values)
-                    {
-                        if (t.types == null)
-                            continue;
-
-                        if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
-                            AddTorrents(t);
-                    }
-
-                }
-                #endregion
             }
 
-            if (torrents.Count == 0)
-                return Json(torrents);
-
-            IEnumerable<TorrentDetails> query = torrents.Values;
-
-            #region sort
-            switch (sort ?? string.Empty)
-            {
-                case "sid":
-                    query = query.OrderByDescending(i => i.sid);
-                    break;
-                case "pir":
-                    query = query.OrderByDescending(i => i.pir);
-                    break;
-                case "size":
-                    query = query.OrderByDescending(i => i.size);
-                    break;
-                default:
-                    query = query.OrderByDescending(i => i.createTime);
-                    break;
-            }
-            #endregion
-
-            if (!string.IsNullOrWhiteSpace(tracker))
-                query = query.Where(i => i.trackerName == tracker);
-
-            if (relased > 0)
-                query = query.Where(i => i.relased == relased);
-
-            if (quality > 0)
-                query = query.Where(i => i.quality == quality);
-
-            if (!string.IsNullOrWhiteSpace(videotype))
-                query = query.Where(i => i.videotype == videotype);
-
-            if (!string.IsNullOrWhiteSpace(voice))
-                query = query.Where(i => i.voices.Contains(voice));
-
-            if (season > 0)
-                query = query.Where(i => i.seasons.Contains((int)season));
-            #endregion
-
-            query = query.Where(i => ModInit.conf.trackers == null || ModInit.conf.trackers.Contains(i.trackerName));
-
-            return Json(query.Take(2_000).Select(i => new
+            return Content(JsonConvert.SerializeObject(torrents.Take(2_000).Select(i => new
             {
                 tracker = i.trackerName,
                 url = i.url != null && i.url.StartsWith("http") ? i.url : null,
                 i.title,
-                i.size,
+                size = 0 > i.size ? getSizeInfo(i.sizeName) : i.size,
                 i.sizeName,
                 i.createTime,
                 i.sid,
                 i.pir,
-                i.magnet,
+                magnet = i.magnet ?? $"{i.parselink}&apikey={apikey}",
                 i.name,
                 i.originalname,
                 i.relased,
@@ -692,7 +178,82 @@ namespace JacRed.Controllers
                 i.voices,
                 i.seasons,
                 i.types
-            }));
+
+            }), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }), "application/json; charset=utf-8");
+        }
+        #endregion
+
+
+        #region getSizeInfo
+        long getSizeInfo(string sizeName)
+        {
+            if (string.IsNullOrWhiteSpace(sizeName))
+                return 0;
+
+            try
+            {
+                double size = 0.1;
+                var gsize = Regex.Match(sizeName, "([0-9\\.,]+) (Mb|МБ|GB|ГБ|TB|ТБ)", RegexOptions.IgnoreCase).Groups;
+                if (!string.IsNullOrWhiteSpace(gsize[2].Value))
+                {
+                    if (double.TryParse(gsize[1].Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out size) && size != 0)
+                    {
+                        if (gsize[2].Value.ToLower() is "gb" or "гб")
+                            size *= 1024;
+
+                        if (gsize[2].Value.ToLower() is "tb" or "тб")
+                            size *= 1048576;
+
+                        return (long)(size * 1048576);
+                    }
+                }
+            }
+            catch { }
+
+            return 0;
+        }
+        #endregion
+
+        #region getCategoryIds
+        HashSet<int> getCategoryIds(TorrentDetails t, out string categoryDesc)
+        {
+            categoryDesc = null;
+            HashSet<int> categoryIds = new HashSet<int>();
+
+            foreach (string type in t.types)
+            {
+                switch (type)
+                {
+                    case "movie":
+                        categoryDesc = "Movies";
+                        categoryIds.Add(2000);
+                        break;
+
+                    case "serial":
+                        categoryDesc = "TV";
+                        categoryIds.Add(5000);
+                        break;
+
+                    case "documovie":
+                    case "docuserial":
+                        categoryDesc = "TV/Documentary";
+                        categoryIds.Add(5080);
+                        break;
+
+                    case "tvshow":
+                        categoryDesc = "TV/Foreign";
+                        categoryIds.Add(5020);
+                        categoryIds.Add(2010);
+                        break;
+
+                    case "anime":
+                        categoryDesc = "TV/Anime";
+                        categoryIds.Add(5070);
+                        break;
+                }
+            }
+
+            return categoryIds;
         }
         #endregion
     }

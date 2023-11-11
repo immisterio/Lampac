@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace JacRed.Models.Details
+namespace JacRed.Models
 {
     public class TorrentDetails : ICloneable
     {
@@ -28,6 +28,8 @@ namespace JacRed.Models.Details
         public DateTime checkTime { get; set; } = DateTime.Now;
 
         public string magnet { get; set; }
+
+        public string parselink { get; set; }
 
 
         public string name { get; set; }

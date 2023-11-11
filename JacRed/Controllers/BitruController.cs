@@ -6,24 +6,25 @@ using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
-using Lampac.Models.JAC;
 using Shared;
 using Shared.Engine.CORE;
+using JacRed.Engine;
+using JacRed.Models;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("bitru/[action]")]
-    public class BitruController : BaseController
+    public class BitruController : JacBaseController
     {
         #region parseMagnet
         static string TorrentFileMemKey(string id) => $"bitru:parseMagnet:{id}";
 
         async public Task<ActionResult> parseMagnet(string id, bool usecache)
         {
-            if (!AppInit.conf.Bitru.enable)
+            if (!jackett.Bitru.enable)
                 return Content("disable");
 
             string key = TorrentFileMemKey(id);
@@ -38,21 +39,21 @@ namespace Lampac.Controllers.JAC
                 return Content("error");
             }
 
-            var proxyManager = new ProxyManager("bitru", AppInit.conf.Bitru);
+            var proxyManager = new ProxyManager("bitru", jackett.Bitru);
 
-            byte[] _t = await HttpClient.Download($"{AppInit.conf.Bitru.host}/download.php?id={id}", referer: $"{AppInit.conf.Bitru}/details.php?id={id}", proxy: proxyManager.Get(), timeoutSeconds: 10);
+            byte[] _t = await HttpClient.Download($"{jackett.Bitru.host}/download.php?id={id}", referer: $"{jackett.Bitru}/details.php?id={id}", proxy: proxyManager.Get(), timeoutSeconds: 10);
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
-                if (AppInit.conf.jac.cache)
+                if (jackett.cache)
                 {
                     await TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 
                 return File(_t, "application/x-bittorrent");
             }
-            else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            else if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
@@ -62,43 +63,35 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!AppInit.conf.Bitru.enable)
-                return false;
+            if (!jackett.Bitru.enable)
+                return Task.FromResult(false);
 
-            #region Кеш html
-            string cachekey = $"bitru:{string.Join(":", cats ?? new string[] { })}:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            return JackettCache.Invoke($"bitru:{string.Join(":", cats ?? new string[] { })}:{query}", torrents, () => parsePage(host, query, cats));
+        }
+        #endregion
 
-            if (cread.emptycache)
-                return false;
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string[] cats)
+        {
+            var torrents = new List<TorrentDetails>();
 
-            if (!cread.cache)
+            #region html
+            var proxyManager = new ProxyManager("bitru", jackett.Bitru);
+
+            string html = await HttpClient.Get($"{jackett.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+
+            if (html == null || !html.Contains("id=\"logo\""))
             {
-                var proxyManager = new ProxyManager("bitru", AppInit.conf.Bitru);
-
-                string html = await HttpClient.Get($"{AppInit.conf.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("id=\"logo\""))
-                {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
-                    validrq = true;
-                }
-
-                if (cread.html == null)
-                {
-                    proxyManager.Refresh();
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
-                }
+                proxyManager.Refresh();
+                return null;
             }
             #endregion
 
-            foreach (string row in cread.html.Split("<div class=\"b-title\"").Skip(1))
+            foreach (string row in html.Split("<div class=\"b-title\"").Skip(1))
             {
                 if (row.Contains(">Аниме</a>"))
                     continue;
@@ -151,7 +144,7 @@ namespace Lampac.Controllers.JAC
                 if (!title.ToLower().Contains(query.ToLower()))
                     continue;
 
-                url = $"{AppInit.conf.Bitru.host}/{url}";
+                url = $"{jackett.Bitru.host}/{url}";
                 #endregion
 
                 #region Парсим раздачи
@@ -311,9 +304,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(newsid)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "bitru",
@@ -324,7 +314,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/bitru/parsemagnet?id={newsid}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/bitru/parsemagnet?id={newsid}",
                         name = name,
                         originalname = originalname,
                         relased = relased
@@ -332,7 +322,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

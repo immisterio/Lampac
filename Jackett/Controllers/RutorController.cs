@@ -36,11 +36,15 @@ namespace Lampac.Controllers.JAC
             _t = await HttpClient.Download($"{Regex.Replace(AppInit.conf.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: AppInit.conf.Rutor.host, timeoutSeconds: 10, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
-                await TorrentCache.Write(key, _t);
-                Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                if (AppInit.conf.jac.cache)
+                {
+                    await TorrentCache.Write(key, _t);
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                }
+
                 return File(_t, "application/x-bittorrent");
             }
-            else if (AppInit.conf.jac.emptycache)
+            else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
                 Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
 
             proxyManager.Refresh();

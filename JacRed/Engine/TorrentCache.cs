@@ -1,13 +1,21 @@
-﻿using System.IO;
+﻿using Jackett;
+using Lampac.Models.AppConf;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
     public static class TorrentCache
     {
+        static JacConf jac => ModInit.conf.Jackett;
+
+
         #region Exists
         public static bool Exists(string key)
         {
+            if (!ModInit.conf.Jackett.cache)
+                return false;
+
             return File.Exists(getFolder(key)) || File.Exists(getFolder($"{key}:magnet"));
         }
         #endregion
@@ -15,6 +23,9 @@ namespace Lampac.Engine.CORE
         #region Read
         async public static ValueTask<(bool cache, byte[] torrent)> Read(string key)
         {
+            if (!jac.cache)
+                return default;
+
             try
             {
                 string pathfile = getFolder(key);
@@ -23,11 +34,14 @@ namespace Lampac.Engine.CORE
             }
             catch { }
 
-            return (false, null);
+            return default;
         }
 
         async public static ValueTask<(bool cache, string torrent)> ReadMagnet(string key)
         {
+            if (!jac.cache)
+                return default;
+
             try
             {
                 string pathfile = getFolder($"{key}:magnet");
@@ -36,16 +50,19 @@ namespace Lampac.Engine.CORE
             }
             catch { }
 
-            return (false, null);
+            return default;
         }
         #endregion
 
         #region Write
         async public static ValueTask Write(string key, byte[] torrent)
         {
+            if (!jac.cache)
+                return;
+
             try
             {
-                if (AppInit.conf.jac.torrentCacheToMinutes > 0)
+                if (jac.torrentCacheToMinutes > 0)
                     await File.WriteAllBytesAsync(getFolder(key), torrent);
             }
             catch { }
@@ -53,9 +70,12 @@ namespace Lampac.Engine.CORE
 
         async public static ValueTask Write(string key, string torrent)
         {
+            if (!jac.cache)
+                return;
+
             try
             {
-                if (AppInit.conf.jac.torrentCacheToMinutes > 0)
+                if (jac.torrentCacheToMinutes > 0)
                     await File.WriteAllTextAsync(getFolder($"{key}:magnet"), torrent);
             }
             catch { }

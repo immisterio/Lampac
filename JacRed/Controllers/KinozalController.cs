@@ -6,18 +6,18 @@ using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
-using Lampac.Models.JAC;
 using System.Collections.Generic;
 using Shared;
 using Shared.Engine.CORE;
+using JacRed.Engine;
+using JacRed.Models;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("kinozal/[action]")]
-    public class KinozalController : BaseController
+    public class KinozalController : JacBaseController
     {
         #region Cookie / TakeLogin
         static string Cookie;
@@ -40,26 +40,26 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
                     client.DefaultRequestHeaders.Add("cache-control", "no-cache");
                     client.DefaultRequestHeaders.Add("dnt", "1");
-                    client.DefaultRequestHeaders.Add("origin", AppInit.conf.Kinozal.host);
+                    client.DefaultRequestHeaders.Add("origin", jackett.Kinozal.host);
                     client.DefaultRequestHeaders.Add("pragma", "no-cache");
-                    client.DefaultRequestHeaders.Add("referer", $"{AppInit.conf.Kinozal.host}/");
+                    client.DefaultRequestHeaders.Add("referer", $"{jackett.Kinozal.host}/");
                     client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
                     var postParams = new Dictionary<string, string>
                     {
-                        { "username", AppInit.conf.Kinozal.login.u },
-                        { "password", AppInit.conf.Kinozal.login.p },
+                        { "username", jackett.Kinozal.login.u },
+                        { "password", jackett.Kinozal.login.p },
                         { "returnto", "" }
                     };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.Kinozal.host}/takelogin.php", postContent))
+                        using (var response = await client.PostAsync($"{jackett.Kinozal.host}/takelogin.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -88,29 +88,24 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string id) => $"kinozal:parseMagnet:download:{id}";
-
-        static string TorrentMagnetMemKey(string id) => $"kinozal:parseMagnet:{id}";
-
-
-        async public Task<ActionResult> parseMagnet(string id, bool usecache)
+        async public Task<ActionResult> parseMagnet(string id)
         {
-            if (!AppInit.conf.Kinozal.enable)
+            if (!jackett.Kinozal.enable)
                 return Content("disable");
 
             #region Кеш torrent
-            string keydownload = TorrentFileMemKey(id);
+            string keydownload = $"kinozal:parseMagnet:download:{id}";
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            string keymagnet = TorrentMagnetMemKey(id);
+            string keymagnet = $"kinozal:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(keymagnet, out string _m))
                 return Redirect(_m);
             #endregion
 
-            #region usecache / emptycache
+            #region emptycache
             string keyerror = $"kinozal:parseMagnet:{id}:error";
-            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            if (Startup.memoryCache.TryGetValue(keyerror, out _))
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -125,13 +120,13 @@ namespace Lampac.Controllers.JAC
             #region Download
             if (Cookie != null)
             {
-                _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: AppInit.conf.Kinozal.host, timeoutSeconds: 10);
+                _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, cookie: Cookie, referer: jackett.Kinozal.host, timeoutSeconds: 10);
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
-                    if (AppInit.conf.jac.cache)
+                    if (jackett.cache)
                     {
                         await TorrentCache.Write(keydownload, _t);
-                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                     }
 
                     return File(_t, "application/x-bittorrent");
@@ -139,10 +134,10 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            var proxyManager = new ProxyManager("kinozal", AppInit.conf.Kinozal);
+            var proxyManager = new ProxyManager("kinozal", jackett.Kinozal);
 
             #region Инфо хеш
-            string srv_details = await HttpClient.Post($"{AppInit.conf.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", proxy: proxyManager.Get(), timeoutSeconds: 10);
+            string srv_details = await HttpClient.Post($"{jackett.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", proxy: proxyManager.Get(), timeoutSeconds: 10);
             if (srv_details != null)
             {
                 string torrentHash = new Regex("<ul><li>Инфо хеш: +([^<]+)</li>").Match(srv_details).Groups[1].Value;
@@ -150,10 +145,10 @@ namespace Lampac.Controllers.JAC
                 {
                     string magnet = $"magnet:?xt=urn:btih:{torrentHash}";
 
-                    if (AppInit.conf.jac.cache)
+                    if (jackett.cache)
                     {
                         await TorrentCache.Write(keymagnet, magnet);
-                        Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                        Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                     }
 
                     return Redirect(magnet);
@@ -161,10 +156,10 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(1));
 
-            if (AppInit.conf.jac.cache)
+            if (jackett.cache)
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -178,46 +173,40 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!AppInit.conf.Kinozal.enable)
-                return false;
+            if (!jackett.Kinozal.enable)
+                return Task.FromResult(false);
+
+            return JackettCache.Invoke($"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}", torrents, () => parsePage(host, query, cats));
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string[] cats)
+        {
+            var torrents = new List<TorrentDetails>();
 
             #region Кеш html
-            string cachekey = $"kinozal:{string.Join(":", cats ?? new string[] { })}:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            var proxyManager = new ProxyManager("kinozal", jackett.Kinozal);
 
-            if (cread.emptycache)
-                return false;
+            string html = await HttpClient.Get($"{jackett.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
-            if (!cread.cache)
+            if (html != null && html.Contains("Кинозал.ТВ</title>"))
             {
-                var proxyManager = new ProxyManager("kinozal", AppInit.conf.Kinozal);
-
-                string html = await HttpClient.Get($"{AppInit.conf.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", proxy: proxyManager.Get(), timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("Кинозал.ТВ</title>"))
-                {
-                    cread.html = html;
-                    await HtmlCache.Write(cachekey, html);
-                    validrq = true;
-
-                    if (!html.Contains(">Выход</a>") && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.u) && !string.IsNullOrWhiteSpace(AppInit.conf.Kinozal.login.p))
-                        TakeLogin();
-                }
-
-                if (cread.html == null)
-                {
-                    proxyManager.Refresh();
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
-                }
+                if (!html.Contains(">Выход</a>") && !string.IsNullOrWhiteSpace(jackett.Kinozal.login.u) && !string.IsNullOrWhiteSpace(jackett.Kinozal.login.p))
+                    TakeLogin();
+            }
+            else if (html == null)
+            {
+                proxyManager.Refresh();
+                return null;
             }
             #endregion
 
-            foreach (string row in Regex.Split(cread.html, "<tr class=('first bg'|bg)>").Skip(1))
+            foreach (string row in Regex.Split(html, "<tr class=('first bg'|bg)>").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)
@@ -262,7 +251,7 @@ namespace Lampac.Controllers.JAC
                 if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(tracker))
                     continue;
 
-                url = $"{AppInit.conf.Kinozal.host}/{url}";
+                url = $"{jackett.Kinozal.host}/{url}";
                 #endregion
 
                 #region Парсим раздачи
@@ -466,9 +455,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(id)) && !TorrentCache.Exists(TorrentMagnetMemKey(id)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "kinozal",
@@ -479,7 +465,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/kinozal/parsemagnet?id={id}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/kinozal/parsemagnet?id={id}",
                         name = name,
                         originalname = originalname,
                         relased = relased
@@ -487,7 +473,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

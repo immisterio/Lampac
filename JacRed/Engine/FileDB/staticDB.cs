@@ -5,7 +5,6 @@ using System.IO;
 using Jackett;
 using JacRed.Engine.CORE;
 using JacRed.Models;
-using JacRed.Models.Details;
 using Lampac.Engine.CORE;
 
 namespace JacRed.Engine
@@ -44,7 +43,7 @@ namespace JacRed.Engine
             if (openWriteTask.TryGetValue(key, out WriteTaskModel val))
                 return val.db.Database;
 
-            if (ModInit.conf.evercache)
+            if (ModInit.conf.Red.evercache)
             {
                 var fdb = new FileDB(key);
                 openWriteTask.TryAdd(key, new WriteTaskModel() { db = fdb, openconnection = 1 });

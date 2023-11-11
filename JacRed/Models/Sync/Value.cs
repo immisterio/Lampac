@@ -1,5 +1,4 @@
-﻿using JacRed.Models.Details;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace JacRed.Models.Sync

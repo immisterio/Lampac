@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Lampac.Engine;
+using JacRed.Engine;
+using JacRed.Models;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
@@ -16,7 +16,7 @@ using Shared;
 namespace Lampac.Controllers.JAC
 {
     [Route("animelayer/[action]")]
-    public class AnimeLayerController : BaseController
+    public class AnimeLayerController : JacBaseController
     {
         #region Cookie / TakeLogin
         static string Cookie { get; set; }
@@ -39,19 +39,19 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
                     var postParams = new Dictionary<string, string>
                     {
-                        { "login", AppInit.conf.Animelayer.login.u },
-                        { "password", AppInit.conf.Animelayer.login.p }
+                        { "login", jackett.Animelayer.login.u },
+                        { "password", jackett.Animelayer.login.p }
                     };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.Animelayer.host}/auth/login/", postContent))
+                        using (var response = await client.PostAsync($"{jackett.Animelayer.host}/auth/login/", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -88,18 +88,16 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string url) => $"animelayer:parseMagnet:{url}";
-
-        async public Task<ActionResult> parseMagnet(string url, bool usecache)
+        async public Task<ActionResult> parseMagnet(string url)
         {
-            if (!AppInit.conf.Animelayer.enable)
+            if (!jackett.Animelayer.enable)
                 return Content("disable");
 
-            string key = TorrentFileMemKey(url);
+            string key = $"animelayer:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
                 return File(_m, "application/x-bittorrent");
 
-            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
             {
                 if (await TorrentCache.Read(key) is var tc && tc.cache)
                     return File(tc.torrent, "application/x-bittorrent");
@@ -107,19 +105,19 @@ namespace Lampac.Controllers.JAC
                 return Content("error");
             }
 
-            byte[] _t = await HttpClient.Download($"{url}download/", cookie: Cookie, referer: AppInit.conf.Animelayer.host, timeoutSeconds: 10);
+            byte[] _t = await HttpClient.Download($"{url}download/", cookie: Cookie, referer: jackett.Animelayer.host, timeoutSeconds: 10);
             if (_t != null && BencodeTo.Magnet(_t) != null)
             {
-                if (AppInit.conf.jac.cache)
+                if (jackett.cache)
                 {
                     await TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 
                 return File(_t, "application/x-bittorrent");
             }
-            else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            else if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
@@ -128,60 +126,51 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            if (!AppInit.conf.Animelayer.enable)
-                return false;
+            if (!jackett.Animelayer.enable)
+                return Task.FromResult(false);
+
+            return JackettCache.Invoke($"animelayer:{query}", torrents, () => parsePage(host, query));
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query)
+        {
+            var torrents = new List<TorrentDetails>();
 
             #region Авторизация
             if (Cookie == null)
             {
                 if (await TakeLogin() == false)
-                    return false;
+                    return null;
             }
             #endregion
 
-            #region Кеш html
-            string cachekey = $"animelayer:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            #region html
+            bool firstrehtml = true;
+            rehtml: string html = await HttpClient.Get($"{jackett.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", cookie: Cookie, timeoutSeconds: jackett.timeoutSeconds);
 
-            if (cread.emptycache)
-                return false;
-
-            if (!cread.cache)
+            if (html != null && html.Contains("id=\"wrapper\""))
             {
-                bool firstrehtml = true;
-                rehtml: string html = await HttpClient.Get($"{AppInit.conf.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", cookie: Cookie, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("id=\"wrapper\""))
+                if (!html.Contains($">{jackett.Animelayer.login.u}<"))
                 {
-                    if (html.Contains($">{AppInit.conf.Animelayer.login.u}<"))
-                    {
-                        cread.html = HttpUtility.HtmlDecode(html.Replace("&nbsp;", ""));
-                        await HtmlCache.Write(cachekey, cread.html);
-                        validrq = true;
-                    }
-                    else
-                    {
-                        if (!firstrehtml || await TakeLogin() == false)
-                            return false;
+                    if (!firstrehtml || await TakeLogin() == false)
+                        return null;
 
-                        firstrehtml = false;
-                        goto rehtml;
-                    }
-                }
-
-                if (cread.html == null)
-                {
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
+                    firstrehtml = false;
+                    goto rehtml;
                 }
             }
+
+            if (html == null)
+                return null;
             #endregion
 
-            foreach (string row in cread.html.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))
+            foreach (string row in html.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)
@@ -233,7 +222,7 @@ namespace Lampac.Controllers.JAC
                 else if (Regex.IsMatch(row, "Разрешение: ?</strong>1280x720"))
                     title += " [720p]";
 
-                url = $"{AppInit.conf.Animelayer.host}/{url}/";
+                url = $"{jackett.Animelayer.host}/{url}/";
                 #endregion
 
                 #region name / originalname
@@ -270,9 +259,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(url)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "animelayer",
@@ -283,7 +269,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/animelayer/parsemagnet?url={HttpUtility.UrlEncode(url)}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/animelayer/parsemagnet?url={HttpUtility.UrlEncode(url)}",
                         name = name,
                         originalname = originalname,
                         relased = relased
@@ -291,7 +277,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

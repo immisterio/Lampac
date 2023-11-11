@@ -7,16 +7,16 @@ using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
-using Lampac.Models.JAC;
 using Shared;
+using JacRed.Engine;
+using JacRed.Models;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("rutracker/[action]")]
-    public class RutrackerController : BaseController
+    public class RutrackerController : JacBaseController
     {
         #region Cookie / TakeLogin
         static string Cookie;
@@ -39,20 +39,20 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
                     var postParams = new Dictionary<string, string>
                     {
-                        { "login_username", AppInit.conf.Rutracker.login.u },
-                        { "login_password", AppInit.conf.Rutracker.login.p },
+                        { "login_username", jackett.Rutracker.login.u },
+                        { "login_password", jackett.Rutracker.login.p },
                         { "login", "Вход" }
                     };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.Rutracker.host}/forum/login.php", postContent))
+                        using (var response = await client.PostAsync($"{jackett.Rutracker.host}/forum/login.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -83,29 +83,24 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string id) => $"rutracker:parseMagnet:download:{id}";
-
-        static string TorrentMagnetMemKey(string id) => $"rutracker:parseMagnet:{id}";
-
-
-        async public Task<ActionResult> parseMagnet(string id, bool usecache)
+        async public Task<ActionResult> parseMagnet(string id)
         {
-            if (!AppInit.conf.Rutracker.enable)
+            if (!jackett.Rutracker.enable)
                 return Content("disable");
 
             #region кеш / cookie
-            string keydownload = TorrentFileMemKey(id);
+            string keydownload = $"rutracker:parseMagnet:download:{id}";
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            string key = TorrentMagnetMemKey(id);
+            string key = $"rutracker:parseMagnet:{id}";
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);
             #endregion
 
-            #region usecache / emptycache
+            #region emptycache
             string keyerror = $"rutracker:parseMagnet:{id}:error";
-            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            if (Startup.memoryCache.TryGetValue(keyerror, out _))
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -131,15 +126,15 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             #region Download
-            if (AppInit.conf.Rutracker.priority == "torrent")
+            if (jackett.Rutracker.priority == "torrent")
             {
-                _t = await HttpClient.Download($"{AppInit.conf.Rutracker.host}/forum/dl.php?t={id}", cookie: Cookie, referer: AppInit.conf.Rutracker.host, timeoutSeconds: 10);
+                _t = await HttpClient.Download($"{jackett.Rutracker.host}/forum/dl.php?t={id}", cookie: Cookie, referer: jackett.Rutracker.host, timeoutSeconds: 10);
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                 {
-                    if (AppInit.conf.jac.cache)
+                    if (jackett.cache)
                     {
                         await TorrentCache.Write(keydownload, _t);
-                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                        Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                     }
 
                     return File(_t, "application/x-bittorrent");
@@ -148,16 +143,16 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             #region Magnet
-            var fullNews = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: Cookie, timeoutSeconds: 10);
+            var fullNews = await HttpClient.Get($"{jackett.Rutracker.host}/forum/viewtopic.php?t=" + id, cookie: Cookie, timeoutSeconds: 10);
             if (fullNews != null)
             {
                 string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"(med )?med magnet-link\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(magnet))
                 {
-                    if (AppInit.conf.jac.cache)
+                    if (jackett.cache)
                     {
                         await TorrentCache.Write(key, magnet);
-                        Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                        Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                     }
 
                     return Redirect(magnet);
@@ -165,10 +160,10 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(1));
 
-            if (AppInit.conf.jac.cache)
+            if (jackett.cache)
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -181,60 +176,48 @@ namespace Lampac.Controllers.JAC
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!AppInit.conf.Rutracker.enable)
-                return false;
+            if (!jackett.Rutracker.enable)
+                return Task.FromResult(false);
+
+            return JackettCache.Invoke($"rutracker:{string.Join(":", cats ?? new string[] { })}:{query}", torrents, () => parsePage(host, query, cats));
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string[] cats)
+        {
+            var torrents = new List<TorrentDetails>();
 
             #region Авторизация
             if (Cookie == null)
             {
                 if (await TakeLogin() == false)
-                    return false;
+                    return null;
             }
             #endregion
 
             #region Кеш html
-            string cachekey = $"rutracker:{string.Join(":", cats ?? new string[] { })}:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            bool firstrehtml = true;
+            rehtml: string html = await HttpClient.Get($"{jackett.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), cookie: Cookie, timeoutSeconds: jackett.timeoutSeconds);
 
-            if (cread.emptycache)
-                return false;
-
-            if (!cread.cache)
+            if (html != null)
             {
-                bool firstrehtml = true;
-                rehtml: string html = await HttpClient.Get($"{AppInit.conf.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), cookie: Cookie, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null)
+                if (!html.Contains("id=\"logged-in-username\""))
                 {
-                    if (html.Contains("id=\"logged-in-username\""))
-                    {
-                        cread.html = html;
-                        await HtmlCache.Write(cachekey, html);
-                        validrq = true;
-                    }
-                    else
-                    {
-                        if (!firstrehtml || await TakeLogin() == false) 
-                            return false;
+                    if (!firstrehtml || await TakeLogin() == false)
+                        return null;
 
-                        firstrehtml = false;
-                        goto rehtml;
-                    }
-                }
-
-                if (cread.html == null)
-                {
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
+                    firstrehtml = false;
+                    goto rehtml;
                 }
             }
             #endregion
 
-            foreach (string row in cread.html.Split("class=\"tCenter hl-tr\"").Skip(1))
+            foreach (string row in html.Split("class=\"tCenter hl-tr\"").Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(row))
                     continue;
@@ -262,7 +245,7 @@ namespace Lampac.Controllers.JAC
                 if (string.IsNullOrWhiteSpace(viewtopic) || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(tracker))
                     continue;
 
-                string url = $"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t={viewtopic}";
+                string url = $"{jackett.Rutracker.host}/forum/viewtopic.php?t={viewtopic}";
                 #endregion
 
                 #region Парсим раздачи
@@ -676,9 +659,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(viewtopic)) && !TorrentCache.Exists(TorrentMagnetMemKey(viewtopic)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "rutracker",
@@ -689,7 +669,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/rutracker/parsemagnet?id={viewtopic}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/rutracker/parsemagnet?id={viewtopic}",
                         name = name,
                         originalname = originalname,
                         relased = relased
@@ -697,7 +677,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

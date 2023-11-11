@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Lampac.Engine;
+using JacRed.Engine;
+using JacRed.Models;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Models.JAC;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
@@ -16,7 +16,7 @@ using Shared;
 namespace Lampac.Controllers.JAC
 {
     [Route("selezen/[action]")]
-    public class SelezenController : BaseController
+    public class SelezenController : JacBaseController
     {
         #region Cookie / TakeLogin
         static string Cookie;
@@ -39,21 +39,21 @@ namespace Lampac.Controllers.JAC
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
                     var postParams = new Dictionary<string, string>
                     {
-                        { "login_name", AppInit.conf.Selezen.login.u },
-                        { "login_password", AppInit.conf.Selezen.login.p },
+                        { "login_name", jackett.Selezen.login.u },
+                        { "login_password", jackett.Selezen.login.p },
                         { "login_not_save", "1" },
                         { "login", "submit" }
                     };
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync(AppInit.conf.Selezen.host, postContent))
+                        using (var response = await client.PostAsync(jackett.Selezen.host, postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -84,28 +84,24 @@ namespace Lampac.Controllers.JAC
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string url) => $"selezen:parseMagnet:download:{url}";
-
-        static string TorrentMagnetMemKey(string url) => $"selezen:parseMagnet:{url}";
-
-        async public Task<ActionResult> parseMagnet(string url, bool usecache)
+        async public Task<ActionResult> parseMagnet(string url)
         {
-            if (!AppInit.conf.Selezen.enable)
+            if (!jackett.Selezen.enable)
                 return Content("disable");
 
             #region Кеш torrent
-            string keydownload = TorrentFileMemKey(url);
+            string keydownload = $"selezen:parseMagnet:download:{url}";
             if (Startup.memoryCache.TryGetValue(keydownload, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            string key = TorrentMagnetMemKey(url);
+            string key = $"selezen:parseMagnet:{url}";
             if (Startup.memoryCache.TryGetValue(key, out string _m))
                 return Redirect(_m);
             #endregion
 
-            #region usecache / emptycache
+            #region emptycache
             string keyerror = $"selezen:parseMagnet:{url}:error";
-            if (usecache || Startup.memoryCache.TryGetValue(keyerror, out _))
+            if (Startup.memoryCache.TryGetValue(keyerror, out _))
             {
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -139,8 +135,8 @@ namespace Lampac.Controllers.JAC
 
             if (html == null || string.IsNullOrWhiteSpace(magnet))
             {
-                if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                if (jackett.emptycache && jackett.cache)
+                    Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
 
                 if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
@@ -153,18 +149,18 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             #region Download
-            if (AppInit.conf.Selezen.priority == "torrent")
+            if (jackett.Selezen.priority == "torrent")
             {
                 string id = new Regex("href=\"/index.php\\?do=download&id=([0-9]+)").Match(html).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(id))
                 {
-                    _t = await HttpClient.Download($"{AppInit.conf.Selezen.host}/index.php?do=download&id={id}", cookie: Cookie, referer: AppInit.conf.Selezen.host, timeoutSeconds: 10);
+                    _t = await HttpClient.Download($"{jackett.Selezen.host}/index.php?do=download&id={id}", cookie: Cookie, referer: jackett.Selezen.host, timeoutSeconds: 10);
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                     {
-                        if (AppInit.conf.jac.cache)
+                        if (jackett.cache)
                         {
                             await TorrentCache.Write(keydownload, _t);
-                            Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                            Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                         }
 
                         return File(_t, "application/x-bittorrent");
@@ -173,70 +169,58 @@ namespace Lampac.Controllers.JAC
             }
             #endregion
 
-            if (AppInit.conf.jac.cache)
+            if (jackett.cache)
             {
                 await TorrentCache.Write(key, magnet);
-                Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
             }
 
             return Redirect(magnet);
         }
         #endregion
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
+
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            if (!AppInit.conf.Selezen.enable)
-                return false;
+            if (!jackett.Selezen.enable)
+                return Task.FromResult(false);
+
+            return JackettCache.Invoke($"selezen:{query}", torrents, () => parsePage(host, query));
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query)
+        {
+            var torrents = new List<TorrentDetails>();
 
             #region Авторизация
             if (Cookie == null)
             {
                 if (await TakeLogin() == false)
-                    return false;
+                    return null;
             }
             #endregion
 
-            #region Кеш html
-            string cachekey = $"selezen:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            #region html
+            bool firstrehtml = true;
+            rehtml: string html = await HttpClient.Post($"{jackett.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie, timeoutSeconds: jackett.timeoutSeconds);
 
-            if (cread.emptycache)
-                return false;
-
-            if (!cread.cache)
+            if (html != null && html.Contains("dle_root"))
             {
-                bool firstrehtml = true;
-                rehtml: string html = await HttpClient.Post($"{AppInit.conf.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", cookie: Cookie, timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("dle_root"))
+                if (!html.Contains($">{jackett.Selezen.login.u}<"))
                 {
-                    if (html.Contains($">{AppInit.conf.Selezen.login.u}<"))
-                    {
-                        cread.html = html;
-                        await HtmlCache.Write(cachekey, html);
-                        validrq = true;
-                    }
-                    else
-                    {
-                        if (!firstrehtml || await TakeLogin() == false)
-                            return false;
+                    if (!firstrehtml || await TakeLogin() == false)
+                        return null;
 
-                        firstrehtml = false;
-                        goto rehtml;
-                    }
-                }
-
-                if (cread.html == null)
-                {
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
+                    firstrehtml = false;
+                    goto rehtml;
                 }
             }
             #endregion
 
-            foreach (string row in cread.html.Split("class=\"card radius-10 overflow-hidden\"").Skip(1))
+            foreach (string row in html.Split("class=\"card radius-10 overflow-hidden\"").Skip(1))
             {
                 if (row.Contains(">Аниме</a>") || row.Contains(" [S0"))
                     continue;
@@ -307,9 +291,6 @@ namespace Lampac.Controllers.JAC
                     int.TryParse(_sid, out int sid);
                     int.TryParse(_pir, out int pir);
 
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(url)) && !TorrentCache.Exists(TorrentMagnetMemKey(url)))
-                        continue;
-
                     torrents.Add(new TorrentDetails()
                     {
                         trackerName = "selezen",
@@ -320,7 +301,7 @@ namespace Lampac.Controllers.JAC
                         pir = pir,
                         sizeName = sizeName,
                         createTime = createTime,
-                        parselink = $"{host}/selezen/parsemagnet?url={HttpUtility.UrlEncode(url)}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/selezen/parsemagnet?url={HttpUtility.UrlEncode(url)}",
                         name = name,
                         originalname = originalname,
                         relased = relased
@@ -328,7 +309,7 @@ namespace Lampac.Controllers.JAC
                 }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

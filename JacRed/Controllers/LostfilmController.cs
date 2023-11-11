@@ -6,17 +6,17 @@ using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
-using Lampac.Engine;
-using Lampac.Models.JAC;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 using Shared;
+using JacRed.Engine;
+using JacRed.Models;
 
-namespace Lampac.Controllers.CRON
+namespace Lampac.Controllers.JAC
 {
     [Route("lostfilm/[action]")]
-    public class LostfilmController : BaseController
+    public class LostfilmController : JacBaseController
     {
         #region TakeLogin
         async static Task<string> TakeLogin()
@@ -37,7 +37,7 @@ namespace Lampac.Controllers.CRON
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                     client.MaxResponseContentBufferSize = 2000000; // 2MB
                     client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
@@ -45,8 +45,8 @@ namespace Lampac.Controllers.CRON
                     {
                         { "act", "users" },
                         { "type", "login" },
-                        { "mail", AppInit.conf.Lostfilm.login.u },
-                        { "pass", AppInit.conf.Lostfilm.login.p },
+                        { "mail", jackett.Lostfilm.login.u },
+                        { "pass", jackett.Lostfilm.login.p },
                         { "need_captcha", "" },
                         { "captcha", "" },
                         { "rem", "1" }
@@ -54,7 +54,7 @@ namespace Lampac.Controllers.CRON
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.Lostfilm.host}/ajaxik.users.php", postContent))
+                        using (var response = await client.PostAsync($"{jackett.Lostfilm.host}/ajaxik.users.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
@@ -87,7 +87,7 @@ namespace Lampac.Controllers.CRON
 
         async static Task<bool> createHttp() 
         {
-            string cookie = AppInit.conf.Lostfilm.cookie;
+            string cookie = jackett.Lostfilm.cookie;
             if (string.IsNullOrWhiteSpace(cookie))
             {
                 return false;
@@ -104,7 +104,7 @@ namespace Lampac.Controllers.CRON
             //};
 
             cloudHttp = new System.Net.Http.HttpClient(); // handler
-            cloudHttp.Timeout = TimeSpan.FromSeconds(AppInit.conf.jac.timeoutSeconds);
+            cloudHttp.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
             cloudHttp.MaxResponseContentBufferSize = 10_000_000;
             cloudHttp.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36");
             cloudHttp.DefaultRequestHeaders.Add("cookie", cookie);
@@ -131,7 +131,7 @@ namespace Lampac.Controllers.CRON
             try
             {
                 // Получаем ссылку на поиск
-                string v_search = await cloudHttp.GetStringAsync($"{AppInit.conf.Lostfilm.host}/v_search.php?a={episodeid}");
+                string v_search = await cloudHttp.GetStringAsync($"{jackett.Lostfilm.host}/v_search.php?a={episodeid}");
                 string retreSearchUrl = new Regex("url=(\")?(https?://[^/]+/[^\"]+)").Match(v_search ?? "").Groups[2].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(retreSearchUrl))
                 {
@@ -149,7 +149,7 @@ namespace Lampac.Controllers.CRON
 
                                 if (!string.IsNullOrWhiteSpace(torrentFile) && !string.IsNullOrWhiteSpace(quality))
                                 {
-                                    byte[] torrent = await HttpClient.Download(torrentFile, referer: $"{AppInit.conf.Lostfilm.host}/");
+                                    byte[] torrent = await HttpClient.Download(torrentFile, referer: $"{jackett.Lostfilm.host}/");
                                     if (BencodeTo.Magnet(torrent) != null)
                                         return torrent;
                                 }
@@ -167,18 +167,16 @@ namespace Lampac.Controllers.CRON
         #endregion
 
         #region parseMagnet
-        static string TorrentFileMemKey(string episodeid) => $"lostfilm:parseMagnet:{episodeid}";
-
-        async public Task<ActionResult> parseMagnet(string episodeid, bool usecache)
+        async public Task<ActionResult> parseMagnet(string episodeid)
         {
-            if (!AppInit.conf.Lostfilm.enable)
+            if (!jackett.Lostfilm.enable)
                 return Content("disable");
 
-            string key = TorrentFileMemKey(episodeid);
+            string key = $"lostfilm:parseMagnet:{episodeid}";
             if (Startup.memoryCache.TryGetValue(key, out byte[] _t))
                 return File(_t, "application/x-bittorrent");
 
-            if (usecache || Startup.memoryCache.TryGetValue($"{key}:error", out _))
+            if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
             {
                 if (await TorrentCache.Read(key) is var tc && tc.cache)
                     return File(tc.torrent, "application/x-bittorrent");
@@ -192,16 +190,16 @@ namespace Lampac.Controllers.CRON
             _t = await getTorrent(episodeid);
             if (_t != null)
             {
-                if (AppInit.conf.jac.cache)
+                if (jackett.cache)
                 {
                     await TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 
                 return File(_t, "application/x-bittorrent");
             }
-            else if (AppInit.conf.jac.emptycache && AppInit.conf.jac.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(Math.Max(1, AppInit.conf.jac.torrentCacheToMinutes)));
+            else if (jackett.emptycache && jackett.cache)
+                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
 
             if (await TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
@@ -211,51 +209,44 @@ namespace Lampac.Controllers.CRON
         #endregion
 
 
-        #region parsePage
-        async public static Task<bool> parsePage(string host, ConcurrentBag<TorrentDetails> torrents, string query)
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            if (!AppInit.conf.Lostfilm.enable)
-                return false;
+            if (!jackett.Lostfilm.enable)
+                return Task.FromResult(false);
+
+            return JackettCache.Invoke($"lostfilm:{query}", torrents, () => parsePage(host, query));
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query)
+        {
+            var torrents = new List<TorrentDetails>();
 
             if (cloudHttp == null && await createHttp() == false)
-                return false;
+                return null;
 
-            #region Кеш html
-            string cachekey = $"lostfilm:{query}";
-            var cread = await HtmlCache.Read(cachekey);
-            bool validrq = cread.cache;
+            #region html
+            bool validrq = false;
+            string html = await HttpClient.Get($"{jackett.Lostfilm.host}/search/?q={HttpUtility.UrlEncode(query)}", timeoutSeconds: jackett.timeoutSeconds);
 
-            if (cread.emptycache)
-                return false;
-
-            if (!cread.cache)
+            if (html != null && html.Contains("onClick=\"FollowSerial("))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Lostfilm.host}/search/?q={HttpUtility.UrlEncode(query)}", timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-
-                if (html != null && html.Contains("onClick=\"FollowSerial("))
+                string serie = Regex.Match(html, "href=\"/series/([^\"]+)\" class=\"no-decoration\"").Groups[1].Value;
+                if (!string.IsNullOrWhiteSpace(serie))
                 {
-                    string serie = Regex.Match(html, "href=\"/series/([^\"]+)\" class=\"no-decoration\"").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(serie))
-                    {
-                        html = await HttpClient.Get($"{AppInit.conf.Lostfilm.host}/series/{serie}/seasons/", timeoutSeconds: AppInit.conf.jac.timeoutSeconds);
-                        if (html != null && html.Contains("LostFilm.TV"))
-                        {
-                            cread.html = html;
-                            await HtmlCache.Write(cachekey, cread.html);
-                            validrq = true;
-                        }
-                    }
-                }
-
-                if (cread.html == null)
-                {
-                    HtmlCache.EmptyCache(cachekey);
-                    return false;
+                    html = await HttpClient.Get($"{jackett.Lostfilm.host}/series/{serie}/seasons/", timeoutSeconds: jackett.timeoutSeconds);
+                    if (html != null && html.Contains("LostFilm.TV"))
+                        validrq = true;
                 }
             }
+
+            if (!validrq)
+                return null;
             #endregion
 
-            foreach (string row in cread.html.Split("<tr>").Skip(1))
+            foreach (string row in html.Split("<tr>").Skip(1))
             {
                 try
                 {
@@ -279,22 +270,19 @@ namespace Lampac.Controllers.CRON
                     #endregion
 
                     #region Данные раздачи
-                    string url = Match(cread.html, "href=\"/(series/[^/]+/seasons)\" class=\"item  active\">Гид по сериям</a>");
+                    string url = Match(html, "href=\"/(series/[^/]+/seasons)\" class=\"item  active\">Гид по сериям</a>");
                     string sinfo = Match(row,"title=\"Перейти к серии\">([^<]+)</td>");
-                    string name = Match(cread.html, "<h1 class=\"title-ru\" itemprop=\"name\">([^<]+)</h1>");
-                    string originalname = Match(cread.html, "<h2 class=\"title-en\" itemprop=\"alternativeHeadline\">([^<]+)</h2>");
+                    string name = Match(html, "<h1 class=\"title-ru\" itemprop=\"name\">([^<]+)</h1>");
+                    string originalname = Match(html, "<h2 class=\"title-en\" itemprop=\"alternativeHeadline\">([^<]+)</h2>");
 
                     if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(originalname) || string.IsNullOrWhiteSpace(sinfo))
                         continue;
 
-                    url = $"{AppInit.conf.Lostfilm.host}/{url}";
+                    url = $"{jackett.Lostfilm.host}/{url}";
                     #endregion
 
                     string episodeid = Match(row, "onclick=\"PlayEpisode\\('([0-9]+)'\\)\"");
                     if (string.IsNullOrWhiteSpace(episodeid))
-                        continue;
-
-                    if (!validrq && !TorrentCache.Exists(TorrentFileMemKey(episodeid)))
                         continue;
 
                     torrents.Add(new TorrentDetails()
@@ -305,7 +293,7 @@ namespace Lampac.Controllers.CRON
                         title = $"{name} / {originalname} / {sinfo} [{createTime.Year}, 1080p]",
                         sid = 1,
                         createTime = createTime,
-                        parselink = $"{host}/lostfilm/parsemagnet?episodeid={episodeid}" + (!validrq ? "&usecache=true" : ""),
+                        parselink = $"{host}/lostfilm/parsemagnet?episodeid={episodeid}",
                         name = name,
                         originalname = originalname,
                         relased = createTime.Year
@@ -314,7 +302,7 @@ namespace Lampac.Controllers.CRON
                 catch { }
             }
 
-            return true;
+            return torrents;
         }
         #endregion
     }

@@ -1,258 +1,37 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using Lampac.Engine.CORE;
 using System.Text.RegularExpressions;
-using Lampac.Engine;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using Lampac.Models.JAC;
-using System.Globalization;
-using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.Caching.Memory;
 using System;
-using Lampac.Controllers.CRON;
 using Lampac;
 using Lampac.Controllers.JAC;
 using System.Reflection;
+using Lampac.Models.AppConf;
+using Jackett;
+using JacRed.Models;
 
-namespace Jackett
+namespace JacRed.Engine
 {
-    public class JackettApiController : BaseController
+    public static class JackettApi
     {
-        #region JacRed
-        [Route("api/v1.0/conf")]
-        public JsonResult JacRedConf(string apikey)
-        {
-            return Json(new
-            {
-                apikey = string.IsNullOrWhiteSpace(AppInit.conf.jac.apikey) || apikey == AppInit.conf.jac.apikey
-            });
-        }
+        static JacConf jackett => ModInit.conf.Jackett;
 
-        [Route("api/v1.0/torrents")]
-        async public Task<JsonResult> JacRed(string apikey, string search)
-        {
-            #region search kp/imdb
-            if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
-            {
-                string memkey = $"api/v1.0/torrents:{search}";
-                if (!memoryCache.TryGetValue(memkey, out string original_name))
-                {
-                    search = search.Trim();
-                    string uri = $"&imdb={search}";
-                    if (search.StartsWith("kp"))
-                        uri = $"&kp={search.Remove(0, 2)}";
-
-                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 8);
-                    original_name = root?.Value<JObject>("data")?.Value<string>("original_name");
-
-                    memoryCache.Set(memkey, original_name ?? string.Empty, DateTime.Now.AddDays(1));
-                }
-
-                search = original_name;
-            }
-            #endregion
-
-            #region getSizeInfo
-            long getSizeInfo(string sizeName)
-            {
-                if (string.IsNullOrWhiteSpace(sizeName))
-                    return 0;
-
-                try
-                {
-                    double size = 0.1;
-                    var gsize = Regex.Match(sizeName, "([0-9\\.,]+) (Mb|МБ|GB|ГБ|TB|ТБ)", RegexOptions.IgnoreCase).Groups;
-                    if (!string.IsNullOrWhiteSpace(gsize[2].Value))
-                    {
-                        if (double.TryParse(gsize[1].Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out size) && size != 0)
-                        {
-                            if (gsize[2].Value.ToLower() is "gb" or "гб")
-                                size *= 1024;
-
-                            if (gsize[2].Value.ToLower() is "tb" or "тб")
-                                size *= 1048576;
-
-                            return (long)(size * 1048576);
-                        }
-                    }
-                }
-                catch { }
-
-                return 0;
-            }
-            #endregion
-
-            var torrents = await Torrents(search, null, null, 0, 0, null);
-
-            return Json(torrents.Select(i => new
-            {
-                tracker = i.trackerName,
-                url = i.url != null && i.url.StartsWith("http") ? i.url : null,
-                i.title,
-                size = getSizeInfo(i.sizeName),
-                i.sizeName,
-                i.createTime,
-                i.sid,
-                i.pir,
-                magnet = i.magnet ?? $"{i.parselink}&apikey={apikey}",
-                i.name,
-                i.originalname,
-                i.relased,
-                i.videotype,
-                i.quality,
-                i.voices,
-                i.seasons,
-                i.types
-            }));
-        }
-        #endregion
-
-        #region Jackett
-        [Route("api/v2.0/indexers/{status}/results")]
-        async public Task<ActionResult> Jackett(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
-        {
-            var torrents = await Torrents(query, title, title_original, year, is_serial, category);
-
-            #region getCategoryIds
-            HashSet<int> getCategoryIds(TorrentDetails t, out string categoryDesc)
-            {
-                categoryDesc = null;
-                HashSet<int> categoryIds = new HashSet<int>();
-
-                foreach (string type in t.types)
-                {
-                    switch (type)
-                    {
-                        case "movie":
-                            categoryDesc = "Movies";
-                            categoryIds.Add(2000);
-                            break;
-
-                        case "serial":
-                            categoryDesc = "TV";
-                            categoryIds.Add(5000);
-                            break;
-
-                        case "documovie":
-                        case "docuserial":
-                            categoryDesc = "TV/Documentary";
-                            categoryIds.Add(5080);
-                            break;
-
-                        case "tvshow":
-                            categoryDesc = "TV/Foreign";
-                            categoryIds.Add(5020);
-                            categoryIds.Add(2010);
-                            break;
-
-                        case "anime":
-                            categoryDesc = "TV/Anime";
-                            categoryIds.Add(5070);
-                            break;
-                    }
-                }
-
-                return categoryIds;
-            }
-            #endregion
-
-            #region getSizeInfo
-            long getSizeInfo(string sizeName)
-            {
-                if (string.IsNullOrWhiteSpace(sizeName))
-                    return 0;
-
-                try
-                {
-                    double size = 0.1;
-                    var gsize = Regex.Match(sizeName, "([0-9\\.,]+) (Mb|МБ|GB|ГБ|TB|ТБ)", RegexOptions.IgnoreCase).Groups;
-                    if (!string.IsNullOrWhiteSpace(gsize[2].Value))
-                    {
-                        if (double.TryParse(gsize[1].Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out size) && size != 0)
-                        {
-                            if (gsize[2].Value.ToLower() is "gb" or "гб")
-                                size *= 1024;
-
-                            if (gsize[2].Value.ToLower() is "tb" or "тб")
-                                size *= 1048576;
-
-                            return (long)(size * 1048576);
-                        }
-                    }
-                }
-                catch { }
-
-                return 0;
-            }
-            #endregion
-
-            return Content(JsonConvert.SerializeObject(new
-            {
-                Results = torrents.Where(i => i.sid > 0).OrderByDescending(i => i.createTime).Select(i => new
-                {
-                    Tracker = i.trackerName,
-                    Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
-                    Title = i.title,
-                    Size = getSizeInfo(i.sizeName),
-                    PublishDate = i.createTime,
-                    Category = getCategoryIds(i, out string categoryDesc),
-                    CategoryDesc = categoryDesc,
-                    Seeders = i.sid,
-                    Peers = i.pir,
-                    MagnetUri = i.magnet,
-                    Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
-                    Info = new
-                    {
-                        i.name,
-                        i.originalname,
-                        i.relased,
-                        i.quality,
-                        i.videotype,
-                        i.sizeName,
-                        i.voices,
-                        i.seasons
-                    }
-                })
-            }), contentType: "application/json; charset=utf-8");
-        }
-        #endregion
-
-
-        #region Torrents
-        async ValueTask<List<TorrentDetails>> Torrents(string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        #region Indexers
+        async public static ValueTask<List<TorrentDetails>> Indexers(string host, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
         {
             var torrents = new ConcurrentBag<TorrentDetails>();
             var temptorrents = new ConcurrentBag<TorrentDetails>();
 
             #region search
-            string search = AppInit.conf.jac.search_lang == "query" ? query : AppInit.conf.jac.search_lang == "title" ? title : title_original;
+            string search = jackett.search_lang == "query" ? query : jackett.search_lang == "title" ? title : title_original;
 
             if (string.IsNullOrWhiteSpace(search))
             {
                 search = title_original ?? title ?? query;
                 if (string.IsNullOrWhiteSpace(search))
                     goto end;
-            }
-            #endregion
-
-            #region Запрос с NUM
-            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original))
-            {
-                var mNum = Regex.Match(query ?? string.Empty, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
-
-                if (mNum.Success && Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z]{4}"))
-                {
-                    var g = mNum.Groups;
-
-                    title = g[1].Value;
-                    title_original = g[2].Value;
-                    year = int.Parse(g[3].Value);
-
-                    search = AppInit.conf.jac.search_lang == "query" ? query : AppInit.conf.jac.search_lang == "title" ? title : title_original;
-                }
             }
             #endregion
 
@@ -313,26 +92,26 @@ namespace Jackett
                 #region Фильм
                 var tasks = new List<Task>
                 {
-                    RutorController.parsePage(host, temptorrents, search, "1"),  // movie
-                    RutorController.parsePage(host, temptorrents, search, "5"),  // movie
-                    RutorController.parsePage(host, temptorrents, search, "7"),  // multfilm
-                    RutorController.parsePage(host, temptorrents, search, "12"), // documovie
-                    RutorController.parsePage(host, temptorrents, search, "17", true, "1"), // UKR
+                    RutorController.search(host, temptorrents, search, "1"),  // movie
+                    RutorController.search(host, temptorrents, search, "5"),  // movie
+                    RutorController.search(host, temptorrents, search, "7"),  // multfilm
+                    RutorController.search(host, temptorrents, search, "12"), // documovie
+                    RutorController.search(host, temptorrents, search, "17", true, "1"), // UKR
 
-                    MegapeerController.parsePage(host, temptorrents, search, "79"),  // movie
-                    MegapeerController.parsePage(host, temptorrents, search, "174"), // movie
-                    MegapeerController.parsePage(host, temptorrents, search, "76"),  // multfilm
+                    MegapeerController.search(host, temptorrents, search, "79"),  // movie
+                    MegapeerController.search(host, temptorrents, search, "174"), // movie
+                    MegapeerController.search(host, temptorrents, search, "76"),  // multfilm
 
-                    TorrentByController.parsePage(host, temptorrents, search, "1"), // movie
-                    TorrentByController.parsePage(host, temptorrents, search, "2"), // movie
-                    TorrentByController.parsePage(host, temptorrents, search, "5"), // multfilm
+                    TorrentByController.search(host, temptorrents, search, "1"), // movie
+                    TorrentByController.search(host, temptorrents, search, "2"), // movie
+                    TorrentByController.search(host, temptorrents, search, "5"), // multfilm
 
-                    KinozalController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "tvshow" }),
-                    NNMClubController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
-                    TolokaController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
-                    RutrackerController.parsePage(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
-                    BitruController.parsePage(host, temptorrents, search, new string[] { "movie" }),
-                    SelezenController.parsePage(host, temptorrents, search)
+                    KinozalController.search(host, temptorrents, search, new string[] { "movie", "multfilm", "tvshow" }),
+                    NNMClubController.search(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
+                    TolokaController.search(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
+                    RutrackerController.search(host, temptorrents, search, new string[] { "movie", "multfilm", "documovie" }),
+                    BitruController.search(host, temptorrents, search, new string[] { "movie" }),
+                    SelezenController.search(host, temptorrents, search)
                 };
 
                 modpars(tasks, "movie");
@@ -345,30 +124,30 @@ namespace Jackett
                 #region Сериал
                 var tasks = new List<Task>
                 {
-                    RutorController.parsePage(host, temptorrents, search, "4"),  // serial
-                    RutorController.parsePage(host, temptorrents, search, "16"), // serial
-                    RutorController.parsePage(host, temptorrents, search, "7"),  // multserial
-                    RutorController.parsePage(host, temptorrents, search, "12"), // docuserial
-                    RutorController.parsePage(host, temptorrents, search, "6"),  // tvshow
-                    RutorController.parsePage(host, temptorrents, search, "17", true, "4"), // UKR
+                    RutorController.search(host, temptorrents, search, "4"),  // serial
+                    RutorController.search(host, temptorrents, search, "16"), // serial
+                    RutorController.search(host, temptorrents, search, "7"),  // multserial
+                    RutorController.search(host, temptorrents, search, "12"), // docuserial
+                    RutorController.search(host, temptorrents, search, "6"),  // tvshow
+                    RutorController.search(host, temptorrents, search, "17", true, "4"), // UKR
 
-                    MegapeerController.parsePage(host, temptorrents, search, "5"),  // serial
-                    MegapeerController.parsePage(host, temptorrents, search, "6"),  // serial
-                    MegapeerController.parsePage(host, temptorrents, search, "55"), // docuserial
-                    MegapeerController.parsePage(host, temptorrents, search, "57"), // tvshow
-                    MegapeerController.parsePage(host, temptorrents, search, "76"), // multserial
+                    MegapeerController.search(host, temptorrents, search, "5"),  // serial
+                    MegapeerController.search(host, temptorrents, search, "6"),  // serial
+                    MegapeerController.search(host, temptorrents, search, "55"), // docuserial
+                    MegapeerController.search(host, temptorrents, search, "57"), // tvshow
+                    MegapeerController.search(host, temptorrents, search, "76"), // multserial
 
-                    TorrentByController.parsePage(host, temptorrents, search, "3"),  // serial
-                    TorrentByController.parsePage(host, temptorrents, search, "5"),  // multserial
-                    TorrentByController.parsePage(host, temptorrents, search, "4"),  // tvshow
-                    TorrentByController.parsePage(host, temptorrents, search, "12"), // tvshow
+                    TorrentByController.search(host, temptorrents, search, "3"),  // serial
+                    TorrentByController.search(host, temptorrents, search, "5"),  // multserial
+                    TorrentByController.search(host, temptorrents, search, "4"),  // tvshow
+                    TorrentByController.search(host, temptorrents, search, "12"), // tvshow
 
-                    KinozalController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "tvshow" }),
-                    NNMClubController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
-                    TolokaController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
-                    RutrackerController.parsePage(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
-                    BitruController.parsePage(host, temptorrents, search, new string[] { "serial" }),
-                    LostfilmController.parsePage(host, temptorrents, search)
+                    KinozalController.search(host, temptorrents, search, new string[] { "serial", "multserial", "tvshow" }),
+                    NNMClubController.search(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
+                    TolokaController.search(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
+                    RutrackerController.search(host, temptorrents, search, new string[] { "serial", "multserial", "docuserial" }),
+                    BitruController.search(host, temptorrents, search, new string[] { "serial" }),
+                    LostfilmController.search(host, temptorrents, search)
                 };
 
                 modpars(tasks, "serial");
@@ -381,14 +160,14 @@ namespace Jackett
                 #region tvshow
                 var tasks = new List<Task>
                 {
-                    RutorController.parsePage(host, temptorrents, search, "6"),
-                    MegapeerController.parsePage(host, temptorrents, search, "57"),
-                    TorrentByController.parsePage(host, temptorrents, search, "4"),
-                    TorrentByController.parsePage(host, temptorrents, search, "12"),
-                    KinozalController.parsePage(host, temptorrents, search, new string[] { "tvshow" }),
-                    NNMClubController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
-                    TolokaController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
-                    RutrackerController.parsePage(host, temptorrents, search, new string[] { "tvshow" })
+                    RutorController.search(host, temptorrents, search, "6"),
+                    MegapeerController.search(host, temptorrents, search, "57"),
+                    TorrentByController.search(host, temptorrents, search, "4"),
+                    TorrentByController.search(host, temptorrents, search, "12"),
+                    KinozalController.search(host, temptorrents, search, new string[] { "tvshow" }),
+                    NNMClubController.search(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
+                    TolokaController.search(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
+                    RutrackerController.search(host, temptorrents, search, new string[] { "tvshow" })
                 };
 
                 modpars(tasks, "tvshow");
@@ -401,11 +180,11 @@ namespace Jackett
                 #region docuserial / documovie
                 var tasks = new List<Task>
                 {
-                    RutorController.parsePage(host, temptorrents, search, "12"),
-                    MegapeerController.parsePage(host, temptorrents, search, "55"),
-                    NNMClubController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
-                    TolokaController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
-                    RutrackerController.parsePage(host, temptorrents, search, new string[] { "docuserial", "documovie" })
+                    RutorController.search(host, temptorrents, search, "12"),
+                    MegapeerController.search(host, temptorrents, search, "55"),
+                    NNMClubController.search(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
+                    TolokaController.search(host, temptorrents, search, new string[] { "docuserial", "documovie" }),
+                    RutrackerController.search(host, temptorrents, search, new string[] { "docuserial", "documovie" })
                 };
 
                 modpars(tasks, "documental");
@@ -420,14 +199,14 @@ namespace Jackett
 
                 var tasks = new List<Task>
                 {
-                    RutorController.parsePage(host, temptorrents, animesearch, "10"),
-                    TorrentByController.parsePage(host, temptorrents, animesearch, "6"),
-                    KinozalController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
-                    NNMClubController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
-                    RutrackerController.parsePage(host, temptorrents, animesearch, new string[] { "anime" }),
-                    AniLibriaController.parsePage(host, temptorrents, animesearch),
-                    AnimeLayerController.parsePage(host, temptorrents, animesearch),
-                    AnifilmController.parsePage(host, temptorrents, animesearch)
+                    RutorController.search(host, temptorrents, animesearch, "10"),
+                    TorrentByController.search(host, temptorrents, animesearch, "6"),
+                    KinozalController.search(host, temptorrents, animesearch, new string[] { "anime" }),
+                    NNMClubController.search(host, temptorrents, animesearch, new string[] { "anime" }),
+                    RutrackerController.search(host, temptorrents, animesearch, new string[] { "anime" }),
+                    AniLibriaController.search(host, temptorrents, animesearch),
+                    AnimeLayerController.search(host, temptorrents, animesearch),
+                    AnifilmController.search(host, temptorrents, animesearch)
                 };
 
                 modpars(tasks, "anime");
@@ -440,19 +219,19 @@ namespace Jackett
                 #region Неизвестно
                 var tasks = new List<Task>
                 {
-                    RutorController.parsePage(host, temptorrents, search, "0"),
-                    MegapeerController.parsePage(host, temptorrents, search, "0"),
-                    TorrentByController.parsePage(host, temptorrents, search, "0"),
-                    KinozalController.parsePage(host, temptorrents, search, null),
-                    NNMClubController.parsePage(host, temptorrents, search, null),
-                    TolokaController.parsePage(host, temptorrents, search, null),
-                    RutrackerController.parsePage(host, temptorrents, search, null),
-                    SelezenController.parsePage(host, temptorrents, search),
-                    BitruController.parsePage(host, temptorrents, search, null),
-                    AniLibriaController.parsePage(host, temptorrents, search),
-                    AnimeLayerController.parsePage(host, temptorrents, search),
-                    AnifilmController.parsePage(host, temptorrents, search),
-                    LostfilmController.parsePage(host, temptorrents, search)
+                    RutorController.search(host, temptorrents, search, "0"),
+                    MegapeerController.search(host, temptorrents, search, "0"),
+                    TorrentByController.search(host, temptorrents, search, "0"),
+                    KinozalController.search(host, temptorrents, search, null),
+                    NNMClubController.search(host, temptorrents, search, null),
+                    TolokaController.search(host, temptorrents, search, null),
+                    RutrackerController.search(host, temptorrents, search, null),
+                    SelezenController.search(host, temptorrents, search),
+                    BitruController.search(host, temptorrents, search, null),
+                    AniLibriaController.search(host, temptorrents, search),
+                    AnimeLayerController.search(host, temptorrents, search),
+                    AnifilmController.search(host, temptorrents, search),
+                    LostfilmController.search(host, temptorrents, search)
                 };
 
                 modpars(tasks, "search");
@@ -809,6 +588,13 @@ namespace Jackett
             }
 
             end: return torrents.ToList();
+        }
+        #endregion
+
+        #region WebApi
+        public static ValueTask<List<TorrentDetails>> WebApi(string host, string search)
+        {
+            return Indexers(host, search, null, null, 0, 0, null);
         }
         #endregion
     }
