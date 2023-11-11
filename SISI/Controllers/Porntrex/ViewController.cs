@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
+using System.Linq;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -23,22 +24,18 @@ namespace Lampac.Controllers.Porntrex
                 return OnError("disable");
 
             string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
-            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
+            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> links))
             {
                 var proxy = proxyManager.Get();
 
-                var links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
                 if (links == null || links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
-                stream_links = new Dictionary<string, string>();
-                foreach (var l in links)
-                    stream_links.TryAdd(l.Key, $"{host}/ptx/strem?link={HttpUtility.UrlEncode(l.Value)}");
-
-                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return Json(stream_links);
+            return Json(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
         }
 
 

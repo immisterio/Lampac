@@ -28,7 +28,7 @@ namespace JinEnergy.SISI
         [JSInvokable("xnx/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var stream_links = await XnxxTo.StreamLinks(AppInit.Xnxx.corsHost(), parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
+            var stream_links = await XnxxTo.StreamLinks("xnx/vidosik", AppInit.Xnxx.corsHost(), parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
             if (stream_links == null)
                 return OnError("stream_links");
 

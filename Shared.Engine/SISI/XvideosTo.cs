@@ -41,7 +41,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, string site = "xds")
         {
             var playlists = new List<PlaylistItem>() { Capacity = 40 };
 
@@ -68,7 +68,7 @@ namespace Shared.Engine.SISI
                         json = true,
                         bookmark = new Bookmark()
                         {
-                            site = "xds",
+                            site = site,
                             href = g[1].Value,
                             image = img
                         }

@@ -64,6 +64,8 @@ namespace JinEnergy
             return string.Empty;
         }
 
+        public static Random random = new Random();
+
 
         public static bool IsAndrod { get; private set; }
 
