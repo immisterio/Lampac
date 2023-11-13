@@ -62,8 +62,8 @@ namespace Lampac.Engine.CORE
             if (MaxResponseContentBufferSize != -1)
                 client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
 
+            client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate");
             client.DefaultRequestHeaders.Add("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5");
-            client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36");
 
             if (cookie != null)
                 client.DefaultRequestHeaders.Add("cookie", cookie);
@@ -71,11 +71,21 @@ namespace Lampac.Engine.CORE
             if (referer != null)
                 client.DefaultRequestHeaders.Add("referer", referer);
 
+            bool setDefaultUseragent = true;
+
             if (addHeaders != null)
             {
                 foreach (var item in addHeaders)
+                {
+                    if (item.name.ToLower() == "user-agent")
+                        setDefaultUseragent = false;
+
                     client.DefaultRequestHeaders.Add(item.name, item.val);
+                }
             }
+
+            if (setDefaultUseragent)
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36");
         }
         #endregion
 

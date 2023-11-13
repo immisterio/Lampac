@@ -73,7 +73,7 @@ namespace Lampac.Controllers.LITE
 
                 if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["email"], out DateTime ex))
                 {
-                    ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : ex;
+                    ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
                     AppInit.conf.accsdb.accounts[invoice["email"]] = ex;
                 }
                 else

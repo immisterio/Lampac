@@ -131,7 +131,7 @@ namespace Lampac.Controllers.LITE
 
                             if (AppInit.conf.accsdb.accounts.TryGetValue(email, out DateTime ex))
                             {
-                                ex = ex > DateTime.UtcNow ? ex.AddDays(addday) : ex;
+                                ex = ex > DateTime.UtcNow ? ex.AddDays(addday) : DateTime.UtcNow.AddDays(addday);
                                 AppInit.conf.accsdb.accounts[email] = ex;
                             }
                             else

@@ -12,7 +12,7 @@ namespace Lampac.Engine.CRON
 
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(1));
+            await Task.Delay(TimeSpan.FromMinutes(2));
 
             while (true)
             {
