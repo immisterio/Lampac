@@ -197,7 +197,6 @@ namespace JacRed.Engine
                             }
                         }
                     }
-
                 }
                 #endregion
             }
@@ -270,7 +269,7 @@ namespace JacRed.Engine
             #region Объединить дубликаты
             var tsort = new List<TorrentDetails>();
 
-            if (red.mergeduplicates || rqnum && red.mergenumduplicates)
+            if (ModInit.conf.typesearch == "red" && ((!rqnum && red.mergeduplicates) || (rqnum && red.mergenumduplicates)))
             {
                 Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)> temp = new Dictionary<string, (TorrentDetails, string, string, List<string>)>();
 

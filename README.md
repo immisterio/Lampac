@@ -8,6 +8,10 @@
 
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
 
+# Удаление скрипта
+systemctl start lampac
+rm -rf /home/lampac
+
 # Настройки Lampa
 1. онлайн   - "http://IP:9118/online.js"
 2. xxx      - "http://IP:9118/sisi.js"
@@ -22,11 +26,11 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. Плагин xxx     - "http://IP:9118/sisi.js"
 
 # Общие настройки
-1. Открыть настройки, раздел "Остальное"
-2. В "Основной источник" выбрать "CUB"
+1. Отключить TorrServer/DNLA/Jackett/etc можно в module/manifest.json
+2. Настройки Jackett в module/JacRed.conf (пример JacRed.example.conf)
 
 # Источники 
-* Filmix, Kinobase, Rezka, Voidboost, VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinokrad, Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, VideoAPI (ENG), Bazon, Alloha, Seasonvar, KinoPub, VoKino
+* Filmix, Kinobase, Rezka, Voidboost, VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Bazon, Alloha, Seasonvar, KinoPub, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (UKR), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 
@@ -73,17 +77,12 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Виджеты
 1. Для Samsung "IP:9118/samsung.wgt"
 
-# Android через Termux
-https://github.com/bbk14/TermuxDebian/blob/main/README.md
+# Android
+1. BwaJS - https://bwa.to/
+1. Через Termux https://github.com/bbk14/TermuxDebian/blob/main/README.md
 
 # Параметры init.conf
 * xdb - Выводит платные источники с sisi.am
-* cachetype - Место хранения кеша "file", "mem" 
-* emptycache - Сохраняет пустой результат как валидный кеш (рекомендуется включать при публичном использование)
-* priority - Отдавать торрент в виде magnet ссылки, либо torrent файл (magnet|torrent)
-* timeoutSeconds - Максимальное время ожидания ответа от трекера
-* litejac - Включить Jackett в Lampa Lite
-* search_lang - Язык поиска на трекерах "title_original - en", "title - ru", "query - настройки lampa" 
 * fileCacheInactiveDay - Время хранения резервного кеша на диске
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа
@@ -95,14 +94,9 @@ https://github.com/bbk14/TermuxDebian/blob/main/README.md
 * proxytoproxyimg - Использовать прокси при получении картинки в "http://IP:9118/proxyimg/"
 * SisiHeightPicture - Уменьшение размера картинки в xxx по высоте до 200px
 * findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
-* corseu - Использовать прокси cors.eu.org
+* corseu - Использовать прокси cors.bwa.workers.dev
 
 # Настройки при совместном использовании
-* timeoutSeconds - 10
-* cachetype - file
-* htmlCacheToMinutes - 20
-* torrentCacheToMinutes - 40
-* emptycache - true
 * multiaccess - true
 
 В Lampac.runtimeconfig.json убрать или увеличить лимит потребления памяти 
@@ -127,16 +121,6 @@ https://github.com/bbk14/TermuxDebian/blob/main/README.md
   },
   "sisi": {
     "xdb": true // вывели доп. источники с sisi.am
-  },
-  "Rutracker": {
-    "enable": true, // включили rutracker указав данные для авторизации 
-    "login": {
-      "u": "megachel",
-      "p": "iegoher"
-    }
-  },
-  "NNMClub": { // изменили домен на адрес из сети tor 
-    "host": "http://nnmclub2vvjqzjne6q4rrozkkkdmlvnrcsyes2bbkm7e5ut2aproy4id.onion"
   },
   "Rezka": {
     "streamproxy": true // отправили видеопоток через "http://IP:9118/proxy/{uri}" 

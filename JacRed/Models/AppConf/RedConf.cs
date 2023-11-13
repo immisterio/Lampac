@@ -8,7 +8,7 @@
 
         public string[] trackers = new string[] { "rutracker", "rutor", "kinozal", "nnmclub", "megapeer", "bitru", "toloka", "lostfilm", "baibako", "torrentby", "hdrezka", "selezen", "animelayer", "anilibria", "anifilm" };
 
-        public int maxreadfile = 200;
+        public int maxreadfile = 300;
 
         public bool mergeduplicates = true;
 

@@ -1,5 +1,4 @@
 ﻿using Jackett;
-using JacRed.Models;
 using JacRed.Models.Sync;
 using Lampac.Engine.CORE;
 using System;
@@ -15,7 +14,7 @@ namespace JacRed.Engine
 
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(1));
+            await Task.Delay(TimeSpan.FromMinutes(2));
 
             while (true)
             {
@@ -43,12 +42,9 @@ namespace JacRed.Engine
                                         if (torrent.Value.types == null || torrent.Value.types.Contains("sport"))
                                             continue;
 
-                                        if (ModInit.conf.Red.trackers != null && !ModInit.conf.Red.trackers.Contains(torrent.Value.trackerName))
-                                            continue;
-
-                                        if (fdb.Database.TryGetValue(torrent.Key, out TorrentDetails val))
+                                        if (fdb.Database.ContainsKey(torrent.Key))
                                         {
-                                            val = torrent.Value;
+                                            fdb.Database[torrent.Key] = torrent.Value;
                                         }
                                         else
                                         {
@@ -61,7 +57,7 @@ namespace JacRed.Engine
 
                                 if (updateMasterDb)
                                 {
-                                    if (FileDB.masterDb.TryGetValue(collection.Key, out _))
+                                    if (FileDB.masterDb.ContainsKey(collection.Key))
                                     {
                                         FileDB.masterDb[collection.Key] = collection.Value.time;
                                     }
@@ -87,7 +83,18 @@ namespace JacRed.Engine
                         continue;
                     }
                 }
-                catch { }
+                catch
+                {
+                    try
+                    {
+                        if (lastsync > 0)
+                        {
+                            FileDB.SaveChangesToFile();
+                            File.WriteAllText("cache/jacred/lastsync.txt", lastsync.ToString());
+                        }
+                    }
+                    catch { }
+                }
 
                 await Task.Delay(TimeSpan.FromMinutes(20 > ModInit.conf.Red.syntime ? 20 : ModInit.conf.Red.syntime));
             }

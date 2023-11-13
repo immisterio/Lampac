@@ -73,6 +73,11 @@ namespace JacRed.Controllers
             }
             else
             {
+                torrents = mergeTorrents
+                (
+                    RedApi.Indexers(rqnum, apikey, query, title, title_original, year, is_serial, category).torrents, 
+                    await JackettApi.Indexers(host, query, title, title_original, year, is_serial, category)
+                );
             }
 
             return Content(JsonConvert.SerializeObject(new
@@ -157,6 +162,11 @@ namespace JacRed.Controllers
             }
             else
             {
+                torrents = mergeTorrents
+                (
+                    RedApi.WebApi(search, altname, exact, type, sort, tracker, voice, videotype, relased, quality, season),
+                    await JackettApi.WebApi(host, search)
+                );
             }
 
             return Content(JsonConvert.SerializeObject(torrents.Take(2_000).Select(i => new
@@ -254,6 +264,32 @@ namespace JacRed.Controllers
             }
 
             return categoryIds;
+        }
+        #endregion
+
+        #region mergeTorrents
+        static IEnumerable<TorrentDetails> mergeTorrents(IEnumerable<TorrentDetails> red, IEnumerable<TorrentDetails> jac)
+        {
+            if (red == null && jac == null)
+                return new List<TorrentDetails>();
+
+            if (red == null || !red.Any())
+                return jac;
+
+            if (jac == null || !jac.Any())
+                return red;
+
+            var torrents = new Dictionary<string, TorrentDetails>();
+
+            foreach (var i in red.Concat(jac))
+            {
+                if (string.IsNullOrEmpty(i.url) || !i.url.StartsWith("http"))
+                    continue;
+
+                torrents.TryAdd(Regex.Replace(i.url, "^https?://[^/]+/", ""), i);
+            }
+
+            return torrents.Values;
         }
         #endregion
     }

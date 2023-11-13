@@ -46,6 +46,11 @@ namespace Jackett
         }
 
 
+        /// <summary>
+        /// red
+        /// jackett
+        /// dynamic
+        /// </summary>
         public string typesearch = "red";
 
         public RedConf Red = new RedConf();

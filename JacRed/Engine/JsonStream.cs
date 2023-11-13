@@ -38,12 +38,12 @@ namespace JacRed.Engine.CORE
         {
             try
             {
-                var settings = new JsonSerializerSettings()
-                {
-                    Formatting = Formatting.Indented
-                };
+                //var settings = new JsonSerializerSettings()
+                //{
+                //    Formatting = Formatting.Indented
+                //};
 
-                var serializer = JsonSerializer.Create(settings);
+                var serializer = JsonSerializer.Create(); // settings
 
                 using (var sw = new StreamWriter(new GZipStream(File.OpenWrite(path), CompressionMode.Compress)))
                 {
