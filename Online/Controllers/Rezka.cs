@@ -18,16 +18,26 @@ namespace Lampac.Controllers.LITE
         {
             var proxy = proxyManager.Get();
 
+            var headers = new List<(string name, string val)>();
+
+            if (!string.IsNullOrEmpty(AppInit.conf.Rezka.cookie))
+                headers.Add(("Cookie", AppInit.conf.Rezka.cookie));
+
+            if (AppInit.conf.Rezka.xapp)
+                headers.Add(("X-App-Hdrezka-App", "1"));
+
+            if (AppInit.conf.Rezka.xrealip)
+                headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
+
+            headers.Add(("Origin", AppInit.conf.Rezka.host));
+            headers.Add(("Referer", AppInit.conf.Rezka.host + "/"));
+
             return new RezkaInvoke
             (
                 host,
                 AppInit.conf.Rezka.corsHost(),
-                ongettourl => HttpClient.Get(AppInit.conf.Rezka.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-                (url, data) => HttpClient.Post(AppInit.conf.Rezka.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>
-                {
-                    ("X-App-Hdrezka-App", "1"),
-                    ("Cookie", AppInit.conf.Rezka.cookie)
-                }),
+                ongettourl => HttpClient.Get(AppInit.conf.Rezka.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                (url, data) => HttpClient.Post(AppInit.conf.Rezka.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 streamfile => HostStreamProxy(AppInit.conf.Rezka, streamfile, proxy: proxy)
             );
         }
@@ -84,14 +94,14 @@ namespace Lampac.Controllers.LITE
         #region Movie
         [HttpGet]
         [Route("lite/rezka/movie")]
-        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, bool play = false)
+        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             if (!AppInit.conf.Rezka.enable)
                 return OnError();
 
             var oninvk = InitRezkaInvoke();
 
-            string result = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, id, t, director, s, e, play));
+            string result = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, id, t, director, s, e, favs, play));
             if (result == null)
                 return OnError(proxyManager);
 

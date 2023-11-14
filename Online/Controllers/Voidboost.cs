@@ -4,6 +4,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,12 +17,20 @@ namespace Lampac.Controllers.LITE
         {
             var proxy = proxyManager.Get();
 
+            var headers = new List<(string name, string val)>();
+
+            if (AppInit.conf.Voidboost.xrealip)
+                headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
+
+            headers.Add(("Origin", AppInit.conf.Voidboost.host));
+            headers.Add(("Referer", AppInit.conf.Voidboost.host + "/"));
+
             return new VoidboostInvoke
             (
                 host,
                 AppInit.conf.Voidboost.corsHost(),
-                ongettourl => HttpClient.Get(AppInit.conf.Voidboost.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-                (url, data) => HttpClient.Post(AppInit.conf.Voidboost.corsHost(url), data, timeoutSeconds: 8, proxy: proxy),
+                ongettourl => HttpClient.Get(AppInit.conf.Voidboost.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                (url, data) => HttpClient.Post(AppInit.conf.Voidboost.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 streamfile => HostStreamProxy(AppInit.conf.Voidboost, streamfile, proxy: proxy)
             );
         }

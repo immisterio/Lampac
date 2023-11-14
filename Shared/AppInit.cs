@@ -114,9 +114,11 @@ namespace Lampac
 
         public string listenhost = null;
 
+        public bool multiaccess = false;
+
         public string apikey = null;
 
-        public bool multiaccess = false;
+        public bool litejac = true;
 
         public bool log = false;
 

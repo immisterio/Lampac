@@ -79,7 +79,7 @@ namespace JinEnergy.Online
             int t = int.Parse(parse_arg("t", args) ?? "0");
             int director = int.Parse(parse_arg("director", args) ?? "0");
 
-            string? result = await InvokeCache(0, $"rezka:view:get_cdn_series:{arg.id}:{t}:{director}:{s}:{e}", () => oninvk.Movie(arg.title, arg.original_title, arg.id, t, director, s, e, false));
+            string? result = await InvokeCache(0, $"rezka:view:get_cdn_series:{arg.id}:{t}:{director}:{s}:{e}", () => oninvk.Movie(arg.title, arg.original_title, arg.id, t, director, s, e, parse_arg("favs", args), false));
             if (result == null)
                 return EmptyError("result");
 

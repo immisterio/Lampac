@@ -42,9 +42,9 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", streamproxy: true);
 
-        public OnlinesSettings Rezka { get; set; } = new OnlinesSettings("https://rezka.ag");
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag");
 
-        public OnlinesSettings Voidboost { get; set; } = new OnlinesSettings("https://voidboost.net", streamproxy: true);
+        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.tv", streamproxy: true);
 
         public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.delivembd.ws");
 

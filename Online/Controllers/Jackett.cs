@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/jac")]
         async public Task<ActionResult> Index(string title, string original_title, string original_language, int year, int serial, int quality = -1)
         {
-            if (!AppInit.conf.jac.litejac)
+            if (!AppInit.conf.litejac)
                 return Content(string.Empty);
 
             #region Кеш запроса
@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
             if (!memoryCache.TryGetValue(memkey, out JArray results) || quality == -1)
             {
-                var root = await HttpClient.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.jac.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11);
+                var root = await HttpClient.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11);
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 

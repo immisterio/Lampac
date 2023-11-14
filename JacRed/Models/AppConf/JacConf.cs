@@ -18,8 +18,6 @@ namespace Lampac.Models.AppConf
 
         public int timeoutSeconds = 8;
 
-        public bool litejac = true;
-
 
         public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", priority: "torrent");
 

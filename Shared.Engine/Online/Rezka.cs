@@ -125,7 +125,8 @@ namespace Shared.Engine.Online
                     {
                         if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups[3].Value))
                         {
-                            string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}";
+                            string favs = Regex.Match(result.content, "id=\"ctrl_favs\" value=\"([^\"]+)\"").Groups[1].Value;
+                            string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}&favs={favs}";
                             string voice = match.Groups[3].Value.Trim();
                             if (voice == "-")
                                 voice = "Оригинал";
@@ -327,7 +328,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        async public ValueTask<string?> Movie(string? title, string? original_title, long id, int t, int director, int s, int e, bool play)
+        async public ValueTask<string?> Movie(string? title, string? original_title, long id, int t, int director, int s, int e, string? favs, bool play)
         {
             #region get_cdn_series
             string? data = null;
@@ -335,11 +336,11 @@ namespace Shared.Engine.Online
 
             if (s == -1)
             {
-                data = $"id={id}&translator_id={t}&is_camrip=0&is_ads=0&is_director={director}&action=get_movie";
+                data = $"id={id}&translator_id={t}&is_camrip=0&is_ads=0&is_director={director}&favs={favs}&action=get_movie";
             }
             else
             {
-                data = $"id={id}&translator_id={t}&season={s}&episode={e}&action=get_stream";
+                data = $"id={id}&translator_id={t}&season={s}&episode={e}&favs={favs}&action=get_stream";
             }
             string? json = await onpost(uri, data);
             if (string.IsNullOrEmpty(json))

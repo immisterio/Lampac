@@ -252,7 +252,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (!life && conf.jac.litejac)
+            if (!life && conf.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
             if (conf.VoKino.enable && (serial == -1 || serial == 0))
