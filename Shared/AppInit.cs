@@ -85,24 +85,28 @@ namespace Lampac
 
                 foreach (var mod in JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json")))
                 {
-                    if (!mod.enable)
+                    if (!mod.enable || mod.dll == "Jackett.dll")
                         continue;
 
                     string path = File.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
                     if (File.Exists(path))
                     {
-                        mod.assembly = Assembly.LoadFile(path);
-
                         try
                         {
+                            mod.assembly = Assembly.LoadFile(path);
+
                             if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                 m.Invoke(null, new object[] { });
+
+                            modules.Add(mod);
+
+                            Console.WriteLine("load module: " + mod.dll);
                         }
                         catch { }
-
-                        modules.Add(mod);
                     }
                 }
+
+                Console.WriteLine();
             }
         }
         #endregion

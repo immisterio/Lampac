@@ -20,10 +20,11 @@ namespace Lampac.Controllers.LITE
             var headers = new List<(string name, string val)>();
 
             if (AppInit.conf.Voidboost.xrealip)
+            {
                 headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
-
-            headers.Add(("Origin", AppInit.conf.Voidboost.host));
-            headers.Add(("Referer", AppInit.conf.Voidboost.host + "/"));
+                headers.Add(("Origin", "http://baskino.me"));
+                headers.Add(("Referer", "http://baskino.me/"));
+            }
 
             return new VoidboostInvoke
             (

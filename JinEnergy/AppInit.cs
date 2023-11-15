@@ -96,9 +96,9 @@ namespace JinEnergy
 
         public static OnlinesSettings Kinobase => conf.Kinobase;
 
-        public static OnlinesSettings Rezka => conf.Rezka;
+        public static RezkaSettings Rezka => conf.Rezka;
 
-        public static OnlinesSettings Voidboost => conf.Voidboost;
+        public static RezkaSettings Voidboost => conf.Voidboost;
 
         public static OnlinesSettings Collaps => conf.Collaps;
 

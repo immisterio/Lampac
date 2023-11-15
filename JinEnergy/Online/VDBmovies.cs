@@ -143,6 +143,7 @@ namespace JinEnergy.Online
                         continue;
 
                     string file = Regex.Matches(m.file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
+                    file = file.Replace("sundb.coldcdn.xyz", "sundb.nl");
                     //file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
 
                     if (string.IsNullOrEmpty(file))
@@ -183,6 +184,7 @@ namespace JinEnergy.Online
                         string episode = Regex.Match(item.title, "^([0-9]+)").Groups[1].Value;
 
                         string file = Regex.Matches(item.folder[0].file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
+                        file = file.Replace("sundb.coldcdn.xyz", "sundb.nl");
                         //file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
 
                         html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{arg.title ?? arg.original_title} ({episode} cерия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} cерия" + "</div></div>");

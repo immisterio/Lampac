@@ -9,7 +9,8 @@ namespace Shared.Engine.Online
     public class VideoDBInvoke
     {
         #region VideoDBInvoke
-        string? host, apihost;
+        string? host;
+        string apihost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Func<string, List<(string name, string val)>?, ValueTask<string?>> onget;
@@ -17,7 +18,7 @@ namespace Shared.Engine.Online
         public VideoDBInvoke(string? host, string? apihost, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
-            this.apihost = apihost;
+            this.apihost = apihost!;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onget = onget;
@@ -29,8 +30,9 @@ namespace Shared.Engine.Online
         {
             string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (serial > 0 ? "&series=true" : ""), new List<(string name, string val)>()
             {
-                ("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5"),
-                ("referer", $"{apihost}/")
+                ("referer", "https://www.google.com/")
+                //("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5"),
+                //("referer", $"{apihost}/")
             });
 
             onlog?.Invoke(html ?? "html null");
