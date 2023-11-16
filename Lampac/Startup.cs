@@ -13,6 +13,7 @@ using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Net;
+using System;
 
 namespace Lampac
 {
@@ -49,7 +50,16 @@ namespace Lampac
             if (AppInit.modules != null)
             {
                 foreach (var mod in AppInit.modules)
-                    mvcBuilder.AddApplicationPart(mod.assembly);
+                {
+                    try
+                    {
+                        Console.WriteLine("load module: " + mod.dll);
+                        mvcBuilder.AddApplicationPart(mod.assembly);
+                    }
+                    catch (Exception ex) { Console.WriteLine(ex.Message + "\n"); }
+                }
+
+                Console.WriteLine();
             }
 
             mvcBuilder.AddJsonOptions(options => {
