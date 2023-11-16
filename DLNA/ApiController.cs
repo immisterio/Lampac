@@ -21,6 +21,8 @@ namespace Lampac.Controllers
 {
     public class DLNAController : BaseController
     {
+        static string dlna_path => AppInit.conf.dlna.path;
+
         #region DLNAController
         static ClientEngine torrentEngine;
 
@@ -34,7 +36,7 @@ namespace Lampac.Controllers
                 bullderClientEngine();
 
                 var t = Torrent.Load(path);
-                var manager = AppInit.conf.dlna.mode == "stream" ? torrentEngine.AddStreamingAsync(t, "dlna/").Result : torrentEngine.AddAsync(t, "dlna/").Result;
+                var manager = AppInit.conf.dlna.mode == "stream" ? torrentEngine.AddStreamingAsync(t, $"{dlna_path}/").Result : torrentEngine.AddAsync(t, $"{dlna_path}/").Result;
 
                 //if (FastResume.TryLoad($"cache/fastresume/{t.InfoHash.ToHex()}.fresume", out FastResume resume))
                 //    manager.LoadFastResume(resume);
@@ -139,7 +141,7 @@ namespace Lampac.Controllers
             {
                 MaximumConnections = 30,
                 MaximumHalfOpenConnections = 20,
-                MaximumUploadSpeed = 125000, // 1Mbit/s
+                MaximumUploadSpeed = 125000 * 5, // 5Mbit/s
                 MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
                 MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
                 MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
@@ -226,7 +228,7 @@ namespace Lampac.Controllers
             string getImage(string name)
             {
                 string pathimage = $"thumbs/{CrypTo.md5(name)}.jpg";
-                if (IO.File.Exists("dlna/" + pathimage))
+                if (IO.File.Exists($"{dlna_path}/" + pathimage))
                     return $"{host}/dlna/stream?path={HttpUtility.UrlEncode(pathimage)}";
 
                 return null;
@@ -235,7 +237,7 @@ namespace Lampac.Controllers
 
             var playlist = new List<DlnaModel>();
 
-            foreach (string folder in Directory.GetDirectories("dlna/" + path))
+            foreach (string folder in Directory.GetDirectories($"{dlna_path}/" + path))
             {
                 if (folder.Contains("thumbs"))
                     continue;
@@ -244,15 +246,15 @@ namespace Lampac.Controllers
                 {
                     type = "folder",
                     name = Path.GetFileName(folder),
-                    uri = $"{host}/dlna?path={HttpUtility.UrlEncode(folder.Replace("dlna/", ""))}",
+                    uri = $"{host}/dlna?path={HttpUtility.UrlEncode(folder.Replace($"{dlna_path}/", ""))}",
                     img = getImage(Path.GetFileName(folder)),
-                    path = folder.Replace("dlna/", ""),
+                    path = folder.Replace($"{dlna_path}/", ""),
                     length = Directory.GetFiles(folder).Length,
                     creationTime = Directory.GetCreationTime(folder)
                 });
             }
 
-            foreach (string file in Directory.GetFiles("dlna/" + path))
+            foreach (string file in Directory.GetFiles($"{dlna_path}/" + path))
             {
                 if (!Regex.IsMatch(Path.GetExtension(file), "(aac|flac|mpga|mpega|mp2|mp3|m4a|oga|ogg|opus|spx|opus|weba|wav|dif|dv|fli|mp4|mpeg|mpg|mpe|mpv|mkv|ts|m2ts|mts|ogv|webm|avi|qt|mov)"))
                     continue;
@@ -264,15 +266,15 @@ namespace Lampac.Controllers
                 {
                     type = "file",
                     name = name,
-                    uri = $"{host}/dlna/stream?path={HttpUtility.UrlEncode(file.Replace("dlna/", ""))}",
+                    uri = $"{host}/dlna/stream?path={HttpUtility.UrlEncode(file.Replace($"{dlna_path}/", ""))}",
                     img = getImage(name),
                     subtitles = new List<Subtitle>(),
-                    path = file.Replace("dlna/", ""),
+                    path = file.Replace($"{dlna_path}/", ""),
                     length = fileinfo.Length,
                     creationTime = fileinfo.CreationTime
                 };
 
-                if (IO.File.Exists($"dlna/{path}/{Path.GetFileNameWithoutExtension(file)}.srt"))
+                if (IO.File.Exists($"{dlna_path}/{path}/{Path.GetFileNameWithoutExtension(file)}.srt"))
                 {
                     dlnaModel.subtitles.Add(new Subtitle()
                     {
@@ -307,7 +309,7 @@ namespace Lampac.Controllers
             if (path.EndsWith(".jpg"))
                 contentType = "image/jpeg";
 
-            return File(IO.File.OpenRead("dlna/" + path), contentType, true);
+            return File(IO.File.OpenRead($"{dlna_path}/" + path), contentType, true);
         }
         #endregion
 
@@ -321,13 +323,13 @@ namespace Lampac.Controllers
 
             try
             {
-                IO.File.Delete("dlna/" + path);
+                IO.File.Delete($"{dlna_path}/" + path);
             }
             catch { }
 
             try
             {
-                Directory.Delete("dlna/" + path, true);
+                Directory.Delete($"{dlna_path}/" + path, true);
             }
             catch { }
 
@@ -490,10 +492,10 @@ namespace Lampac.Controllers
                 }
                 else
                 {
-                    Directory.CreateDirectory("dlna/");
+                    Directory.CreateDirectory($"{dlna_path}/");
 
                     dynamic tlink = tparse.torrent != null ? Torrent.Load(tparse.torrent) : magnetLink;
-                    manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, "dlna/") : await torrentEngine.AddAsync(tlink, "dlna/");
+                    manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, $"{dlna_path}/") : await torrentEngine.AddAsync(tlink, $"{dlna_path}/");
 
                     #region AddTrackerAsync
                     if (IO.File.Exists("cache/trackers.txt"))
@@ -608,8 +610,8 @@ namespace Lampac.Controllers
                         var array = await HttpClient.Download(thumb);
                         if (array != null)
                         {
-                            Directory.CreateDirectory("dlna/thumbs");
-                            await IO.File.WriteAllBytesAsync($"dlna/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", array);
+                            Directory.CreateDirectory($"{dlna_path}/thumbs");
+                            await IO.File.WriteAllBytesAsync($"{dlna_path}/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", array);
                         }
                     }
                     catch { }
