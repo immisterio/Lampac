@@ -84,15 +84,13 @@ namespace Lampac.Engine.Middlewares
 
                 string outFile = getFolder($"{href}:{width}:{height}");
 
-                if (File.Exists(outFile))
+                if (AppInit.conf.serverproxy.cache && File.Exists(outFile))
                 {
                     httpContext.Response.ContentType = "image/jpeg";
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
 
-                    using (var fs = new FileStream(outFile, FileMode.Open))
-                    {
-                        await fs.CopyToAsync(httpContext.Response.Body);
-                    }
+                    using (var fs = new FileStream(outFile, FileMode.Open, FileAccess.Read))
+                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
 
                     return;
                 }
@@ -111,7 +109,10 @@ namespace Lampac.Engine.Middlewares
                 {
                     proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
-                    memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(10));
+
+                    if (AppInit.conf.multiaccess)
+                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(10));
+
                     return;
                 }
 
@@ -127,12 +128,13 @@ namespace Lampac.Engine.Middlewares
                     }
                 }
 
-                await File.WriteAllBytesAsync(outFile, array);
+                if (AppInit.conf.serverproxy.cache)
+                    await File.WriteAllBytesAsync(outFile, array);
 
                 httpContext.Response.ContentType = "image/jpeg";
                 httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
 
-                await httpContext.Response.Body.WriteAsync(array);
+                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted);
             }
             else
             {

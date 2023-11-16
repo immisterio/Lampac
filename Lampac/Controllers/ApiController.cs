@@ -14,19 +14,30 @@ namespace Lampac.Controllers
 {
     public class ApiController : BaseController
     {
-        [Route("/")]
-        public ActionResult Index()
-        {
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) && IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
-                return LocalRedirect($"/{AppInit.conf.LampaWeb.index}");
-
-            return Content("api work", contentType: "text/plain; charset=utf-8");
-        }
-
         [Route("/version")]
-        public ActionResult Version()
+        public ActionResult Version() => Content("83", contentType: "text/plain; charset=utf-8");
+
+
+        [Route("/")]
+        async public Task<ActionResult> Index()
         {
-            return Content("82", contentType: "text/plain; charset=utf-8");
+            if (string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) || !IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
+                return Content("api work", contentType: "text/plain; charset=utf-8");
+
+            if (AppInit.conf.LampaWeb.basetag && Regex.IsMatch(AppInit.conf.LampaWeb.index, "/[^\\./]+\\.html$"))
+            {
+                if (!memoryCache.TryGetValue($"LampaWeb.index:{AppInit.conf.LampaWeb.index}", out string html))
+                {
+                    html = await IO.File.ReadAllTextAsync($"wwwroot/{AppInit.conf.LampaWeb.index}");
+                    html = html.Replace("<head>", $"<head><base href=\"/{Regex.Match(AppInit.conf.LampaWeb.index, "^([^/]+)/").Groups[1].Value}/\" />");
+
+                    memoryCache.Set($"LampaWeb.index:{AppInit.conf.LampaWeb.index}", html, DateTime.Now.AddMinutes(5));
+                }
+
+                return Content(html, contentType: "text/html; charset=utf-8");
+            }
+
+            return LocalRedirect($"/{AppInit.conf.LampaWeb.index}");
         }
 
         #region app.min.js
@@ -191,7 +202,7 @@ namespace Lampac.Controllers
                             memoryCache.Set($"ApiController:deny.js:{lite}", denyfile, DateTime.Now.AddMinutes(5));
                         }
 
-                        file = file.Replace("{deny}", denyfile.Replace("{cubMesage}", AppInit.conf.accsdb.cubMesage));
+                        file = file.Replace("{deny}", denyfile.Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
                     }
                 }
             }
