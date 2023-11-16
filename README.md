@@ -1,4 +1,4 @@
-# Группа для обсуждения
+# Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
 # Установка
