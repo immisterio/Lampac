@@ -11,9 +11,11 @@ namespace Lampac.Models.AppConf
 
         public int maxiptohour { get; set; }
 
-        public string cubMesage { get; set; }
+        public string authMesage { get; set; }
 
         public string denyMesage { get; set; }
+
+        public string expiresMesage { get; set; }
 
         public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
     }

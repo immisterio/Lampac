@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -45,8 +44,9 @@ namespace Lampac.Engine.Middlewares
                     HashSet<string> ips = null;
                     string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower()?.Trim();
 
-                    if (string.IsNullOrWhiteSpace(account_email) || !AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex) || DateTime.UtcNow > ex || 
-                        IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip, out ips))
+                    bool userfindtoaccounts = AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex);
+
+                    if (string.IsNullOrWhiteSpace(account_email) || !userfindtoaccounts || DateTime.UtcNow > ex || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), out limitip, out ips))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
                         {
@@ -66,9 +66,10 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
-                        string msg = string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.cubMesage : AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
-                        if (limitip)
-                            msg = $"Превышено допустимое количество ip. Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}";
+                        string msg = limitip ? $"Превышено допустимое количество ip. Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}" :
+                                     string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.authMesage :
+                                     userfindtoaccounts ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", account_email).Replace("{expires}", ex.ToString("dd.MM.yyyy")) :
+                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}");

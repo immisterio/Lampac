@@ -99,14 +99,10 @@ namespace Lampac
                                 m.Invoke(null, new object[] { });
 
                             modules.Add(mod);
-
-                            Console.WriteLine("load module: " + mod.dll);
                         }
                         catch { }
                     }
                 }
-
-                Console.WriteLine();
             }
         }
         #endregion
@@ -131,20 +127,20 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = Environment.OSVersion.Platform == PlatformID.Unix ? "linux" : "win" };
 
-        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true };
+        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true, cache = true };
 
         public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
 
 
         public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 1, img = 1, torrent = 2 };
 
-        public DLNASettings dlna = new DLNASettings() { enable = true };
+        public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, path = "dlna" };
 
-        public WebConf LampaWeb = new WebConf() { autoupdate = true, index = "lampa-main/index.html" };
+        public WebConf LampaWeb = new WebConf() { autoupdate = true, basetag = true, index = "lampa-main/index.html" };
 
         public OnlineConf online = new OnlineConf() { findkp = "all", checkOnlineSearch = true };
 
-        public AccsConf accsdb = new AccsConf() { cubMesage = "Войдите в аккаунт", denyMesage = "Добавьте {account_email} в init.conf", maxiptohour = 10 };
+        public AccsConf accsdb = new AccsConf() { authMesage = "Войдите в аккаунт cub.red - настройки, аккаунт", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", maxiptohour = 15 };
 
         public MerchantsModel Merchant = new MerchantsModel();
 
