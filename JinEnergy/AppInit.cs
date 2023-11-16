@@ -9,6 +9,7 @@ namespace JinEnergy
 {
     public static class AppInit
     {
+        #region OnInit
         [JSInvokable("initial")]
         public static bool IsInitial() { return true; }
 
@@ -27,6 +28,20 @@ namespace JinEnergy
             if (type == "apk")
                 IsAndrod = true;
 
+            await LoadOrUpdateConfig(urlconf);
+
+            var timer = new System.Timers.Timer(TimeSpan.FromMinutes(10));
+
+            timer.Elapsed += async (s, e) => await LoadOrUpdateConfig(urlconf);
+
+            timer.AutoReset = true;
+            timer.Enabled = true;
+        }
+        #endregion
+
+        #region LoadOrUpdateConfig
+        async static Task LoadOrUpdateConfig(string urlconf)
+        {
             try
             {
                 if (!string.IsNullOrEmpty(urlconf))
@@ -35,7 +50,7 @@ namespace JinEnergy
                     Shared.Model.AppInit? setings = null;
 
                     if (urlconf.StartsWith("http"))
-                        json = await JsHttpClient.Get(urlconf);
+                        json = await JsHttpClient.Get(urlconf + (urlconf.Contains("?") ? "&" : "?") + $"v={DateTime.Now.ToBinary()}");
 
                     if (json != null)
                     {
@@ -47,11 +62,32 @@ namespace JinEnergy
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
                         }
+
+                        if (urlconf.Contains("bwa.to/settings/"))
+                        {
+                            if (!conf.KinoPub.enable)
+                            {
+                                string? kinopubtk = await JsHttpClient.Get($"https://bwa.to/temp/kinopubtk.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
+                                if (kinopubtk != null)
+                                {
+                                    conf.KinoPub.enable = !string.IsNullOrEmpty(kinopubtk);
+                                    conf.KinoPub.token = kinopubtk;
+                                }
+                            }
+
+                            if (!conf.Filmix.pro && string.IsNullOrEmpty(conf.Filmix.token))
+                            {
+                                string? FXFS = await JsHttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
+                                if (FXFS != null)
+                                    conf.Filmix.freehash = !string.IsNullOrEmpty(FXFS);
+                            }
+                        }
                     }
                 }
             }
             catch { }
         }
+        #endregion
 
 
         static Shared.Model.AppInit conf = new Shared.Model.AppInit();

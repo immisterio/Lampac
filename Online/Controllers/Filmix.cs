@@ -5,6 +5,8 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
+using System.Text.RegularExpressions;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -44,9 +46,9 @@ namespace Lampac.Controllers.LITE
             (
                host,
                AppInit.conf.Filmix.corsHost(),
-               AppInit.conf.Filmix.token,
+               (hashfimix != null || (postid == 0 && string.IsNullOrEmpty(AppInit.conf.Filmix.token))) ? "bc170de3b2cafb09283b936011f054ed" : AppInit.conf.Filmix.token,
                ongettourl => HttpClient.Get(AppInit.conf.Filmix.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, onstreamtofile, proxy: proxy)
+               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, replaceLink(onstreamtofile), proxy: proxy)
             );
 
             if (postid == 0)
@@ -58,11 +60,62 @@ namespace Lampac.Controllers.LITE
                 postid = res.id;
             }
 
+            await gofreehash(postid);
+
             var player_links = await InvokeCache($"filmix:post:{postid}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Post(postid));
             if (player_links == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(player_links, AppInit.conf.Filmix.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
+            return Content(oninvk.Html(player_links, (hashfimix != null ? true : AppInit.conf.Filmix.pro), postid, title, original_title, t, s), "text/html; charset=utf-8");
+        }
+
+
+
+
+        static Random random = new Random();
+
+        static string hashfimix = null;
+
+        static int lastpostid = -1;
+
+        async static ValueTask gofreehash(int postid)
+        {
+            if (AppInit.conf.Filmix.pro != false || !string.IsNullOrEmpty(AppInit.conf.Filmix.token))
+                return;
+
+            if (lastpostid == postid)
+                return;
+
+            lastpostid = postid;
+
+            string FXFS = await HttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 8);
+
+            if (string.IsNullOrEmpty(FXFS))
+            {
+                hashfimix = null;
+                return;
+            }
+
+            if (hashfimix == null || !hashfimix.StartsWith(FXFS))
+            {
+                string[] chars = new string[]
+                {
+                    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+                    "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m",
+                    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
+                };
+
+                string hash = chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
+                hashfimix = $"{FXFS}{hash}";
+            }
+        }
+
+        static string replaceLink(string l)
+        {
+            if (string.IsNullOrEmpty(hashfimix))
+                return l;
+
+            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");
         }
     }
 }
