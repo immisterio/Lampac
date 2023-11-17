@@ -18,6 +18,7 @@ namespace Lampac.Controllers
         public ActionResult Version() => Content("83", contentType: "text/plain; charset=utf-8");
 
 
+        #region Index
         [Route("/")]
         async public Task<ActionResult> Index()
         {
@@ -39,6 +40,30 @@ namespace Lampac.Controllers
 
             return LocalRedirect($"/{AppInit.conf.LampaWeb.index}");
         }
+        #endregion
+
+        #region Extensions
+        [Route("/extensions")]
+        async public Task<ActionResult> Extensions()
+        {
+            if (!memoryCache.TryGetValue("LampaWeb.extensions", out string json))
+            {
+                string cubextensions = await HttpClient.Get("http://cub.red/api/extensions/list", timeoutSeconds: 8);
+                string altextensions = await IO.File.ReadAllTextAsync("plugins/extensions.json");
+                string customxtensions = await IO.File.ReadAllTextAsync("plugins/extensions_custom.json");
+
+                altextensions = altextensions.Replace("\n", "").Replace("\r", "").Replace("{localhost}", host);
+                altextensions = altextensions.Replace("{customxtensions}", string.IsNullOrWhiteSpace(customxtensions) ? "" : $"{customxtensions.Replace("\n", "").Replace("\r", "").Replace("{localhost}", host)},");
+
+                json = cubextensions.Replace("],\"hpu\":\"best\"", "," + altextensions + "],\"hpu\":\"best\"");
+
+                memoryCache.Set("LampaWeb.extensions", json, DateTime.Now.AddMinutes(5));
+            }
+
+            return Content(json, contentType: "application/json; charset=utf-8");
+        }
+        #endregion
+
 
         #region app.min.js
         [Route("lampa-{type}/app.min.js")]
@@ -53,6 +78,9 @@ namespace Lampac.Controllers
 
                 file = file.Replace("http://lampa.mx", $"{host}/lampa-{type}");
                 file = file.Replace("https://yumata.github.io/lampa", $"{host}/lampa-{type}");
+
+                if (AppInit.conf.extensions_mod && type == "main")
+                    file = file.Replace("api$1 + 'extensions/list'", $"'{host}/extensions'");
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }

@@ -20,6 +20,7 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
+            ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
 
             CreateHostBuilder(args).Build().Run();
         }

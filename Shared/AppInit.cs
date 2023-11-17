@@ -116,6 +116,8 @@ namespace Lampac
 
         public bool multiaccess = false;
 
+        public bool extensions_mod = true;
+
         public string apikey = null;
 
         public bool litejac = true;
