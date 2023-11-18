@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+﻿#!/usr/bin/bash
 DEST="/home/lampac"
 
 # Become root
