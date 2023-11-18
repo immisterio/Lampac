@@ -1,4 +1,5 @@
-﻿DEST="/home/lampac"
+﻿#!/bin/bash
+DEST="/home/lampac"
 cd $DEST
 
 ver=$(cat vers.txt)
