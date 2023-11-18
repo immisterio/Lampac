@@ -51,22 +51,13 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.KinoPub.enable)
                 return OnError();
 
-            string filetype = AppInit.conf.KinoPub.filetype;
-            string token = AppInit.conf.KinoPub.token;
-
-            //if (string.IsNullOrEmpty(AppInit.conf.KinoPub.token))
-            //{
-            //    filetype = "hls4";
-            //    token = "tke4plvt4gde68tt07fkmpuj9lnw2w16";
-            //}
-
             var proxy = proxyManager.Get();
 
             var oninvk = new KinoPubInvoke
             (
                host,
                AppInit.conf.KinoPub.corsHost(),
-               token,
+               AppInit.conf.KinoPub.token,
                ongettourl => HttpClient.Get(AppInit.conf.KinoPub.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
                onstreamtofile => HostStreamProxy(AppInit.conf.KinoPub, onstreamtofile, proxy: proxy)
             );
@@ -94,7 +85,7 @@ namespace Lampac.Controllers.LITE
             if (root == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(root, filetype, title, original_title, postid, s), "text/html; charset=utf-8");
+            return Content(oninvk.Html(root, AppInit.conf.KinoPub.filetype, title, original_title, postid, s), "text/html; charset=utf-8");
         }
     }
 }

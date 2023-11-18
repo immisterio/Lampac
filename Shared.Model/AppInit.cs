@@ -90,7 +90,7 @@ namespace Shared.Model
 
         public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("http://api.seasonvar.ru", enable: false);
 
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true };
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
 
         public BazonSettings Bazon { get; set; } = new BazonSettings("https://bazon.cc", "", true);
 
