@@ -22,27 +22,19 @@ namespace JacRed.Engine
 
         static FileDB()
         {
-            try
+            if (File.Exists("cache/jacred/masterDb.bz"))
+                masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>("cache/jacred/masterDb.bz");
+
+            if (masterDb == null)
             {
-                if (File.Exists("cache/jacred/masterDb.bz"))
-                    masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>("cache/jacred/masterDb.bz");
-            }
-            catch 
-            {
-                try
-                {
-                    if (File.Exists($"cache/jacred/masterDb_{DateTime.Today:dd-MM-yyyy}.bz"))
-                        masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>($"cache/jacred/masterDb_{DateTime.Today:dd-MM-yyyy}.bz");
-                }
-                catch
-                {
-                    try
-                    {
-                        if (File.Exists($"cache/jacred/masterDb_{DateTime.Today.AddDays(-1):dd-MM-yyyy}.bz"))
-                            masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>($"cache/jacred/masterDb_{DateTime.Today.AddDays(-1):dd-MM-yyyy}.bz");
-                    }
-                    catch { }
-                }
+                if (File.Exists($"cache/jacred/masterDb_{DateTime.Today:dd-MM-yyyy}.bz"))
+                    masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>($"cache/jacred/masterDb_{DateTime.Today:dd-MM-yyyy}.bz");
+
+                if (masterDb == null && File.Exists($"cache/jacred/masterDb_{DateTime.Today.AddDays(-1):dd-MM-yyyy}.bz"))
+                    masterDb = JsonStream.Read<ConcurrentDictionary<string, DateTime>>($"cache/jacred/masterDb_{DateTime.Today.AddDays(-1):dd-MM-yyyy}.bz");
+
+                if (masterDb == null)
+                    masterDb = new ConcurrentDictionary<string, DateTime>();
 
                 if (File.Exists("cache/jacred/lastsync.txt"))
                     File.Delete("cache/jacred/lastsync.txt");

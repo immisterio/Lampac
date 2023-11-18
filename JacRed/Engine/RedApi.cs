@@ -47,6 +47,9 @@ namespace JacRed.Engine
             #region AddTorrents
             void AddTorrents(TorrentDetails t)
             {
+                if (t.url == null)
+                    return;
+
                 if (torrents.TryGetValue(t.url, out TorrentDetails val))
                 {
                     if (t.updateTime > val.updateTime)
@@ -271,10 +274,13 @@ namespace JacRed.Engine
 
             if (ModInit.conf.typesearch == "red" && ((!rqnum && red.mergeduplicates) || (rqnum && red.mergenumduplicates)))
             {
-                Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)> temp = new Dictionary<string, (TorrentDetails, string, string, List<string>)>();
+                var temp = new Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)>();
 
                 foreach (var torrent in torrents.Values.Where(i => red.trackers == null || red.trackers.Contains(i.trackerName)).ToList())
                 {
+                    if (torrent.magnet == null)
+                        continue;
+
                     var magnetLink = MagnetLink.Parse(torrent.magnet);
                     string hex = magnetLink.InfoHash.ToHex();
 
@@ -295,7 +301,7 @@ namespace JacRed.Engine
                             if (!string.IsNullOrWhiteSpace(t.Name))
                                 magnet += $"&dn={HttpUtility.UrlEncode(t.Name)}";
 
-                            if (t.AnnounceUrls.Count > 0)
+                            if (t.AnnounceUrls != null && t.AnnounceUrls.Count > 0)
                             {
                                 foreach (string announce in t.AnnounceUrls)
                                 {
