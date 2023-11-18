@@ -12,8 +12,8 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
 
 # Удаление скрипта
-systemctl start lampac
-rm -rf /home/lampac
+1. systemctl start lampac
+2. rm -rf /home/lampac
 
 # Настройки Lampa
 1. онлайн   - "http://IP:9118/online.js"
