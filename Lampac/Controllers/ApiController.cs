@@ -15,7 +15,7 @@ namespace Lampac.Controllers
     public class ApiController : BaseController
     {
         [Route("/version")]
-        public ActionResult Version() => Content("83", contentType: "text/plain; charset=utf-8");
+        public ActionResult Version() => Content("85", contentType: "text/plain; charset=utf-8");
 
 
         #region Index
@@ -50,7 +50,7 @@ namespace Lampac.Controllers
             {
                 string cubextensions = await HttpClient.Get("http://cub.red/api/extensions/list", timeoutSeconds: 8);
                 string altextensions = await IO.File.ReadAllTextAsync("plugins/extensions.json");
-                string customxtensions = await IO.File.ReadAllTextAsync("plugins/extensions_custom.json");
+                string customxtensions = IO.File.Exists("plugins/extensions_custom.json") ? await IO.File.ReadAllTextAsync("plugins/extensions_custom.json") : string.Empty;
 
                 altextensions = altextensions.Replace("\n", "").Replace("\r", "").Replace("{localhost}", host);
                 altextensions = altextensions.Replace("{customxtensions}", string.IsNullOrWhiteSpace(customxtensions) ? "" : $"{customxtensions.Replace("\n", "").Replace("\r", "").Replace("{localhost}", host)},");

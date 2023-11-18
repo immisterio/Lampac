@@ -110,8 +110,8 @@ namespace Lampac.Engine.Middlewares
                     proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
 
-                    if (AppInit.conf.multiaccess)
-                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(10));
+                    if (AppInit.conf.serverproxy.cache)
+                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(5));
 
                     return;
                 }
