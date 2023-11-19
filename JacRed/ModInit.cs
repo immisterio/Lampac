@@ -52,6 +52,7 @@ namespace Jackett
             Directory.CreateDirectory("cache/torrent");
 
             ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run());
+            ThreadPool.QueueUserWorkItem(async _ => await FileDB.Cron());
         }
 
 

@@ -140,7 +140,7 @@ namespace Lampac.Controllers
                 return;
 
             #region settings
-            if (HttpContext.Request.Path.Value.StartsWith("/settings"))
+            if (HttpContext.Request.Path.Value.StartsWith("/ts/settings"))
             {
                 if (HttpContext.Request.Method != "POST")
                 {

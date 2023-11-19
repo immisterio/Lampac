@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Jackett;
 using JacRed.Engine.CORE;
 using JacRed.Models;
@@ -52,32 +53,26 @@ namespace JacRed.Engine
         }
         #endregion
 
-        #region OpenRead / OpenWrite
-        public static IReadOnlyDictionary<string, TorrentDetails> OpenRead(string key)
+        #region Open
+        public static FileDB Open(string key, bool empty = false)
         {
-            if (openWriteTask.TryGetValue(key, out WriteTaskModel val))
-                return val.db.Database;
-
-            if (ModInit.conf.Red.evercache)
+            if (empty)
             {
-                var fdb = new FileDB(key);
-                openWriteTask.TryAdd(key, new WriteTaskModel() { db = fdb, openconnection = 1 });
-                return fdb.Database;
+                var fdb = new FileDB(key, empty: empty);
+                var md = new WriteTaskModel() { db = fdb, openconnection = 1 };
+                openWriteTask.AddOrUpdate(key, md, (k, v) => md);
+                return fdb;
             }
 
-            return new FileDB(key).Database;
-        }
-
-        public static FileDB OpenWrite(string key)
-        {
             if (openWriteTask.TryGetValue(key, out WriteTaskModel val))
             {
                 val.openconnection += 1;
+                val.lastread = DateTime.UtcNow;
                 return val.db;
             }
             else
             {
-                var fdb = new FileDB(key, empty: true);
+                var fdb = new FileDB(key);
                 openWriteTask.TryAdd(key, new WriteTaskModel() { db = fdb, openconnection = 1 });
                 return fdb;
             }
@@ -98,6 +93,30 @@ namespace JacRed.Engine
                     File.Delete($"cache/jacred/masterDb_{DateTime.Today.AddDays(-2):dd-MM-yyyy}.bz");
             }
             catch { }
+        }
+        #endregion
+
+
+        #region Cron
+        async public static Task Cron()
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(10));
+
+                if (!ModInit.conf.Red.evercache.enable || 0 >= ModInit.conf.Red.evercache.validHour)
+                    continue;
+
+                try
+                {
+                    foreach (var i in openWriteTask)
+                    {
+                        if (DateTime.UtcNow > i.Value.lastread.AddHours(ModInit.conf.Red.evercache.validHour))
+                            openWriteTask.TryRemove(i.Key, out _);
+                    }
+                }
+                catch { }
+            }
         }
         #endregion
     }

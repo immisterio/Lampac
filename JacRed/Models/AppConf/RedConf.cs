@@ -14,6 +14,6 @@
 
         public bool mergenumduplicates = true;
 
-        public bool evercache = false;
+        public Evercache evercache = new Evercache();
     }
 }

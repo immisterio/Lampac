@@ -35,7 +35,7 @@ namespace JacRed.Engine
                             {
                                 bool updateMasterDb = false;
 
-                                using (var fdb = FileDB.OpenWrite(collection.Key))
+                                using (var fdb = FileDB.Open(collection.Key, empty: true))
                                 {
                                     foreach (var torrent in collection.Value.torrents)
                                     {

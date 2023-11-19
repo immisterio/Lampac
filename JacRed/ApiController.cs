@@ -63,7 +63,7 @@ namespace JacRed.Controllers
 
                     torrents = res.torrents;
 
-                    if (res.setcache && !red.evercache)
+                    if (res.setcache && !red.evercache.enable)
                         memoryCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(10));
                 }
             }
@@ -286,7 +286,17 @@ namespace JacRed.Controllers
                 if (string.IsNullOrEmpty(i.url) || !i.url.StartsWith("http"))
                     continue;
 
-                torrents.TryAdd(Regex.Replace(i.url, "^https?://[^/]+/", ""), i);
+                void add(string url) { torrents.TryAdd(Regex.Replace(url, "^https?://[^/]+/", ""), i); }
+
+                if (i.urls != null && i.urls.Count > 0)
+                {
+                    foreach (string u in i.urls)
+                        add(u);
+                }
+                else
+                {
+                    add(i.url);
+                }
             }
 
             return torrents.Values;

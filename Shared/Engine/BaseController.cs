@@ -18,6 +18,8 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
+        public static string appversion => "86";
+
         public IMemoryCache memoryCache { get; private set; }
 
         public string host => AppInit.Host(HttpContext);

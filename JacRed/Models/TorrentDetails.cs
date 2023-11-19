@@ -12,6 +12,8 @@ namespace JacRed.Models
 
         public string url { get; set; }
 
+        public HashSet<string> urls { get; set; }
+
 
         public string title { get; set; }
 

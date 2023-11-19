@@ -72,131 +72,134 @@ namespace JacRed.Engine
 
                 // Быстрая выборка по совпадению ключа в имени
                 var mdb = FileDB.masterDb.Where(i => _n != null && i.Key.StartsWith($"{_n}:") || _o != null && i.Key.EndsWith($":{_o}"));
-                if (!red.evercache)
+                if (!red.evercache.enable)
                     mdb = mdb.Take(red.maxreadfile);
 
                 foreach (var val in mdb)
                 {
-                    foreach (var t in FileDB.OpenRead(val.Key).Values)
+                    using (var fdb = FileDB.Open(val.Key))
                     {
-                        if (t.types == null || t.title.Contains(" КПК"))
-                            continue;
-
-                        string name = StringConvert.SearchName(t.name);
-                        string originalname = StringConvert.SearchName(t.originalname);
-
-                        // Точная выборка по name или originalname
-                        if (_n != null && _n == name || _o != null && _o == originalname)
+                        foreach (var t in fdb.Database.Values)
                         {
-                            if (is_serial == 1)
-                            {
-                                #region Фильм
-                                if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
-                                {
-                                    if (Regex.IsMatch(t.title, " (сезон|сери(и|я|й))", RegexOptions.IgnoreCase))
-                                        continue;
+                            if (t.types == null || t.title.Contains(" КПК"))
+                                continue;
 
-                                    if (year > 0)
-                                    {
-                                        if (t.relased == year || t.relased == year - 1 || t.relased == year + 1)
-                                            AddTorrents(t);
-                                    }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else if (is_serial == 2)
+                            string name = StringConvert.SearchName(t.name);
+                            string originalname = StringConvert.SearchName(t.originalname);
+
+                            // Точная выборка по name или originalname
+                            if (_n != null && _n == name || _o != null && _o == originalname)
                             {
-                                #region Сериал
-                                if (t.types.Contains("serial") || t.types.Contains("multserial") || t.types.Contains("anime") || t.types.Contains("docuserial") || t.types.Contains("tvshow"))
+                                if (is_serial == 1)
                                 {
-                                    if (year > 0)
+                                    #region Фильм
+                                    if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
                                     {
-                                        if (t.relased >= year - 1)
+                                        if (Regex.IsMatch(t.title, " (сезон|сери(и|я|й))", RegexOptions.IgnoreCase))
+                                            continue;
+
+                                        if (year > 0)
+                                        {
+                                            if (t.relased == year || t.relased == year - 1 || t.relased == year + 1)
+                                                AddTorrents(t);
+                                        }
+                                        else
+                                        {
                                             AddTorrents(t);
+                                        }
                                     }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
+                                    #endregion
                                 }
-                                #endregion
-                            }
-                            else if (is_serial == 3)
-                            {
-                                #region tvshow
-                                if (t.types.Contains("tvshow"))
+                                else if (is_serial == 2)
                                 {
-                                    if (year > 0)
+                                    #region Сериал
+                                    if (t.types.Contains("serial") || t.types.Contains("multserial") || t.types.Contains("anime") || t.types.Contains("docuserial") || t.types.Contains("tvshow"))
                                     {
-                                        if (t.relased >= year - 1)
+                                        if (year > 0)
+                                        {
+                                            if (t.relased >= year - 1)
+                                                AddTorrents(t);
+                                        }
+                                        else
+                                        {
                                             AddTorrents(t);
+                                        }
                                     }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
+                                    #endregion
                                 }
-                                #endregion
-                            }
-                            else if (is_serial == 4)
-                            {
-                                #region docuserial / documovie
-                                if (t.types.Contains("docuserial") || t.types.Contains("documovie"))
+                                else if (is_serial == 3)
                                 {
-                                    if (year > 0)
+                                    #region tvshow
+                                    if (t.types.Contains("tvshow"))
                                     {
-                                        if (t.relased >= year - 1)
+                                        if (year > 0)
+                                        {
+                                            if (t.relased >= year - 1)
+                                                AddTorrents(t);
+                                        }
+                                        else
+                                        {
                                             AddTorrents(t);
+                                        }
                                     }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
+                                    #endregion
                                 }
-                                #endregion
-                            }
-                            else if (is_serial == 5)
-                            {
-                                #region anime
-                                if (t.types.Contains("anime"))
+                                else if (is_serial == 4)
                                 {
-                                    if (year > 0)
+                                    #region docuserial / documovie
+                                    if (t.types.Contains("docuserial") || t.types.Contains("documovie"))
                                     {
-                                        if (t.relased >= year - 1)
+                                        if (year > 0)
+                                        {
+                                            if (t.relased >= year - 1)
+                                                AddTorrents(t);
+                                        }
+                                        else
+                                        {
                                             AddTorrents(t);
+                                        }
                                     }
-                                    else
-                                    {
-                                        AddTorrents(t);
-                                    }
+                                    #endregion
                                 }
-                                #endregion
-                            }
-                            else
-                            {
-                                #region Неизвестно
-                                if (year > 0)
+                                else if (is_serial == 5)
                                 {
-                                    if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("documovie"))
+                                    #region anime
+                                    if (t.types.Contains("anime"))
                                     {
-                                        if (t.relased == year || t.relased == year - 1 || t.relased == year + 1)
+                                        if (year > 0)
+                                        {
+                                            if (t.relased >= year - 1)
+                                                AddTorrents(t);
+                                        }
+                                        else
+                                        {
                                             AddTorrents(t);
+                                        }
                                     }
-                                    else
-                                    {
-                                        if (t.relased >= year - 1)
-                                            AddTorrents(t);
-                                    }
+                                    #endregion
                                 }
                                 else
                                 {
-                                    AddTorrents(t);
+                                    #region Неизвестно
+                                    if (year > 0)
+                                    {
+                                        if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("documovie"))
+                                        {
+                                            if (t.relased == year || t.relased == year - 1 || t.relased == year + 1)
+                                                AddTorrents(t);
+                                        }
+                                        else
+                                        {
+                                            if (t.relased >= year - 1)
+                                                AddTorrents(t);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        AddTorrents(t);
+                                    }
+                                    #endregion
                                 }
-                                #endregion
                             }
                         }
                     }
@@ -212,50 +215,53 @@ namespace JacRed.Engine
                 void torrentsSearch(bool exact)
                 {
                     var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s));
-                    if (!red.evercache)
+                    if (!red.evercache.enable)
                         mdb = mdb.Take(red.maxreadfile);
 
                     foreach (var val in mdb)
                     {
-                        foreach (var t in FileDB.OpenRead(val.Key).Values)
+                        using (var fdb = FileDB.Open(val.Key))
                         {
-                            if (exact)
+                            foreach (var t in fdb.Database.Values)
                             {
-                                if (StringConvert.SearchName(t.name) != _s && StringConvert.SearchName(t.originalname) != _s)
+                                if (exact)
+                                {
+                                    if (StringConvert.SearchName(t.name) != _s && StringConvert.SearchName(t.originalname) != _s)
+                                        continue;
+                                }
+
+                                if (t.types == null || t.title.Contains(" КПК"))
                                     continue;
-                            }
 
-                            if (t.types == null || t.title.Contains(" КПК"))
-                                continue;
-
-                            if (is_serial == 1)
-                            {
-                                if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
+                                if (is_serial == 1)
+                                {
+                                    if (t.types.Contains("movie") || t.types.Contains("multfilm") || t.types.Contains("anime") || t.types.Contains("documovie"))
+                                        AddTorrents(t);
+                                }
+                                else if (is_serial == 2)
+                                {
+                                    if (t.types.Contains("serial") || t.types.Contains("multserial") || t.types.Contains("anime") || t.types.Contains("docuserial") || t.types.Contains("tvshow"))
+                                        AddTorrents(t);
+                                }
+                                else if (is_serial == 3)
+                                {
+                                    if (t.types.Contains("tvshow"))
+                                        AddTorrents(t);
+                                }
+                                else if (is_serial == 4)
+                                {
+                                    if (t.types.Contains("docuserial") || t.types.Contains("documovie"))
+                                        AddTorrents(t);
+                                }
+                                else if (is_serial == 5)
+                                {
+                                    if (t.types.Contains("anime"))
+                                        AddTorrents(t);
+                                }
+                                else
+                                {
                                     AddTorrents(t);
-                            }
-                            else if (is_serial == 2)
-                            {
-                                if (t.types.Contains("serial") || t.types.Contains("multserial") || t.types.Contains("anime") || t.types.Contains("docuserial") || t.types.Contains("tvshow"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 3)
-                            {
-                                if (t.types.Contains("tvshow"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 4)
-                            {
-                                if (t.types.Contains("docuserial") || t.types.Contains("documovie"))
-                                    AddTorrents(t);
-                            }
-                            else if (is_serial == 5)
-                            {
-                                if (t.types.Contains("anime"))
-                                    AddTorrents(t);
-                            }
-                            else
-                            {
-                                AddTorrents(t);
+                                }
                             }
                         }
 
@@ -292,6 +298,13 @@ namespace JacRed.Engine
                     {
                         var t = temp[hex];
                         t.torrent.trackerName += $", {torrent.trackerName}";
+
+                        #region urls
+                        if (t.torrent.urls == null)
+                            t.torrent.urls = new HashSet<string> { t.torrent.url };
+
+                        t.torrent.urls.Add(torrent.url);
+                        #endregion
 
                         #region UpdateMagnet
                         void UpdateMagnet()
@@ -445,18 +458,21 @@ namespace JacRed.Engine
                 #region Точный поиск
                 foreach (var mdb in FileDB.masterDb.Where(i => i.Key.StartsWith($"{_s}:") || i.Key.EndsWith($":{_s}") || _altsearch != null && i.Key.Contains(_altsearch)))
                 {
-                    foreach (var t in FileDB.OpenRead(mdb.Key).Values)
+                    using (var fdb = FileDB.Open(mdb.Key))
                     {
-                        if (t.types == null)
-                            continue;
-
-                        if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
+                        foreach (var t in fdb.Database.Values)
                         {
-                            string _n = StringConvert.SearchName(t.name);
-                            string _o = StringConvert.SearchName(t.originalname);
+                            if (t.types == null)
+                                continue;
 
-                            if (_n == _s || _o == _s || _altsearch != null && (_n == _altsearch || _o == _altsearch))
-                                AddTorrents(t);
+                            if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
+                            {
+                                string _n = StringConvert.SearchName(t.name);
+                                string _o = StringConvert.SearchName(t.originalname);
+
+                                if (_n == _s || _o == _s || _altsearch != null && (_n == _altsearch || _o == _altsearch))
+                                    AddTorrents(t);
+                            }
                         }
                     }
                 }
@@ -466,18 +482,21 @@ namespace JacRed.Engine
             {
                 #region Поиск по совпадению ключа в имени
                 var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s) || _altsearch != null && i.Key.Contains(_altsearch));
-                if (!red.evercache)
+                if (!red.evercache.enable)
                     mdb = mdb.Take(red.maxreadfile);
 
                 foreach (var val in mdb)
                 {
-                    foreach (var t in FileDB.OpenRead(val.Key).Values)
+                    using (var fdb = FileDB.Open(val.Key))
                     {
-                        if (t.types == null)
-                            continue;
+                        foreach (var t in fdb.Database.Values)
+                        {
+                            if (t.types == null)
+                                continue;
 
-                        if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
-                            AddTorrents(t);
+                            if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
+                                AddTorrents(t);
+                        }
                     }
                 }
                 #endregion

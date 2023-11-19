@@ -355,7 +355,15 @@ namespace Lampac.Controllers
                 online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
 
             #region checkOnlineSearch
-            if (conf.online.checkOnlineSearch && id > 0)
+            bool chos = conf.online.checkOnlineSearch && id > 0;
+
+            if (chos && IO.File.Exists("isdocker"))
+            {
+                if ((await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 2)) != appversion)
+                    chos = false;
+            }
+
+            if (chos)
             {
                 string memkey = checkOnlineSearchKey(id, source);
                 if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
@@ -406,7 +414,7 @@ namespace Lampac.Controllers
         {
             string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First().Key : "";
             
-            string res = await HttpClient.Get("http://127.0.0.1:" + AppInit.conf.listenport + $"/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
+            string res = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
             {
                 ("Host", host)
             });

@@ -6,6 +6,7 @@ RUN wget https://github.com/immisterio/Lampac/releases/latest/download/publish.z
 	unzip -o publish.zip
 	
 RUN rm -f publish.zip && rm -rf ffprobe
+RUN touch isdocker
 
 EXPOSE 9118
 

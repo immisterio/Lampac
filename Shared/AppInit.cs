@@ -110,6 +110,8 @@ namespace Lampac
 
         public string listenip = "any";
 
+        public string localhost = "127.0.0.1";
+
         public int listenport = 9118;
 
         public string listenhost = null;

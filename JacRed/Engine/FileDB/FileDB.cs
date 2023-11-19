@@ -11,16 +11,16 @@ namespace JacRed.Engine
     {
         string fdbkey;
 
+        public ConcurrentDictionary<string, TorrentDetails> Database = new ConcurrentDictionary<string, TorrentDetails>();
+
         FileDB(string key, bool empty = false)
         {
             fdbkey = key;
             string fdbpath = pathDb(key);
-
+             
             if (!empty && File.Exists(fdbpath))
                 Database = JsonStream.Read<ConcurrentDictionary<string, TorrentDetails>>(fdbpath) ?? new ConcurrentDictionary<string, TorrentDetails>();
         }
-
-        public ConcurrentDictionary<string, TorrentDetails> Database = new ConcurrentDictionary<string, TorrentDetails>();
         
 
         public void Dispose()
@@ -31,7 +31,7 @@ namespace JacRed.Engine
             if (openWriteTask.TryGetValue(fdbkey, out WriteTaskModel val))
             {
                 val.openconnection -= 1;
-                if (val.openconnection <= 0 && !ModInit.conf.Red.evercache)
+                if (val.openconnection <= 0 && !ModInit.conf.Red.evercache.enable)
                     openWriteTask.TryRemove(fdbkey, out _);
             }
         }

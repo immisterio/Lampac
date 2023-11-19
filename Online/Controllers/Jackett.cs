@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
                 return Content(string.Empty);
 
             #region Кеш запроса
-            string localhost = "http://127.0.0.1:" + AppInit.conf.listenport;
+            string localhost = $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}";
 
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
             if (!memoryCache.TryGetValue(memkey, out JArray results) || quality == -1)

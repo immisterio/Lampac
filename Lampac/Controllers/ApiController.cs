@@ -14,10 +14,6 @@ namespace Lampac.Controllers
 {
     public class ApiController : BaseController
     {
-        [Route("/version")]
-        public ActionResult Version() => Content("85", contentType: "text/plain; charset=utf-8");
-
-
         #region Index
         [Route("/")]
         async public Task<ActionResult> Index()
@@ -62,6 +58,11 @@ namespace Lampac.Controllers
 
             return Content(json, contentType: "application/json; charset=utf-8");
         }
+        #endregion
+
+        #region Version
+        [Route("/version")]
+        public ActionResult Version() => Content(appversion, contentType: "text/plain; charset=utf-8");
         #endregion
 
 
