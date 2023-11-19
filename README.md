@@ -1,24 +1,24 @@
 # Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
-# Windows
-1. Установить ".NET Core 6" https://learn.microsoft.com/ru-ru/dotnet/core/install/
-2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
-3. Запустить Lampac.exe
-
-# Linux
-Установка на linux с помощью скрипта, спасибо @nikk, @Denis
+# Установка на linux
+спасибо @nikk, @Denis
 ```
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
 ```
 
-# Docker
+# Установка в Docker
 ```
 mkdir -p /home/lampac && echo "{}" > /home/lampac/init.conf
 docker run -d -p 9118:9118 -v /home/lampac/init.conf:/init.conf --restart always --name lampac immisterio/lampac
 ```
 
-# Настройки Lampa
+# Установка на Windows
+1. Установить ".NET Core 6" https://learn.microsoft.com/ru-ru/dotnet/core/install/
+2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
+3. Запустить Lampac.exe
+
+# Плагины для Lampa
 1. онлайн   - "http://IP:9118/online.js"
 2. xxx      - "http://IP:9118/sisi.js"
 3. DLNA     - "http://IP:9118/dlna.js"
@@ -27,9 +27,9 @@ docker run -d -p 9118:9118 -v /home/lampac/init.conf:/init.conf --restart always
 6. TorrServer      - "http://IP:9118/ts.js"
 7. Парсер Jackett  - "IP:9118"
 
-# Настройки Lampa Lite
-1. Плагин онлайн/jackett  - "http://IP:9118/lite.js" 
-2. Плагин xxx     - "http://IP:9118/sisi.js"
+# Плагины для Lampa Lite
+1. онлайн/jackett  - "http://IP:9118/lite.js" 
+2. xxx     - "http://IP:9118/sisi.js"
 
 # Общие настройки
 1. Отключить TorrServer/DNLA/Jackett/etc можно в module/manifest.json
