@@ -1,20 +1,21 @@
 # Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
-# Установка
+# Windows
 1. Установить ".NET Core 6" https://learn.microsoft.com/ru-ru/dotnet/core/install/
 2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
-3. Запустить "dotnet Lampac.dll" (linux) или "Lampac.exe" (windows)
+3. Запустить Lampac.exe
 
-# Альтернативная установка
+# Linux
 Установка на linux с помощью скрипта, спасибо @nikk, @Denis
-
-curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
-
-# Удаление скрипта
 ```
-systemctl stop lampac
-rm -rf /home/lampac
+curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
+```
+
+# Docker
+```
+mkdir -p /home/lampac && echo "{}" > /home/lampac/init.conf
+docker run -d -p 9118:9118 -v /home/lampac/init.conf:/init.conf --restart always --name lampac immisterio/lampac
 ```
 
 # Настройки Lampa
@@ -81,10 +82,6 @@ rm -rf /home/lampac
 
 # Виджеты
 1. Для Samsung "IP:9118/samsung.wgt"
-
-# Android
-1. BwaJS - https://bwa.to/
-1. Через Termux https://github.com/bbk14/TermuxDebian/blob/main/README.md
 
 # Параметры init.conf
 * xdb - Выводит платные источники с sisi.am
