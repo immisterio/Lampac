@@ -9,7 +9,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 
 # Установка в Docker
 ```
-mkdir -p /home/lampac && echo "{}" > /home/lampac/init.conf
+mkdir -p /home/lampac && echo "{}" > /home/lampac/init.conf \
 docker run -d -p 9118:9118 -v /home/lampac/init.conf:/init.conf --restart always --name lampac immisterio/lampac
 ```
 
