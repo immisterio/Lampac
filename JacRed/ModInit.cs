@@ -27,15 +27,25 @@ namespace Jackett
 
                 if (cacheconf.Item2 != lastWriteTime)
                 {
+                    var jss = new JsonSerializerSettings { Error = (se, ev) => 
+                    { 
+                        ev.ErrorContext.Handled = true; 
+                        Console.WriteLine("module/JacRed.conf - " + ev.ErrorContext.Error + "\n\n"); 
+                    }};
+
                     string json = File.ReadAllText("module/JacRed.conf");
+
                     if (json.Contains("\"version\""))
                     {
-                        cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(json);
+                        cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(json, jss);
                     }
                     else
                     {
-                        cacheconf.Item1 = new ModInit() { Red = JsonConvert.DeserializeObject<RedConf>(json) };
+                        cacheconf.Item1 = new ModInit() { Red = JsonConvert.DeserializeObject<RedConf>(json, jss) };
                     }
+
+                    if (cacheconf.Item1 == null)
+                        cacheconf.Item1 = new ModInit();
 
                     cacheconf.Item2 = lastWriteTime;
                 }

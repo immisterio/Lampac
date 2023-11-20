@@ -149,28 +149,27 @@ namespace Lampac.Controllers
                     return;
                 }
 
-                using (HttpClient client = new HttpClient())
+                MemoryStream mem = new MemoryStream();
+                await HttpContext.Request.Body.CopyToAsync(mem);
+                string requestJson = Encoding.UTF8.GetString(mem.ToArray());
+
+                if (requestJson.Contains("\"get\""))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(15);
-
-                    #region Данные запроса
-                    MemoryStream mem = new MemoryStream();
-                    await HttpContext.Request.Body.CopyToAsync(mem);
-                    string requestJson = Encoding.UTF8.GetString(mem.ToArray());
-                    #endregion
-
-                    var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
-                    string settingsJson = await response.Content.ReadAsStringAsync();
-
-                    if (requestJson.Trim() == "{\"action\":\"get\"}")
+                    using (HttpClient client = new HttpClient())
                     {
+                        client.Timeout = TimeSpan.FromSeconds(15);
+                        client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
+
+                        var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
+                        string settingsJson = await response.Content.ReadAsStringAsync();
+
                         await HttpContext.Response.WriteAsync(settingsJson);
                         return;
                     }
-
-                    await HttpContext.Response.WriteAsync(string.Empty);
-                    return;
                 }
+
+                await HttpContext.Response.WriteAsync(string.Empty);
+                return;
             }
             #endregion
 

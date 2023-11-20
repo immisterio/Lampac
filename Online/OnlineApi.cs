@@ -416,7 +416,7 @@ namespace Lampac.Controllers
             
             string res = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
             {
-                ("Host", host)
+                ("xhost", host)
             });
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");

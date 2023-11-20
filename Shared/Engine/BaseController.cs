@@ -18,7 +18,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "86";
+        public static string appversion => "87";
 
         public IMemoryCache memoryCache { get; private set; }
 

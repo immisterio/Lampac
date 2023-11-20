@@ -29,7 +29,16 @@ namespace Lampac
 
                 if (cacheconf.Item2 != lastWriteTime)
                 {
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"));
+                    var jss = new JsonSerializerSettings { Error = (se, ev) => 
+                    { 
+                        ev.ErrorContext.Handled = true; 
+                        Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
+                    }};
+
+                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"), jss);
+                    if (cacheconf.Item1 == null)
+                        cacheconf.Item1 = new AppInit();
+
                     cacheconf.Item2 = lastWriteTime;
 
                     if (cacheconf.Item1 != null)
@@ -71,7 +80,16 @@ namespace Lampac
             }
         }
 
-        public static string Host(HttpContext httpContext) => $"{httpContext.Request.Scheme}://{(string.IsNullOrWhiteSpace(conf.listenhost) ? httpContext.Request.Host.Value : conf.listenhost)}";
+        public static string Host(HttpContext httpContext)
+        {
+            if (!string.IsNullOrWhiteSpace(conf.listenhost))
+                return $"{httpContext.Request.Scheme}://{conf.listenhost}";
+
+            if (httpContext.Request.Headers.TryGetValue("xhost", out var xhost))
+                return $"{httpContext.Request.Scheme}://{xhost}";
+
+            return $"{httpContext.Request.Scheme}://{httpContext.Request.Host.Value}";
+        }
         #endregion
 
         #region modules
@@ -81,9 +99,18 @@ namespace Lampac
         {
             if (File.Exists("module/manifest.json"))
             {
-                modules = new List<RootModule>();
+                var jss = new JsonSerializerSettings { Error = (se, ev) => 
+                { 
+                    ev.ErrorContext.Handled = true; 
+                    Console.WriteLine("module/manifest.json - " + ev.ErrorContext.Error + "\n\n"); 
+                }};
 
-                foreach (var mod in JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json")))
+                var mods = JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json"), jss);
+                if (mods == null)
+                    return;
+
+                modules = new List<RootModule>();
+                foreach (var mod in mods)
                 {
                     if (!mod.enable || mod.dll == "Jackett.dll")
                         continue;

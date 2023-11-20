@@ -37,13 +37,15 @@ namespace SISI
                 return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
             }
 
+            string localhost = $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}";
+
             return new JsonResult(new
             {
                 list = bookmarks.Skip((pg * pageSize) - pageSize).Take(pageSize).Select(pl => new
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.bookmark.image.StartsWith("bookmarks/") ? $"{host}/{pl.bookmark.image}" : pl.bookmark.image),
+                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image),
                     pl.time,
                     pl.json,
                     pl.quality,
