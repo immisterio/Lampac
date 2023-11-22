@@ -5,8 +5,7 @@ if test -f isdocker; then
 fi
 
 apt-get update
-apt-get install -y unzip
-#apt-get install -y ffmpeg 
+apt-get install -y unzip ffmpeg
 
 wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 unzip -o publish.zip && rm -f publish.zip && rm -rf ffprobe
