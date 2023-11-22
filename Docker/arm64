@@ -1,7 +1,5 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm64v8
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget
-
 RUN wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf ffprobe && \
 	touch isdocker
