@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if test -f isdocker; then
-  return;
+  dotnet Lampac.dll
 fi
 
 apt-get update
