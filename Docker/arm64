@@ -1,4 +1,4 @@
-FROM arm64v8/debian
+FROM --platform=linux/arm64 arm64v8/debian
 
 ENV \
     # Unset ASPNETCORE_URLS from aspnet base image
@@ -15,13 +15,11 @@ ENV \
     NUGET_XMLDOC_MODE=skip
 
 RUN apt-get update && \
-	apt-get install -y --no-install-recommends curl wget unzip ffmpeg && \
+	apt-get install -y --no-install-recommends curl wget && \
 	rm -rf /var/lib/apt/lists/*
 
 # Install .NET SDK
 RUN curl -fSL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/$DOTNET_SDK_VERSION/dotnet-sdk-$DOTNET_SDK_VERSION-linux-arm64.tar.gz \
-    && dotnet_sha512='39cada75d9b92797de304987437498d853e1a525b38fa72d0d2949932a092fcf6036b055678686db42682b5b79cdc5ec5995cb01aa186762e081eb1ed38d2364' \
-    && echo "$dotnet_sha512  dotnet.tar.gz" | sha512sum -c - \
     && mkdir -p /usr/share/dotnet \
     && tar -oxzf dotnet.tar.gz -C /usr/share/dotnet ./packs ./sdk ./sdk-manifests ./templates ./LICENSE.txt ./ThirdPartyNotices.txt \
     && rm dotnet.tar.gz \
@@ -29,7 +27,8 @@ RUN curl -fSL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/
     && dotnet help
 
 
-RUN wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
+RUN apt-get install -y --no-install-recommends unzip ffmpeg && \
+	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf ffprobe && \
 	touch isdocker
 
