@@ -1,6 +1,4 @@
-FROM --platform=linux/arm64 mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm64v8
-
-export DOCKER_DEFAULT_PLATFORM=linux/arm64
+FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm64v8
 
 RUN apt update && apt install -y wget unzip ffmpeg && \
 	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
