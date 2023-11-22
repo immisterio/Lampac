@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm64v8
 
 EXPOSE 9118
+WORKDIR /home
 
-ENTRYPOINT exec curl -s https://raw.githubusercontent.com/immisterio/Lampac/main/Docker/build.sh | bash
+ENTRYPOINT exec test -f isdocker && dotnet Lampac.dll || curl -s https://raw.githubusercontent.com/immisterio/Lampac/main/Docker/build.sh | bash
