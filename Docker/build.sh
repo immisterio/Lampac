@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /home
+
 if test -f isdocker; then
   dotnet Lampac.dll
 fi
