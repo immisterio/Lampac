@@ -79,20 +79,20 @@ namespace Lampac.Controllers.LITE
                 string html = "<div class=\"videos__line\">";
 
                 string memKey = $"animebesst:playlist:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out List<(string episode, string uri)> links))
+                if (!memoryCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
                     string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get());
-                    string videoList = Regex.Match(news ?? "", "var videoList = ([^\n\r]+)").Groups[1].Value.Replace("\\", "");
+                    string videoList = Regex.Match(news ?? "", "var videoList = ([^\n\r]+)").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(videoList))
                         return OnError(proxyManager);
 
-                    links = new List<(string episode, string uri)>();
-                    var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?//([^\"]+)\"");
+                    links = new List<(string episode, string name, string uri)>();
+                    var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[4].Value))
-                            links.Add((match.Groups[1].Value, match.Groups[4].Value));
+                            links.Add((match.Groups[1].Value, match.Groups[2].Value.Trim(), match.Groups[4].Value.Replace("\\", "")));
 
                         match = match.NextMatch();
                     }
@@ -105,9 +105,12 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in links)
                 {
+                    string name = string.IsNullOrEmpty(l.name) ? $"{l.episode} серия" : $"{l.episode} {l.name}";
+                    string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
+
                     string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&account_email={HttpUtility.UrlEncode(account_email)}";
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
+                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\",\"voice_name\":\"" + voice_name + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
                     firstjson = true;
                 }
 
