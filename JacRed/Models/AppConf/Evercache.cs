@@ -4,6 +4,6 @@
     {
         public bool enable = false;
 
-        public int validHour = 240;
+        public int validHour = 5;
     }
 }

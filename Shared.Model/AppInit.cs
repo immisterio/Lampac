@@ -57,7 +57,7 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Kinokrad { get; set; } = new OnlinesSettings("https://kinokrad.cc", streamproxy: true, enable: false);
 
-        public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinotochka.co", streamproxy: true);
+        public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinovibe.tv", streamproxy: true);
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio", streamproxy: true);
 

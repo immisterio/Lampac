@@ -57,7 +57,7 @@ namespace Shared.Engine.SISI
                 {
                     string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>").Groups[1].Value;
                     string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>").Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "data-src=\"(https?:)?//((statics.cdntrex.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)").Groups;
+                    var img = Regex.Match(row, "data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)").Groups;
 
                     var pl = new PlaylistItem()
                     {

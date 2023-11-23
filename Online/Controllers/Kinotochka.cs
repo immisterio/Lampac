@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             // enable 720p
-            string cookie = AppInit.conf.Kinotochka.cookie ??  "PHPSESSID=i9g8i9lr3j8d5tsrrm5bg4ush7; _ga=GA1.1.1814511493.1698667196; cf_clearance=bBUeH48bPNG6ilgXkfKc0DdVNWW9hEnn0l8wC9xHBKU-1698670014-0-1-ecb48842.7f2ed8fe.bbb5d7a2-150.0.0; dle_user_id=476720; dle_password=8842d3a884231414bdca85a8b9c00a0b; dle_newpm=0; _ga_6EPB4E046E=GS1.1.1698670015.2.1.1698670096.0.0.0";
+            string cookie = AppInit.conf.Kinotochka.cookie;
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
