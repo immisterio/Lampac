@@ -134,6 +134,8 @@ namespace Lampac
         }
         #endregion
 
+        public static bool Win32NT => Environment.OSVersion.Platform == PlatformID.Win32NT;
+
 
         public string listenip = "any";
 
@@ -145,7 +147,7 @@ namespace Lampac
 
         public bool multiaccess = false;
 
-        public bool extensions_mod = true;
+        public bool pirate_store = true;
 
         public string apikey = null;
 
@@ -156,7 +158,7 @@ namespace Lampac
         public string anticaptchakey;
 
 
-        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true, os = Environment.OSVersion.Platform == PlatformID.Unix ? "linux" : "win" };
+        public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
         public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true, cache = true };
 
@@ -171,7 +173,7 @@ namespace Lampac
 
         public OnlineConf online = new OnlineConf() { findkp = "all", checkOnlineSearch = true };
 
-        public AccsConf accsdb = new AccsConf() { authMesage = "Войдите в аккаунт cub.red - настройки, аккаунт", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", maxiptohour = 15 };
+        public AccsConf accsdb = new AccsConf() { authMesage = "Войдите в аккаунт cub.red", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", maxiptohour = 15 };
 
         public MerchantsModel Merchant = new MerchantsModel();
 

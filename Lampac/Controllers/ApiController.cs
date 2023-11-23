@@ -44,19 +44,11 @@ namespace Lampac.Controllers
         {
             if (!memoryCache.TryGetValue("LampaWeb.extensions", out string json))
             {
-                string cubextensions = await HttpClient.Get("http://cub.red/api/extensions/list", timeoutSeconds: 8);
-                string altextensions = await IO.File.ReadAllTextAsync("plugins/extensions.json");
-                string customxtensions = IO.File.Exists("plugins/extensions_custom.json") ? await IO.File.ReadAllTextAsync("plugins/extensions_custom.json") : string.Empty;
-
-                altextensions = altextensions.Replace("\n", "").Replace("\r", "").Replace("{localhost}", host);
-                altextensions = altextensions.Replace("{customxtensions}", string.IsNullOrWhiteSpace(customxtensions) ? "" : $"{customxtensions.Replace("\n", "").Replace("\r", "").Replace("{localhost}", host)},");
-
-                json = cubextensions.Replace("],\"hpu\":\"best\"", "," + altextensions + "],\"hpu\":\"best\"");
-
+                json = await IO.File.ReadAllTextAsync("plugins/extensions.json");
                 memoryCache.Set("LampaWeb.extensions", json, DateTime.Now.AddMinutes(5));
             }
 
-            return Content(json, contentType: "application/json; charset=utf-8");
+            return Content(json.Replace("{localhost}", host), contentType: "application/json; charset=utf-8");
         }
         #endregion
 
@@ -79,9 +71,6 @@ namespace Lampac.Controllers
 
                 file = file.Replace("http://lampa.mx", $"{host}/lampa-{type}");
                 file = file.Replace("https://yumata.github.io/lampa", $"{host}/lampa-{type}");
-
-                if (AppInit.conf.extensions_mod && type == "main")
-                    file = file.Replace("api$1 + 'extensions/list'", $"'{host}/extensions'");
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
@@ -225,13 +214,24 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.accsdb.enable)
                     {
-                        if (!memoryCache.TryGetValue($"ApiController:deny.js:{lite}", out string denyfile))
+                        if (!memoryCache.TryGetValue($"ApiController:deny.js", out string denyfile))
                         {
                             denyfile = IO.File.ReadAllText("plugins/deny.js");
-                            memoryCache.Set($"ApiController:deny.js:{lite}", denyfile, DateTime.Now.AddMinutes(5));
+                            memoryCache.Set($"ApiController:deny.js", denyfile, DateTime.Now.AddMinutes(5));
                         }
 
                         file = file.Replace("{deny}", denyfile.Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
+                    }
+
+                    if (AppInit.conf.pirate_store)
+                    {
+                        if (!memoryCache.TryGetValue("ApiController:pirate_store.js", out string store))
+                        {
+                            store = IO.File.ReadAllText("plugins/pirate_store.js");
+                            memoryCache.Set($"ApiController:pirate_store.js", store, DateTime.Now.AddMinutes(5));
+                        }
+
+                        file = file.Replace("{pirate_store}", store);
                     }
                 }
             }
@@ -239,8 +239,9 @@ namespace Lampac.Controllers
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
             file = file.Replace("{localhost}", host);
             file = file.Replace("{deny}", string.Empty);
+            file = file.Replace("{pirate_store}", string.Empty);
 
-            if (AppInit.modules != null && (AppInit.modules.FirstOrDefault(i => i.dll == "Jackett.dll" && i.enable) != null || AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null))
+            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
                 file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
                 file = file.Replace("{jachost}", string.Empty);
