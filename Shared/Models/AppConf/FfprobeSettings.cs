@@ -4,8 +4,6 @@
     {
         public bool enable { get; set; }
 
-        public string os { get; set; }
-
         public string tsuri { get; set; }
     }
 }
