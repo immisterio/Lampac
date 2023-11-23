@@ -359,7 +359,7 @@ namespace Lampac.Controllers
 
             if (chos && IO.File.Exists("isdocker"))
             {
-                if ((await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 2)) != appversion)
+                if ((await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4)) != appversion)
                     chos = false;
             }
 
@@ -412,9 +412,7 @@ namespace Lampac.Controllers
         async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
-            string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First().Key : "";
-            
-            string res = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&account_email={HttpUtility.UrlEncode(account_email)}&checksearch=true", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
+            string res = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
             {
                 ("xhost", host)
             });

@@ -21,6 +21,9 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            if (httpContext.Connection.RemoteIpAddress.ToString() == AppInit.conf.localhost)
+                return _next(httpContext);
+
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|baibako|hdrezka)";
 
             if (!string.IsNullOrWhiteSpace(AppInit.conf.apikey))
@@ -38,7 +41,7 @@ namespace Lampac.Engine.Middlewares
                     return _next(httpContext);
 
                 if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, jacpattern) && 
-                    !Regex.IsMatch(httpContext.Request.Path.Value, "^/((ts(/|$))|((b2pay|cryptocloud|freekassa|litecoin|plugins)/)|lite/(filmixpro|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                    !Regex.IsMatch(httpContext.Request.Path.Value, "^/(ts(/|$)|extensions|(b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
                     HashSet<string> ips = null;
