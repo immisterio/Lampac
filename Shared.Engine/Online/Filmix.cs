@@ -190,18 +190,34 @@ namespace Shared.Engine.Online
                     html.Append("</div><div class=\"videos__line\">");
                     #endregion
 
-                    #region Серии
+                    #region Deserialize
                     Dictionary<string, Movie>? episodes = null;
 
                     try
                     {
                         episodes = player_links.playlist[s.ToString()].ElementAt(t).Value.Deserialize<Dictionary<string, Movie>>();
                     }
-                    catch { }
+                    catch 
+                    {
+                        try
+                        {
+                            int episod_id = 0;
+                            episodes = new Dictionary<string, Movie>();
 
-                    if (episodes == null)
+                            foreach (var item in player_links.playlist[s.ToString()].ElementAt(t).Value.Deserialize<List<Movie>>())
+                            {
+                                episod_id++;
+                                episodes.Add(episod_id.ToString(), item);
+                            }
+                        }
+                        catch { }
+                    }
+
+                    if (episodes == null || episodes.Count == 0)
                         return string.Empty;
+                    #endregion
 
+                    #region Серии
                     foreach (var episode in episodes)
                     {
                         var streams = new List<(string link, string quality)>() { Capacity = pro ? episode.Value.qualities.Count : 2 };
