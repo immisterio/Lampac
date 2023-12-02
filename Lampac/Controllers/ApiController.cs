@@ -45,6 +45,8 @@ namespace Lampac.Controllers
             if (!memoryCache.TryGetValue("LampaWeb.extensions", out string json))
             {
                 json = await IO.File.ReadAllTextAsync("plugins/extensions.json");
+                json = json.Replace("\n", "").Replace("\r", "");
+
                 memoryCache.Set("LampaWeb.extensions", json, DateTime.Now.AddMinutes(5));
             }
 
@@ -71,6 +73,9 @@ namespace Lampac.Controllers
 
                 file = file.Replace("http://lampa.mx", $"{host}/lampa-{type}");
                 file = file.Replace("https://yumata.github.io/lampa", $"{host}/lampa-{type}");
+
+                file = file.Replace("window.lampa_settings.dcma = dcma;", "");
+                file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
