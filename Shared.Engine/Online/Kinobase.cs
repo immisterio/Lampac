@@ -73,7 +73,11 @@ namespace Shared.Engine.Online
             string IDENTIFIER = Regex.Match(news, "var IDENTIFIER = \"([^\"]+)").Groups[1].Value;
             string PLAYER_CUID = Regex.Match(news, "var PLAYER_CUID = \"([^\"]+)").Groups[1].Value;
 
-            string? evalcode = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&IDENTIFIER={IDENTIFIER}&player_type=new&file_type=hls&_=1684592281");
+            string? fix_args = null;
+            if (fix_args == null)
+                return null;
+
+            string? evalcode = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&identifier={IDENTIFIER}&player_type=new&file_type=hls" + fix_args);
             if (evalcode == null)
                 return null;
 
