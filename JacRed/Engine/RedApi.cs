@@ -269,9 +269,14 @@ namespace JacRed.Engine
                 }
                 #endregion
 
-                torrentsSearch(exact: true);
-                if (torrents.Count == 0)
+                if (is_serial == -1)
                     torrentsSearch(exact: false);
+                else
+                {
+                    torrentsSearch(exact: true);
+                    if (torrents.Count == 0)
+                        torrentsSearch(exact: false);
+                }
                 #endregion
             }
 

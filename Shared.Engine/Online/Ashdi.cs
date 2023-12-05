@@ -34,7 +34,12 @@ namespace Shared.Engine.Online
 
             string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeuri))
+            {
+                if (product.Contains("{\"message\":\"Product does not exist.\"}"))
+                    return new EmbedModel();
+
                 return null;
+            }
 
             string? content = await onget.Invoke(iframeuri);
             if (content == null || !content.Contains("Playerjs"))

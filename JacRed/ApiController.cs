@@ -31,7 +31,7 @@ namespace JacRed.Controllers
 
         #region Indexers
         [Route("/api/v2.0/indexers/{status}/results")]
-        async public Task<ActionResult> Indexers(string apikey, string query, string title, string title_original, int year, int is_serial, Dictionary<string, string> category)
+        async public Task<ActionResult> Indexers(string apikey, string query, string title, string title_original, int year, Dictionary<string, string> category, int is_serial = -1)
         {
             #region Запрос с NUM
             bool rqnum = false;
@@ -50,6 +50,9 @@ namespace JacRed.Controllers
                     year = int.Parse(g[3].Value);
                 }
             }
+
+            if (!rqnum)
+                rqnum = !HttpContext.Request.QueryString.Value.Contains("&is_serial=") && HttpContext.Request.Headers.UserAgent.ToString() == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36";
             #endregion
 
             IEnumerable<TorrentDetails> torrents = null;
@@ -95,7 +98,7 @@ namespace JacRed.Controllers
                     Peers = i.pir,
                     MagnetUri = i.magnet,
                     Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
-                    Info = new
+                    Info = rqnum ? null : new
                     {
                         i.name,
                         i.originalname,
@@ -107,8 +110,8 @@ namespace JacRed.Controllers
                         seasons = i.seasons != null && i.seasons.Count > 0 ? i.seasons : null,
                         i.types
                     },
-                    languages = i.languages != null && i.languages.Count > 0 ? i.languages : null,
-                    i.ffprobe
+                    languages = !rqnum && i.languages != null && i.languages.Count > 0 ? i.languages : null,
+                    ffprobe = rqnum ? null : i.ffprobe
                 }),
                 jacred = ModInit.conf.typesearch == "red"
 

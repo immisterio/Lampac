@@ -1,15 +1,15 @@
 # Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
+# Запуск в Docker
+```
+docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
+```
+
 # Установка на linux
 спасибо @nikk, @Denis
 ```
 curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
-```
-
-# Установка в Docker
-```
-docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
 
 # Установка на Windows

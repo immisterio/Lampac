@@ -28,8 +28,12 @@ namespace Lampac.Controllers.LITE
             );
 
             var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(kinopoisk_id));
+
             if (content == null)
                 return OnError(proxyManager);
+
+            if (string.IsNullOrEmpty(content.content) && content.serial == null)
+                return OnError();
 
             return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }

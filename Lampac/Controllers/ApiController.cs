@@ -74,7 +74,7 @@ namespace Lampac.Controllers
                 file = file.Replace("http://lampa.mx", $"{host}/lampa-{type}");
                 file = file.Replace("https://yumata.github.io/lampa", $"{host}/lampa-{type}");
 
-                file = file.Replace("window.lampa_settings.dcma = dcma;", "");
+                file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));

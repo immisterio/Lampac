@@ -137,9 +137,9 @@ namespace Lampac.Controllers.LITE
                 name += $" ({episode} серия)";
 
             if (play)
-                return Redirect(streams[0].url);
+                return Redirect(HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy) + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }
         #endregion
 

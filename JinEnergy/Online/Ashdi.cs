@@ -25,8 +25,12 @@ namespace JinEnergy.Online
             );
 
             var content = await InvokeCache(arg.id, $"ashdi:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
+
             if (content == null)
                 return EmptyError("content");
+
+            if (string.IsNullOrEmpty(content.content) && content.serial == null)
+                return EmptyError("content 2");
 
             return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }
