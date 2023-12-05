@@ -6,6 +6,8 @@
 
         public bool streamproxy { get; set; }
 
+        public List<string> geostreamproxy { get; set; }
+
         public bool qualitys_proxy { get; set; }
 
         public ProxySettings? proxy { get; set; }
