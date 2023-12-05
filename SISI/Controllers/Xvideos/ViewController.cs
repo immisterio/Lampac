@@ -33,7 +33,7 @@ namespace Lampac.Controllers.Xvideos
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return OnResult(stream_links, AppInit.conf.Xvideos, proxy);
+            return OnResult(stream_links, AppInit.conf.Xvideos, proxy, plugin: "xds");
         }
     }
 }

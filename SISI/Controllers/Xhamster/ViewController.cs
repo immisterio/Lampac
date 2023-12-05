@@ -33,7 +33,7 @@ namespace Lampac.Controllers.Xhamster
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return OnResult(stream_links, AppInit.conf.Xhamster, proxy);
+            return OnResult(stream_links, AppInit.conf.Xhamster, proxy, plugin: "xmr");
         }
     }
 }

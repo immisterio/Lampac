@@ -36,7 +36,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return OnResult(stream_links, AppInit.conf.PornHub, proxy);
+            return OnResult(stream_links, AppInit.conf.PornHub, proxy, plugin: "phub");
         }
 
 
@@ -64,7 +64,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
-            return OnResult(stream_links, AppInit.conf.PornHubPremium, proxy);
+            return OnResult(stream_links, AppInit.conf.PornHubPremium, proxy, plugin: "phubprem");
         }
     }
 }

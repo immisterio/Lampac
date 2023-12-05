@@ -12,7 +12,9 @@ namespace Lampac.Models.AppConf
 
         public bool allow_tmdb { get; set; }
 
-        public bool cache { get; set; }
+        public bool cache_img { get; set; }
+
+        public bool cache_hls { get; set; }
 
 
         public bool useproxy { get; set; }

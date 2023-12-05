@@ -10,6 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Engine.CORE;
 using Shared.Model.Base;
 
 namespace Lampac.Engine
@@ -18,7 +19,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "90";
+        public static string appversion => "91";
 
         public IMemoryCache memoryCache { get; private set; }
 
@@ -64,14 +65,22 @@ namespace Lampac.Engine
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
-        public string HostStreamProxy(Istreamproxy conf, string uri, List<(string name, string val)> headers = null, WebProxy proxy = null)
+        public string HostStreamProxy(Istreamproxy conf, string uri, List<(string name, string val)> headers = null, WebProxy proxy = null, string plugin = null)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
 
-            if (conf == null || conf.streamproxy || conf.useproxystream)
+            bool streamproxy = conf == null || conf.streamproxy || conf.useproxystream;
+            if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {
-                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null);
+                string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+                if (country != null && conf.geostreamproxy.Contains(country))
+                    streamproxy = true;
+            }
+
+            if (streamproxy)
+            {
+                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 
                 if (AppInit.conf.accsdb.enable)
                 {

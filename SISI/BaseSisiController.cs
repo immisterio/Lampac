@@ -25,7 +25,7 @@ namespace SISI
             return new JsonResult(new { success = false, msg });
         }
 
-        public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null)
+        public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null)
         {
             return new JsonResult(new
             {
@@ -33,7 +33,7 @@ namespace SISI
                 list = playlists.Select(pl => new
                 {
                     pl.name,
-                    video = HostStreamProxy(conf, pl.video, proxy: proxy),
+                    video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin),
                     picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture),
                     pl.preview,
                     pl.time,
@@ -65,12 +65,12 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<(string name, string val)> headers = null)
+        public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<(string name, string val)> headers = null, string plugin = null)
         {
             Dictionary<string, string> qualitys_proxy = null;
 
             if (!proxyconf.streamproxy && proxyconf.qualitys_proxy)
-                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(new BaseSettings() { streamproxy = true }, v.Value, proxy: proxy));
+                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(new BaseSettings() { streamproxy = true }, v.Value, proxy: proxy, plugin: plugin));
 
             return new JsonResult(new
             {

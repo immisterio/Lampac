@@ -15,7 +15,8 @@ namespace Lampac.Engine.CRON
             {
                 foreach (var conf in new List<(string path, int day)> { 
                     ("html", AppInit.conf.fileCacheInactiveDay.html), 
-                    ("img", AppInit.conf.fileCacheInactiveDay.img), 
+                    ("img", AppInit.conf.fileCacheInactiveDay.img),
+                    ("hls", AppInit.conf.fileCacheInactiveDay.hls),
                     ("torrent", AppInit.conf.fileCacheInactiveDay.torrent) 
                 })
                 {

@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
                 AppInit.conf.Kodik.token,
                 (uri, head) => HttpClient.Get(AppInit.conf.Kodik.corsHost(uri), timeoutSeconds: 8, proxy: proxy),
                 (uri, data) => HttpClient.Post(AppInit.conf.Kodik.corsHost(uri), data, timeoutSeconds: 8, proxy: proxy),
-                streamfile => HostStreamProxy(AppInit.conf.Kodik, streamfile, proxy: proxy)
+                streamfile => HostStreamProxy(AppInit.conf.Kodik, streamfile, proxy: proxy, plugin: "kodik")
             );
         }
         #endregion
@@ -128,7 +128,7 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in streams)
             {
-                string hls = HostStreamProxy(AppInit.conf.Kodik, l.url, proxy: proxy);
+                string hls = HostStreamProxy(AppInit.conf.Kodik, l.url, proxy: proxy, plugin: "kodik");
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 
@@ -137,7 +137,7 @@ namespace Lampac.Controllers.LITE
                 name += $" ({episode} серия)";
 
             if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy));
+                return Redirect(HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy, plugin: "kodik"));
 
             return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy) + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }

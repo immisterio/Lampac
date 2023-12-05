@@ -84,7 +84,7 @@ namespace Lampac.Engine.Middlewares
 
                 string outFile = getFolder($"{href}:{width}:{height}");
 
-                if (AppInit.conf.serverproxy.cache && File.Exists(outFile))
+                if (AppInit.conf.serverproxy.cache_img && File.Exists(outFile))
                 {
                     httpContext.Response.ContentType = "image/jpeg";
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
@@ -110,7 +110,7 @@ namespace Lampac.Engine.Middlewares
                     proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
 
-                    if (AppInit.conf.serverproxy.cache)
+                    if (AppInit.conf.serverproxy.cache_img)
                         memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(5));
 
                     return;
@@ -128,7 +128,7 @@ namespace Lampac.Engine.Middlewares
                     }
                 }
 
-                if (AppInit.conf.serverproxy.cache)
+                if (AppInit.conf.serverproxy.cache_img)
                     await File.WriteAllBytesAsync(outFile, array);
 
                 httpContext.Response.ContentType = "image/jpeg";
