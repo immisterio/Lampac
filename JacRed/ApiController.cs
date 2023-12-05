@@ -90,7 +90,7 @@ namespace JacRed.Controllers
                     Tracker = i.trackerName,
                     Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
                     Title = i.title,
-                    Size = 0 > i.size ? getSizeInfo(i.sizeName) : i.size,
+                    Size = (long)(0 >= i.size ? getSizeInfo(i.sizeName) : i.size),
                     PublishDate = i.createTime,
                     Category = getCategoryIds(i, out string categoryDesc),
                     CategoryDesc = categoryDesc,

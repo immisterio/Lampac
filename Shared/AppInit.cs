@@ -82,13 +82,15 @@ namespace Lampac
 
         public static string Host(HttpContext httpContext)
         {
-            if (!string.IsNullOrWhiteSpace(conf.listenhost))
-                return $"{httpContext.Request.Scheme}://{conf.listenhost}";
+            string scheme = string.IsNullOrEmpty(conf.listenscheme) ? httpContext.Request.Scheme : conf.listenscheme;
+
+            if (!string.IsNullOrEmpty(conf.listenhost))
+                return $"{scheme}://{conf.listenhost}";
 
             if (httpContext.Request.Headers.TryGetValue("xhost", out var xhost))
-                return $"{httpContext.Request.Scheme}://{xhost}";
+                return $"{scheme}://{xhost}";
 
-            return $"{httpContext.Request.Scheme}://{httpContext.Request.Host.Value}";
+            return $"{scheme}://{httpContext.Request.Host.Value}";
         }
         #endregion
 
@@ -139,11 +141,13 @@ namespace Lampac
 
         public string listenip = "any";
 
-        public string localhost = "127.0.0.1";
+        public string listenscheme = null;
+
+        public string listenhost = null;
 
         public int listenport = 9118;
 
-        public string listenhost = null;
+        public string localhost = "127.0.0.1";
 
         public bool multiaccess = false;
 
@@ -160,12 +164,12 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true, cache = true };
+        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true, cache_img = true };
 
         public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
 
 
-        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 1, img = 1, torrent = 2 };
+        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 1, img = 1, torrent = 2, hls = 1 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, path = "dlna" };
 

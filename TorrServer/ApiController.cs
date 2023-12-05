@@ -13,6 +13,7 @@ using System.Net.Http.Headers;
 using TorrServer;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
+using System.Buffers;
 
 namespace Lampac.Controllers
 {
@@ -39,7 +40,7 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Main()
         {
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
-            string servUri = $"http://127.0.0.1:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+            string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
             if (!pathRequest.Contains(".js") && await Start() == false)
                 return StatusCode(500);
@@ -119,7 +120,7 @@ namespace Lampac.Controllers
 
                 if (HttpContext.Request.Path.Value.StartsWith("/ts/echo"))
                 {
-                    await HttpContext.Response.WriteAsync("MatriX.API");
+                    await HttpContext.Response.WriteAsync("MatriX.API", HttpContext.RequestAborted);
                     return;
                 }
 
@@ -235,7 +236,7 @@ namespace Lampac.Controllers
                         {
                             client.Timeout = TimeSpan.FromSeconds(10);
 
-                            var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
+                            var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                             string settingsJson = await response.Content.ReadAsStringAsync();
 
                             if (!string.IsNullOrWhiteSpace(settingsJson))
@@ -246,7 +247,7 @@ namespace Lampac.Controllers
                                 if (requestJson != settingsJson)
                                 {
                                     requestJson = "{\"action\":\"set\",\"sets\":" + requestJson + "}";
-                                    await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
+                                    await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                                 }
                             }
                         }
@@ -271,13 +272,9 @@ namespace Lampac.Controllers
             try
             {
                 bool servIsWork = false;
-                DateTime endTimeCheckort = DateTime.Now.AddSeconds(5);
 
-                while (true)
+                for (int i = 0; i < 3; i++)
                 {
-                    if (DateTime.Now > endTimeCheckort)
-                        break;
-
                     await Task.Delay(200);
 
                     try
@@ -286,7 +283,7 @@ namespace Lampac.Controllers
                         {
                             client.Timeout = TimeSpan.FromSeconds(2);
 
-                            var response = await client.GetAsync($"http://127.0.0.1:{port}/echo", httpContext.RequestAborted);
+                            var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo", httpContext.RequestAborted);
                             if (response.StatusCode == System.Net.HttpStatusCode.OK)
                             {
                                 string echo = await response.Content.ReadAsStringAsync();
@@ -334,7 +331,7 @@ namespace Lampac.Controllers
             }
 
             requestMessage.Headers.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
-            requestMessage.Headers.Host = context.Request.Host.Value;// uri.Authority;
+            requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listenhost) ? context.Request.Host.Value : AppInit.conf.listenhost;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
 
@@ -395,13 +392,29 @@ namespace Lampac.Controllers
             if (!destination.CanWrite)
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
-            byte[] buffer = new byte[81920];
-            int bytesRead;
-            while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+            try
             {
-                await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-                ModInit.lastActve = DateTime.Now;
+                int bytesRead;
+                while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
+                {
+                    ModInit.lastActve = DateTime.Now;
+                    await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+                }
             }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+            //byte[] buffer = new byte[81920];
+            //int bytesRead;
+            //while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
+            //{
+            //    await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+            //    ModInit.lastActve = DateTime.Now;
+            //}
         }
         #endregion
     }

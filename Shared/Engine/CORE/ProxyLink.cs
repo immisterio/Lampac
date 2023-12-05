@@ -11,9 +11,9 @@ namespace Lampac.Engine.CORE
     {
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
 
-        public static string Encrypt(string uri, ProxyLinkModel p) => Encrypt(uri, p.reqip, p.headers, p.proxy);
+        public static string Encrypt(string uri, ProxyLinkModel p) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin);
 
-        public static string Encrypt(string uri, string reqip, List<(string name, string val)> headers = null, WebProxy proxy = null)
+        public static string Encrypt(string uri, string reqip, List<(string name, string val)> headers = null, WebProxy proxy = null, string plugin = null)
         {
             if (!AppInit.conf.serverproxy.encrypt)
                 return uri;
@@ -35,7 +35,7 @@ namespace Lampac.Engine.CORE
 
             if (!links.ContainsKey(hash))
             {
-                var md = new ProxyLinkModel(reqip, headers, proxy, uri);
+                var md = new ProxyLinkModel(reqip, headers, proxy, uri, plugin);
                 links.AddOrUpdate(hash, md, (d, u) => md);
             }
 
