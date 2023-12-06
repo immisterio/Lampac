@@ -21,7 +21,7 @@ namespace JinEnergy.Online
                null,
                AppInit.AnilibriaOnline.corsHost(),
                ongettourl => JsHttpClient.Get<List<RootObject>>(AppInit.AnilibriaOnline.corsHost(ongettourl)),
-               onstreamtofile => onstreamtofile
+               streamfile => streamfile
                //AppInit.log
             );
 

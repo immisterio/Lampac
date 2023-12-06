@@ -81,6 +81,8 @@ namespace JinEnergy
                                 if (FXFS != null)
                                     conf.Filmix.freehash = !string.IsNullOrEmpty(FXFS);
                             }
+
+                            Country = await JsHttpClient.Get("https://api.apn.monster/country", timeoutSeconds: 4);
                         }
                     }
                 }
@@ -104,6 +106,8 @@ namespace JinEnergy
 
 
         public static bool IsAndrod { get; private set; }
+
+        public static string? Country { get; private set; }
 
         public static SisiConf sisi => conf.sisi;
 

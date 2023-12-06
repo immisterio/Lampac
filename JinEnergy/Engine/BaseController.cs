@@ -2,6 +2,9 @@
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Shared.Model.Base;
+using System.Net.Http;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -139,6 +142,18 @@ namespace JinEnergy.Engine
                 return url;
 
             return "https://image-resizing.sisi.am" + $"/{(width == 0 ? "-" : width)}:{(height == 0 ? "-" : height)}/{Regex.Replace(url, "^https?://", "")}";
+        }
+
+
+        public static string HostStreamProxy(string? uri)
+        {
+            if (string.IsNullOrWhiteSpace(uri))
+                return string.Empty;
+
+            if (AppInit.Country != "UA")
+                return uri;
+
+            return "https://api.apn.monster/proxy/" + uri;
         }
     }
 }

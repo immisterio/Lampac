@@ -15,7 +15,7 @@ namespace JinEnergy.Online
             AppInit.Kodik.token,
             (uri, head) => JsHttpClient.Get(AppInit.Kodik.corsHost(uri), addHeaders: head),
             (uri, data) => JsHttpClient.Post(AppInit.Kodik.corsHost(uri), data),
-            onstreamtofile => onstreamtofile
+            streamfile => HostStreamProxy(streamfile)
             //AppInit.log
         );
         #endregion

@@ -20,7 +20,7 @@ namespace JinEnergy.Online
                AppInit.VCDN.corsHost(AppInit.VCDN.apihost!),
                AppInit.VCDN.token!,
                (url, referer) => JsHttpClient.Get(AppInit.VCDN.corsHost(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
-               streamfile => streamfile
+               streamfile => HostStreamProxy(streamfile)
                //AppInit.log
             );
 

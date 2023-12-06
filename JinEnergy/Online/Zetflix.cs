@@ -21,7 +21,7 @@ namespace JinEnergy.Online
                null,
                AppInit.Zetflix.corsHost(),
                (url, head) => JsHttpClient.Get(url.Contains(".cub.watch") ? url : AppInit.Zetflix.corsHost(url), addHeaders: head),
-               onstreamtofile => onstreamtofile
+               streamfile => HostStreamProxy(streamfile)
                //AppInit.log
             );
 

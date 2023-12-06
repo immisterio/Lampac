@@ -22,7 +22,7 @@ namespace JinEnergy.Online
                null,
                AppInit.VideoDB.corsHost(),
                (url, head) => JsHttpClient.Get(AppInit.VideoDB.corsHost(url), addHeaders: head),
-               onstreamtofile => onstreamtofile
+               streamfile => HostStreamProxy(streamfile)
                //AppInit.log
             );
 
