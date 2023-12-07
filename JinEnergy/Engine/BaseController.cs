@@ -153,7 +153,7 @@ namespace JinEnergy.Engine
             if (AppInit.Country != "UA")
                 return uri;
 
-            return "https://api.apn.monster/proxy/" + uri;
+            return "https://apn.monster/go/" + uri;
         }
     }
 }

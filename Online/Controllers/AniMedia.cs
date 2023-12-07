@@ -124,7 +124,7 @@ namespace Lampac.Controllers.LITE
                         foreach (var pl in playlist)
                         {
                             string name = pl.Value<string>("title");
-                            string file = pl.Value<string>("file").Replace("https:", "http:"); // кривой ssl на сайте
+                            string file = pl.Value<string>("file");
                             if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(file))
                                 links.Add((name, file));
                         }
@@ -137,7 +137,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(AppInit.conf.AniMedia, l.uri, proxy: proxy);
+                        string link = HostStreamProxy(AppInit.conf.AniMedia, l.uri, proxy: proxy, plugin: "animedia");
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name.ToLower()})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }

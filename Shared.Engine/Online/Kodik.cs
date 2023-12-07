@@ -209,7 +209,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region VideoParse
-        async public ValueTask<string?> VideoParse(string linkhost, string? title, string? original_title, string link, int episode, bool play)
+        async public ValueTask<string?> VideoParse(string linkhost, string link)
         {
             string? iframe = await onget($"http:{link}", new List<(string name, string val)>() { ("referer", "https://animego.org/") });
             if (iframe == null)
@@ -224,9 +224,14 @@ namespace Shared.Engine.Online
             string id = new Regex("videoInfo.id='([^']+)'").Match(_frame).Groups[1].Value;
 
             string? json = await onpost($"{linkhost}/gvi", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D");
-            if (json == null)
+            if (json == null || !json.Contains("\"src\":\""))
                 return null;
 
+            return json;
+        }
+
+        public string? VideoParse(string json, string? title, string? original_title, int episode, bool play)
+        {
             var streams = new List<(string q, string url)>();
 
             var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
@@ -246,7 +251,7 @@ namespace Shared.Engine.Online
                     if (decodedString.StartsWith("//"))
                         decodedString = $"https:{decodedString}";
 
-                    streams.Insert(0, ($"{match.Groups[1].Value}p", decodedString));
+                    streams.Insert(0, ($"{match.Groups[1].Value}p", onstreamfile(decodedString)));
                 }
 
                 match = match.NextMatch();
@@ -255,13 +260,9 @@ namespace Shared.Engine.Online
             if (streams.Count == 0)
                 return null;
 
-
             string streansquality = string.Empty;
             foreach (var l in streams)
-            {
-                string hls = onstreamfile(l.url);
-                streansquality += $"\"{l.q}\":\"" + hls + "\",";
-            }
+                streansquality += $"\"{l.q}\":\"" + l.url + "\",";
 
             string name = title ?? original_title;
             if (episode > 0)

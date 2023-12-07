@@ -116,6 +116,9 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
+                        if (!link.Contains(".m3u"))
+                            link += ":hls:manifest.m3u8";
+
                         streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                     }
 
@@ -191,6 +194,9 @@ namespace Shared.Engine.Online
                                 string link = m.Groups[2].Value;
                                 if (string.IsNullOrEmpty(link))
                                     continue;
+
+                                if (!link.Contains(".m3u"))
+                                    link += ":hls:manifest.m3u8";
 
                                 streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                             }

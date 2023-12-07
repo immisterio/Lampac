@@ -1,5 +1,6 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
+using Shared.Model.Online.Rezka;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -195,7 +196,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        async public ValueTask<string?> Movie(string? title, string? original_title, string? t, int s, int e, bool play)
+        async public ValueTask<MovieModel?> Movie(string? t, int s, int e)
         {
             string uri = $"{apihost}/movie/{t}/iframe";
             if (s > 0 || e > 0)
@@ -209,13 +210,17 @@ namespace Shared.Engine.Online
             if (!mfile.Success)
                 return null;
 
+            return new MovieModel() { url = mfile.Groups[1].Value.Trim(), subtitlehtml = Regex.Match(content, "'subtitle': '([^']+)'").Groups[1].Value };
+        }
+
+        public string? Movie(MovieModel md, string? title, string? original_title, bool play)
+        {
             #region subtitle
             string subtitles = string.Empty;
-            string subtitlehtml = Regex.Match(content, "'subtitle': '([^']+)'").Groups[1].Value;
 
-            if (!string.IsNullOrWhiteSpace(subtitlehtml))
+            if (!string.IsNullOrWhiteSpace(md.subtitlehtml))
             {
-                var m = Regex.Match(subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");
+                var m = Regex.Match(md.subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");
                 while (m.Success)
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
@@ -228,7 +233,7 @@ namespace Shared.Engine.Online
             }
             #endregion
 
-            var links = getStreamLink(mfile.Groups[1].Value.Trim());
+            var links = getStreamLink(md.url);
 
             string streansquality = string.Empty;
             foreach (var l in links)
@@ -304,6 +309,9 @@ namespace Shared.Engine.Online
                 string? link = getLink(q);
                 if (string.IsNullOrEmpty(link))
                     continue;
+
+                if (!link.Contains(".m3u"))
+                    link += ":hls:manifest.m3u8";
 
                 links.Add(new ApiModel()
                 {

@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
                 AppInit.conf.Voidboost.corsHost(),
                 ongettourl => HttpClient.Get(AppInit.conf.Voidboost.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 (url, data) => HttpClient.Post(AppInit.conf.Voidboost.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                streamfile => HostStreamProxy(AppInit.conf.Voidboost, streamfile, proxy: proxy)
+                streamfile => HostStreamProxy(AppInit.conf.Voidboost, streamfile, proxy: proxy, plugin: "voidboost")
             );
         }
         #endregion
@@ -86,9 +86,13 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            string result = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, t, s, e, play));
-            if (result == null)
+            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(t, s, e));
+            if (md == null)
                 return OnError(proxyManager);
+
+            string result = oninvk.Movie(md, title, original_title, play);
+            if (result == null)
+                return OnError();
 
             if (play)
                 return Redirect(result);

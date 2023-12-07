@@ -76,6 +76,8 @@ namespace Lampac.Engine.Middlewares
                     decryptLink = new ProxyLinkModel(reqip, null, null, servUri);
                 #endregion
 
+                // httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
+
                 #region Кеш файла
                 string md5file = httpContext.Request.Path.Value.Replace("/proxy/", "");
                 bool ists = md5file.EndsWith(".ts");
@@ -162,7 +164,7 @@ namespace Lampac.Engine.Middlewares
 
                                 string hls = editm3u(m3u8, httpContext, account_email, decryptLink);
 
-                                httpContext.Response.Headers.Add("PX-Cache", "MISS");
+                                httpContext.Response.Headers.Add("PX-Cache", cache_stream ? "MISS" : "BYPASS");
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                 httpContext.Response.ContentLength = hls.Length;
                                 await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
@@ -209,6 +211,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     else
                     {
+                        httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
                         await CopyProxyHttpResponse(httpContext, response);
                     }
                 }
@@ -347,6 +350,62 @@ namespace Lampac.Engine.Middlewares
                 var g = Regex.Match(uri, "/useruploads/([^/]+)/[^/]+/(.*\\.ts)").Groups;
                 if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrEmpty(g[2].Value))
                     return $"{decryptLink.plugin}:{g[1].Value}:{g[2].Value}";
+            }
+
+            if (decryptLink.plugin == "vcdn")
+            {
+                // https://mystic.cloud.cdnland.in/5fd0c7ccf5c248e2f17632e5ee7ed2a0:2023120611/animetvseries/6cfb3c44adf0705fe1997aa5b44f0872671a169d/720.mp4:hls:seg-1-v1-a1.ts
+                string uts = Regex.Match(uri, "https?://[^/]+/[^/]+/(.*\\.ts)").Groups[1].Value;
+                if (!string.IsNullOrEmpty(uts))
+                    return $"{decryptLink.plugin}:{uts}";
+            }
+
+            if (decryptLink.plugin == "videodb")
+            {
+                // https://glory.videokinoplay1.online/animetvseries/f3b391fb97f442eeb760ea1e961d0aff6f2e6190/e88b91a3a4103e1548ebffa4053b75e7:2023120623/1080.mp4:hls:seg-1-v1-a1.ts
+                // https://iridium.videokinoplay1.online/movies/71416328961755e50401b511ebc3a5ff0399b013/34b7292ade3dccdaaa9514c7229f158e:2023120714/1080.mp4:hls:seg-1-v1-a1.ts
+                var g = Regex.Match(uri, "https?://[^/]+/([^/]+/[^/]+)/[^/]+/(.*\\.ts)").Groups;
+                if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrEmpty(g[2].Value))
+                    return $"{decryptLink.plugin}:{g[1].Value}:{g[2].Value}";
+            }
+
+            if (decryptLink.plugin == "rezka" || decryptLink.plugin == "voidboost")
+            {
+                // https://broadway.stream.voidboost.cc/ae6235dd062c2bc5e80bec676c9c86ab:2023120807:dmoxckFDWWR2eTJPWFhFcTE0TkZobFprVEtXMnUrdnN5QThmUWoxRFc4TEpZcjZjeXZETXdRNklsdnF5MTdqSDRGRlNud2pnNlpXSjZsdTQybWROUk1RVEc1bUpTSXBIOC8wWkYvMlFVRjQ9/9/6/4/3/9/0/lmrw7.mp4:hls:seg-2-v1-a1.ts
+                string uts = Regex.Match(uri, "https?://[^/]+/[^/]+/(.*\\.ts)").Groups[1].Value;
+                if (!string.IsNullOrEmpty(uts))
+                    return $"{decryptLink.plugin}:{uts}";
+            }
+
+            if (decryptLink.plugin == "zetflix")
+            {
+                // https://glory.prosto.hdvideobox.me/f89eb821ed9784dd4e22516075e35cbd:2023120623/animetvseries/28eba2e8ccb33547c20eacdc7d51c5e81ce447be/1080.mp4:hls:seg-1-v1-a1.ts
+                string uts = Regex.Match(uri, "https?://[^/]+/[^/]+/(.*\\.ts)").Groups[1].Value;
+                if (!string.IsNullOrEmpty(uts))
+                    return $"{decryptLink.plugin}:{uts}";
+            }
+
+            if (decryptLink.plugin == "anilibria")
+            {
+                // https://cache.libria.fun/videos/media/ts/9261/1/1080/521c1f3960f35ce521b2a41b3ac9d381_00033.ts
+                // https://cache-cloud21.libria.fun/videos/media/ts/9261/1/1080/521c1f3960f35ce521b2a41b3ac9d381_00033.ts?expires=1701782505&extra=Lu6IAwHxxH22omYfHVFHhA
+                uri = Regex.Replace(uri, "^https?://[^/]+", "");
+                uri = Regex.Replace(uri, "\\?.*", "");
+                return $"{decryptLink.plugin}:{uri}";
+            }
+
+            if (decryptLink.plugin == "animebesst")
+            {
+                // https://tv.anime1.best/content/vod/serials/wan_jie_du_zun/s01/wan_jie_du_zun__01_tv_1_150/hls/480/segment1084.ts
+                uri = Regex.Replace(uri, "^https?://[^/]+", "");
+                return $"{decryptLink.plugin}:{uri}";
+            }
+
+            if (decryptLink.plugin == "animedia")
+            {
+                // https://hls.animedia.tv/dir220/1601680190ba8319ddd61df944691352b601445e2576d1601d/3_0000.ts
+                uri = Regex.Replace(uri, "^https?://[^/]+", "");
+                return $"{decryptLink.plugin}:{uri}";
             }
 
             return null;

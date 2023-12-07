@@ -23,8 +23,8 @@ namespace Lampac.Controllers.LITE
             (
                host,
                AppInit.conf.Zetflix.corsHost(),
-               (url, head) => HttpClient.Get(url.Contains(".cub.watch") ? url : AppInit.conf.Zetflix.corsHost(url), addHeaders: head, timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Zetflix, onstreamtofile, proxy: proxy)
+               (url, head) => HttpClient.Get(AppInit.conf.Zetflix.corsHost(url), addHeaders: head, timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(AppInit.conf.Zetflix, onstreamtofile, proxy: proxy, plugin: "zetflix")
                //AppInit.log
             );
 

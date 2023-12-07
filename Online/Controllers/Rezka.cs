@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                 AppInit.conf.Rezka.corsHost(),
                 ongettourl => HttpClient.Get(AppInit.conf.Rezka.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 (url, data) => HttpClient.Post(AppInit.conf.Rezka.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                streamfile => HostStreamProxy(AppInit.conf.Rezka, streamfile, proxy: proxy)
+                streamfile => HostStreamProxy(AppInit.conf.Rezka, streamfile, proxy: proxy, plugin: "rezka")
             );
         }
         #endregion
@@ -101,9 +101,13 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRezkaInvoke();
 
-            string result = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(title, original_title, id, t, director, s, e, favs, play));
-            if (result == null)
+            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(id, t, director, s, e, favs));
+            if (md == null)
                 return OnError(proxyManager);
+
+            string result = oninvk.Movie(md, title, original_title, play);
+            if (result == null)
+                return OnError();
 
             if (play)
                 return Redirect(result);

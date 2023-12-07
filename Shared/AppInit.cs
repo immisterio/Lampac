@@ -10,6 +10,7 @@ using Lampac.Models.DLNA;
 using Lampac.Models.Merchant;
 using System.Collections.Concurrent;
 using Shared.Model.Base;
+using System.Text.RegularExpressions;
 
 namespace Lampac
 {
@@ -88,7 +89,7 @@ namespace Lampac
                 return $"{scheme}://{conf.listenhost}";
 
             if (httpContext.Request.Headers.TryGetValue("xhost", out var xhost))
-                return $"{scheme}://{xhost}";
+                return $"{scheme}://{Regex.Replace(xhost, "^https?://", "")}";
 
             return $"{scheme}://{httpContext.Request.Host.Value}";
         }

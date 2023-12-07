@@ -68,9 +68,9 @@ namespace JinEnergy
                             if (!conf.KinoPub.enable)
                             {
                                 string? kinopubtk = await JsHttpClient.Get($"https://bwa.to/temp/kinopubtk.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
-                                if (kinopubtk != null)
+                                if (!string.IsNullOrEmpty(kinopubtk))
                                 {
-                                    conf.KinoPub.enable = !string.IsNullOrEmpty(kinopubtk);
+                                    conf.KinoPub.enable = true;
                                     conf.KinoPub.token = kinopubtk;
                                 }
                             }
@@ -82,7 +82,7 @@ namespace JinEnergy
                                     conf.Filmix.freehash = !string.IsNullOrEmpty(FXFS);
                             }
 
-                            Country = await JsHttpClient.Get("https://api.apn.monster/country", timeoutSeconds: 4);
+                            Country = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 4);
                         }
                     }
                 }

@@ -140,7 +140,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, mp4, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.Animevost, mp4, proxy: proxyManager.Get()));
+            return Redirect(HostStreamProxy(AppInit.conf.Animevost, mp4, proxy: proxyManager.Get(), plugin: "animevost"));
         }
         #endregion
     }

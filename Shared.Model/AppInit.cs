@@ -6,7 +6,7 @@ namespace Shared.Model
 {
     public class AppInit
     {
-        public static string corseuhost { get; set; } = "https://cors.bwa.workers.dev";
+        public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
         public string? corsehost { get; set; }
 
@@ -105,7 +105,7 @@ namespace Shared.Model
         /// <summary>
         /// cdn сервер сдох
         /// </summary>
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", enable: false, streamproxy: true);
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
         public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true);
 

@@ -101,7 +101,7 @@ namespace Lampac.Controllers.LITE
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"kodik:view:stream:{link}:{userIp}";
+            string memKey = $"kodik:view:stream:{link}";
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
@@ -122,7 +122,7 @@ namespace Lampac.Controllers.LITE
                 if (streams.Count == 0)
                     return Content(string.Empty);
 
-                memoryCache.Set(memKey, streams, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, streams, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
             }
 
             string streansquality = string.Empty;
@@ -136,10 +136,12 @@ namespace Lampac.Controllers.LITE
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy, plugin: "kodik"));
+            string url = HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy, plugin: "kodik");
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy) + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            if (play)
+                return Redirect(url);
+
+            return Content("{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -154,9 +156,13 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitKodikInvoke();
 
-            string result = await InvokeCache($"kodik:video:{link}:{play}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.VideoParse(AppInit.conf.Kodik.linkhost, title, original_title, link, episode, play));
-            if (result == null)
+            string json = await InvokeCache($"kodik:video:{link}:{play}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.VideoParse(AppInit.conf.Kodik.linkhost, link));
+            if (json == null)
                 return OnError(proxyManager);
+
+            string result = oninvk.VideoParse(json, title, original_title, episode, play);
+            if (result == null)
+                return OnError();
 
             if (play)
                 return Redirect(result);

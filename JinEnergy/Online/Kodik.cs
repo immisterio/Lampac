@@ -68,7 +68,11 @@ namespace JinEnergy.Online
             if (link == null)
                 return EmptyError("link");
 
-            string? result = await InvokeCache(0, $"kodik:video:{link}", () => oninvk.VideoParse(AppInit.Kodik.linkhost, arg.title, arg.original_title, link, episode, false));
+            string? json = await InvokeCache(0, $"kodik:video:{link}", () => oninvk.VideoParse(AppInit.Kodik.linkhost, link));
+            if (json == null)
+                return EmptyError("json");
+
+            string? result = oninvk.VideoParse(json, arg.title, arg.original_title, episode, false);
             if (result == null)
                 return EmptyError("result");
 

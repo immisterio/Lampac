@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("disable");
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
-            if (AppInit.conf.Alloha.localip)
+            if (AppInit.conf.Alloha.localip || AppInit.conf.Alloha.streamproxy)
             {
                 userIp = await mylocalip();
                 if (userIp == null)
@@ -156,9 +156,9 @@ namespace Lampac.Controllers.LITE
             }
 
             if (play)
-                return Redirect(_cache.m3u8);
+                return Redirect(HostStreamProxy(AppInit.conf.Alloha, _cache.m3u8));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + _cache.m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Alloha, _cache.m3u8) + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
         }
         #endregion
 

@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
                AppInit.conf.VCDN.corsHost(AppInit.conf.VCDN.apihost),
                AppInit.conf.VCDN.token,
                (url, referer) => HttpClient.Get(AppInit.conf.VCDN.corsHost(url), referer: referer, timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(AppInit.conf.VCDN, streamfile, proxy: proxy)
+               streamfile => HostStreamProxy(AppInit.conf.VCDN, streamfile, proxy: proxy, plugin: "vcdn")
             );
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))

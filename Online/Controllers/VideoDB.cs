@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
                host,
                AppInit.conf.VideoDB.corsHost(),
                (url, head) => HttpClient.Get(AppInit.conf.VideoDB.corsHost(url), timeoutSeconds: 8, proxy: proxy, addHeaders: head),
-               streamfile => HostStreamProxy(AppInit.conf.VideoDB, streamfile, proxy: proxy)
+               streamfile => HostStreamProxy(AppInit.conf.VideoDB, streamfile, proxy: proxy, plugin: "videodb")
             );
 
             var content = await InvokeCache($"videodb:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, serial));

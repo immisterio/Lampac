@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
                host,
                AppInit.conf.AnilibriaOnline.corsHost(),
                ongettourl => HttpClient.Get<List<RootObject>>(AppInit.conf.AnilibriaOnline.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true),
-               streamfile => HostStreamProxy(AppInit.conf.AnilibriaOnline, streamfile, proxy: proxy)
+               streamfile => HostStreamProxy(AppInit.conf.AnilibriaOnline, streamfile, proxy: proxy, plugin: "anilibria")
             );
 
             var result = await InvokeCache($"anilibriaonline:{title}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(title));

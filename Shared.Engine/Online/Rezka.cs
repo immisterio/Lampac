@@ -328,9 +328,8 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        async public ValueTask<string?> Movie(string? title, string? original_title, long id, int t, int director, int s, int e, string? favs, bool play)
+        async public ValueTask<MovieModel?> Movie(long id, int t, int director, int s, int e, string? favs)
         {
-            #region get_cdn_series
             string? data = null;
             string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
 
@@ -357,22 +356,33 @@ namespace Shared.Engine.Online
             string? url = root?["url"]?.ToString();
             if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
                 return null;
-            #endregion
 
-            var links = getStreamLink(url);
+            string? subtitlehtml = null;
+
+            try
+            {
+                subtitlehtml = root?["subtitle"]?.ToString();
+            }
+            catch { }
+
+            return new MovieModel() { url = url, subtitlehtml = subtitlehtml };
+        }
+
+        public string? Movie(MovieModel md, string? title, string? original_title, bool play)
+        {
+            var links = getStreamLink(md.url);
 
             if (play)
                 return links[0].stream_url;
 
-            #region subtitle
+            #region subtitles
             string subtitles = string.Empty;
 
             try
             {
-                string? subtitlehtml = root?["subtitle"]?.ToString();
-                if (!string.IsNullOrWhiteSpace(subtitlehtml))
+                if (!string.IsNullOrWhiteSpace(md.subtitlehtml))
                 {
-                    var m = Regex.Match(subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");
+                    var m = Regex.Match(md.subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");
                     while (m.Success)
                     {
                         if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
@@ -433,7 +443,7 @@ namespace Shared.Engine.Online
         List<ApiModel> getStreamLink(string _data)
         {
             _data = decodeBase64(_data);
-            var links = new List<ApiModel>() { Capacity = 4 };
+            var links = new List<ApiModel>() { Capacity = 6 };
 
             #region getLink
             string? getLink(string _q)
@@ -456,6 +466,9 @@ namespace Shared.Engine.Online
                 string? link = getLink(q);
                 if (string.IsNullOrEmpty(link))
                     continue;
+
+                if (!link.Contains(".m3u"))
+                    link += ":hls:manifest.m3u8";
 
                 links.Add(new ApiModel()
                 {
