@@ -30,4 +30,17 @@ RUN cat <<EOF > /home/init.conf
 }
 EOF
 
+RUN cat <<EOF > /module/manifest.json
+[
+  {
+	"enable": true,
+	"dll": "SISI.dll"
+  },
+  {
+	"enable": true,
+	"dll": "Online.dll"
+  }
+]
+EOF
+
 ENTRYPOINT ["dotnet", "Lampac.dll"]
