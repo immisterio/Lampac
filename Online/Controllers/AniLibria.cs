@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.AnilibriaOnline, streamfile, proxy: proxy, plugin: "anilibria")
             );
 
-            var result = await InvokeCache($"anilibriaonline:{title}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Embed(title));
+            var result = await InvokeCache($"anilibriaonline:{title}", cacheTime(40), () => oninvk.Embed(title));
             if (result == null)
                 return OnError(proxyManager);
 

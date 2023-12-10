@@ -152,6 +152,8 @@ namespace Lampac
 
         public bool multiaccess = false;
 
+        public bool mikrotik = false;
+
         public bool pirate_store = true;
 
         public string apikey = null;

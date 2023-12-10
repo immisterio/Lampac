@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
         #region kinopubpro
         [HttpGet]
         [Route("lite/kinopubpro")]
-        async public Task<ActionResult> Pro(string code)
+        async public Task<ActionResult> Pro(string code, string name)
         {
             var proxy = proxyManager.Get();
 
@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
                 html += $"2. Введите код активации <b>{token_request.Value<string>("user_code")}</b><br>";
                 html += $"3. Когда на сайте kino.pub появится \"Ожидание устройства\", нажмите кнопку \"Проверить активацию\" которая ниже</b>";
 
-                html += $"<br><br><a href='/lite/kinopubpro?code={token_request.Value<string>("code")}'><button>Проверить активацию</button></a>";
+                html += $"<br><br><a href='/lite/kinopubpro?code={token_request.Value<string>("code")}&name={name}'><button>Проверить активацию</button></a>";
 
                 return Content(html, "text/html; charset=utf-8");
             }
@@ -37,7 +37,7 @@ namespace Lampac.Controllers.LITE
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
-                await HttpClient.Post($"{AppInit.conf.KinoPub.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", "&title=LAMPAC", proxy: proxy);
+                await HttpClient.Post($"{AppInit.conf.KinoPub.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name ?? "LAMPAC"}", proxy: proxy);
 
                 return Content($"В init.conf укажите token <b>{device_token.Value<string>("access_token")}</b>", "text/html; charset=utf-8");
             }
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                 if (original_language != "en")
                     clarification = 1;
 
-                var res = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", AppInit.conf.multiaccess ? 40 : 10, () => oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id));
+                var res = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40), () => oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id));
 
                 if (res.similars != null)
                     return Content(res.similars, "text/html; charset=utf-8");
@@ -81,7 +81,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
             }
 
-            var root = await InvokeCache($"kinopub:post:{postid}", AppInit.conf.multiaccess ? 10 : 5, () => oninvk.Post(postid));
+            var root = await InvokeCache($"kinopub:post:{postid}", cacheTime(10), () => oninvk.Post(postid));
             if (root == null)
                 return OnError(proxyManager);
 

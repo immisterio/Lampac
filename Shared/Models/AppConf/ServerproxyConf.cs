@@ -16,6 +16,8 @@ namespace Lampac.Models.AppConf
 
         public bool cache_hls { get; set; }
 
+        public bool showOrigUri { get; set; }
+
 
         public bool useproxy { get; set; }
 

@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager);
                 }
 
-                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
+                memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             if (play)
@@ -233,7 +233,7 @@ namespace Lampac.Controllers.LITE
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return OnError(proxyManager);
 
-                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
+                memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             if (play)
@@ -254,7 +254,7 @@ namespace Lampac.Controllers.LITE
                 if (root == null || root.Count == 0)
                     return null;
 
-                memoryCache.Set(memKey, root, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, root, cacheTime(40));
             }
 
             return root;

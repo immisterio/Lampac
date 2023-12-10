@@ -35,7 +35,7 @@ namespace Lampac.Controllers.Porntrex
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
-                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
+                memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: new List<(string name, string val)> { ("referer", $"{AppInit.conf.Porntrex.host}/") });

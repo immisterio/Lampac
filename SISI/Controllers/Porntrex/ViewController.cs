@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Porntrex
                 if (links == null || links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
-                memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, links, cacheTime(20));
             }
 
             return Json(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
@@ -61,7 +61,7 @@ namespace Lampac.Controllers.Porntrex
                 if (location == null || link == location)
                     return OnError("location");
 
-                memoryCache.Set(memKey, location, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 5));
+                memoryCache.Set(memKey, location, cacheTime(40));
             }
 
             return Redirect(HostStreamProxy(AppInit.conf.Porntrex, location, proxy: proxy));

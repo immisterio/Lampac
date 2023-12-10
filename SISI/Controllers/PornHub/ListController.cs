@@ -62,7 +62,7 @@ namespace Lampac.Controllers.PornHub
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
-                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
+                memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? PornHubTo.Menu(host, plugin, sort, c) : null);
@@ -91,7 +91,7 @@ namespace Lampac.Controllers.PornHub
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
-                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 2));
+                memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? PornHubTo.Menu(host, "phubprem", sort, c, hd) : null);

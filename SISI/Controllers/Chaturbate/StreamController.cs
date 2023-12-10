@@ -29,7 +29,7 @@ namespace Lampac.Controllers.Chaturbate
                 if (stream_links == null || stream_links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
-                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 5));
+                memoryCache.Set(memKey, stream_links, cacheTime(10));
             }
 
             return OnResult(stream_links, AppInit.conf.Chaturbate, proxy);

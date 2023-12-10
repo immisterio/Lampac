@@ -31,14 +31,14 @@ namespace Lampac.Controllers.LITE
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
             {
-                string similars = await InvokeCache($"videocdn:search:{title}:{original_title}", AppInit.conf.multiaccess ? 40 : 5, () => oninvk.Search(title, original_title));
+                string similars = await InvokeCache($"videocdn:search:{title}:{original_title}", cacheTime(40), () => oninvk.Search(title, original_title));
                 if (string.IsNullOrEmpty(similars))
                     return OnError("similars");
 
                 return Content(similars, "text/html; charset=utf-8");
             }
 
-            var content = await InvokeCache($"videocdn:view:{imdb_id}:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, imdb_id));
+            var content = await InvokeCache($"videocdn:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id));
             if (content == null)
                 return OnError(proxyManager);
 

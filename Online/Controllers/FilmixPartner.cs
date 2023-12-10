@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
                     postid = await search(kinopoisk_id);
                 else
                 {
-                    var res = await InvokeCache($"fxapi:search:{title}:{original_title}", 40, () => Search(title, original_title, year));
+                    var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40), () => Search(title, original_title, year));
                     if (res.id == 0)
                         return Content(res.similars);
 

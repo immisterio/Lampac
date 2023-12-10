@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.Redheadsound, streamfile, proxy: proxy)
             );
 
-            var content = await InvokeCache($"redheadsound:view:{title}:{year}:{clarification}", AppInit.conf.multiaccess ? 30 : 10, () => oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year));
+            var content = await InvokeCache($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30), () => oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year));
             if (content == null)
                 return OnError(proxyManager);
 

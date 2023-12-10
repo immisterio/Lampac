@@ -38,7 +38,7 @@ namespace Lampac.Controllers.Chaturbate
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager);
 
-                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
+                memoryCache.Set(memKey, playlists, cacheTime(5));
             }
 
             return OnResult(playlists, ChaturbateTo.Menu(host, sort));

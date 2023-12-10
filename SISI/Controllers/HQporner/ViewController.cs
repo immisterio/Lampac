@@ -32,7 +32,7 @@ namespace Lampac.Controllers.HQporner
                 if (stream_links == null || stream_links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
-                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, AppInit.conf.HQporner, proxy);

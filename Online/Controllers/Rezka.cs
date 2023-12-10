@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRezkaInvoke();
 
-            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
@@ -79,11 +79,11 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRezkaInvoke();
 
-            Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.SerialEmbed(id, t));
+            Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t));
             if (root == null)
                 return OnError(proxyManager);
 
-            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
@@ -101,7 +101,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRezkaInvoke();
 
-            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(id, t, director, s, e, favs));
+            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(20), () => oninvk.Movie(id, t, director, s, e, favs));
             if (md == null)
                 return OnError(proxyManager);
 

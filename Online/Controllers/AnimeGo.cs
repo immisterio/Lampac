@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError(proxyManager);
 
-                    memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                    memoryCache.Set(memkey, catalog, cacheTime(40));
                 }
 
                 if (catalog.Count == 1)
@@ -138,7 +138,7 @@ namespace Lampac.Controllers.LITE
                     }
                     #endregion
 
-                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                    memoryCache.Set(memKey, cache, cacheTime(30));
                 }
 
                 #region Перевод
@@ -203,7 +203,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(proxyManager);
 
                 hls = "https:" + hls;
-                memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                memoryCache.Set(memKey, hls, cacheTime(30));
             }
 
             return Redirect(HostStreamProxy(AppInit.conf.AnimeGo, hls, proxy: proxyManager.Get(), headers: new List<(string, string)>() 

@@ -113,7 +113,7 @@ namespace Lampac.Controllers.LITE
                     return 0;
                 }
 
-                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, root, cacheTime(40));
             }
 
             int reservedid = 0;
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, root, cacheTime(40));
             }
 
             return root;

@@ -76,7 +76,8 @@ namespace Lampac.Engine.Middlewares
                     decryptLink = new ProxyLinkModel(reqip, null, null, servUri);
                 #endregion
 
-                // httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
+                if (AppInit.conf.serverproxy.showOrigUri)
+                    httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
 
                 #region Кеш файла
                 string md5file = httpContext.Request.Path.Value.Replace("/proxy/", "");

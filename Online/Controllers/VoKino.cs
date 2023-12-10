@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.VoKino, streamfile, proxy: proxy)
             );
 
-            var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(kinopoisk_id));
+            var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(kinopoisk_id));
             if (content == null)
                 return OnError(proxyManager);
 

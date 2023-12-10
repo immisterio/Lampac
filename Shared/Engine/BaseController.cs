@@ -80,6 +80,9 @@ namespace Lampac.Engine
 
             if (streamproxy)
             {
+                if (!string.IsNullOrEmpty(conf.apn))
+                    return $"{conf.apn}/{uri}";
+
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 
                 if (AppInit.conf.accsdb.enable)
@@ -95,7 +98,7 @@ namespace Lampac.Engine
             return uri;
         }
 
-        async public ValueTask<T> InvokeCache<T>(string key, int min, Func<ValueTask<T>> onget)
+        async public ValueTask<T> InvokeCache<T>(string key, DateTime time, Func<ValueTask<T>> onget)
         {
             if (memoryCache.TryGetValue(key, out T val))
                 return val;
@@ -104,9 +107,15 @@ namespace Lampac.Engine
             if (val == null || val.Equals(default(T)))
                 return default;
 
-            memoryCache.Set(key, val, DateTime.Now.AddMinutes(min));
+            memoryCache.Set(key, val, time);
             return val;
         }
+
+        public DateTime cacheTime(int multiaccess, int home = 5, int mikrotik = 2)
+        {
+            return DateTime.Now.AddMinutes(AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? multiaccess : home);
+        }
+
 
         public new void Dispose()
         {

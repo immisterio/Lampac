@@ -96,7 +96,7 @@ namespace JacRed.Engine
                     catch { }
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(20 > ModInit.conf.Red.syntime ? 20 : ModInit.conf.Red.syntime));
+                await Task.Delay(1000 * 60 * (20 > ModInit.conf.Red.syntime ? 20 : ModInit.conf.Red.syntime));
             }
         }
     }

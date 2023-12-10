@@ -33,18 +33,7 @@ namespace JinEnergy.Online
                 return similars;
             }
 
-            var content = await InvokeCache(arg.id, $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => 
-            {
-                if (!AppInit.IsAndrod && !AppInit.VCDN.corseu)
-                    AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
-
-                var res = oninvk.Embed(arg.kinopoisk_id, arg.imdb_id);
-
-                if (!AppInit.IsAndrod && !AppInit.VCDN.corseu)
-                    AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
-
-                return res;
-            });
+            var content = await InvokeCache(arg.id, $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id));
 
             if (content == null)
                 return EmptyError("content");

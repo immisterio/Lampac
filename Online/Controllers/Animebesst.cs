@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError(proxyManager);
 
-                    memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                    memoryCache.Set(memkey, catalog, cacheTime(40));
                 }
 
                 if (catalog.Count == 1)
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                     if (links.Count == 0)
                         return OnError(proxyManager);
 
-                    memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                    memoryCache.Set(memKey, links, cacheTime(30));
                 }
 
                 foreach (var l in links)
@@ -137,7 +137,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(hls))
                     return OnError(proxyManager);
 
-                memoryCache.Set(memKey, hls, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                memoryCache.Set(memKey, hls, cacheTime(30));
             }
 
             return Redirect(HostStreamProxy(AppInit.conf.Animebesst, hls, proxy: proxyManager.Get(), plugin: "animebesst"));

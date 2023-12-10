@@ -28,13 +28,13 @@ namespace Lampac.Controllers.LITE
                //AppInit.log
             );
 
-            var content = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, s));
+            var content = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, s));
             if (content?.pl == null)
                 return OnError(proxyManager);
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)
-                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", 60, () => oninvk.number_of_seasons(id));
+                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(60), () => oninvk.number_of_seasons(id));
 
             return Content(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }

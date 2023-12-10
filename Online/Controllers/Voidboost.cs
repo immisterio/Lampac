@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            var content = await InvokeCache($"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(imdb_id, kinopoisk_id, t));
+            var content = await InvokeCache($"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(imdb_id, kinopoisk_id, t));
             if (content == null)
                 return OnError(proxyManager);
 
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            string html = await InvokeCache($"voidboost:view:serial:{t}:{s}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Serial(imdb_id, kinopoisk_id, title, original_title, t, s, true));
+            string html = await InvokeCache($"voidboost:view:serial:{t}:{s}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Serial(imdb_id, kinopoisk_id, title, original_title, t, s, true));
             if (html == null)
                 return OnError(proxyManager);
 
@@ -86,7 +86,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Movie(t, s, e));
+            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", cacheTime(20), () => oninvk.Movie(t, s, e));
             if (md == null)
                 return OnError(proxyManager);
 

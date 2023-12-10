@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrWhiteSpace(subtitle) && subtitle.Contains(".vtt"))
                     _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 
-                memoryCache.Set(memKey, _cache, TimeSpan.FromMinutes(10));
+                memoryCache.Set(memKey, _cache, cacheTime(10));
             }
 
             if (play)
@@ -210,7 +210,7 @@ namespace Lampac.Controllers.LITE
                     res.category_id = res.data.Value<int>("category");
                 }
 
-                memoryCache.Set(memKey, res, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                memoryCache.Set(memKey, res, cacheTime(40));
             }
 
             return (false, res.category_id, res.data);

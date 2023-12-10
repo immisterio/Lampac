@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
@@ -54,7 +53,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError(proxyManager);
 
-                    memoryCache.Set(memkey, catalog, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                    memoryCache.Set(memkey, catalog, cacheTime(40));
                 }
 
                 if (catalog.Count == 1)
@@ -100,7 +99,7 @@ namespace Lampac.Controllers.LITE
                     if (links.Count == 0)
                         return OnError(proxyManager);
 
-                    memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                    memoryCache.Set(memKey, links, cacheTime(30));
                 }
 
                 foreach (var l in links)
@@ -137,7 +136,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(mp4))
                     return OnError(proxyManager);
 
-                memoryCache.Set(memKey, mp4, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 10));
+                memoryCache.Set(memKey, mp4, cacheTime(20));
             }
 
             return Redirect(HostStreamProxy(AppInit.conf.Animevost, mp4, proxy: proxyManager.Get(), plugin: "animevost"));

@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(AppInit.conf.CDNmovies, onstreamtofile, proxy: proxy)
             );
 
-            var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(kinopoisk_id));
+            var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id));
             if (voices == null)
                 return OnError(proxyManager);
 

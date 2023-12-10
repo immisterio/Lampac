@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Eporner
                 if (stream_links?.qualitys== null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
 
-                memoryCache.Set(memKey, stream_links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 2));
+                memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, AppInit.conf.Eporner, proxy);

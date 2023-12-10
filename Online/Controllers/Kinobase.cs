@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.Kinobase, streamfile, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) }, proxy: proxy)
             );
 
-            var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", AppInit.conf.multiaccess ? 20 : 10, () => oninvk.Embed(title, year, evalcode => HttpClient.Post("http://bwa.to:5696", $"eval={HttpUtility.UrlEncode(evalcode)}")));
+            var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(title, year, evalcode => HttpClient.Post("http://bwa.to:5696", $"eval={HttpUtility.UrlEncode(evalcode)}")));
             if (content == null)
                 return OnError(proxyManager);
 

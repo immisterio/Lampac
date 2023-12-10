@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(urim3u8))
                     return OnError(proxyManager);
 
-                memoryCache.Set(memKey, urim3u8, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 5));
+                memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             string url = HostStreamProxy(AppInit.conf.IframeVideo, urim3u8, proxy: proxy);
@@ -155,7 +155,7 @@ namespace Lampac.Controllers.LITE
                     return (null, null, 0, null);
                 }
 
-                memoryCache.Set(memKey, res, TimeSpan.FromMinutes(AppInit.conf.multiaccess ? 20 : 10));
+                memoryCache.Set(memKey, res, cacheTime(20));
             }
 
             return res;

@@ -180,5 +180,30 @@ namespace JinEnergy.Engine
             }
         }
         #endregion
+
+
+        #region StatusCode
+        async public static ValueTask<int> StatusCode(string? url, int timeoutSeconds = 3)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(url))
+                    return 0;
+
+                using (var client = new HttpClient(new HttpClientHandler() { AllowAutoRedirect = true }))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+                    client.MaxResponseContentBufferSize = 1_000_000;
+
+                    using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+                        return (int)response.StatusCode;
+                }
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+        #endregion
     }
 }

@@ -2,9 +2,6 @@
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Shared.Model.Base;
-using System.Net.Http;
-using System.Net;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -153,7 +150,7 @@ namespace JinEnergy.Engine
             if (AppInit.Country != "UA")
                 return uri;
 
-            return "https://apn.monster/go/" + uri;
+            return "https://apn.watch/" + uri;
         }
     }
 }

@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(AppInit.conf.VideoDB, streamfile, proxy: proxy, plugin: "videodb")
             );
 
-            var content = await InvokeCache($"videodb:view:{kinopoisk_id}", AppInit.conf.multiaccess ? 20 : 5, () => oninvk.Embed(kinopoisk_id, serial));
+            var content = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, serial));
             if (content.pl == null)
                 return OnError(proxyManager);
 

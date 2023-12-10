@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                         if (links.Count == 0)
                             return OnError(proxyManager);
 
-                        memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                        memoryCache.Set(memKey, links, cacheTime(30));
                     }
 
                     foreach (var l in links)
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                         if (links.Count == 0)
                             return OnError(proxyManager);
 
-                        memoryCache.Set(memKey, links, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                        memoryCache.Set(memKey, links, cacheTime(30));
                     }
 
                     foreach (var l in links)
@@ -155,7 +155,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(content))
                         return OnError(proxyManager);
 
-                    memoryCache.Set(memKey, content, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 30 : 10));
+                    memoryCache.Set(memKey, content, cacheTime(30));
                 }
 
                 foreach (var quality in new List<string> { "1080", "720", "480", "360", "240" })

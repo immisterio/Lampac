@@ -255,14 +255,35 @@ namespace Lampac.Controllers
             if (!life && conf.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
+            if (conf.Kodik.enable && (original_language is "ja" or "ko" or "zh"))
+                online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
+
+            if (serial == -1 || isanime)
+            {
+                if (conf.AnilibriaOnline.enable)
+                    online += "{\"name\":\"" + (conf.AnilibriaOnline.displayname ?? "Anilibria") + "\",\"url\":\"{localhost}/anilibria\"},";
+
+                if (conf.Animevost.enable)
+                    online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
+
+                if (conf.Animebesst.enable)
+                    online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
+
+                if (conf.AnimeGo.enable)
+                    online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
+
+                if (conf.AniMedia.enable)
+                    online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
+            }
+
             if (conf.VoKino.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
 
+            if (conf.Filmix.enable)
+                online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix" + (source == "filmix" ? $"?postid={id}" : "") + "\"},";
+
             if (conf.KinoPub.enable)
                 online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub"+(source == "pub" ? $"?postid={id}" : "")+"\"},";
-
-            if (conf.Filmix.enable)
-                online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
 
             if (conf.FilmixPartner.enable)
                 online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
@@ -297,9 +318,6 @@ namespace Lampac.Controllers
             if (conf.Eneyida.enable)
                 online += "{\"name\":\"" + (conf.Eneyida.displayname ?? "Eneyida (UKR)") + "\",\"url\":\"{localhost}/eneyida\"},";
 
-            if (conf.Kodik.enable && (original_language is "ja" or "ko" or "zh"))
-                online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
-
             if (conf.Seasonvar.enable && (serial == -1 || serial == 1))
                 online += "{\"name\":\"" + (conf.Seasonvar.displayname ?? "Seasonvar") + "\",\"url\":\"{localhost}/seasonvar\"},";
 
@@ -314,24 +332,6 @@ namespace Lampac.Controllers
 
             if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
                 online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
-
-            if (serial == -1 || isanime)
-            {
-                if (conf.AnilibriaOnline.enable)
-                    online += "{\"name\":\"" + (conf.AnilibriaOnline.displayname ?? "Anilibria") + "\",\"url\":\"{localhost}/anilibria\"},";
-
-                if (conf.Animevost.enable)
-                    online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
-
-                if (conf.Animebesst.enable)
-                    online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
-
-                if (conf.AnimeGo.enable)
-                    online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
-
-                if (conf.AniMedia.enable)
-                    online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
-            }
 
             if (conf.Kinotochka.enable)
                 online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";

@@ -24,6 +24,8 @@
 
         public List<string>? geostreamproxy { get; set; }
 
+        public string? apn { get; set; }
+
         public bool qualitys_proxy { get; set; }
         #endregion
 

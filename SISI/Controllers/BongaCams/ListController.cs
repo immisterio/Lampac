@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
@@ -50,7 +49,7 @@ namespace Lampac.Controllers.BongaCams
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager);
 
-                memoryCache.Set(memKey, playlists, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
+                memoryCache.Set(memKey, playlists, cacheTime(5));
             }
 
             return OnResult(playlists, AppInit.conf.BongaCams, BongaCamsTo.Menu(host, sort), proxy: proxy);
