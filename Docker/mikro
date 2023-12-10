@@ -1,0 +1,33 @@
+FROM mcr.microsoft.com/dotnet/sdk:6.0
+
+EXPOSE 80
+WORKDIR /home
+
+RUN apt update && apt install -y wget unzip nano htop && \
+	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
+	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant torrserver widgets wwwroot && \
+	touch isdocker
+
+RUN cat <<EOF > /home/init.conf
+{
+  "multiaccess": false,
+  "mikrotik": true,
+  "pirate_store": false,
+  "LampaWeb": {
+    "autoupdate": false
+  },
+  "serverproxy": {
+    "cache_img": false,
+    "verifyip": false
+  },
+  "dlna": {
+    "enable": false
+  },
+  "online": {
+    "findkp": "vsdn", 
+    "checkOnlineSearch": false
+  }
+}
+EOF
+
+ENTRYPOINT ["dotnet", "Lampac.dll"]
