@@ -209,7 +209,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region VideoParse
-        async public ValueTask<string?> VideoParse(string linkhost, string link)
+        async public ValueTask<List<StreamModel>?> VideoParse(string linkhost, string link)
         {
             string? iframe = await onget($"http:{link}", new List<(string name, string val)>() { ("referer", "https://animego.org/") });
             if (iframe == null)
@@ -227,12 +227,7 @@ namespace Shared.Engine.Online
             if (json == null || !json.Contains("\"src\":\""))
                 return null;
 
-            return json;
-        }
-
-        public string? VideoParse(string json, string? title, string? original_title, int episode, bool play)
-        {
-            var streams = new List<(string q, string url)>();
+            var streams = new List<StreamModel>();
 
             var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
             while (match.Success)
@@ -251,7 +246,7 @@ namespace Shared.Engine.Online
                     if (decodedString.StartsWith("//"))
                         decodedString = $"https:{decodedString}";
 
-                    streams.Insert(0, ($"{match.Groups[1].Value}p", onstreamfile(decodedString)));
+                    streams.Insert(0, new StreamModel() { q = $"{match.Groups[1].Value}p", url = decodedString });
                 }
 
                 match = match.NextMatch();
@@ -260,18 +255,21 @@ namespace Shared.Engine.Online
             if (streams.Count == 0)
                 return null;
 
-            string streansquality = string.Empty;
-            foreach (var l in streams)
-                streansquality += $"\"{l.q}\":\"" + l.url + "\",";
+            return streams;
+        }
+
+        public string? VideoParse(List<StreamModel> streams, string? title, string? original_title, int episode, bool play)
+        {
+            if (play)
+                return onstreamfile(streams[0].url);
+
+            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.q}\":\"{onstreamfile(s.url)}\"")) + "}";
 
             string name = title ?? original_title;
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            if (play)
-                return streams[0].url;
-
-            return "{\"method\":\"play\",\"url\":\"" + streams[0].url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}";
+            return "{\"method\":\"play\",\"url\":\"" + onstreamfile(streams[0].url) + "\",\"title\":\"" + name + "\", " + streansquality + "}";
         }
         #endregion
 

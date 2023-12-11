@@ -266,5 +266,59 @@ namespace Shared.Engine.Online
             return html.ToString() + "</div>";
         }
         #endregion
+
+        #region FirstLink
+        public string? FirstLink(EmbedModel result, string t, int s)
+        {
+            if (result.type is "movie" or "anime")
+            {
+                foreach (var voice in result.movie)
+                {
+                    string link = Regex.Match(voice.Value, $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[2].Value;
+                    if (!string.IsNullOrEmpty(link))
+                        return $"https:{link}";
+                }
+            }
+            else
+            {
+                try
+                {
+                    if (s == -1)
+                        return null;
+
+                    #region Перевод
+                    if (string.IsNullOrEmpty(t))
+                    {
+                        foreach (var voice in result.voiceSeasons)
+                        {
+                            if (!voice.Value.Contains(s))
+                                continue;
+
+                            t = voice.Key;
+                            break;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(t))
+                        t = "0";
+                    #endregion
+
+                    var season = result.serial[t].First(i => i.id == s);
+                    if (season.folder != null)
+                    {
+                        foreach (var episode in season.folder)
+                        {
+                            string link = Regex.Match(episode.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[2].Value;
+                            if (!string.IsNullOrEmpty(link))
+                                return $"https:{link}";
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            return null;
+        }
+        #endregion
     }
 }

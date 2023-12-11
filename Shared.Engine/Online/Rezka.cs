@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.LITE;
 using Shared.Model.Online.Rezka;
 using Shared.Model.Templates;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -147,11 +148,9 @@ namespace Shared.Engine.Online
                     if (links.Count == 0)
                         return string.Empty;
 
-                    string streansquality = string.Empty;
-                    foreach (var l in links)
-                        streansquality += $"\"{l.title}\":\"" + l.stream_url + "\",";
+                    string streansquality = "\"quality\": {" + string.Join(",", links.Select(l => $"\"{l.title}\":\"{onstreamfile(l.stream_url!)}\"")) + "}";
 
-                    html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + links[0].stream_url + "\",\"title\":\"" + title + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + links[0].title + "</div></div>");
+                    html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(links[0].stream_url!) + "\",\"title\":\"" + title + "\"," + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + links[0].title + "</div></div>");
                 }
                 #endregion
             }
@@ -357,6 +356,10 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
                 return null;
 
+            var links = getStreamLink(url);
+            if (links.Count == 0)
+                return null;
+
             string? subtitlehtml = null;
 
             try
@@ -365,15 +368,13 @@ namespace Shared.Engine.Online
             }
             catch { }
 
-            return new MovieModel() { url = url, subtitlehtml = subtitlehtml };
+            return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
         public string? Movie(MovieModel md, string? title, string? original_title, bool play)
         {
-            var links = getStreamLink(md.url);
-
             if (play)
-                return links[0].stream_url;
+                return onstreamfile(md.links[0].stream_url!);
 
             #region subtitles
             string subtitles = string.Empty;
@@ -395,11 +396,9 @@ namespace Shared.Engine.Online
             catch { }
             #endregion
 
-            string streansquality = string.Empty;
-            foreach (var l in links)
-                streansquality += $"\"{l.title}\":\"" + l.stream_url + "\",";
+            string streansquality = "\"quality\": {" + string.Join(",", md.links.Select(s => $"\"{s.title}\":\"{onstreamfile(s.stream_url!)}\"")) + "}";
 
-            return "{\"method\":\"play\",\"url\":\"" + links[0].stream_url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}, \"subtitles\": [" + Regex.Replace(subtitles, ",$", "") + "]}";
+            return "{\"method\":\"play\",\"url\":\"" + onstreamfile(md.links[0].stream_url!) + "\",\"title\":\"" + (title ?? original_title) + "\",\"subtitles\": [" + Regex.Replace(subtitles, ",$", "") + "]," + streansquality + "}";
         }
         #endregion
 
@@ -473,7 +472,7 @@ namespace Shared.Engine.Online
                 links.Add(new ApiModel()
                 {
                     title = q.Contains("p") ? q : $"{q}p",
-                    stream_url = onstreamfile(link)
+                    stream_url = link
                 });
             }
             #endregion

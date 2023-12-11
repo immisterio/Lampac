@@ -8,13 +8,15 @@ namespace JinEnergy.Online
     public class RezkaController : BaseController
     {
         #region RezkaInvoke
+        static bool origstream;
+
         static RezkaInvoke oninvk = new RezkaInvoke
         (
             null,
             AppInit.Rezka.corsHost(),
             ongettourl => JsHttpClient.Get(AppInit.Rezka.corsHost(ongettourl)),
             (url, data) => JsHttpClient.Post(AppInit.Rezka.corsHost(url), data),
-            streamfile => HostStreamProxy(streamfile)
+            streamfile => HostStreamProxy(streamfile, origstream)
         );
         #endregion
 
@@ -79,9 +81,13 @@ namespace JinEnergy.Online
             int t = int.Parse(parse_arg("t", args) ?? "0");
             int director = int.Parse(parse_arg("director", args) ?? "0");
 
-            var md = await InvokeCache(0, $"rezka:view:get_cdn_series:{arg.id}:{t}:{director}:{s}:{e}", () => oninvk.Movie(arg.id, t, director, s, e, parse_arg("favs", args)));
+            string mkey = $"rezka:view:get_cdn_series:{arg.id}:{t}:{director}:{s}:{e}";
+
+            var md = await InvokeCache(0, mkey, () => oninvk.Movie(arg.id, t, director, s, e, parse_arg("favs", args)));
             if (md == null)
                 return EmptyError("md");
+
+            origstream = await IsOrigStream(md.links[0].stream_url);
 
             string? result = oninvk.Movie(md, arg.title, arg.original_title, false);
             if (result == null)

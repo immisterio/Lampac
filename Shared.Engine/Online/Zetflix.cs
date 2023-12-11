@@ -69,7 +69,7 @@ namespace Shared.Engine.Online
         {
             int number_of_seasons = 1;
 
-            var themoviedb = await onget.Invoke($"https://apitmdb.cub.watch/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
+            var themoviedb = await onget.Invoke($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
             if (themoviedb != null)
             {
                 try
@@ -217,6 +217,59 @@ namespace Shared.Engine.Online
             }
 
             return html.ToString() + "</div>";
+        }
+        #endregion
+
+        #region FirstLink
+        public string? FirstLink(EmbedModel root, string? t, int s)
+        {
+            if (root.movie)
+            {
+                foreach (var pl in root.pl)
+                {
+                    string link = Regex.Match(pl.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
+                    if (!string.IsNullOrEmpty(link))
+                    {
+                        if (!link.Contains(".m3u"))
+                            link += ":hls:manifest.m3u8";
+
+                        return link;
+                    }
+                }
+            }
+            else
+            {
+                if (s == -1)
+                    return null;
+
+                foreach (var episode in root.pl.AsEnumerable().Reverse())
+                {
+                    var episodes = episode?.folder;
+                    if (episodes == null || episodes.Count == 0)
+                        continue;
+
+                    string? perevod = episode?.title;
+                    if (perevod != null && string.IsNullOrEmpty(t))
+                        t = perevod;
+
+                    if (perevod != t)
+                        continue;
+
+                    foreach (var pl in episodes)
+                    {
+                        string link = Regex.Match(pl?.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
+                        if (!string.IsNullOrEmpty(link))
+                        {
+                            if (!link.Contains(".m3u"))
+                                link += ":hls:manifest.m3u8";
+
+                            return link;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
         #endregion
     }

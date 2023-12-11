@@ -8,6 +8,8 @@ namespace JinEnergy.Online
     public class KodikController : BaseController
     {
         #region KodikInvoke
+        static bool origstream;
+
         static KodikInvoke oninvk = new KodikInvoke
         (
             null,
@@ -15,7 +17,7 @@ namespace JinEnergy.Online
             AppInit.Kodik.token,
             (uri, head) => JsHttpClient.Get(AppInit.Kodik.corsHost(uri), addHeaders: head),
             (uri, data) => JsHttpClient.Post(AppInit.Kodik.corsHost(uri), data),
-            streamfile => HostStreamProxy(streamfile)
+            streamfile => HostStreamProxy(streamfile, origstream)
             //AppInit.log
         );
         #endregion
@@ -68,11 +70,13 @@ namespace JinEnergy.Online
             if (link == null)
                 return EmptyError("link");
 
-            string? json = await InvokeCache(0, $"kodik:video:{link}", () => oninvk.VideoParse(AppInit.Kodik.linkhost, link));
-            if (json == null)
-                return EmptyError("json");
+            var streams = await InvokeCache(0, $"kodik:video:{link}", () => oninvk.VideoParse(AppInit.Kodik.linkhost, link));
+            if (streams == null)
+                return EmptyError("streams");
 
-            string? result = oninvk.VideoParse(json, arg.title, arg.original_title, episode, false);
+            origstream = await IsOrigStream(streams[0].url);
+
+            string? result = oninvk.VideoParse(streams, arg.title, arg.original_title, episode, false);
             if (result == null)
                 return EmptyError("result");
 

@@ -224,5 +224,62 @@ namespace Shared.Engine.Online
             return html.ToString() + "</div>";
         }
         #endregion
+
+        #region FirstLink
+        public string? FirstLink(EmbedModel root, string? t, int s, int sid)
+        {
+            if (root.movie)
+            {
+                foreach (var pl in root.pl)
+                {
+                    string link = Regex.Match(pl?.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
+                    if (!string.IsNullOrEmpty(link))
+                    {
+                        if (!link.Contains(".m3u"))
+                            link += ":hls:manifest.m3u8";
+
+                        return link;
+                    }
+                }
+            }
+            else
+            {
+                if (s == -1)
+                    return null;
+
+                var season = root.pl?[sid]?.folder;
+                if (season == null)
+                    return null;
+
+                foreach (var episode in season)
+                {
+                    var episodes = episode?.folder;
+                    if (episodes == null || episodes.Count == 0)
+                        continue;
+
+                    foreach (var pl in episodes)
+                    {
+                        string? perevod = pl?.comment;
+                        if (perevod != null && string.IsNullOrEmpty(t))
+                            t = perevod;
+
+                        if (perevod != t)
+                            continue;
+
+                        string link = Regex.Match(pl?.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
+                        if (!string.IsNullOrEmpty(link))
+                        {
+                            if (!link.Contains(".m3u"))
+                                link += ":hls:manifest.m3u8";
+
+                            return link;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+        #endregion
     }
 }

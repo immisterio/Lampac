@@ -82,9 +82,12 @@ namespace JinEnergy
                                     conf.Filmix.freehash = !string.IsNullOrEmpty(FXFS);
                             }
 
-                            string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 4);
-                            if (geo != null) 
-                                Country = geo;
+                            if (Country != "UA")
+                            {
+                                string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 5);
+                                if (geo != null)
+                                    Country = geo;
+                            }
                         }
                     }
                 }

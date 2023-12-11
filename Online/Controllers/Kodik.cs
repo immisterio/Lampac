@@ -156,11 +156,11 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitKodikInvoke();
 
-            string json = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40), () => oninvk.VideoParse(AppInit.conf.Kodik.linkhost, link));
-            if (json == null)
+            var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40), () => oninvk.VideoParse(AppInit.conf.Kodik.linkhost, link));
+            if (streams == null)
                 return OnError(proxyManager);
 
-            string result = oninvk.VideoParse(json, title, original_title, episode, play);
+            string result = oninvk.VideoParse(streams, title, original_title, episode, play);
             if (result == null)
                 return OnError();
 

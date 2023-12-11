@@ -142,12 +142,20 @@ namespace JinEnergy.Engine
         }
 
 
-        public static string HostStreamProxy(string? uri)
+        async public static ValueTask<bool> IsOrigStream(string? uri)
+        {
+            if (string.IsNullOrWhiteSpace(uri) || AppInit.Country != "UA" || !uri.Contains(".m3u"))
+                return true;
+
+            return await JsHttpClient.StatusCode(uri) == 200;
+        }
+
+        public static string HostStreamProxy(string? uri, bool orig = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
 
-            if (AppInit.Country != "UA")
+            if (AppInit.Country != "UA" || !uri.Contains(".m3u") || orig)
                 return uri;
 
             return "https://apn.watch/" + uri;
