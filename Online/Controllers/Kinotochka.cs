@@ -17,16 +17,18 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, int year, int serial, string newsuri, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1)
         {
-            if (!AppInit.conf.Kinotochka.enable || string.IsNullOrWhiteSpace(title))
+            var init = AppInit.conf.Kinotochka;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager("kinotochka", AppInit.conf.Kinotochka);
+            var proxyManager = new ProxyManager("kinotochka", init);
             var proxy = proxyManager.Get();
 
             // enable 720p
-            string cookie = AppInit.conf.Kinotochka.cookie;
+            string cookie = init.cookie;
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -39,7 +41,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Post($"{AppInit.conf.Kinotochka.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                        string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -115,7 +117,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(AppInit.conf.Kinotochka, l.uri, proxy: proxy);
+                        string link = HostStreamProxy(init, l.uri, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -131,7 +133,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
-                    string embed = await HttpClient.Get($"{AppInit.conf.Kinotochka.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, cookie: cookie);
+                    string embed = await HttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, cookie: cookie);
                     file = Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(file))
@@ -149,7 +151,7 @@ namespace Lampac.Controllers.LITE
                     memoryCache.Set(memKey, file, cacheTime(30));
                 }
 
-                file = HostStreamProxy(AppInit.conf.Kinotochka, file, proxy: proxy);
+                file = HostStreamProxy(init, file, proxy: proxy);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }

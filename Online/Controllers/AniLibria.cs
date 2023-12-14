@@ -15,18 +15,20 @@ namespace Lampac.Controllers.LITE
         [Route("lite/anilibria")]
         async public Task<ActionResult> Index(string title, string code, int year)
         {
-            if (!AppInit.conf.AnilibriaOnline.enable || string.IsNullOrWhiteSpace(title))
+            var init = AppInit.conf.AnilibriaOnline;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager("anilibria", AppInit.conf.AnilibriaOnline);
+            var proxyManager = new ProxyManager("anilibria", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new AniLibriaInvoke
             (
                host,
-               AppInit.conf.AnilibriaOnline.corsHost(),
-               ongettourl => HttpClient.Get<List<RootObject>>(AppInit.conf.AnilibriaOnline.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true),
-               streamfile => HostStreamProxy(AppInit.conf.AnilibriaOnline, streamfile, proxy: proxy, plugin: "anilibria")
+               init.corsHost(),
+               ongettourl => HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "anilibria")
             );
 
             var result = await InvokeCache($"anilibriaonline:{title}", cacheTime(40), () => oninvk.Embed(title));

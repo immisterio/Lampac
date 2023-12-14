@@ -11,7 +11,8 @@ namespace Shared.Engine.Online
     public class FilmixInvoke
     {
         #region FilmixInvoke
-        string? host, token;
+        public string? token;
+        string? host;
         string apihost;
         Func<string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;

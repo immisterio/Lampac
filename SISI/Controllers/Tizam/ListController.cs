@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -19,7 +18,9 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam")]
         async public Task<JsonResult> Index(string search, int pg = 1)
         {
-            if (!AppInit.conf.Tizam.enable)
+            var init = AppInit.conf.Tizam;
+
+            if (!init.enable)
                 return OnError("disable");
 
             if (!string.IsNullOrEmpty(search))
@@ -28,16 +29,16 @@ namespace Lampac.Controllers.Tizam
             string memKey = $"tizam:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("tizam", AppInit.conf.Tizam);
+                var proxyManager = new ProxyManager("tizam", init);
                 var proxy = proxyManager.Get();
 
-                string uri = $"{AppInit.conf.Tizam.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
+                string uri = $"{init.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
 
                 int page = pg - 1;
                 if (page > 0)
                     uri += $"?p={page}";
 
-                string html = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxy);
+                string html = await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy);
                 if (html == null)
                     return OnError("html", proxyManager);
 
@@ -77,13 +78,13 @@ namespace Lampac.Controllers.Tizam
                     {
                         name = title,
                         video = $"tizam/vidosik?uri={HttpUtility.UrlEncode(href)}",
-                        picture = $"{AppInit.conf.Tizam.corsHost()}/{img}",
+                        picture = $"{AppInit.conf.Tizam.host}/{img}",
                         time = duration?.Trim(),
                         bookmark = new Bookmark()
                         {
                             site = "tizam",
                             href = href,
-                            image = $"{AppInit.conf.Tizam.corsHost()}/{img}"
+                            image = $"{AppInit.conf.Tizam.host}/{img}"
                         }
                     };
 

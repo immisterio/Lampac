@@ -33,16 +33,18 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg")]
         async public Task<JsonResult> Index(string search, string sort, int pg = 1)
         {
-            if (!AppInit.conf.Spankbang.enable)
+            var init = AppInit.conf.Spankbang;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("sbg", AppInit.conf.Spankbang);
+                var proxyManager = new ProxyManager("sbg", init);
                 var proxy = proxyManager.Get();
 
-                string html = await SpankbangTo.InvokeHtml(AppInit.conf.Spankbang.host, search, sort, pg, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 10, proxy: proxy, addHeaders: headers));
+                string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, addHeaders: headers));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

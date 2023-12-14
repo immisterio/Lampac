@@ -10,12 +10,14 @@ namespace JinEnergy.SISI
         [JSInvokable("epr")]
         async public static ValueTask<ResultModel> Index(string args)
         {
+            var init = AppInit.Eporner;
+
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
             string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
-            string? html = await EpornerTo.InvokeHtml(AppInit.Eporner.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(url));
+            string? html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url)));
             if (html == null)
                 return OnError("html");
 
@@ -30,9 +32,11 @@ namespace JinEnergy.SISI
         [JSInvokable("epr/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var stream_links = await EpornerTo.StreamLinks("epr/vidosik", AppInit.Eporner.corsHost(), parse_arg("uri", args), 
-                               htmlurl => JsHttpClient.Get(htmlurl), 
-                               jsonurl => JsHttpClient.Get(AppInit.Eporner.corsHost(jsonurl)));
+            var init = AppInit.Eporner;
+
+            var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), parse_arg("uri", args), 
+                               url => JsHttpClient.Get(init.cors(url)), 
+                               jsonurl => JsHttpClient.Get(init.cors(jsonurl)));
 
             if (stream_links == null)
                 return OnError("stream_links");

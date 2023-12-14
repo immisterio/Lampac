@@ -11,6 +11,6 @@
 
         public string? corsHost();
 
-        public string corsHost(string uri);
+        public string cors(string uri);
     }
 }

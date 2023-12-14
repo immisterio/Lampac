@@ -20,7 +20,9 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmrsml")]
         async public Task<JsonResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
-            if (!AppInit.conf.Xhamster.enable)
+            var init = AppInit.conf.Xhamster;
+
+            if (!init.enable)
                 return OnError("disable");
 
             pg++;
@@ -29,10 +31,10 @@ namespace Lampac.Controllers.Xhamster
             string memKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xmr", AppInit.conf.Xhamster);
+                var proxyManager = new ProxyManager("xmr", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XhamsterTo.InvokeHtml(AppInit.conf.Xhamster.host, plugin, search, c, q, sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

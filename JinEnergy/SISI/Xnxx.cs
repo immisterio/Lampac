@@ -10,10 +10,12 @@ namespace JinEnergy.SISI
         [JSInvokable("xnx")]
         async public static ValueTask<ResultModel> Index(string args)
         {
+            var init = AppInit.Xnxx;
+
             string? search = parse_arg("search", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await XnxxTo.InvokeHtml(AppInit.Xnxx.corsHost(), search, pg, url => JsHttpClient.Get(url));
+            string? html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => JsHttpClient.Get(init.cors(url)));
             if (html == null)
                 return OnError("html");
 
@@ -28,7 +30,9 @@ namespace JinEnergy.SISI
         [JSInvokable("xnx/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var stream_links = await XnxxTo.StreamLinks("xnx/vidosik", AppInit.Xnxx.corsHost(), parse_arg("uri", args), htmlurl => JsHttpClient.Get(htmlurl), m3url => JsHttpClient.Get(m3url));
+            var init = AppInit.Xnxx;
+
+            var stream_links = await XnxxTo.StreamLinks("xnx/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), url => JsHttpClient.Get(init.cors(url)));
             if (stream_links == null)
                 return OnError("stream_links");
 

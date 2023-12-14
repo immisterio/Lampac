@@ -26,6 +26,8 @@ namespace Lampac.Engine.CORE
                 hash += ".m3u8";
             else if (uri.Contains(".ts"))
                 hash += ".ts";
+            else if (uri.Contains(".m4s"))
+                hash += ".m4s";
             else if (uri.Contains(".mp4"))
                 hash += ".mp4";
             else if (uri.Contains(".mkv"))

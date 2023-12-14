@@ -13,8 +13,10 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videodb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string t, int s = -1, int sid = -1)
         {
-            if (!AppInit.conf.VideoDB.enable || kinopoisk_id == 0)
-                return Content(string.Empty);
+            var init = AppInit.conf.VideoDB;
+
+            if (!init.enable || kinopoisk_id == 0)
+                return OnError();
 
             var proxyManager = new ProxyManager("videodb", AppInit.conf.VideoDB);
             var proxy = proxyManager.Get();
@@ -22,9 +24,9 @@ namespace Lampac.Controllers.LITE
             var oninvk = new VideoDBInvoke
             (
                host,
-               AppInit.conf.VideoDB.corsHost(),
-               (url, head) => HttpClient.Get(AppInit.conf.VideoDB.corsHost(url), timeoutSeconds: 8, proxy: proxy, addHeaders: head),
-               streamfile => HostStreamProxy(AppInit.conf.VideoDB, streamfile, proxy: proxy, plugin: "videodb")
+               init.corsHost(),
+               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, addHeaders: head),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "videodb")
             );
 
             var content = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, serial));

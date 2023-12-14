@@ -14,8 +14,8 @@ namespace JinEnergy.Online
         (
             null,
             AppInit.Rezka.corsHost(),
-            ongettourl => JsHttpClient.Get(AppInit.Rezka.corsHost(ongettourl)),
-            (url, data) => JsHttpClient.Post(AppInit.Rezka.corsHost(url), data),
+            ongettourl => JsHttpClient.Get(AppInit.Rezka.cors(ongettourl)),
+            (url, data) => JsHttpClient.Post(AppInit.Rezka.cors(url), data),
             streamfile => HostStreamProxy(streamfile, origstream)
         );
         #endregion

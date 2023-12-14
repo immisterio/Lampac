@@ -19,10 +19,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinoprofi")]
         async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, string session, int s = -1)
         {
-            if (string.IsNullOrWhiteSpace(title) || !AppInit.conf.Kinoprofi.enable)
+            var init = AppInit.conf.Kinoprofi;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager("kinoprofi", AppInit.conf.Kinoprofi);
+            var proxyManager = new ProxyManager("kinoprofi", init);
             var proxy = proxyManager.Get();
 
             bool firstjson = true;
@@ -36,7 +38,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinoprofi:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Get($"{AppInit.conf.Kinoprofi.host}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                        string search = await HttpClient.Get($"{init.corsHost()}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         string session_id = Regex.Match(search ?? "", "session_id += '([^']+)'").Groups[1].Value;
 
                         if (string.IsNullOrWhiteSpace(session_id))
@@ -79,7 +81,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(newsid))
                             return OnError(proxyManager);
 
-                        var root = await HttpClient.Post<JObject>($"{AppInit.conf.Kinoprofi.apihost}/getplay", $"key%5Bid%5D={newsid}&pl_type=movie&session={session}&is_mobile=0&dle_group=5", timeoutSeconds: 8, proxy: proxy);
+                        var root = await HttpClient.Post<JObject>($"{init.apihost}/getplay", $"key%5Bid%5D={newsid}&pl_type=movie&session={session}&is_mobile=0&dle_group=5", timeoutSeconds: 8, proxy: proxy);
                         if (root == null)
                             return OnError(proxyManager);
 
@@ -110,7 +112,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(AppInit.conf.Kinoprofi, l.uri, new List<(string, string)>() { ("referer", AppInit.conf.Kinoprofi.host) }, proxy: proxy);
+                        string link = HostStreamProxy(init, l.uri, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -124,7 +126,7 @@ namespace Lampac.Controllers.LITE
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
                     string keyid = null, reservedlink = null;
-                    string search = await HttpClient.Get($"{AppInit.conf.Kinoprofi.host}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                    string search = await HttpClient.Get($"{init.corsHost()}/search/f:{HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
 
                     foreach (string row in Regex.Replace(search ?? "", "[\n\r\t]+", "").Split("sh-block").Skip(1))
                     {
@@ -154,7 +156,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(session_id))
                         return OnError(proxyManager);
 
-                    string json = await HttpClient.Post($"{AppInit.conf.Kinoprofi.apihost}/getplay", $"key%5Bid%5D={keyid}&pl_type=movie&session={session_id}&is_mobile=0&dle_group=5", timeoutSeconds: 8, proxy: proxy);
+                    string json = await HttpClient.Post($"{init.apihost}/getplay", $"key%5Bid%5D={keyid}&pl_type=movie&session={session_id}&is_mobile=0&dle_group=5", timeoutSeconds: 8, proxy: proxy);
                     if (json == null || !json.Contains(".m3u8"))
                         return OnError(proxyManager);
 
@@ -165,7 +167,7 @@ namespace Lampac.Controllers.LITE
                     memoryCache.Set(memKey, file, cacheTime(40));
                 }
 
-                file = HostStreamProxy(AppInit.conf.Kinoprofi, file, new List<(string, string)>() { ("referer", AppInit.conf.Kinoprofi.host) }, proxy: proxy);
+                file = HostStreamProxy(init, file, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy);
                 html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
                 #endregion
             }

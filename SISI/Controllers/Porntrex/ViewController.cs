@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Web;
@@ -20,7 +19,9 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/vidosik")]
         async public Task<ActionResult> vidosik(string uri)
         {
-            if (!AppInit.conf.Porntrex.enable)
+            var init = AppInit.conf.Porntrex;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
@@ -28,7 +29,7 @@ namespace Lampac.Controllers.Porntrex
             {
                 var proxy = proxyManager.Get();
 
-                links = await PorntrexTo.StreamLinks(AppInit.conf.Porntrex.host, uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (links == null || links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
@@ -43,6 +44,11 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/strem")]
         async public Task<ActionResult> strem(string link)
         {
+            var init = AppInit.conf.Porntrex;
+
+            if (!init.enable)
+                return OnError("disable");
+
             var proxy = proxyManager.Get();
 
             string memKey = $"Porntrex:strem:{link}";
@@ -64,7 +70,7 @@ namespace Lampac.Controllers.Porntrex
                 memoryCache.Set(memKey, location, cacheTime(40));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.Porntrex, location, proxy: proxy));
+            return Redirect(HostStreamProxy(init, location, proxy: proxy));
         }
     }
 }

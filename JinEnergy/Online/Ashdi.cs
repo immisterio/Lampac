@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/ashdi")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Ashdi;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             int t = int.Parse(parse_arg("t", args) ?? "-1");
@@ -19,8 +21,8 @@ namespace JinEnergy.Online
             var oninvk = new AshdiInvoke
             (
                null,
-               AppInit.Ashdi.corsHost(),
-               ongettourl => JsHttpClient.Get(AppInit.Ashdi.corsHost(ongettourl)),
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                onstreamtofile => onstreamtofile
             );
 

@@ -20,7 +20,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost")]
         async public Task<ActionResult> Index(string title, int year, string uri, int s, string account_email)
         {
-            if (!AppInit.conf.Animevost.enable || string.IsNullOrWhiteSpace(title))
+            var init = AppInit.conf.Animevost;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -29,7 +31,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animevost:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Animevost.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -121,13 +123,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost/video")]
         async public Task<ActionResult> Video(int id)
         {
-            if (!AppInit.conf.Animevost.enable)
+            var init = AppInit.conf.Animevost;
+
+            if (!init.enable)
                 return OnError();
 
             string memKey = $"animevost:video:{id}";
             if (!memoryCache.TryGetValue(memKey, out string mp4))
             {
-                string iframe = await HttpClient.Get($"{AppInit.conf.Animevost.host}/frame5.php?play={id}&old=1", timeoutSeconds: 8, proxy: proxyManager.Get());
+                string iframe = await HttpClient.Get($"{init.corsHost()}/frame5.php?play={id}&old=1", timeoutSeconds: 8, proxy: proxyManager.Get());
 
                 mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(mp4))
@@ -139,7 +143,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, mp4, cacheTime(20));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.Animevost, mp4, proxy: proxyManager.Get(), plugin: "animevost"));
+            return Redirect(HostStreamProxy(init, mp4, proxy: proxyManager.Get(), plugin: "animevost"));
         }
         #endregion
     }

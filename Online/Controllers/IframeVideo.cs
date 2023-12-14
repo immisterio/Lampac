@@ -71,7 +71,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo/video.m3u8")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
-            if (!AppInit.conf.IframeVideo.enable)
+            var init = AppInit.conf.IframeVideo;
+
+            if (!init.enable)
                 return OnError();
 
             var proxy = proxyManager.Get();
@@ -79,16 +81,16 @@ namespace Lampac.Controllers.LITE
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{AppInit.conf.IframeVideo.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
+                string json = await HttpClient.Post($"{init.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("DNT", "1"),
-                    ("Origin", AppInit.conf.IframeVideo.cdnhost),
+                    ("Origin", init.cdnhost),
                     ("P-REF", string.Empty),
-                    ("Referer", $"{AppInit.conf.IframeVideo.cdnhost}/"),
+                    ("Referer", $"{init.cdnhost}/"),
                     ("Sec-Fetch-Dest", "empty"),
                     ("Sec-Fetch-Mode", "cors"),
                     ("Sec-Fetch-Site", "same-origin"),
-                    ("X-REF", $"{AppInit.conf.IframeVideo.host}/"),
+                    ("X-REF", $"{init.host}/"),
                     ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\"")
@@ -101,7 +103,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
-            string url = HostStreamProxy(AppInit.conf.IframeVideo, urim3u8, proxy: proxy);
+            string url = HostStreamProxy(init, urim3u8, proxy: proxy);
             if (play)
                 return Redirect(url);
 
@@ -112,6 +114,8 @@ namespace Lampac.Controllers.LITE
         #region iframe
         async ValueTask<(string content, string type, int cid, string path)> iframe(string imdb_id, long kinopoisk_id)
         {
+            var init = AppInit.conf.IframeVideo;
+
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return (null, null, 0, null);
 
@@ -119,9 +123,9 @@ namespace Lampac.Controllers.LITE
 
             if (!memoryCache.TryGetValue(memKey, out (string content, string type, int cid, string path) res))
             {
-                string uri = $"{AppInit.conf.IframeVideo.apihost}/api/v2/search?imdb={imdb_id}&kp={kinopoisk_id}";
-                if (!string.IsNullOrWhiteSpace(AppInit.conf.IframeVideo.token))
-                    uri = $"{AppInit.conf.IframeVideo.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={AppInit.conf.IframeVideo.token}";
+                string uri = $"{init.apihost}/api/v2/search?imdb={imdb_id}&kp={kinopoisk_id}";
+                if (!string.IsNullOrWhiteSpace(init.token))
+                    uri = $"{init.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={init.token}";
 
                 var proxy = proxyManager.Get();
                 var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
@@ -139,7 +143,7 @@ namespace Lampac.Controllers.LITE
                 res.content = await HttpClient.Get(res.path, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
                 {
                     ("DNT", "1"),
-                    ("Referer", $"{AppInit.conf.IframeVideo.host}/"),
+                    ("Referer", $"{init.host}/"),
                     ("Sec-Fetch-Dest", "iframe"),
                     ("Sec-Fetch-Mode", "navigate"),
                     ("Sec-Fetch-Site", "cross-site"),

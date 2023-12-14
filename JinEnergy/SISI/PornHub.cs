@@ -35,12 +35,14 @@ namespace JinEnergy.SISI
 
         async static ValueTask<ResultModel> result(string args, string plugin)
         {
+            var init = AppInit.PornHub;
+
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
             int c = int.Parse(parse_arg("c", args) ?? "0");
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await PornHubTo.InvokeHtml(AppInit.PornHub.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(url, addHeaders: headers));
+            string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
             if (html == null)
                 return OnError("html");
 
@@ -55,7 +57,9 @@ namespace JinEnergy.SISI
         [JSInvokable("phub/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var stream_links = await PornHubTo.StreamLinks("phub/vidosik", AppInit.PornHub.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(url, addHeaders: headers));
+            var init = AppInit.PornHub;
+
+            var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
             if (stream_links == null)
                 return OnError("stream_links");
 

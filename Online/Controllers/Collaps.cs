@@ -13,18 +13,23 @@ namespace Lampac.Controllers.LITE
         [Route("lite/collaps")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1)
         {
-            if (!AppInit.conf.Collaps.enable || (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
+            var init = AppInit.conf.Collaps;
+
+            if (!init.enable)
                 return OnError();
 
-            var proxyManager = new ProxyManager("collaps", AppInit.conf.Collaps);
+            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                return OnError();
+
+            var proxyManager = new ProxyManager("collaps", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new CollapsInvoke
             (
                host,
-               AppInit.conf.Collaps.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.Collaps.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Collaps, onstreamtofile, proxy: proxy)
+               init.corsHost(),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps")
             );
 
             var content = await InvokeCache($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(imdb_id, kinopoisk_id));

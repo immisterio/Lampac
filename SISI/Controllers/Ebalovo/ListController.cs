@@ -17,16 +17,18 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo")]
         async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (!AppInit.conf.Ebalovo.enable)
+            var init = AppInit.conf.Ebalovo;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("elo", AppInit.conf.Ebalovo);
+                var proxyManager = new ProxyManager("elo", init);
                 var proxy = proxyManager.Get();
 
-                string html = await EbalovoTo.InvokeHtml(AppInit.conf.Ebalovo.host, search, sort, c, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await EbalovoTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

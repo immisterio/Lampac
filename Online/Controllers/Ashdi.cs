@@ -13,18 +13,20 @@ namespace Lampac.Controllers.LITE
         [Route("lite/ashdi")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.Ashdi.enable)
+            var init = AppInit.conf.Ashdi;
+
+            if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            var proxyManager = new ProxyManager("ashdi", AppInit.conf.Ashdi);
+            var proxyManager = new ProxyManager("ashdi", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new AshdiInvoke
             (
                host,
-               AppInit.conf.Ashdi.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.Ashdi.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(AppInit.conf.Ashdi, streamfile, proxy: proxy)
+               init.corsHost(),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi")
             );
 
             var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", cacheTime(40), () => oninvk.Embed(kinopoisk_id));

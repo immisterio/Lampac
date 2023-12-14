@@ -42,7 +42,9 @@ namespace Lampac.Controllers.PornHub
         [Route("phubsml")]
         async public Task<JsonResult> Index(string search, string sort, int c, int pg = 1)
         {
-            if (!AppInit.conf.PornHub.enable)
+            var init = AppInit.conf.PornHub;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -50,10 +52,10 @@ namespace Lampac.Controllers.PornHub
             string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("phub", AppInit.conf.PornHub);
+                var proxyManager = new ProxyManager("phub", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(AppInit.conf.PornHub.host, plugin, search, sort, c, null, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy, httpversion: 2, addHeaders: httpheaders()));
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, addHeaders: httpheaders()));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -73,16 +75,18 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<JsonResult> Prem(string search, string sort, string hd, int c, int pg = 1)
         {
-            if (!AppInit.conf.PornHubPremium.enable)
+            var init = AppInit.conf.PornHubPremium;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"phubprem:list:{search}:{sort}:{hd}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("phubprem", AppInit.conf.PornHubPremium);
+                var proxyManager = new ProxyManager("phubprem", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(AppInit.conf.PornHubPremium.host, "phubprem", search, sort, c, hd, pg, url => HttpClient.Get(url, timeoutSeconds: 14, proxy: proxy, httpversion: 2, addHeaders: httpheaders(AppInit.conf.PornHubPremium.cookie)));
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, addHeaders: httpheaders(init.cookie)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

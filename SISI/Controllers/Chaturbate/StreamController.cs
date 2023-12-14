@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
@@ -16,23 +15,25 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu/potok")]
         async public Task<ActionResult> Index(string baba)
         {
-            if (!AppInit.conf.Chaturbate.enable)
+            var init = AppInit.conf.Chaturbate;
+
+            if (!init.enable)
                 return OnError("disable");
 
-            var proxyManager = new ProxyManager("chu", AppInit.conf.Chaturbate);
+            var proxyManager = new ProxyManager("chu", init);
             var proxy = proxyManager.Get();
 
             string memKey = $"chaturbate:stream:{baba}";
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                stream_links = await ChaturbateTo.StreamLinks(AppInit.conf.Chaturbate.corsHost(), baba, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (stream_links == null || stream_links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
                 memoryCache.Set(memKey, stream_links, cacheTime(10));
             }
 
-            return OnResult(stream_links, AppInit.conf.Chaturbate, proxy);
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

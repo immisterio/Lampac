@@ -15,18 +15,17 @@ namespace JinEnergy.Online
         [JSInvokable("lite/zetflix")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Zetflix;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             string? t = parse_arg("t", args);
 
-            if (arg.kinopoisk_id == 0)
-                return EmptyError("arg");
-
             var oninvk = new ZetflixInvoke
             (
                null,
-               AppInit.Zetflix.corsHost(),
-               (url, head) => JsHttpClient.Get(AppInit.Zetflix.corsHost(url), addHeaders: head),
+               init.corsHost(),
+               (url, head) => JsHttpClient.Get(init.cors(url), addHeaders: head),
                streamfile => HostStreamProxy(streamfile, origstream)
                //AppInit.log
             );

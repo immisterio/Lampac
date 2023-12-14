@@ -15,6 +15,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/vcdn")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.VCDN;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             string? t = parse_arg("t", args);
@@ -22,10 +24,10 @@ namespace JinEnergy.Online
             var oninvk = new VideoCDNInvoke
             (
                null,
-               AppInit.VCDN.corsHost(),
-               AppInit.VCDN.corsHost(AppInit.VCDN.apihost!),
-               AppInit.VCDN.token!,
-               (url, referer) => JsHttpClient.Get(AppInit.VCDN.corsHost(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
+               init.corsHost(),
+               init.cors(init.apihost!),
+               init.token!,
+               (url, referer) => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
                streamfile => HostStreamProxy(streamfile, origstream)
                //AppInit.log
             );

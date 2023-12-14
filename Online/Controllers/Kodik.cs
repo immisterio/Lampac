@@ -23,15 +23,16 @@ namespace Lampac.Controllers.LITE
         public KodikInvoke InitKodikInvoke()
         {
             var proxy = proxyManager.Get();
+            var init = AppInit.conf.Kodik;
 
             return new KodikInvoke
             (
                 host,
-                AppInit.conf.Kodik.apihost,
-                AppInit.conf.Kodik.token,
-                (uri, head) => HttpClient.Get(AppInit.conf.Kodik.corsHost(uri), timeoutSeconds: 8, proxy: proxy),
-                (uri, data) => HttpClient.Post(AppInit.conf.Kodik.corsHost(uri), data, timeoutSeconds: 8, proxy: proxy),
-                streamfile => HostStreamProxy(AppInit.conf.Kodik, streamfile, proxy: proxy, plugin: "kodik")
+                init.apihost,
+                init.token,
+                (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy),
+                (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy),
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik")
             );
         }
         #endregion
@@ -85,14 +86,19 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/video.m3u8")]
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, string account_email, bool play)
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.Kodik.secret_token))
+            var init = AppInit.conf.Kodik;
+
+            if (!init.enable)
+                return OnError();
+
+            if (string.IsNullOrWhiteSpace(init.secret_token))
             {
                 string uri = play ? "videoparse.m3u8" : "videoparse";
                 return LocalRedirect($"/lite/kodik/{uri}?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&account_email={HttpUtility.UrlEncode(account_email)}&play={play}");
             }
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
-            if (AppInit.conf.Kodik.localip)
+            if (init.localip)
             {
                 userIp = await mylocalip();
                 if (userIp == null)
@@ -105,9 +111,9 @@ namespace Lampac.Controllers.LITE
             if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
-                string hmac = HMAC(AppInit.conf.Kodik.secret_token, $"{link}:{userIp}:{deadline}");
+                string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                string json = await HttpClient.Get($"{AppInit.conf.Kodik.linkhost}/api/video-links" + $"?link={link}&p={AppInit.conf.Kodik.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
+                string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
                 streams = new List<(string q, string url)>();
                 var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
@@ -128,7 +134,7 @@ namespace Lampac.Controllers.LITE
             string streansquality = string.Empty;
             foreach (var l in streams)
             {
-                string hls = HostStreamProxy(AppInit.conf.Kodik, l.url, proxy: proxy, plugin: "kodik");
+                string hls = HostStreamProxy(init, l.url, proxy: proxy, plugin: "kodik");
                 streansquality += $"\"{l.q}\":\"" + hls + "\",";
             }
 
@@ -136,7 +142,7 @@ namespace Lampac.Controllers.LITE
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            string url = HostStreamProxy(AppInit.conf.Kodik, streams[0].url, proxy: proxy, plugin: "kodik");
+            string url = HostStreamProxy(init, streams[0].url, proxy: proxy, plugin: "kodik");
 
             if (play)
                 return Redirect(url);
@@ -151,12 +157,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/videoparse.m3u8")]
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
-            if (!AppInit.conf.Kodik.enable)
+            var init = AppInit.conf.Kodik;
+
+            if (!init.enable)
                 return OnError();
 
             var oninvk = InitKodikInvoke();
 
-            var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40), () => oninvk.VideoParse(AppInit.conf.Kodik.linkhost, link));
+            var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40), () => oninvk.VideoParse(init.linkhost, link));
             if (streams == null)
                 return OnError(proxyManager);
 

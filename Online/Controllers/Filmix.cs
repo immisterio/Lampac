@@ -6,7 +6,6 @@ using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
 using System.Text.RegularExpressions;
-using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -33,22 +32,26 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int postid, int t, int s = -1)
         {
-            if (!AppInit.conf.Filmix.enable)
+            var init = AppInit.conf.Filmix;
+
+            if (!init.enable)
                 return OnError();
 
             if (original_language != "en")
                 clarification = 1;
 
-            var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
+            var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();
+
+            string dmcatoken = "bc170de3b2cafb09283b936011f054ed";
 
             var oninvk = new FilmixInvoke
             (
                host,
-               AppInit.conf.Filmix.corsHost(),
-               (hashfimix != null || (postid == 0 && string.IsNullOrEmpty(AppInit.conf.Filmix.token))) ? "bc170de3b2cafb09283b936011f054ed" : AppInit.conf.Filmix.token,
-               ongettourl => HttpClient.Get(AppInit.conf.Filmix.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Filmix, replaceLink(onstreamtofile), proxy: proxy)
+               init.corsHost(),
+               string.IsNullOrEmpty(init.token) ? dmcatoken : init.token,
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(init, replaceLink(onstreamtofile), proxy: proxy)
             );
 
             if (postid == 0)
@@ -60,49 +63,43 @@ namespace Lampac.Controllers.LITE
                 postid = res.id;
             }
 
-            await gofreehash();
+            if (lastpostid != postid && oninvk.token == dmcatoken)
+            {
+                await refreshash(postid);
+                if (hashfimix == null)
+                    oninvk.token = null;
+            }
 
             var player_links = await InvokeCache($"filmix:post:{postid}", cacheTime(20), () => oninvk.Post(postid));
             if (player_links == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(player_links, (hashfimix != null ? true : AppInit.conf.Filmix.pro), postid, title, original_title, t, s), "text/html; charset=utf-8");
+            return Content(oninvk.Html(player_links, init.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
         }
 
 
-
-
-        static Random random = new Random();
-
         static string hashfimix = null;
+        static int lastpostid = -1;
 
-        async static ValueTask gofreehash()
+        async static ValueTask refreshash(int postid)
         {
-            if (AppInit.conf.Filmix.pro != false || !string.IsNullOrEmpty(AppInit.conf.Filmix.token))
-                return;
+            lastpostid = postid;
 
-            string FXFS = await HttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
+            string json = await HttpClient.Get($"{AppInit.conf.Filmix.corsHost()}/api/v2/post/2057?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 4);
+            string hash = Regex.Match(json ?? "", "/s\\\\/([^\\/]+)\\\\/").Groups[1].Value;
 
-            if (string.IsNullOrEmpty(FXFS))
+            if (string.IsNullOrEmpty(hash))
             {
                 hashfimix = null;
                 return;
             }
 
-            string[] chars = new string[]
-            {
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-                "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m",
-                "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"
-            };
-
-            string hash = chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)] + chars[random.Next(0, chars.Length)];
-            hashfimix = $"{FXFS}{hash}";
+            hashfimix = hash;
         }
 
         static string replaceLink(string l)
         {
-            if (string.IsNullOrEmpty(hashfimix))
+            if (hashfimix == null)
                 return l;
 
             return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");

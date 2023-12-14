@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/eneyida")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Eneyida;
+
             var arg = defaultArgs(args);
             string? href = parse_arg("href", args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -17,9 +19,9 @@ namespace JinEnergy.Online
             var oninvk = new EneyidaInvoke
             (
                null,
-               AppInit.Eneyida.corsHost(),
-               ongettourl => JsHttpClient.Get(AppInit.Eneyida.corsHost(ongettourl)),
-               (url, data) => JsHttpClient.Post(AppInit.Eneyida.corsHost(url), data),
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
+               (url, data) => JsHttpClient.Post(init.cors(url), data),
                onstreamtofile => onstreamtofile
                //AppInit.log
             );

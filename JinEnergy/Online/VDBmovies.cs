@@ -13,6 +13,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/vdbmovies")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.VDBmovies;
+
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -39,7 +41,7 @@ namespace JinEnergy.Online
             #region embed
             EmbedModel? embed = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.imdb_id}:{arg.kinopoisk_id}", async () =>
             {
-                string? html = await JsHttpClient.Get($"{AppInit.VDBmovies.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", addHeaders: new List<(string name, string val)>()
+                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", addHeaders: new List<(string name, string val)>()
                 {
                     ("Origin", "https://cdnmovies.net"),
                     ("Referer", "https://cdnmovies.net/")

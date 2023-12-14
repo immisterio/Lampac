@@ -14,22 +14,24 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnmovies")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1)
         {
-            if (!AppInit.conf.CDNmovies.enable || kinopoisk_id == 0)
+            var init = AppInit.conf.CDNmovies;
+
+            if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            var proxyManager = new ProxyManager("cdnmovies", AppInit.conf.CDNmovies);
+            var proxyManager = new ProxyManager("cdnmovies", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new CDNmoviesInvoke
             (
                host,
-               AppInit.conf.CDNmovies.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.CDNmovies.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
+               init.corsHost(),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
                {
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
                }),
-               onstreamtofile => HostStreamProxy(AppInit.conf.CDNmovies, onstreamtofile, proxy: proxy)
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 
             var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id));

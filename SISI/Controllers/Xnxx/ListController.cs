@@ -17,16 +17,18 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx")]
         async public Task<JsonResult> Index(string search, int pg = 1)
         {
-            if (!AppInit.conf.Xnxx.enable)
+            var init = AppInit.conf.Xnxx;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"xnx:list:{search}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xnx", AppInit.conf.Xnxx);
+                var proxyManager = new ProxyManager("xnx", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XnxxTo.InvokeHtml(AppInit.conf.Xnxx.host, search, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

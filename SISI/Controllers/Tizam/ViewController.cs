@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Web;
@@ -15,19 +14,21 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            if (!AppInit.conf.Spankbang.enable)
+            var init = AppInit.conf.Tizam;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"tizam:view:{uri}";
             if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
-            var proxyManager = new ProxyManager("tizam", AppInit.conf.Tizam);
+            var proxyManager = new ProxyManager("tizam", init);
             var proxy = proxyManager.Get();
 
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
-                string html = await HttpClient.Get($"{AppInit.conf.Tizam.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy);
+                string html = await HttpClient.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy);
                 if (html == null)
                     return OnError("html", proxyManager);
 
@@ -46,7 +47,7 @@ namespace Lampac.Controllers.Tizam
                 memoryCache.Set(memKey, location, cacheTime(360));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.Tizam, location, proxy: proxy));
+            return Redirect(HostStreamProxy(init, location, proxy: proxy));
         }
     }
 }

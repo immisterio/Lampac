@@ -20,7 +20,9 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml")]
         async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (!AppInit.conf.Xvideos.enable)
+            var init = AppInit.conf.Xvideos;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -28,10 +30,10 @@ namespace Lampac.Controllers.Xvideos
             string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xds", AppInit.conf.Xvideos);
+                var proxyManager = new ProxyManager("xds", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XvideosTo.InvokeHtml(AppInit.conf.Xvideos.host, plugin, search, sort, c, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

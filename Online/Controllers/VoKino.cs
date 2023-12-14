@@ -42,7 +42,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.VoKino.enable || string.IsNullOrEmpty(AppInit.conf.VoKino.token))
+            var init = AppInit.conf.VoKino;
+
+            if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
             var proxy = proxyManager.Get();
@@ -50,10 +52,10 @@ namespace Lampac.Controllers.LITE
             var oninvk = new VoKinoInvoke
             (
                null,
-               AppInit.conf.VoKino.corsHost(),
-               AppInit.conf.VoKino.token,
-               ongettourl => HttpClient.Get(AppInit.conf.VoKino.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(AppInit.conf.VoKino, streamfile, proxy: proxy)
+               init.corsHost(),
+               init.token,
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
             var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(kinopoisk_id));

@@ -18,10 +18,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Pro(string code, string name)
         {
             var proxy = proxyManager.Get();
+            var init = AppInit.conf.KinoPub;
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                var token_request = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy);
+                var token_request = await HttpClient.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy);
 
                 string html = "1. Откройте <a href='https://kino.pub/device'>https://kino.pub/device</a> <br>";
                 html += $"2. Введите код активации <b>{token_request.Value<string>("user_code")}</b><br>";
@@ -33,11 +34,11 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                var device_token = await HttpClient.Post<JObject>($"{AppInit.conf.KinoPub.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy);
+                var device_token = await HttpClient.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy);
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
-                await HttpClient.Post($"{AppInit.conf.KinoPub.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name ?? "LAMPAC"}", proxy: proxy);
+                await HttpClient.Post($"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name ?? "LAMPAC"}", proxy: proxy);
 
                 return Content($"В init.conf укажите token <b>{device_token.Value<string>("access_token")}</b>", "text/html; charset=utf-8");
             }
@@ -48,7 +49,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinopub")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, string original_language, int postid, int s = -1)
         {
-            if (!AppInit.conf.KinoPub.enable)
+            var init = AppInit.conf.KinoPub;
+
+            if (!init.enable)
                 return OnError();
 
             var proxy = proxyManager.Get();
@@ -56,10 +59,10 @@ namespace Lampac.Controllers.LITE
             var oninvk = new KinoPubInvoke
             (
                host,
-               AppInit.conf.KinoPub.corsHost(),
-               AppInit.conf.KinoPub.token,
-               ongettourl => HttpClient.Get(AppInit.conf.KinoPub.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.KinoPub, onstreamtofile, proxy: proxy)
+               init.corsHost(),
+               init.token,
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 
             if (postid == 0)
@@ -85,7 +88,7 @@ namespace Lampac.Controllers.LITE
             if (root == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(root, AppInit.conf.KinoPub.filetype, title, original_title, postid, s), "text/html; charset=utf-8");
+            return Content(oninvk.Html(root, init.filetype, title, original_title, postid, s), "text/html; charset=utf-8");
         }
     }
 }

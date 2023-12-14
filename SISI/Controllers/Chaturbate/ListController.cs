@@ -17,7 +17,9 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu")]
         async public Task<JsonResult> Index(string search, string sort, int pg = 1)
         {
-            if (!AppInit.conf.Chaturbate.enable)
+            var init = AppInit.conf.Chaturbate;
+
+            if (!init.enable)
                 return OnError("disable");
 
             if (!string.IsNullOrEmpty(search))
@@ -26,10 +28,10 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"Chaturbate:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("chu", AppInit.conf.Chaturbate);
+                var proxyManager = new ProxyManager("chu", init);
                 var proxy = proxyManager.Get();
 
-                string html = await ChaturbateTo.InvokeHtml(AppInit.conf.Chaturbate.corsHost(), sort, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager);
 

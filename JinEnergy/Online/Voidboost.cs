@@ -11,8 +11,8 @@ namespace JinEnergy.Online
         (
             null,
             AppInit.Voidboost.corsHost(),
-            ongettourl => JsHttpClient.Get(AppInit.Voidboost.corsHost(ongettourl)),
-            (url, data) => JsHttpClient.Post(AppInit.Voidboost.corsHost(url), data),
+            ongettourl => JsHttpClient.Get(AppInit.Voidboost.cors(ongettourl)),
+            (url, data) => JsHttpClient.Post(AppInit.Voidboost.cors(url), data),
             streamfile => streamfile
         );
         #endregion

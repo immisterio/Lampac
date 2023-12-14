@@ -74,7 +74,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lostfilmhd/video.m3u8")]
         async public Task<ActionResult> Video(string iframe, int s, int e, int v, string title, string original_title, bool play)
         {
-            if (!AppInit.conf.Lostfilmhd.enable)
+            var init = AppInit.conf.Lostfilmhd;
+
+            if (!init.enable)
                 return OnError();
 
             var proxy = proxyManager.Get();
@@ -82,7 +84,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}"; // :{v}
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}"/* + $"&voice={v}"*/, referer: AppInit.conf.Lostfilmhd.host, proxy: proxy, timeoutSeconds: 10);
+                string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}"/* + $"&voice={v}"*/, referer: init.host, proxy: proxy, timeoutSeconds: 10);
                 if (html == null)
                     return OnError(proxyManager);
 
@@ -94,22 +96,23 @@ namespace Lampac.Controllers.LITE
             }
 
             if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.Lostfilmhd, urim3u8, proxy: proxy));
+                return Redirect(HostStreamProxy(init, urim3u8, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Lostfilmhd, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
         #region embed
         async ValueTask<(Dictionary<string, object> seasons, string iframe_src)> embed(string title, int year)
         {
+            var init = AppInit.conf.Lostfilmhd;
             string memKey = $"lostfilmhd:view:{title}:{year}";
 
             if (!memoryCache.TryGetValue(memKey, out (Dictionary<string, object> seasons, string iframe_src) cache))
             {
                 var proxy = proxyManager.Get();
 
-                string search = await HttpClient.Post($"{AppInit.conf.Lostfilmhd.host}/publ/", $"query={HttpUtility.UrlEncode(title)}&a=2", timeoutSeconds: 8, proxy: proxy);
+                string search = await HttpClient.Post($"{init.corsHost()}/publ/", $"query={HttpUtility.UrlEncode(title)}&a=2", timeoutSeconds: 8, proxy: proxy);
                 if (search == null)
                     return (null, null);
 
@@ -140,7 +143,7 @@ namespace Lampac.Controllers.LITE
                     link = reservedlink;
                 }
 
-                string news = await HttpClient.Get($"{AppInit.conf.Lostfilmhd.host}/{link}", timeoutSeconds: 8, proxy: proxy);
+                string news = await HttpClient.Get($"{init.corsHost()}/{link}", timeoutSeconds: 8, proxy: proxy);
                 if (news == null)
                     return (null, null);
 
@@ -148,7 +151,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(iframe_src))
                     return (null, null);
 
-                string iframe = await HttpClient.Get($"http://{iframe_src}", referer: AppInit.conf.Lostfilmhd.host, timeoutSeconds: 8, proxy: proxy);
+                string iframe = await HttpClient.Get($"http://{iframe_src}", referer: init.host, timeoutSeconds: 8, proxy: proxy);
                 if (string.IsNullOrWhiteSpace(iframe) || iframe.Contains(">Контент недоступен в вашем регионе") || iframe.Contains("<title>404 Not Found</title>"))
                     return (null, null);
 

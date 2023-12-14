@@ -17,16 +17,18 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx")]
         async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (!AppInit.conf.Porntrex.enable)
+            var init = AppInit.conf.Porntrex;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"ptx:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("ptx", AppInit.conf.Porntrex);
+                var proxyManager = new ProxyManager("ptx", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PorntrexTo.InvokeHtml(AppInit.conf.Porntrex.host, search, sort, c, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -38,7 +40,7 @@ namespace Lampac.Controllers.Porntrex
                 memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: new List<(string name, string val)> { ("referer", $"{AppInit.conf.Porntrex.host}/") });
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: new List<(string name, string val)> { ("referer", $"{init.host}/") });
         }
     }
 }

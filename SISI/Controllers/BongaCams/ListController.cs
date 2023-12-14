@@ -16,24 +16,26 @@ namespace Lampac.Controllers.BongaCams
         [Route("bgs")]
         async public Task<JsonResult> Index(string search, string sort, int pg = 1)
         {
-            if (!AppInit.conf.BongaCams.enable)
+            var init = AppInit.conf.BongaCams;
+
+            if (!init.enable)
                 return OnError("disable");
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search");
 
-            var proxyManager = new ProxyManager("bgs", AppInit.conf.BongaCams);
+            var proxyManager = new ProxyManager("bgs", init);
             var proxy = proxyManager.Get();
 
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                string html = await BongaCamsTo.InvokeHtml(AppInit.conf.BongaCams.host, sort, pg, url => 
+                string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
-                    return HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
                     {
                         ("dnt", "1"),
-                        ("referer", AppInit.conf.BongaCams.host),
+                        ("referer", init.host),
                         ("sec-fetch-dest", "empty"),
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
@@ -52,7 +54,7 @@ namespace Lampac.Controllers.BongaCams
                 memoryCache.Set(memKey, playlists, cacheTime(5));
             }
 
-            return OnResult(playlists, AppInit.conf.BongaCams, BongaCamsTo.Menu(host, sort), proxy: proxy);
+            return OnResult(playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy);
         }
     }
 }

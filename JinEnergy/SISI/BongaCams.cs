@@ -10,13 +10,15 @@ namespace JinEnergy.SISI
         [JSInvokable("bgs")]
         async public static ValueTask<ResultModel> Index(string args)
         {
+            var init = AppInit.BongaCams;
+
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await BongaCamsTo.InvokeHtml(AppInit.BongaCams.corsHost(), sort, pg, url => JsHttpClient.Get(url, addHeaders: new List<(string name, string val)>()
+            string? html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)>()
             {
                 ("dnt", "1"),
-                ("referer", AppInit.BongaCams.host!),
+                ("referer", init.host!),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-origin"),

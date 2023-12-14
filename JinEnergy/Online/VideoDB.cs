@@ -15,19 +15,18 @@ namespace JinEnergy.Online
         [JSInvokable("lite/videodb")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.VideoDB;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             int sid = int.Parse(parse_arg("sid", args) ?? "-1");
             string? t = parse_arg("t", args);
 
-            if (arg.kinopoisk_id == 0)
-                return EmptyError("kinopoisk_id");
-
             var oninvk = new VideoDBInvoke
             (
                null,
-               AppInit.VideoDB.corsHost(),
-               (url, head) => JsHttpClient.Get(AppInit.VideoDB.corsHost(url), addHeaders: head),
+               init.corsHost(),
+               (url, head) => JsHttpClient.Get(init.cors(url), addHeaders: head),
                streamfile => HostStreamProxy(streamfile, origstream)
                //AppInit.log
             );

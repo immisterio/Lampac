@@ -19,10 +19,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinokrad")]
         async public Task<ActionResult> Index(string title, int year, int serial, string newsuri, int s = -1)
         {
-            if (!AppInit.conf.Kinokrad.enable || string.IsNullOrWhiteSpace(title))
+            var init = AppInit.conf.Kinokrad;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager("kinokrad", AppInit.conf.Kinokrad);
+            var proxyManager = new ProxyManager("kinokrad", init);
             var proxy = proxyManager.Get();
 
             bool firstjson = true;
@@ -36,7 +38,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinokrad:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                        string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -79,7 +81,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(filetxt))
                             return OnError(proxyManager);
 
-                        var root = await HttpClient.Get<JObject>($"{AppInit.conf.Kinokrad.host}/{filetxt}", timeoutSeconds: 8, proxy: proxy);
+                        var root = await HttpClient.Get<JObject>($"{init.corsHost()}/{filetxt}", timeoutSeconds: 8, proxy: proxy);
                         if (root == null)
                             return OnError(proxyManager);
 
@@ -105,7 +107,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(AppInit.conf.Kinokrad, l.uri, new List<(string, string)>() { ("referer", AppInit.conf.Kinokrad.host) }, proxy: proxy);
+                        string link = HostStreamProxy(init, l.uri, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
                         firstjson = true;
                     }
@@ -118,7 +120,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinokrad:view:{title}:{year}";
                 if (!memoryCache.TryGetValue(memKey, out string content))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Kinokrad.host}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=1&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -163,7 +165,7 @@ namespace Lampac.Controllers.LITE
                     string hls = new Regex($"\\[{quality}p\\]" + "(https?://[^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content).Groups[1].Value;
                     if (!string.IsNullOrEmpty(hls))
                     {
-                        hls = HostStreamProxy(AppInit.conf.Kinokrad, hls, new List<(string, string)>() { ("referer", AppInit.conf.Kinokrad.host) }, proxy: proxy);
+                        hls = HostStreamProxy(init, hls, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy);
                         html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
                         firstjson = true;
                     }

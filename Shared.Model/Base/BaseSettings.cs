@@ -43,7 +43,7 @@
             return $"{crhost}/{host}";
         }
 
-        public string corsHost(string uri)
+        public string cors(string uri)
         {
             string? crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.corseuhost : null;
             if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri) || uri.Contains(crhost))

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,19 +15,21 @@ namespace Lampac.Controllers.PornHub
         [Route("phub/vidosik")]
         async public Task<ActionResult> Index(string vkey)
         {
-            if (!AppInit.conf.PornHub.enable)
+            var init = AppInit.conf.PornHub;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"phub:vidosik:{vkey}";
             if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
-            var proxyManager = new ProxyManager("phub", AppInit.conf.PornHub);
+            var proxyManager = new ProxyManager("phub", init);
             var proxy = proxyManager.Get();
 
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", AppInit.conf.PornHub.host, vkey, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders()));
+                stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", init.corsHost(), vkey, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders()));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
@@ -36,7 +37,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 
-            return OnResult(stream_links, AppInit.conf.PornHub, proxy, plugin: "phub");
+            return OnResult(stream_links, init, proxy, plugin: "phub");
         }
 
 
@@ -44,19 +45,21 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem/vidosik")]
         async public Task<ActionResult> Prem(string vkey)
         {
-            if (!AppInit.conf.PornHubPremium.enable)
+            var init = AppInit.conf.PornHubPremium;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string memKey = $"phubprem:vidosik:{vkey}";
             if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
-            var proxyManager = new ProxyManager("phubprem", AppInit.conf.PornHubPremium);
+            var proxyManager = new ProxyManager("phubprem", init);
             var proxy = proxyManager.Get();
 
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", AppInit.conf.PornHubPremium.host, vkey, url => HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders(AppInit.conf.PornHubPremium.cookie)));
+                stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", init.corsHost(), vkey, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, addHeaders: ListController.httpheaders(init.cookie)));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
@@ -64,7 +67,7 @@ namespace Lampac.Controllers.PornHub
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 
-            return OnResult(stream_links, AppInit.conf.PornHubPremium, proxy, plugin: "phubprem");
+            return OnResult(stream_links, init, proxy, plugin: "phubprem");
         }
     }
 }

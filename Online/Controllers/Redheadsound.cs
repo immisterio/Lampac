@@ -13,7 +13,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/redheadsound")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, string original_language)
         {
-            if (!AppInit.conf.Redheadsound.enable)
+            var init = AppInit.conf.Redheadsound;
+
+            if (!init.enable)
                 return OnError();
 
             if (original_language != "en")
@@ -22,16 +24,16 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            var proxyManager = new ProxyManager("redheadsound", AppInit.conf.Redheadsound);
+            var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new RedheadsoundInvoke
             (
                host,
-               AppInit.conf.Redheadsound.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.Redheadsound.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               (url, data) => HttpClient.Post(AppInit.conf.Redheadsound.corsHost(url), data, timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(AppInit.conf.Redheadsound, streamfile, proxy: proxy)
+               init.corsHost(),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
             var content = await InvokeCache($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30), () => oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year));

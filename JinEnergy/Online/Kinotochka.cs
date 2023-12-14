@@ -11,9 +11,6 @@ namespace JinEnergy.Online
         {
             var arg = defaultArgs(args);
 
-            if (arg.kinopoisk_id == 0)
-                return EmptyError("kinopoisk_id");
-
             string? file = await InvokeCache(arg.id, $"kinotochka:{arg.kinopoisk_id}", () => Embed(arg.kinopoisk_id));
             if (string.IsNullOrEmpty(file))
                 return EmptyError("file");

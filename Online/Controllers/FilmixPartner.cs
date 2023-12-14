@@ -23,7 +23,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fxapi")]
         async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1)
         {
-            if (!AppInit.conf.FilmixPartner.enable)
+            var init = AppInit.conf.FilmixPartner;
+
+            if (!init.enable)
                 return OnError();
 
             if (postid == 0)
@@ -54,7 +56,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return OnError();
 
-                root = await HttpClient.Get<JArray>($"{AppInit.conf.FilmixPartner.host}/video_links/{postid}", addHeaders: new List<(string name, string val)>()
+                root = await HttpClient.Get<JArray>($"{init.corsHost()}/video_links/{postid}", addHeaders: new List<(string name, string val)>()
                 {
                     ("X-FX-TOKEN", XFXTOKEN)
                 });
@@ -84,7 +86,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                     {
                         int q = file.Value<int>("quality");
-                        string l = HostStreamProxy(AppInit.conf.FilmixPartner, file.Value<string>("url"));
+                        string l = HostStreamProxy(init, file.Value<string>("url"));
 
                         streams.Add((l, $"{q}p"));
                         streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
@@ -156,7 +158,7 @@ namespace Lampac.Controllers.LITE
                         foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                         {
                             int q = file.Value<int>("quality");
-                            string l = HostStreamProxy(AppInit.conf.FilmixPartner, file.Value<string>("url"));
+                            string l = HostStreamProxy(init, file.Value<string>("url"));
 
                             streams.Add((l, $"{q}p"));
                             streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
@@ -190,7 +192,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return 0;
 
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/film/by-kp/{kinopoisk_id}", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>()
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.corsHost()}/film/by-kp/{kinopoisk_id}", timeoutSeconds: 8, addHeaders: new List<(string name, string val)>()
                 {
                     ("X-FX-TOKEN", XFXTOKEN)
                 });
@@ -218,7 +220,7 @@ namespace Lampac.Controllers.LITE
 
             string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";
 
-            string json = await HttpClient.Get(AppInit.conf.Filmix.corsHost(uri), timeoutSeconds: 8, proxy: proxy);
+            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 8, proxy: proxy);
             if (json == null)
             {
                 proxyManager.Refresh();

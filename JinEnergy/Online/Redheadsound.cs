@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/redheadsound")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Redheadsound;
+
             var arg = defaultArgs(args);
             int clarification = arg.clarification;
 
@@ -21,9 +23,9 @@ namespace JinEnergy.Online
             var oninvk = new RedheadsoundInvoke
             (
                null,
-               AppInit.Redheadsound.corsHost(),
-               ongettourl => JsHttpClient.Get(AppInit.Redheadsound.corsHost(ongettourl)),
-               (url, data) => JsHttpClient.Post(AppInit.Redheadsound.corsHost(url), data),
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
+               (url, data) => JsHttpClient.Post(init.cors(url), data),
                streamfile => streamfile
             );
 

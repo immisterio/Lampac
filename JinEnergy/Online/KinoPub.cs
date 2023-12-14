@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/kinopub")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.KinoPub;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
@@ -17,9 +19,9 @@ namespace JinEnergy.Online
             var oninvk = new KinoPubInvoke
             (
                null,
-               AppInit.KinoPub.corsHost(),
-               AppInit.KinoPub.token,
-               ongettourl => JsHttpClient.Get(AppInit.KinoPub.corsHost(ongettourl)),
+               init.corsHost(),
+               init.token,
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                onstreamtofile => onstreamtofile
                //AppInit.log
             );
@@ -44,7 +46,7 @@ namespace JinEnergy.Online
             if (root == null)
                 return EmptyError("root");
 
-            return oninvk.Html(root, AppInit.KinoPub.filetype, arg.title, arg.original_title, postid, s);
+            return oninvk.Html(root, init.filetype, arg.title, arg.original_title, postid, s);
         }
     }
 }

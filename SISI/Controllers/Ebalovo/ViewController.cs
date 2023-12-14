@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -16,18 +15,20 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            if (!AppInit.conf.Ebalovo.enable)
+            var init = AppInit.conf.Ebalovo;
+
+            if (!init.enable)
                 return OnError("disable");
 
-            var proxyManager = new ProxyManager("elo", AppInit.conf.Ebalovo);
+            var proxyManager = new ProxyManager("elo", init);
             var proxy = proxyManager.Get();
 
             string memKey = $"ebalovo:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", AppInit.conf.Ebalovo.host, uri,
-                               url => HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy),
-                               location => HttpClient.GetLocation(location, timeoutSeconds: 8, proxy: proxy, referer: $"{AppInit.conf.Ebalovo.host}/"));
+                stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", init.corsHost(), uri,
+                               url => HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy),
+                               location => HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{init.host}/"));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
@@ -35,7 +36,7 @@ namespace Lampac.Controllers.Ebalovo
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 
-            return OnResult(stream_links, AppInit.conf.Ebalovo, proxy);
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

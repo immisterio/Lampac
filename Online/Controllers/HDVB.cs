@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -109,7 +108,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/video.m3u8")]
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
-            if (!AppInit.conf.HDVB.enable)
+            var init = AppInit.conf.HDVB;
+
+            if (!init.enable)
                 return OnError();
 
             var proxy = proxyManager.Get();
@@ -117,7 +118,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"video:view:video:{iframe}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.host}/", timeoutSeconds: 8, proxy: proxy);
+                string html = await HttpClient.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
                     return OnError(proxyManager);
 
@@ -166,10 +167,12 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
-            if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy));
+            string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy, plugin: "hdvb");
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            if (play)
+                return Redirect(m3u8);
+
+            return Content("{\"method\":\"play\",\"url\":\"" + m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 
@@ -179,15 +182,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/serial.m3u8")]
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
-            if (!AppInit.conf.HDVB.enable)
-                return Content(string.Empty);
+            var init = AppInit.conf.HDVB;
+
+            if (!init.enable)
+                return OnError();
 
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get(iframe, referer: $"{AppInit.conf.HDVB.host}/", timeoutSeconds: 8, proxy: proxy);
+                string html = await HttpClient.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
                     return OnError(proxyManager);
 
@@ -237,9 +242,9 @@ namespace Lampac.Controllers.LITE
             }
 
             if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy));
+                return Redirect(HostStreamProxy(init, urim3u8, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.HDVB, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }
         #endregion
 

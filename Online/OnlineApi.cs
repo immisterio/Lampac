@@ -276,7 +276,7 @@ namespace Lampac.Controllers
                     online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
             }
 
-            if (conf.VoKino.enable && (serial == -1 || serial == 0))
+            if (conf.VoKino.enable && (serial == -1 || serial == 0) && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
 
             if (conf.Filmix.enable)
@@ -297,13 +297,13 @@ namespace Lampac.Controllers
             if (conf.Rezka.enable)
                 online += "{\"name\":\"" + (conf.Rezka.displayname ?? "Rezka") + "\",\"url\":\"{localhost}/rezka\"},";
 
-            if (conf.VideoDB.enable)
+            if (conf.VideoDB.enable && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.VideoDB.displayname ?? "VideoDB") + "\",\"url\":\"{localhost}/videodb\"},";
 
             if (conf.Kinobase.enable)
                 online += "{\"name\":\"" + (conf.Kinobase.displayname ?? "Kinobase") + "\",\"url\":\"{localhost}/kinobase\"},";
 
-            if (conf.Zetflix.enable)
+            if (conf.Zetflix.enable && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.Zetflix.displayname ?? "Zetflix") + "\",\"url\":\"{localhost}/zetflix\"},";
 
             if (conf.Voidboost.enable)
@@ -312,7 +312,7 @@ namespace Lampac.Controllers
             if (conf.VCDN.enable)
                 online += "{\"name\":\"" + (conf.VCDN.displayname ?? "VideoCDN") + "\",\"url\":\"{localhost}/vcdn\"},";
 
-            if (conf.Ashdi.enable)
+            if (conf.Ashdi.enable && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.Ashdi.displayname ?? "Ashdi (UKR)") + "\",\"url\":\"{localhost}/ashdi\"},";
 
             if (conf.Eneyida.enable)
@@ -330,7 +330,7 @@ namespace Lampac.Controllers
             if (conf.HDVB.enable)
                 online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
 
-            if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)))
+            if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
 
             if (conf.Kinotochka.enable)

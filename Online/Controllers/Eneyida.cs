@@ -13,22 +13,24 @@ namespace Lampac.Controllers.LITE
         [Route("lite/eneyida")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null)
         {
-            if (!AppInit.conf.Eneyida.enable)
+            var init = AppInit.conf.Eneyida;
+
+            if (!init.enable)
                 return OnError();
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
-            var proxyManager = new ProxyManager("eneyida", AppInit.conf.Eneyida);
+            var proxyManager = new ProxyManager("eneyida", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new EneyidaInvoke
             (
                host,
-               AppInit.conf.Eneyida.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.Eneyida.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               (url, data) => HttpClient.Post(AppInit.conf.Eneyida.corsHost(url), data, timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Eneyida, onstreamtofile, proxy: proxy)
+               init.corsHost(),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "eneyida")
             );
 
             string search_title = clarification == 1 ? title : original_title;

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
@@ -21,7 +20,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst")]
         async public Task<ActionResult> Index(string title, string uri, int s, string account_email)
         {
-            if (!AppInit.conf.Animebesst.enable || string.IsNullOrWhiteSpace(title))
+            var init = AppInit.conf.Animebesst;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -30,7 +31,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animebesst:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
-                    string search = await HttpClient.Post($"{AppInit.conf.Animebesst.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -125,13 +126,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst/video.m3u8")]
         async public Task<ActionResult> Video(string uri)
         {
-            if (!AppInit.conf.Animebesst.enable)
+            var init = AppInit.conf.Animebesst;
+
+            if (!init.enable)
                 return OnError();
 
             string memKey = $"animebesst:video:{uri}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                string iframe = await HttpClient.Get($"https://{uri}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                string iframe = await HttpClient.Get(init.cors($"https://{uri}"), timeoutSeconds: 8, proxy: proxyManager.Get());
                 hls = Regex.Match(iframe ?? "", "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(hls))
@@ -140,7 +143,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, hls, cacheTime(30));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.Animebesst, hls, proxy: proxyManager.Get(), plugin: "animebesst"));
+            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animebesst"));
         }
         #endregion
     }

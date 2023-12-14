@@ -110,11 +110,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha/video.m3u8")]
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
         {
-            if (!AppInit.conf.Alloha.enable)
+            var init = AppInit.conf.Alloha;
+
+            if (!init.enable)
                 return OnError("disable");
 
             string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
-            if (AppInit.conf.Alloha.localip || AppInit.conf.Alloha.streamproxy)
+            if (init.localip || init.streamproxy)
             {
                 userIp = await mylocalip();
                 if (userIp == null)
@@ -125,7 +127,7 @@ namespace Lampac.Controllers.LITE
             if (!memoryCache.TryGetValue(memKey, out (string m3u8, string subtitle) _cache))
             {
                 #region url запроса
-                string uri = $"{AppInit.conf.Alloha.linkhost}/link_file.php?secret_token={AppInit.conf.Alloha.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
+                string uri = $"{init.linkhost}/link_file.php?secret_token={init.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
 
                 uri += $"&ip={userIp}&translation={t}";
 
@@ -155,16 +157,20 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, _cache, cacheTime(10));
             }
 
-            if (play)
-                return Redirect(HostStreamProxy(AppInit.conf.Alloha, _cache.m3u8));
+            string m3u8 = HostStreamProxy(init, _cache.m3u8, proxy: proxyManager.Get(), plugin: "alloha");
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(AppInit.conf.Alloha, _cache.m3u8) + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
+            if (play)
+                return Redirect(m3u8);
+
+            return Content("{\"method\":\"play\",\"url\":\"" + m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
         }
         #endregion
 
         #region search
         async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
+            var init = AppInit.conf.Alloha;
+
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";
@@ -176,7 +182,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (root == null || !root.ContainsKey("data"))
                         return (true, 0, null);
 
@@ -202,7 +208,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    var root = await HttpClient.Get<JObject>($"{AppInit.conf.Alloha.apihost}/?token={AppInit.conf.Alloha.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                     if (root == null || !root.ContainsKey("data"))
                         return (true, 0, null);
 

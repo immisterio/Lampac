@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/cdnmovies")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.CDNmovies;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             int t = int.Parse(parse_arg("t", args) ?? "0");
@@ -20,8 +22,8 @@ namespace JinEnergy.Online
             var oninvk = new CDNmoviesInvoke
             (
                null,
-               AppInit.CDNmovies.corsHost(),
-               ongettourl => JsHttpClient.Get(AppInit.CDNmovies.corsHost(ongettourl), addHeaders: new List<(string name, string val)>()
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl), addHeaders: new List<(string name, string val)>()
                {
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")

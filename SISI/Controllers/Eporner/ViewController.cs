@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,18 +15,20 @@ namespace Lampac.Controllers.Eporner
         [Route("epr/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            if (!AppInit.conf.Eporner.enable)
+            var init = AppInit.conf.Eporner;
+
+            if (!init.enable)
                 return OnError("disable");
 
-            var proxyManager = new ProxyManager("epr", AppInit.conf.Eporner);
+            var proxyManager = new ProxyManager("epr", init);
             var proxy = proxyManager.Get();
 
             string memKey = $"eporner:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await EpornerTo.StreamLinks($"{host}/epr/vidosik", AppInit.conf.Eporner.host, uri, 
-                               htmlurl => HttpClient.Get(htmlurl, timeoutSeconds: 8, proxy: proxy), 
-                               jsonurl => HttpClient.Get(jsonurl, timeoutSeconds: 8, proxy: proxy));
+                stream_links = await EpornerTo.StreamLinks($"{host}/epr/vidosik", init.corsHost(), uri, 
+                               htmlurl => HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy), 
+                               jsonurl => HttpClient.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy));
 
                 if (stream_links?.qualitys== null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
@@ -35,7 +36,7 @@ namespace Lampac.Controllers.Eporner
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 
-            return OnResult(stream_links, AppInit.conf.Eporner, proxy);
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

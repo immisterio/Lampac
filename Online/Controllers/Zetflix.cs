@@ -13,18 +13,20 @@ namespace Lampac.Controllers.LITE
         [Route("lite/zetflix")]
         async public Task<ActionResult> Index(long id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.Zetflix.enable)
+            var init = AppInit.conf.Zetflix;
+
+            if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            ProxyManager proxyManager = new ProxyManager("zetflix", AppInit.conf.Zetflix);
+            ProxyManager proxyManager = new ProxyManager("zetflix", init);
             var proxy = proxyManager.Get();
 
             var oninvk = new ZetflixInvoke
             (
                host,
-               AppInit.conf.Zetflix.corsHost(),
-               (url, head) => HttpClient.Get(AppInit.conf.Zetflix.corsHost(url), addHeaders: head, timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(AppInit.conf.Zetflix, onstreamtofile, proxy: proxy, plugin: "zetflix")
+               init.corsHost(),
+               (url, head) => HttpClient.Get(init.cors(url), addHeaders: head, timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "zetflix")
                //AppInit.log
             );
 

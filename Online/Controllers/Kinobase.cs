@@ -19,7 +19,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinobase")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
-            if (!AppInit.conf.Kinobase.enable)
+            var init = AppInit.conf.Kinobase;
+
+            if (!init.enable)
                 return OnError();
 
             if (string.IsNullOrEmpty(title) || year == 0)
@@ -30,10 +32,10 @@ namespace Lampac.Controllers.LITE
             var oninvk = new KinobaseInvoke
             (
                host,
-               AppInit.conf.Kinobase.corsHost(),
-               ongettourl => HttpClient.Get(AppInit.conf.Kinobase.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               (url, data) => HttpClient.Post(AppInit.conf.Kinobase.corsHost(url), data, timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(AppInit.conf.Kinobase, streamfile, new List<(string, string)>() { ("referer", AppInit.conf.Kinobase.host) }, proxy: proxy)
+               init.corsHost(),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy),
+               streamfile => HostStreamProxy(init, streamfile, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy)
             );
 
             var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(title, year, evalcode => HttpClient.Post("http://bwa.to:5696", $"eval={HttpUtility.UrlEncode(evalcode)}")));

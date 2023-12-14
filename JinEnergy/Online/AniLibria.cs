@@ -10,6 +10,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/anilibria")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.AnilibriaOnline;
+
             var arg = defaultArgs(args);
             string? code = parse_arg("code", args);
 
@@ -19,8 +21,8 @@ namespace JinEnergy.Online
             var oninvk = new AniLibriaInvoke
             (
                null,
-               AppInit.AnilibriaOnline.corsHost(),
-               ongettourl => JsHttpClient.Get<List<RootObject>>(AppInit.AnilibriaOnline.corsHost(ongettourl)),
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get<List<RootObject>>(init.cors(ongettourl)),
                streamfile => streamfile
                //AppInit.log
             );

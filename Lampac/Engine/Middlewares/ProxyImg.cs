@@ -34,15 +34,17 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
+                var init = AppInit.conf.serverproxy;
+
                 #region Проверки
                 Shared.Models.ProxyLinkModel decryptLink = null;
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
 
-                if (AppInit.conf.serverproxy.encrypt)
+                if (init.encrypt)
                 {
                     if (href.Contains(".tmdb.org"))
                     {
-                        if (!AppInit.conf.serverproxy.allow_tmdb)
+                        if (!init.allow_tmdb)
                         {
                             httpContext.Response.StatusCode = 403;
                             return;
@@ -56,7 +58,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 else
                 {
-                    if (!AppInit.conf.serverproxy.enable)
+                    if (!init.enable)
                     {
                         httpContext.Response.StatusCode = 403;
                         return;
@@ -84,7 +86,7 @@ namespace Lampac.Engine.Middlewares
 
                 string outFile = getFolder($"{href}:{width}:{height}");
 
-                if (AppInit.conf.serverproxy.cache_img && File.Exists(outFile))
+                if (init.cache_img && File.Exists(outFile))
                 {
                     httpContext.Response.ContentType = "image/jpeg";
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
@@ -104,15 +106,14 @@ namespace Lampac.Engine.Middlewares
 
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 8, proxy: proxyManager.Get(), addHeaders: decryptLink?.headers);
+                var array = await HttpClient.Download(href, timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: decryptLink?.headers);
                 if (array == null)
                 {
+                    if (init.cache_img)
+                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(2));
+
                     proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
-
-                    if (AppInit.conf.serverproxy.cache_img)
-                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(5));
-
                     return;
                 }
 
@@ -128,11 +129,17 @@ namespace Lampac.Engine.Middlewares
                     }
                 }
 
-                if (AppInit.conf.serverproxy.cache_img)
-                    await File.WriteAllBytesAsync(outFile, array);
+                if (init.cache_img && !File.Exists(outFile))
+                {
+                    try
+                    {
+                        await File.WriteAllBytesAsync(outFile, array);
+                    }
+                    catch { try { File.Delete(outFile); } catch { } }
+                }
 
                 httpContext.Response.ContentType = "image/jpeg";
-                httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+                httpContext.Response.Headers.Add("X-Cache-Status", init.cache_img ? "MISS" : "bypass");
 
                 await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted);
             }

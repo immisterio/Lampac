@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
@@ -22,7 +21,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animego")]
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, string account_email)
         {
-            if (!AppInit.conf.AnimeGo.enable || string.IsNullOrWhiteSpace(title))
+            var init = AppInit.conf.AnimeGo;
+
+            if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             if (pid == 0)
@@ -31,7 +32,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animego:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s)> catalog))
                 {
-                    string search = await HttpClient.Get($"{AppInit.conf.AnimeGo.host}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get());
+                    string search = await HttpClient.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get());
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -84,12 +85,12 @@ namespace Lampac.Controllers.LITE
                 if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
                     #region content
-                    var player = await HttpClient.Get<JObject>($"{AppInit.conf.AnimeGo.host}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>() 
+                    var player = await HttpClient.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>() 
                     {
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("pragma", "no-cache"),
-                        ("referer", $"{AppInit.conf.AnimeGo.host}/"),
+                        ("referer", $"{init.host}/"),
                         ("sec-fetch-dest", "empty"),
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
@@ -175,7 +176,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animego/video.m3u8")]
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
-            if (!AppInit.conf.AnimeGo.enable)
+            var init = AppInit.conf.AnimeGo;
+
+            if (!init.enable)
                 return OnError();
 
             string memKey = $"animego:video:{token}:{t}:{e}";
@@ -186,7 +189,7 @@ namespace Lampac.Controllers.LITE
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("pragma", "no-cache"),
-                    ("referer", $"{AppInit.conf.AnimeGo.host}/"),
+                    ("referer", $"{init.host}/"),
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
@@ -206,7 +209,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, hls, cacheTime(30));
             }
 
-            return Redirect(HostStreamProxy(AppInit.conf.AnimeGo, hls, proxy: proxyManager.Get(), headers: new List<(string, string)>() 
+            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: new List<(string, string)>() 
             {
                 ("origin", "https://aniboom.one"),
                 ("referer", "https://aniboom.one/")

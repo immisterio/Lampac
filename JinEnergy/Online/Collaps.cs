@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/collaps")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Collaps;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
 
@@ -18,8 +20,8 @@ namespace JinEnergy.Online
             var oninvk = new CollapsInvoke
             (
                null,
-               AppInit.Collaps.corsHost(),
-               ongettourl => JsHttpClient.Get(AppInit.Collaps.corsHost(ongettourl)),
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                onstreamtofile => onstreamtofile
             );
 

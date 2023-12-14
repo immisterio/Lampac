@@ -17,28 +17,29 @@ namespace Lampac.Controllers.LITE
         public RezkaInvoke InitRezkaInvoke()
         {
             var proxy = proxyManager.Get();
+            var init = AppInit.conf.Rezka;
 
             var headers = new List<(string name, string val)>();
 
-            if (!string.IsNullOrEmpty(AppInit.conf.Rezka.cookie))
-                headers.Add(("Cookie", AppInit.conf.Rezka.cookie));
+            if (!string.IsNullOrEmpty(init.cookie))
+                headers.Add(("Cookie", init.cookie));
 
-            if (AppInit.conf.Rezka.xapp)
+            if (init.xapp)
                 headers.Add(("X-App-Hdrezka-App", "1"));
 
-            if (AppInit.conf.Rezka.xrealip)
+            if (init.xrealip)
                 headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
 
-            headers.Add(("Origin", AppInit.conf.Rezka.host));
-            headers.Add(("Referer", AppInit.conf.Rezka.host + "/"));
+            headers.Add(("Origin", init.host));
+            headers.Add(("Referer", init.host + "/"));
 
             return new RezkaInvoke
             (
                 host,
-                AppInit.conf.Rezka.corsHost(),
-                ongettourl => HttpClient.Get(AppInit.conf.Rezka.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                (url, data) => HttpClient.Post(AppInit.conf.Rezka.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                streamfile => HostStreamProxy(AppInit.conf.Rezka, streamfile, proxy: proxy, plugin: "rezka")
+                init.corsHost(),
+                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "rezka")
             );
         }
         #endregion

@@ -16,10 +16,11 @@ namespace Lampac.Controllers.LITE
         public VoidboostInvoke InitVoidboostInvoke()
         {
             var proxy = proxyManager.Get();
+            var init = AppInit.conf.Voidboost;
 
             var headers = new List<(string name, string val)>();
 
-            if (AppInit.conf.Voidboost.xrealip)
+            if (init.xrealip)
             {
                 headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
                 headers.Add(("Origin", "http://baskino.me"));
@@ -29,10 +30,10 @@ namespace Lampac.Controllers.LITE
             return new VoidboostInvoke
             (
                 host,
-                AppInit.conf.Voidboost.corsHost(),
-                ongettourl => HttpClient.Get(AppInit.conf.Voidboost.corsHost(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                (url, data) => HttpClient.Post(AppInit.conf.Voidboost.corsHost(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                streamfile => HostStreamProxy(AppInit.conf.Voidboost, streamfile, proxy: proxy, plugin: "voidboost")
+                init.corsHost(),
+                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "voidboost")
             );
         }
         #endregion

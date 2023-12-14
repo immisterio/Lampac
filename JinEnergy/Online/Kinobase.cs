@@ -9,6 +9,8 @@ namespace JinEnergy.Online
         [JSInvokable("lite/kinobase")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Kinobase;
+
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
 
@@ -18,9 +20,9 @@ namespace JinEnergy.Online
             var oninvk = new KinobaseInvoke
             (
                null,
-               AppInit.Kinobase.corsHost(),
-               ongettourl => JsHttpClient.Get(AppInit.Kinobase.corsHost(ongettourl)),
-               (url, data) => JsHttpClient.Post(AppInit.Kinobase.corsHost(url), data),
+               init.corsHost(),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
+               (url, data) => JsHttpClient.Post(init.cors(url), data),
                streamfile => streamfile
             );
 

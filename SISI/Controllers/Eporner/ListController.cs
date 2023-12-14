@@ -17,17 +17,19 @@ namespace Lampac.Controllers.Eporner
         [Route("epr")]
         async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (!AppInit.conf.Eporner.enable)
+            var init = AppInit.conf.Eporner;
+
+            if (!init.enable)
                 return OnError("disable");
 
             pg += 1;
             string memKey = $"epr:{search}:{sort}:{c}:{pg}";
             if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("epr", AppInit.conf.Eporner);
+                var proxyManager = new ProxyManager("epr", init);
                 var proxy = proxyManager.Get();
 
-                string html = await EpornerTo.InvokeHtml(AppInit.conf.Eporner.host, search, sort, c, pg, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

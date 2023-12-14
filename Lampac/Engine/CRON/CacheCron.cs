@@ -13,16 +13,16 @@ namespace Lampac.Engine.CRON
 
             while (true)
             {
-                foreach (var conf in new List<(string path, int day)> { 
-                    ("html", AppInit.conf.fileCacheInactiveDay.html), 
-                    ("img", AppInit.conf.fileCacheInactiveDay.img),
-                    ("hls", AppInit.conf.fileCacheInactiveDay.hls),
-                    ("torrent", AppInit.conf.fileCacheInactiveDay.torrent) 
+                foreach (var conf in new List<(string path, int hour)> { 
+                    ("html", AppInit.conf.fileCacheInactiveHour.html), 
+                    ("img", AppInit.conf.fileCacheInactiveHour.img),
+                    ("hls", AppInit.conf.fileCacheInactiveHour.hls),
+                    ("torrent", AppInit.conf.fileCacheInactiveHour.torrent) 
                 })
                 {
                     try
                     {
-                        if (conf.day == 0)
+                        if (conf.hour == -1)
                             continue;
 
                         foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
@@ -30,7 +30,7 @@ namespace Lampac.Engine.CRON
                             try
                             {
                                 var fileinfo = new FileInfo(infile);
-                                if (DateTime.Now > fileinfo.LastWriteTime.AddDays(conf.day))
+                                if (conf.hour == 0 || DateTime.Now > fileinfo.LastWriteTime.AddHours(conf.hour))
                                     fileinfo.Delete();
                             }
                             catch { }

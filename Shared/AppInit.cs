@@ -167,12 +167,12 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true, cache_img = true };
+        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true };
 
         public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
 
 
-        public FileCacheConf fileCacheInactiveDay = new FileCacheConf() { html = 1, img = 1, torrent = 2, hls = 1 };
+        public FileCacheConf fileCacheInactiveHour = new FileCacheConf() { html = 5, img = 8, torrent = 36, hls = 24 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, path = "dlna" };
 

@@ -65,29 +65,9 @@ namespace JinEnergy
 
                         if (urlconf.Contains("bwa.to/settings/"))
                         {
-                            if (!conf.KinoPub.enable)
-                            {
-                                string? kinopubtk = await JsHttpClient.Get($"https://bwa.to/temp/kinopubtk.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
-                                if (!string.IsNullOrEmpty(kinopubtk))
-                                {
-                                    conf.KinoPub.enable = true;
-                                    conf.KinoPub.token = kinopubtk;
-                                }
-                            }
-
-                            if (!conf.Filmix.pro && string.IsNullOrEmpty(conf.Filmix.token))
-                            {
-                                string? FXFS = await JsHttpClient.Get($"https://bwa.to/temp/hashfimix.txt?v={DateTime.Now.ToBinary()}", timeoutSeconds: 4);
-                                if (FXFS != null)
-                                    conf.Filmix.freehash = !string.IsNullOrEmpty(FXFS);
-                            }
-
-                            if (Country != "UA")
-                            {
-                                string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 5);
-                                if (geo != null)
-                                    Country = geo;
-                            }
+                            string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 5);
+                            if (geo != null)
+                                Country = geo;
                         }
                     }
                 }

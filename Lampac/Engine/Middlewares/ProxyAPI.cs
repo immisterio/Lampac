@@ -81,7 +81,7 @@ namespace Lampac.Engine.Middlewares
 
                 #region Кеш файла
                 string md5file = httpContext.Request.Path.Value.Replace("/proxy/", "");
-                bool ists = md5file.EndsWith(".ts");
+                bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
 
                 string md5key = CORE.CrypTo.md5(ists ? fixuri(decryptLink) : decryptLink.uri);
                 bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && AppInit.conf.serverproxy.encrypt && AppInit.conf.serverproxy.cache_hls;
@@ -105,7 +105,7 @@ namespace Lampac.Engine.Middlewares
                     {
                         using (var fileStream = new FileStream(cachefile, FileMode.Open, FileAccess.Read))
                         {
-                            httpContext.Response.ContentType = ists ? "video/mp2t" : "text/plain";
+                            httpContext.Response.ContentType = ists ? (md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t") : "text/plain";
                             httpContext.Response.ContentLength = fileStream.Length;
                             await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
                         }
@@ -157,10 +157,14 @@ namespace Lampac.Engine.Middlewares
 
                                 string m3u8 = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
 
-                                if (cache_stream)
+                                if (cache_stream && !File.Exists(cachefile))
                                 {
-                                    Directory.CreateDirectory(foldercache);
-                                    await File.WriteAllTextAsync(cachefile, m3u8);
+                                    try
+                                    {
+                                        Directory.CreateDirectory(foldercache);
+                                        await File.WriteAllTextAsync(cachefile, m3u8);
+                                    }
+                                    catch { try { File.Delete(cachefile); } catch { } }
                                 }
 
                                 string hls = editm3u(m3u8, httpContext, account_email, decryptLink);
@@ -194,11 +198,18 @@ namespace Lampac.Engine.Middlewares
 
                                 byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
 
-                                Directory.CreateDirectory(foldercache);
-                                await File.WriteAllBytesAsync(cachefile, buffer);
+                                if (!File.Exists(cachefile))
+                                {
+                                    try
+                                    {
+                                        Directory.CreateDirectory(foldercache);
+                                        await File.WriteAllBytesAsync(cachefile, buffer);
+                                    }
+                                    catch { try { File.Delete(cachefile); } catch { } }
+                                }
 
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
-                                httpContext.Response.ContentType = "video/mp2t";
+                                httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 httpContext.Response.ContentLength = buffer.Length;
                                 await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted);
                             }
@@ -370,7 +381,7 @@ namespace Lampac.Engine.Middlewares
                     return $"{decryptLink.plugin}:{g[1].Value}:{g[2].Value}";
             }
 
-            if (decryptLink.plugin == "rezka" || decryptLink.plugin == "voidboost")
+            if (decryptLink.plugin is "rezka" or "voidboost")
             {
                 // https://broadway.stream.voidboost.cc/ae6235dd062c2bc5e80bec676c9c86ab:2023120807:dmoxckFDWWR2eTJPWFhFcTE0TkZobFprVEtXMnUrdnN5QThmUWoxRFc4TEpZcjZjeXZETXdRNklsdnF5MTdqSDRGRlNud2pnNlpXSjZsdTQybWROUk1RVEc1bUpTSXBIOC8wWkYvMlFVRjQ9/9/6/4/3/9/0/lmrw7.mp4:hls:seg-2-v1-a1.ts
                 string uts = Regex.Match(uri, "https?://[^/]+/[^/]+/(.*\\.ts)").Groups[1].Value;
@@ -395,19 +406,36 @@ namespace Lampac.Engine.Middlewares
                 return $"{decryptLink.plugin}:{uri}";
             }
 
-            if (decryptLink.plugin == "animebesst")
+            if (decryptLink.plugin is "ashdi" or "eneyida" or "animebesst" or"animedia" or "animego")
             {
+                // https://s1.ashdi.vip/content/stream/serials/chainsaw_man_gweanmaslinka/chainsaw_man__01_webdl_1080p_hevc_aac_ukr_dvo_76967/hls/1080/segment73.ts
+                // https://kraken.tortuga.wtf/content/stream/films/fall_2022_bdrip_1080p_82657/hls/1080/segment1.ts
                 // https://tv.anime1.best/content/vod/serials/wan_jie_du_zun/s01/wan_jie_du_zun__01_tv_1_150/hls/480/segment1084.ts
+                // https://hls.animedia.tv/dir220/1601680190ba8319ddd61df944691352b601445e2576d1601d/3_0000.ts
+                // https://sophia.yagami-light.com/qv/QVWMBPZgdxD/mEkqvLgk5aeAgwqUyUbvqE3hjxriFY_chunk_6_00005.m4s
                 uri = Regex.Replace(uri, "^https?://[^/]+", "");
                 return $"{decryptLink.plugin}:{uri}";
             }
 
-            if (decryptLink.plugin == "animedia")
+            if (decryptLink.plugin == "alloha")
             {
-                // https://hls.animedia.tv/dir220/1601680190ba8319ddd61df944691352b601445e2576d1601d/3_0000.ts
-                uri = Regex.Replace(uri, "^https?://[^/]+", "");
-                return $"{decryptLink.plugin}:{uri}";
+                // https://9bc-a3e-2200g0.v.plground.live:10402/hs/48/1702570110/UbO54o740twlR1ghiUWJxQ/67/669067/4/seg-45-f1-v1-sa4-a1.ts
+                string uts = Regex.Match(uri, "https?://[^/]+/[^/]+/[^/]+/[^/]+/[^/]+/(.*\\.ts)").Groups[1].Value;
+                if (!string.IsNullOrEmpty(uts))
+                    return $"{decryptLink.plugin}:{uts}";
             }
+
+            if (decryptLink.plugin is "collaps" or "hdvb")
+            {
+                // https://fazhzcddzec.takedwn.ws/10_12_22/10/12/11/EOAUKCA7/BXWSCUZU.mp4/seg-38-a1.ts?x-cdn=10551403
+                // https://cdn4571.vb17123filippaaniketos.pw/vod/3e484719f3134616e92025dd5bae8c30/1080/segment80.ts?md5=qlrvhGkM2s0eTM6wiaee_g&expires=1702558288
+                string uts = Regex.Match(uri, "https?://[^/]+/(.*\\.ts)").Groups[1].Value;
+                if (!string.IsNullOrEmpty(uts))
+                    return $"{decryptLink.plugin}:{uts}";
+            }
+
+            if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.cache_hls_pattern) && Regex.IsMatch(uri, AppInit.conf.serverproxy.cache_hls_pattern, RegexOptions.IgnoreCase))
+                return $"{decryptLink.plugin}:{Regex.Replace(uri, "^https?://[^/]+", "")}";
 
             return null;
         }
