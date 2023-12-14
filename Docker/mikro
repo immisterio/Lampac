@@ -8,64 +8,10 @@ RUN apt update && apt install -y wget unzip nano htop && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant torrserver widgets wwwroot && \
 	touch isdocker
 
-RUN cat <<EOF > /home/init.conf
-{
-  "multiaccess": false,
-  "mikrotik": true,
-  "pirate_store": false,
-  "LampaWeb": {
-    "autoupdate": false
-  },
-  "serverproxy": {
-    "cache_img": false,
-    "verifyip": false
-  },
-  "dlna": {
-    "enable": false
-  },
-  "online": {
-    "findkp": "vsdn", 
-    "checkOnlineSearch": false
-  }
-}
-EOF
+RUN echo '{"multiaccess":false,"mikrotik":true,"pirate_store":false,"LampaWeb":{"autoupdate":false},"serverproxy":{"cache_img":false,"verifyip":false},"dlna":{"enable":false},"online":{"findkp":"vsdn","checkOnlineSearch":false}}' > /home/init.conf
 
-RUN cat <<EOF > /home/module/manifest.json
-[
-  {
-	"enable": true,
-	"dll": "SISI.dll"
-  },
-  {
-	"enable": true,
-	"dll": "Online.dll"
-  }
-]
-EOF
+RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"}]' > /home/module/manifest.json
 
-RUN cat <<EOF > /home/Lampac.runtimeconfig.json
-{
-  "runtimeOptions": {
-    "tfm": "net6.0",
-    "frameworks": [
-      {
-        "name": "Microsoft.NETCore.App",
-        "version": "6.0.0"
-      },
-      {
-        "name": "Microsoft.AspNetCore.App",
-        "version": "6.0.0"
-      }
-    ],
-    "configProperties": {
-      "System.GC.HeapCount": 10,
-      "System.GC.HeapHardLimit": 109715200,
-      "System.GC.Server": false,
-      "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
-      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
-    }
-  }
-}
-EOF
+RUN echo '{"runtimeOptions":{"tfm":"net6.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"6.0.0"},{"name":"Microsoft.AspNetCore.App","version":"6.0.0"}],"configProperties":{"System.GC.HeapCount":10,"System.GC.HeapHardLimit":109715200,"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > /home/Lampac.runtimeconfig.json
 
 ENTRYPOINT ["dotnet", "Lampac.dll"]
