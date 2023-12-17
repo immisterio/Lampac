@@ -17,5 +17,7 @@ namespace Lampac.Models.LITE
         public bool xrealip { get; set; }
 
         public bool xapp { get; set; }
+
+        public bool hls { get; set; }
     }
 }

@@ -14,12 +14,13 @@ namespace Shared.Engine.Online
         #region RezkaInvoke
         string? host;
         string apihost;
+        bool usehls;
         Func<string, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public RezkaInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public RezkaInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -27,6 +28,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onpost = onpost;
+            usehls = hls;
         }
         #endregion
 
@@ -466,7 +468,7 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(link))
                     continue;
 
-                if (!link.Contains(".m3u"))
+                if (usehls && !link.Contains(".m3u"))
                     link += ":hls:manifest.m3u8";
 
                 links.Add(new ApiModel()

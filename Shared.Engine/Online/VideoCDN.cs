@@ -14,11 +14,12 @@ namespace Shared.Engine.Online
         string iframeapihost;
         string apihost;
         string token;
+        bool usehls;
         Func<string, string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public VideoCDNInvoke(string? host, string iframeapihost, string apihost, string token, Func<string, string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoCDNInvoke(string? host, string iframeapihost, string apihost, string token, bool hls, Func<string, string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.iframeapihost = iframeapihost;
@@ -27,6 +28,7 @@ namespace Shared.Engine.Online
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            usehls = hls;
         }
         #endregion
 
@@ -165,6 +167,11 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
+                        if (usehls && !link.Contains(".m3u"))
+                            link += ":hls:manifest.m3u8";
+                        else if (!usehls && link.Contains(":hls:manifest.m3u8"))
+                            link = link.Replace(":hls:manifest.m3u8", "");
+
                         streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
                     }
 
@@ -242,6 +249,11 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
+                                if (usehls && !link.Contains(".m3u"))
+                                    link += ":hls:manifest.m3u8";
+                                else if (!usehls && link.Contains(":hls:manifest.m3u8"))
+                                    link = link.Replace(":hls:manifest.m3u8", "");
+
                                 streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
                             }
 
@@ -274,9 +286,16 @@ namespace Shared.Engine.Online
             {
                 foreach (var voice in result.movie)
                 {
-                    string link = Regex.Match(voice.Value, $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[2].Value;
+                    string link = Regex.Match(voice.Value, $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
                     if (!string.IsNullOrEmpty(link))
+                    {
+                        if (usehls && !link.Contains(".m3u"))
+                            link += ":hls:manifest.m3u8";
+                        else if (!usehls && link.Contains(":hls:manifest.m3u8"))
+                            link = link.Replace(":hls:manifest.m3u8", "");
+
                         return $"https:{link}";
+                    }
                 }
             }
             else
@@ -308,9 +327,16 @@ namespace Shared.Engine.Online
                     {
                         foreach (var episode in season.folder)
                         {
-                            string link = Regex.Match(episode.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.m3u8)").Groups[2].Value;
+                            string link = Regex.Match(episode.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
                             if (!string.IsNullOrEmpty(link))
+                            {
+                                if (usehls && !link.Contains(".m3u"))
+                                    link += ":hls:manifest.m3u8";
+                                else if (!usehls && link.Contains(":hls:manifest.m3u8"))
+                                    link = link.Replace(":hls:manifest.m3u8", "");
+
                                 return $"https:{link}";
+                            }
                         }
                     }
                 }

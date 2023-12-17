@@ -18,5 +18,7 @@ namespace Lampac.Models.LITE
         public string? token { get; set; }
 
         public string? cookie { get; set; }
+
+        public bool hls { get; set; }
     }
 }

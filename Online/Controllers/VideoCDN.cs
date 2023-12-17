@@ -27,6 +27,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                init.cors(init.apihost),
                init.token,
+               init.hls,
                (url, referer) => HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vcdn")
             );

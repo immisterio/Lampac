@@ -27,6 +27,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                init.cors(init.apihost!),
                init.token!,
+               init.hls,
                (url, referer) => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
                streamfile => HostStreamProxy(streamfile, origstream)
                //AppInit.log

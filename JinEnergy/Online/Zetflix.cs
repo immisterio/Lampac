@@ -25,6 +25,7 @@ namespace JinEnergy.Online
             (
                null,
                init.corsHost(),
+               init.hls,
                (url, head) => JsHttpClient.Get(init.cors(url), addHeaders: head),
                streamfile => HostStreamProxy(streamfile, origstream)
                //AppInit.log

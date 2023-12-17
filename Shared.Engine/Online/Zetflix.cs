@@ -11,17 +11,19 @@ namespace Shared.Engine.Online
     {
         #region ZetflixInvoke
         string? host, apihost;
+        bool usehls;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Func<string, List<(string name, string val)>?, ValueTask<string?>> onget;
 
-        public ZetflixInvoke(string? host, string? apihost, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public ZetflixInvoke(string? host, string? apihost, bool hls, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onget = onget;
+            usehls = hls;
         }
         #endregion
 
@@ -116,7 +118,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        if (!link.Contains(".m3u"))
+                        if (usehls && !link.Contains(".m3u"))
                             link += ":hls:manifest.m3u8";
 
                         streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
@@ -195,7 +197,7 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                if (!link.Contains(".m3u"))
+                                if (usehls && !link.Contains(".m3u"))
                                     link += ":hls:manifest.m3u8";
 
                                 streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
@@ -230,7 +232,7 @@ namespace Shared.Engine.Online
                     string link = Regex.Match(pl.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
                     if (!string.IsNullOrEmpty(link))
                     {
-                        if (!link.Contains(".m3u"))
+                        if (usehls && !link.Contains(".m3u"))
                             link += ":hls:manifest.m3u8";
 
                         return link;
@@ -260,7 +262,7 @@ namespace Shared.Engine.Online
                         string link = Regex.Match(pl?.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
                         if (!string.IsNullOrEmpty(link))
                         {
-                            if (!link.Contains(".m3u"))
+                            if (usehls && !link.Contains(".m3u"))
                                 link += ":hls:manifest.m3u8";
 
                             return link;
