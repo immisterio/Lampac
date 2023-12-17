@@ -272,6 +272,10 @@ namespace Lampac.Engine.Middlewares
                 {
                     uri = hlshost + uri;
                 }
+                else if (uri.StartsWith("./"))
+                {
+                    uri = hlspatch + uri.Substring(2);
+                }
                 else
                 {
                     uri = hlspatch + uri;
@@ -294,6 +298,10 @@ namespace Lampac.Engine.Middlewares
                 else if (uri.StartsWith("/"))
                 {
                     uri = hlshost + uri;
+                }
+                else if (uri.StartsWith("./"))
+                {
+                    uri = hlspatch + uri.Substring(2);
                 }
                 else
                 {
@@ -406,13 +414,14 @@ namespace Lampac.Engine.Middlewares
                 return $"{decryptLink.plugin}:{uri}";
             }
 
-            if (decryptLink.plugin is "ashdi" or "eneyida" or "animebesst" or"animedia" or "animego")
+            if (decryptLink.plugin is "ashdi" or "eneyida" or "animebesst" or"animedia" or "animego" or "redheadsound")
             {
                 // https://s1.ashdi.vip/content/stream/serials/chainsaw_man_gweanmaslinka/chainsaw_man__01_webdl_1080p_hevc_aac_ukr_dvo_76967/hls/1080/segment73.ts
                 // https://kraken.tortuga.wtf/content/stream/films/fall_2022_bdrip_1080p_82657/hls/1080/segment1.ts
                 // https://tv.anime1.best/content/vod/serials/wan_jie_du_zun/s01/wan_jie_du_zun__01_tv_1_150/hls/480/segment1084.ts
                 // https://hls.animedia.tv/dir220/1601680190ba8319ddd61df944691352b601445e2576d1601d/3_0000.ts
                 // https://sophia.yagami-light.com/qv/QVWMBPZgdxD/mEkqvLgk5aeAgwqUyUbvqE3hjxriFY_chunk_6_00005.m4s
+                // https://redheadsound.video/storage/2433a07a/hls/stream_0/data329.ts
                 uri = Regex.Replace(uri, "^https?://[^/]+", "");
                 return $"{decryptLink.plugin}:{uri}";
             }

@@ -2,6 +2,9 @@
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Shared.Model.Base;
+using System.Net.Http;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -144,7 +147,7 @@ namespace JinEnergy.Engine
 
         async public static ValueTask<bool> IsOrigStream(string? uri)
         {
-            if (string.IsNullOrWhiteSpace(uri) || AppInit.Country != "UA" || !uri.Contains(".m3u"))
+            if (string.IsNullOrWhiteSpace(uri) || AppInit.Country != "UA")
                 return true;
 
             return await JsHttpClient.StatusCode(uri) == 200;
@@ -155,10 +158,27 @@ namespace JinEnergy.Engine
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
 
-            if (AppInit.Country != "UA" || !uri.Contains(".m3u") || orig)
+            if (AppInit.Country != "UA" || orig)
                 return uri;
 
             return "https://apn.watch/" + uri;
+        }
+
+        public static string HostStreamProxy(Istreamproxy conf, string? uri)
+        {
+            if (string.IsNullOrWhiteSpace(uri) || conf == null || string.IsNullOrEmpty(conf.apn))
+                return uri;
+
+            if (conf.streamproxy)
+                return $"{conf.apn}/{uri}";
+
+            if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
+                    return $"{conf.apn}/{uri}";
+            }
+
+            return uri;
         }
     }
 }

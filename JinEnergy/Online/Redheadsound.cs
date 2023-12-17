@@ -26,7 +26,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                (url, data) => JsHttpClient.Post(init.cors(url), data),
-               streamfile => streamfile
+               streamfile => HostStreamProxy(init, streamfile)
             );
 
             var content = await InvokeCache(arg.id, $"redheadsound:view:{arg.title}:{arg.year}:{clarification}", () => oninvk.Embed(clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year));

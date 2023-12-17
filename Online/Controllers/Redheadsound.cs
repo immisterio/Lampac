@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "redheadsound")
             );
 
             var content = await InvokeCache($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30), () => oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year));
