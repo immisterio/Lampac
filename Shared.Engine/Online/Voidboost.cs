@@ -1,6 +1,7 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
 using Shared.Model.Online.Rezka;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -61,19 +62,22 @@ namespace Shared.Engine.Online
             if (!content.Contains("id=\"season-number\""))
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+
                 foreach (Match m in Regex.Matches(content, "<option data-token=\"([^\"]+)\" [^>]+>([^<]+)</option>"))
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
                         string link = host + $"lite/voidboost/movie?title={enc_title}&original_title={enc_original_title}&t={m.Groups[1].Value}";
                         string voice = m.Groups[2].Value.Trim();
-                        if (voice == "-")
+                        if (voice == "-" || string.IsNullOrEmpty(voice))
                             voice = "Оригинал";
 
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>");
-                        firstjson = false;
+                        mtpl.Append(voice, link, "call", $"{link}&play=true");
                     }
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else

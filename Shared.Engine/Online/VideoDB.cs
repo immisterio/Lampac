@@ -1,5 +1,5 @@
-﻿using Shared.Model;
-using Shared.Model.Online.VideoDB;
+﻿using Shared.Model.Online.VideoDB;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -67,6 +67,8 @@ namespace Shared.Engine.Online
             if (root.movie)
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, root.pl.Count);
+
                 foreach (var pl in root.pl)
                 {
                     string? name = pl.title;
@@ -75,7 +77,7 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                         continue;
 
-                    #region streansquality
+                    #region streams
                     var streams = new List<(string link, string quality)>() { Capacity = 4 };
 
                     foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
@@ -92,12 +94,10 @@ namespace Shared.Engine.Online
 
                     if (streams.Count == 0)
                         continue;
-
-                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
                     #endregion
 
                     #region subtitle
-                    string subtitles = string.Empty;
+                    var subtitles = new SubtitleTpl();
 
                     try
                     {
@@ -105,28 +105,23 @@ namespace Shared.Engine.Online
                         var subs = pl.subtitle;
                         if (subs != null)
                         {
-                            var subbuilder = new StringBuilder();
-
                             foreach (string cc in subs.Split(","))
                             {
                                 if (string.IsNullOrWhiteSpace(cc) || !cc.EndsWith(".srt"))
                                     continue;
 
-                                string suburl = onstreamfile.Invoke(cc);
-                                subbuilder.Append("{\"label\": \"" + $"sub #{subx}" + "\",\"url\": \"" + suburl + "\"},");
+                                subtitles.Append($"sub #{subx}", onstreamfile.Invoke(cc));
                                 subx++;
                             }
-
-                            if (subbuilder.Length > 0)
-                                subtitles = Regex.Replace(subbuilder.ToString(), ",$", "");
                         }
                     }
                     catch { }
                     #endregion
 
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + ", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                    firstjson = false;
+                    mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else

@@ -1,5 +1,5 @@
 ﻿using Shared.Model.Online.Redheadsound;
-using System.Text;
+using Shared.Model.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -82,26 +82,19 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel content, string? title)
         {
-            bool firstjson = true;
-            var html = new StringBuilder();
+            var mtpl = new MovieTpl(title, null, 4);
 
-            foreach (var quality in new List<string> { "1080", "720", "480", "360" })
+            foreach (var quality in new List<string> { "1080p", "720p", "480p", "360p" })
             {
-                string hls = new Regex($"\\[{quality}p\\]" + "/([^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content.iframe).Groups[1].Value;
+                string hls = new Regex($"\\[{quality}\\]" + "/([^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content.iframe).Groups[1].Value;
                 if (!string.IsNullOrEmpty(hls))
                 {
                     hls = $"{Regex.Match(content.iframeUri, "^(https?://[^/]+)").Groups[1].Value}/{hls}";
-                    hls = onstreamfile(hls);
-
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>");
-                    firstjson = true;
+                    mtpl.Append(quality, onstreamfile(hls));
                 }
             }
 
-            if (html.Length == 0)
-                return string.Empty;
-
-            return "<div class=\"videos__line\">" + html.ToString() + "</div>";
+            return mtpl.ToHtml();
         }
         #endregion
     }

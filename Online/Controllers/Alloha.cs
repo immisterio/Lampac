@@ -11,6 +11,7 @@ using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Alloha;
 using Online;
 using Shared.Engine.CORE;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -38,14 +39,17 @@ namespace Lampac.Controllers.LITE
             if (result.category_id is 1 or 3)
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
                     string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
                     string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"voice_name\":\"" + translation.Value["quality"].ToString() + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + translation.Value["name"].ToString() + "</div></div>";
-                    firstjson = false;
+                    mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: translation.Value["quality"].ToString());
                 }
+
+                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
             else

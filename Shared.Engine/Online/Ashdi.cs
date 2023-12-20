@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.Ashdi;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -66,36 +67,28 @@ namespace Shared.Engine.Online
             if (md.content != null)
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+
                 string hls = Regex.Match(md.content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
                     return string.Empty;
 
                 #region subtitle
-                string subtitles = string.Empty;
+                var subtitles = new SubtitleTpl();
                 string subtitle = new Regex("\"subtitle\":\"([^\"]+)\"").Match(md.content).Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
-                    var subbuild = new StringBuilder();
                     var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
                     while (match.Success)
                     {
-                        if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups[2].Value))
-                        {
-                            string suburl = onstreamfile.Invoke(match.Groups[2].Value);
-                            subbuild.Append("{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},");
-                        }
-
+                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
                         match = match.NextMatch();
                     }
-
-                    if (subbuild.Length > 0)
-                        subtitles = Regex.Replace(subbuild.ToString(), ",$", "");
                 }
                 #endregion
 
-                hls = onstreamfile.Invoke(hls);
-                html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitle + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>");
+                return mtpl.ToHtml("По умолчанию", onstreamfile.Invoke(hls), subtitles: subtitles);
                 #endregion
             }
             else
@@ -151,30 +144,21 @@ namespace Shared.Engine.Online
                         foreach (var episode in md.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
                         {
                             #region subtitle
-                            string subtitles = string.Empty;
+                            var subtitles = new SubtitleTpl();
 
                             if (!string.IsNullOrEmpty(episode.subtitle))
                             {
-                                var subbuild = new StringBuilder();
                                 var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
                                 while (match.Success)
                                 {
-                                    if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups[2].Value))
-                                    {
-                                        string suburl = onstreamfile.Invoke(match.Groups[2].Value);
-                                        subbuild.Append("{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},");
-                                    }
-
+                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
                                     match = match.NextMatch();
                                 }
-
-                                if (subbuild.Length > 0)
-                                    subtitles = Regex.Replace(subbuild.ToString(), ",$", "");
                             }
                             #endregion
 
                             string file = onstreamfile.Invoke(episode.file);
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles.ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
                             firstjson = false;
                         }
                     }

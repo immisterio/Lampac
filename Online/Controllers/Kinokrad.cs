@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -117,6 +118,8 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title);
+
                 string memKey = $"kinokrad:view:{title}:{year}";
                 if (!memoryCache.TryGetValue(memKey, out string content))
                 {
@@ -164,15 +167,13 @@ namespace Lampac.Controllers.LITE
                 {
                     string hls = new Regex($"\\[{quality}p\\]" + "(https?://[^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content).Groups[1].Value;
                     if (!string.IsNullOrEmpty(hls))
-                    {
-                        hls = HostStreamProxy(init, hls, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy);
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + quality + "p</div></div>";
-                        firstjson = true;
-                    }
+                        mtpl.Append(quality, HostStreamProxy(init, hls, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy));
                 }
 
-                if (html == "<div class=\"videos__line\">")
+                if (mtpl.IsEmpty())
                     return OnError(proxyManager);
+
+                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
 

@@ -78,9 +78,11 @@ namespace Lampac.Controllers.LITE
             if (root.First.ToObject<JObject>().ContainsKey("files"))
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, root.Count);
+
                 foreach (var movie in root)
                 {
-                    string streansquality = string.Empty;
+                    var streamquality = new StreamQualityTpl();
                     List<(string link, string quality)> streams = new List<(string, string)>();
 
                     foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
@@ -89,14 +91,13 @@ namespace Lampac.Controllers.LITE
                         string l = HostStreamProxy(init, file.Value<string>("url"));
 
                         streams.Add((l, $"{q}p"));
-                        streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
+                        streamquality.Append(l, $"{q}p");
                     }
 
-                    streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + movie.Value<string>("name") + "</div></div>";
-                    firstjson = false;
+                    mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: streamquality);
                 }
+
+                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
             else

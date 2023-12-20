@@ -125,6 +125,8 @@ namespace Shared.Engine.Online
             if (root?.item?.videos != null)
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, root.item.videos.Count);
+
                 foreach (var v in root.item.videos)
                 {
                     #region voicename
@@ -157,41 +159,26 @@ namespace Shared.Engine.Online
 
                     if (filetype == "hls4")
                     {
-                        html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(v.files[0].url.hls4) + "\",\"title\":\"" + (title ?? original_title) + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>");
+                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4), voice_name: voicename);
                     }
                     else
                     {
                         #region subtitle
-                        string subtitles = string.Empty;
+                        var subtitles = new SubtitleTpl();
 
                         if (v.subtitles != null)
                         {
                             foreach (var sub in v.subtitles)
-                            {
-                                string suburl = onstreamfile(sub.url);
-                                subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
-                            }
-
-                            subtitles = Regex.Replace(subtitles, ",$", "");
+                                subtitles.Append(sub.lang, onstreamfile(sub.url));
                         }
                         #endregion
 
-                        #region streansquality
-                        string streansquality = string.Empty;
-
-                        foreach (var f in v.files)
-                        {
-                            string l = onstreamfile(f.url.http);
-                            streansquality += $"\"{f.quality}\":\"" + l + "\",";
-                        }
-
-                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-                        #endregion
-
-                        string mp4 = onstreamfile(v.files[0].url.http);
-                        html.Append( "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + v.files[0].quality + "</div></div>");
+                        var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http), f.quality)));
+                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
                     }
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else
@@ -241,17 +228,12 @@ namespace Shared.Engine.Online
                         else
                         {
                             #region subtitle
-                            string subtitles = string.Empty;
+                            var subtitles = new SubtitleTpl();
 
                             if (episode.subtitles != null)
                             {
                                 foreach (var sub in episode.subtitles)
-                                {
-                                    string suburl = onstreamfile(sub.url);
-                                    subtitles += "{\"label\": \"" + sub.lang + "\",\"url\": \"" + suburl + "\"},";
-                                }
-
-                                subtitles = Regex.Replace(subtitles, ",$", "");
+                                    subtitles.Append(sub.lang, onstreamfile(sub.url));
                             }
                             #endregion
 
@@ -269,7 +251,7 @@ namespace Shared.Engine.Online
 
                             string mp4 = onstreamfile(episode.files[0].url.http);
 
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
                             firstjson = false;
                         }
                     }

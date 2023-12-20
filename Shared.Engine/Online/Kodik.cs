@@ -123,20 +123,20 @@ namespace Shared.Engine.Online
             if (results[0].type is "foreign-movie" or "soviet-cartoon" or "foreign-cartoon" or "russian-cartoon" or "anime" or "russian-movie")
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, results.Count);
+
                 foreach (var data in results)
                 {
-                    string link = data.link;
-                    string voice = data.translation.title;
-
-                    string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(link)}";
+                    string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(data.link)}";
 
                     string streamlink = string.Empty;
                     if (showstream)
-                        streamlink = "\"stream\":\"" + $"{url.Replace("/video", "/video.m3u8")}&play=true" + "\",";
+                        streamlink = $"{url.Replace("/video", "/video.m3u8")}&play=true";
 
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\", " + streamlink + "\"title\":\"" + $"{title ?? original_title} ({voice})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>");
-                    firstjson = false;
+                    mtpl.Append(data.translation.title, url, "call", streamlink);
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else

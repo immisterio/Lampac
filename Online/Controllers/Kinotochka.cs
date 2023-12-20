@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -151,8 +152,7 @@ namespace Lampac.Controllers.LITE
                     memoryCache.Set(memKey, file, cacheTime(30));
                 }
 
-                file = HostStreamProxy(init, file, proxy: proxy);
-                html += "<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div>";
+                return Content(new MovieTpl(title).ToHtml("По умолчанию", HostStreamProxy(init, file, proxy: proxy)), "text/html; charset=utf-8");
                 #endregion
             }
 

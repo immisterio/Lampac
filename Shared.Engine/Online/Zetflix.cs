@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Online.Zetflix;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -101,6 +102,8 @@ namespace Shared.Engine.Online
             if (root.movie)
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, root.pl.Count);
+
                 foreach (var pl in root.pl)
                 {
                     string? name = pl.title;
@@ -109,7 +112,6 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                         continue;
 
-                    #region streansquality
                     var streams = new List<(string link, string quality)>() { Capacity = 4 };
 
                     foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
@@ -127,12 +129,10 @@ namespace Shared.Engine.Online
                     if (streams.Count == 0)
                         continue;
 
-                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-                    #endregion
-
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                    firstjson = false;
+                    mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else

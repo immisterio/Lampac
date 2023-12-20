@@ -1,5 +1,5 @@
 ﻿using Shared.Model.Online.VoKino;
-using System.Text;
+using Shared.Model.Templates;
 using System.Text.Json;
 
 namespace Shared.Engine.Online
@@ -61,13 +61,10 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(List<Сhannel> channels, string? title, string? original_title)
         {
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
+            var mtpl = new MovieTpl(title, original_title, channels.Count);
 
             foreach (var ch in channels)
             {
-                string link = onstreamfile(ch.stream_url);
                 string name = ch.quality_full;
                 if (!string.IsNullOrWhiteSpace(name.Replace("2160p.", "")))
                 {
@@ -77,11 +74,10 @@ namespace Shared.Engine.Online
                         name += $" - {size}";
                 }
 
-                html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + (title ?? original_title) + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                firstjson = false;
+                mtpl.Append(name, onstreamfile(ch.stream_url));
             }
 
-            return html.ToString() + "</div>";
+            return mtpl.ToHtml();
         }
         #endregion
     }

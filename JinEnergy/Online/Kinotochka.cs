@@ -1,5 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
+using Shared.Model.Templates;
 using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
@@ -15,12 +16,14 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(file))
                 return EmptyError("file");
 
+            var mtpl = new MovieTpl(arg.title, arg.original_title);
+
             foreach (string f in file.Split(",").Reverse())
             {
                 if (string.IsNullOrEmpty(f))
                     continue;
 
-                return "<div class=\"videos__line\"><div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + f + "\",\"title\":\"" + arg.title + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">По умолчанию</div></div></div>";
+                return mtpl.ToHtml("По умолчанию", HostStreamProxy(AppInit.Kinotochka, f));
             }
 
             return EmptyError("play_url");

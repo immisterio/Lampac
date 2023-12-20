@@ -121,6 +121,8 @@ namespace Shared.Engine.Online
             if (!result.content.Contains("data-season_id="))
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+
                 var match = new Regex("<li [^>]+ data-translator_id=\"([0-9]+)\" ([^>]+)>([^<]+)").Match(result.content);
                 if (match.Success)
                 {
@@ -137,8 +139,7 @@ namespace Shared.Engine.Online
                             if (match.Groups[2].Value.Contains("data-director=\"1\""))
                                 link += "&director=1";
 
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + $"{link}&play=true" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + voice + "</div></div>");
-                            firstjson = false;
+                            mtpl.Append(voice, link, "call", $"{link}&play=true");
                         }
 
                         match = match.NextMatch();
@@ -150,10 +151,11 @@ namespace Shared.Engine.Online
                     if (links.Count == 0)
                         return string.Empty;
 
-                    string streansquality = "\"quality\": {" + string.Join(",", links.Select(l => $"\"{l.title}\":\"{onstreamfile(l.stream_url!)}\"")) + "}";
-
-                    html.Append("<div class=\"videos__item videos__movie selector focused\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(links[0].stream_url!) + "\",\"title\":\"" + title + "\"," + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + links[0].title + "</div></div>");
+                    var streamquality = new StreamQualityTpl(links.Select(l => (onstreamfile(l.stream_url!), l.title!)));
+                    mtpl.Append(links[0].title, onstreamfile(links[0].stream_url!), streamquality: streamquality);
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else

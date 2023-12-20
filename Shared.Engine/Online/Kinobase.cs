@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.LITE.Kinobase;
 using Shared.Model.Online.Kinobase;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -114,35 +115,28 @@ namespace Shared.Engine.Online
             html.Append("<div class=\"videos__line\">");
 
             #region getSubtitle
-            string getSubtitle(string _sub)
+            SubtitleTpl getSubtitle(string _sub)
             {
-                if (string.IsNullOrWhiteSpace(_sub))
-                    return string.Empty;
+                var subtitles = new SubtitleTpl();
+                if (string.IsNullOrEmpty(_sub))
+                    return subtitles;
 
-                var subtitles = new StringBuilder();
                 var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,\\[\\| ]+\\.vtt)").Match(_sub);
                 while (match.Success)
                 {
-                    if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                    {
-                        string suburl = onstreamfile(match.Groups[2].Value);
-                        subtitles.Append("{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + suburl + "\"},");
-                    }
-
+                    subtitles.Append(match.Groups[1].Value, onstreamfile(match.Groups[2].Value));
                     match = match.NextMatch();
                 }
 
-                if (subtitles.Length == 0)
-                    return string.Empty;
-
-                return Regex.Replace(subtitles.ToString(), ",$", "");
+                return subtitles;
             }
             #endregion
 
             if (md.content != null)
             {
                 #region Фильм
-                string subtitles = getSubtitle(md.content);
+                var subtitles = getSubtitle(md.content);
+                var mtpl = new MovieTpl(title);
 
                 if (md.content.Contains("]{") && md.content.Contains(";"))
                 {
@@ -158,11 +152,8 @@ namespace Shared.Engine.Online
                         {
                             if (!string.IsNullOrWhiteSpace(smatch.Groups[1].Value) && !string.IsNullOrWhiteSpace(smatch.Groups[2].Value))
                             {
-                                string url = onstreamfile(smatch.Groups[2].Value);
-                                html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + smatch.Groups[1].Value + "</div></div>");
-                                html.Append($"<!--{quality}p-->");
+                                mtpl.Append(smatch.Groups[1].Value, onstreamfile(smatch.Groups[2].Value), subtitles: subtitles, quality: quality);
                                 end = true;
-                                firstjson = true;
                             }
 
                             smatch = smatch.NextMatch();
@@ -180,10 +171,11 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(link) + "\",\"title\":\"" + title + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[1].Value + "p</div></div>");
-                        firstjson = true;
+                        mtpl.Append($"{m.Groups[1].Value}p", onstreamfile(link), subtitles: subtitles);
                     }
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else
@@ -246,7 +238,7 @@ namespace Shared.Engine.Online
                             continue;
 
                         var streams = getStreamLink(episode.file);
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment ?? episode.title, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams.hls + $"\",{streams.streansquality},\"title\":\"" + $"{title} ({episode.comment ?? episode.title})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (episode.comment ?? episode.title) + "</div></div>");
+                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + nameseason + "\" e=\"" + Regex.Match(episode.comment ?? episode.title, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams.hls + $"\",{streams.streansquality},\"title\":\"" + $"{title} ({episode.comment ?? episode.title})" + "\", \"subtitles\": [" + getSubtitle(episode.subtitle).ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (episode.comment ?? episode.title) + "</div></div>");
                         firstjson = false;
                     }
                 }

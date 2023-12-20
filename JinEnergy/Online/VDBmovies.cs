@@ -1,6 +1,7 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Model.Online.VDBmovies;
+using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -119,25 +120,21 @@ namespace JinEnergy.Online
             if (embed.movies != null)
             {
                 #region Фильм
+                var mtpl = new MovieTpl(arg.title, arg.original_title, embed.movies.Count);
+
                 foreach (var m in embed.movies)
                 {
                     #region subtitle
-                    string subtitles = string.Empty;
+                    var subtitles = new SubtitleTpl();
 
                     if (!string.IsNullOrEmpty(m.subtitle))
                     {
-                        var subbuild = new StringBuilder();
                         var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(m.subtitle);
                         while (match.Success)
                         {
-                            if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups[2].Value))
-                                subbuild.Append("{\"label\": \"" + match.Groups[1].Value + "\",\"url\": \"" + match.Groups[2].Value + "\"},");
-
+                            subtitles.Append(match.Groups[1].Value, match.Groups[2].Value);
                             match = match.NextMatch();
                         }
-
-                        if (subbuild.Length > 0)
-                            subtitles = Regex.Replace(subbuild.ToString(), ",$", "");
                     }
                     #endregion
 
@@ -151,9 +148,10 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(file))
                         continue;
 
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + (arg.title ?? arg.original_title) + "\", \"subtitles\": [" + subtitles + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.title + "</div></div>");
-                    firstjson = false;
+                    mtpl.Append(m.title, file, subtitles: subtitles);
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else

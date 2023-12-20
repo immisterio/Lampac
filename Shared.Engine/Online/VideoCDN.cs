@@ -148,6 +148,8 @@ namespace Shared.Engine.Online
             if (result.type is "movie" or "anime")
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, result.movie.Count);
+
                 foreach (var voice in result.movie)
                 {
                     result.voices.TryGetValue(voice.Key, out string name);
@@ -178,11 +180,10 @@ namespace Shared.Engine.Online
                     if (streams.Count == 0)
                         continue;
 
-                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                    firstjson = false;
+                    mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
+
+                return mtpl.ToHtml();
                 #endregion
             }
             else
