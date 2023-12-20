@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, int t = -1, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1)
         {
             if (kinopoisk_id == 0 || !AppInit.conf.HDVB.enable)
                 return OnError();
@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
-            if (serial == 0)
+            if (data.First.Value<string>("type") == "movie")
             {
                 #region Фильм
                 foreach (var m in data)

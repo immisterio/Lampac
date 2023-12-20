@@ -37,7 +37,7 @@ namespace JinEnergy.SISI
             if (stream_links == null)
                 return OnError("stream_links");
 
-            return OnResult(stream_links);
+            return OnResult(init, stream_links);
         }
     }
 }
