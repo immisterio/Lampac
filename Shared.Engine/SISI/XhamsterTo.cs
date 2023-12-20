@@ -56,9 +56,12 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>() { Capacity = 50 };
+
+            if (string.IsNullOrEmpty(html))
+                return playlists;
 
             string section = html.Contains("mixed-section") ? html.Split("mixed-section")[1] : html;
 

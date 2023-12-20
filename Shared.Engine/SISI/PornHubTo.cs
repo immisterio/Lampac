@@ -47,10 +47,13 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
+        public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
         {
             string? videoCategory = null;
             var playlists = new List<PlaylistItem>() { Capacity = prem ? 50 : 35 };
+
+            if (string.IsNullOrEmpty(html))
+                return playlists;
 
             if (related)
             {

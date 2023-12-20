@@ -15,15 +15,26 @@ namespace JinEnergy.SISI
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url)));
-            if (html == null)
-                return OnError("html");
+            refresh: string? html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url)));
 
-            return OnResult(ChaturbateTo.Menu(null, sort), ChaturbateTo.Playlist("chu/potok", html, pl =>
+            var playlist = ChaturbateTo.Playlist("chu/potok", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
                 return pl;
-            }));
+            });
+
+            if (playlist.Count == 0)
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
+
+                return OnError("playlist");
+            }
+
+            return OnResult(ChaturbateTo.Menu(null, sort), playlist);
         }
 
 
@@ -32,11 +43,19 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Chaturbate;
 
-            var stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), parse_arg("baba", args), url => JsHttpClient.Get(init.cors(url)));
+            refresh: var stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), parse_arg("baba", args), url => JsHttpClient.Get(init.cors(url)));
             if (stream_links == null)
-                return OnError("stream_links");
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
 
-            return OnResult(stream_links);
+                return OnError("stream_links");
+            }
+
+            return OnResult(init, stream_links);
         }
     }
 }

@@ -42,15 +42,26 @@ namespace JinEnergy.SISI
             int c = int.Parse(parse_arg("c", args) ?? "0");
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
-            if (html == null)
-                return OnError("html");
+            refresh: string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
 
-            return OnResult(PornHubTo.Menu(null, plugin, sort, c), PornHubTo.Playlist("phub/vidosik", html, pl =>
+            var playlist = PornHubTo.Playlist("phub/vidosik", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
                 return pl;
-            }));
+            });
+
+            if (playlist.Count == 0)
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
+
+                return OnError("playlist");
+            }
+
+            return OnResult(PornHubTo.Menu(null, plugin, sort, c), playlist);
         }
 
 
@@ -59,11 +70,20 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.PornHub;
 
-            var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
-            if (stream_links == null)
-                return OnError("stream_links");
+            refresh: var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
 
-            return OnResult(stream_links);
+            if (stream_links == null)
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
+
+                return OnError("stream_links");
+            }
+
+            return OnResult(init, stream_links);
         }
     }
 }

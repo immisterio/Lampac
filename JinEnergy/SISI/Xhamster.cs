@@ -27,15 +27,26 @@ namespace JinEnergy.SISI
             string? q = parse_arg("q", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
-            string? html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => JsHttpClient.Get(init.cors(url)));
-            if (html == null)
-                return OnError("html");
+            refresh: string? html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => JsHttpClient.Get(init.cors(url)));
 
-            return OnResult(XhamsterTo.Menu(null, plugin, c, q, sort), XhamsterTo.Playlist("xmr/vidosik", html, pl =>
+            var playlist = XhamsterTo.Playlist("xmr/vidosik", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
                 return pl;
-            }));
+            });
+
+            if (playlist.Count == 0)
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
+
+                return OnError("playlist");
+            }
+
+            return OnResult(XhamsterTo.Menu(null, plugin, c, q, sort), playlist);
         }
 
 
@@ -44,11 +55,20 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Xhamster;
 
-            var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
-            if (stream_links == null)
-                return OnError("stream_links");
+            refresh: var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
 
-            return OnResult(stream_links);
+            if (stream_links == null)
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
+
+                return OnError("stream_links");
+            }
+
+            return OnResult(init, stream_links);
         }
     }
 }

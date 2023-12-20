@@ -15,7 +15,7 @@ namespace JinEnergy.SISI
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            string? html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)>()
+            refresh: string? html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)>()
             {
                 ("dnt", "1"),
                 ("referer", init.host!),
@@ -25,14 +25,24 @@ namespace JinEnergy.SISI
                 ("x-requested-with", "XMLHttpRequest")
             }));
 
-            if (html == null)
-                return OnError("html");
-
-            return OnResult(BongaCamsTo.Menu(null, sort), BongaCamsTo.Playlist(html, pl =>
+            var playlist = BongaCamsTo.Playlist(html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
                 return pl;
-            }));
+            });
+
+            if (playlist.Count == 0)
+            {
+                if (!init.corseu)
+                {
+                    init.corseu = true;
+                    goto refresh;
+                }
+
+                return OnError("playlist");
+            }
+
+            return OnResult(BongaCamsTo.Menu(null, sort), playlist);
         }
     }
 }
