@@ -3,8 +3,6 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
-using System.Net.Http;
-using System.Net;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -96,18 +94,15 @@ namespace JinEnergy.Engine
             return new ResultModel() { menu = menu, list = playlists };
         }
 
-        public static ResultModel OnResult(Dictionary<string, string> stream_links)
+        public static ResultModel OnResult(Istreamproxy conf, Dictionary<string, string> stream_links)
         {
             if (stream_links == null || stream_links.Count == 0)
                 return OnError("stream_links.Count == 0");
 
-            return new ResultModel()
-            {
-                qualitys = stream_links
-            };
+            return OnResult(conf, new StreamItem() { qualitys = stream_links });
         }
 
-        public static ResultModel OnResult(StreamItem stream_links, bool isebalovo = false)
+        public static ResultModel OnResult(Istreamproxy conf, StreamItem stream_links, bool isebalovo = false)
         {
             if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                 return OnError("qualitys.Count == 0");
@@ -121,17 +116,27 @@ namespace JinEnergy.Engine
                     recomends.Add(new PlaylistItem() 
                     {
                         name = pl.name,
-                        video = pl.video,
+                        video = HostStreamProxy(conf, pl.video),
                         picture = isebalovo ? $"https://vi.sisi.am/poster.jpg?href={pl.picture}&r=200" : rsizehost(pl.picture, 100),
                         json = pl.json
                     });
                 }
             }
 
+            if (IsApnIncluded(conf))
+            {
+                return new ResultModel()
+                {
+                    qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(conf, v.Value)),
+                    recomends = recomends
+                };
+            }
+
             return new ResultModel()
             {
                 qualitys = stream_links.qualitys,
-                recomends = recomends
+                recomends = recomends,
+                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => $"{AppInit.apn}/{v.Value}")
             };
         }
 
@@ -153,7 +158,7 @@ namespace JinEnergy.Engine
             return await JsHttpClient.StatusCode(uri) == 200;
         }
 
-        public static string HostStreamProxy(string? uri, bool orig = false)
+        public static string DefaultStreamProxy(string? uri, bool orig = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
@@ -161,7 +166,7 @@ namespace JinEnergy.Engine
             if (AppInit.Country != "UA" || orig)
                 return uri;
 
-            return "https://apn.watch/" + uri;
+            return $"{AppInit.apn}/{uri}";
         }
 
         public static string HostStreamProxy(Istreamproxy conf, string? uri)
@@ -179,6 +184,20 @@ namespace JinEnergy.Engine
             }
 
             return uri;
+        }
+
+        public static bool IsApnIncluded(Istreamproxy conf)
+        {
+            if (conf == null || string.IsNullOrEmpty(conf.apn))
+                return false;
+
+            if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
+                    return true;
+            }
+
+            return conf.streamproxy;
         }
     }
 }

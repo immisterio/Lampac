@@ -17,7 +17,7 @@ namespace JinEnergy.Online
             AppInit.Kodik.token,
             (uri, head) => JsHttpClient.Get(AppInit.Kodik.cors(uri), addHeaders: head),
             (uri, data) => JsHttpClient.Post(AppInit.Kodik.cors(uri), data),
-            streamfile => HostStreamProxy(streamfile, origstream)
+            streamfile => IsApnIncluded(AppInit.Kodik) ? HostStreamProxy(AppInit.Kodik, streamfile) : DefaultStreamProxy(streamfile, origstream)
             //AppInit.log
         );
         #endregion
@@ -74,7 +74,8 @@ namespace JinEnergy.Online
             if (streams == null)
                 return EmptyError("streams");
 
-            origstream = await IsOrigStream(streams[0].url);
+            if (!IsApnIncluded(AppInit.Kodik))
+                origstream = await IsOrigStream(streams[0].url);
 
             string? result = oninvk.VideoParse(streams, arg.title, arg.original_title, episode, false);
             if (result == null)

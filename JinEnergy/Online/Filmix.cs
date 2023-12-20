@@ -32,7 +32,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                string.IsNullOrEmpty(init.token) ? dmcatoken : init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
-               replaceLink
+               streamfile => HostStreamProxy(init, replaceLink(streamfile))
             );
 
             if (postid == 0)

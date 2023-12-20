@@ -22,7 +22,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                (url, data) => JsHttpClient.Post(init.cors(url), data),
-               onstreamtofile => onstreamtofile
+               streamfile => HostStreamProxy(init, streamfile)
                //AppInit.log
             );
 

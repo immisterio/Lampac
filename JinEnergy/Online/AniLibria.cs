@@ -23,13 +23,15 @@ namespace JinEnergy.Online
                null,
                init.corsHost(),
                ongettourl => JsHttpClient.Get<List<RootObject>>(init.cors(ongettourl)),
-               streamfile => streamfile
+               streamfile => HostStreamProxy(init, streamfile)
                //AppInit.log
             );
 
             var content = await InvokeCache(arg.id, $"anilibriaonline:{arg.title}", () => oninvk.Embed(arg.title));
             if (content == null)
+            {
                 return EmptyError("content");
+            }
 
             return oninvk.Html(content, arg.title, code, arg.year);
         }

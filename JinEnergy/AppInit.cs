@@ -30,7 +30,7 @@ namespace JinEnergy
 
             await LoadOrUpdateConfig(urlconf);
 
-            var timer = new System.Timers.Timer(TimeSpan.FromMinutes(10));
+            var timer = new System.Timers.Timer(TimeSpan.FromMinutes(5));
 
             timer.Elapsed += async (s, e) => await LoadOrUpdateConfig(urlconf);
 
@@ -63,12 +63,9 @@ namespace JinEnergy
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
                         }
 
-                        if (urlconf.Contains("bwa.to/settings/"))
-                        {
-                            string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 5);
-                            if (geo != null)
-                                Country = geo;
-                        }
+                        string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 8);
+                        if (geo != null)
+                            Country = geo;
                     }
                 }
             }
@@ -93,6 +90,8 @@ namespace JinEnergy
         public static bool IsAndrod { get; private set; }
 
         public static string? Country { get; private set; }
+
+        public static string apn => "https://apn.watch";
 
         public static SisiConf sisi => conf.sisi;
 

@@ -16,6 +16,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.VideoDB;
+            bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -28,7 +29,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                init.hls,
                (url, head) => JsHttpClient.Get(init.cors(url), addHeaders: head),
-               streamfile => HostStreamProxy(streamfile, origstream)
+               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
                //AppInit.log
             );
 
@@ -36,7 +37,7 @@ namespace JinEnergy.Online
             if (content?.pl == null)
                 return EmptyError("content");
 
-            if (AppInit.Country == "UA" && lastcheckid != arg.kinopoisk_id)
+            if (!userapn && AppInit.Country == "UA" && lastcheckid != arg.kinopoisk_id)
             {
                 string? uri = oninvk.FirstLink(content, t, s, sid);
                 if (!string.IsNullOrEmpty(uri))

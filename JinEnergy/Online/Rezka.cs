@@ -17,7 +17,7 @@ namespace JinEnergy.Online
             AppInit.Rezka.hls,
             ongettourl => JsHttpClient.Get(AppInit.Rezka.cors(ongettourl)),
             (url, data) => JsHttpClient.Post(AppInit.Rezka.cors(url), data),
-            streamfile => HostStreamProxy(streamfile, origstream)
+            streamfile => IsApnIncluded(AppInit.Rezka) ? HostStreamProxy(AppInit.Rezka, streamfile) : DefaultStreamProxy(streamfile, origstream)
         );
         #endregion
 
@@ -88,7 +88,8 @@ namespace JinEnergy.Online
             if (md == null)
                 return EmptyError("md");
 
-            origstream = await IsOrigStream(md.links[0].stream_url);
+            if (!IsApnIncluded(AppInit.Rezka))
+                origstream = await IsOrigStream(md.links[0].stream_url);
 
             string? result = oninvk.Movie(md, arg.title, arg.original_title, false);
             if (result == null)

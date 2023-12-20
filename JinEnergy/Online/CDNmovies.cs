@@ -28,7 +28,7 @@ namespace JinEnergy.Online
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
                }),
-               onstreamtofile => onstreamtofile
+               streamfile => HostStreamProxy(init, streamfile)
             );
 
             var content = await InvokeCache(arg.id, $"cdnmovies:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));

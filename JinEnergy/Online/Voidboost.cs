@@ -13,7 +13,7 @@ namespace JinEnergy.Online
             AppInit.Voidboost.corsHost(),
             ongettourl => JsHttpClient.Get(AppInit.Voidboost.cors(ongettourl)),
             (url, data) => JsHttpClient.Post(AppInit.Voidboost.cors(url), data),
-            streamfile => streamfile
+            streamfile => HostStreamProxy(AppInit.Voidboost, streamfile)
         );
         #endregion
 

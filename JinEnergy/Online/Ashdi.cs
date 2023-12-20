@@ -23,7 +23,7 @@ namespace JinEnergy.Online
                null,
                init.corsHost(),
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
-               onstreamtofile => onstreamtofile
+               streamfile => HostStreamProxy(init, streamfile)
             );
 
             var content = await InvokeCache(arg.id, $"ashdi:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));

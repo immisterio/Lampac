@@ -16,6 +16,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.Zetflix;
+            bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -27,7 +28,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                init.hls,
                (url, head) => JsHttpClient.Get(init.cors(url), addHeaders: head),
-               streamfile => HostStreamProxy(streamfile, origstream)
+               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
                //AppInit.log
             );
 
@@ -39,7 +40,7 @@ namespace JinEnergy.Online
             if (!content.movie && s == -1 && arg.id > 0)
                 number_of_seasons = await InvStructCache(arg.id, $"zetfix:number_of_seasons:{arg.kinopoisk_id}", () => oninvk.number_of_seasons(arg.id));
 
-            if (AppInit.Country == "UA" && lastcheckid != arg.kinopoisk_id)
+            if (!userapn && AppInit.Country == "UA" && lastcheckid != arg.kinopoisk_id)
             {
                 string? uri = oninvk.FirstLink(content, t, s);
                 if (!string.IsNullOrEmpty(uri))
