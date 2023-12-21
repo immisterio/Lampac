@@ -27,9 +27,12 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             var playlists = new List<PlaylistItem>() { Capacity = 105 };
+
+            if (string.IsNullOrEmpty(html))
+                return playlists;
 
             foreach (string row in html.Split("<div class=\"video-item").Skip(1))
             {

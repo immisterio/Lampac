@@ -199,5 +199,14 @@ namespace JinEnergy.Engine
 
             return conf.streamproxy;
         }
+
+        public static bool IsRefresh(SisiSettings conf, bool NotUseDefaultApn = false)
+        {
+            if (NotUseDefaultApn)
+                return (AppInit.apn != null && AppInit.apn.Contains("apn.watch")) || (Shared.Model.AppInit.corseuhost != null && Shared.Model.AppInit.corseuhost.Contains("apn.monster"));
+
+            conf.corseu = !conf.corseu && string.IsNullOrEmpty(conf.webcorshost);
+            return conf.corseu;
+        }
     }
 }

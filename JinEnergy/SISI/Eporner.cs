@@ -10,7 +10,7 @@ namespace JinEnergy.SISI
         [JSInvokable("epr")]
         async public static ValueTask<ResultModel> Index(string args)
         {
-            var init = AppInit.Eporner;
+            var init = AppInit.Eporner.Clone();
 
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -27,11 +27,8 @@ namespace JinEnergy.SISI
 
             if (playlist.Count == 0)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("playlist");
             }
@@ -43,7 +40,7 @@ namespace JinEnergy.SISI
         [JSInvokable("epr/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var init = AppInit.Eporner;
+            var init = AppInit.Eporner.Clone();
 
             refresh: var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), parse_arg("uri", args), 
                             url => JsHttpClient.Get(init.cors(url)), 
@@ -51,11 +48,8 @@ namespace JinEnergy.SISI
 
             if (stream_links == null)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("stream_links");
             }

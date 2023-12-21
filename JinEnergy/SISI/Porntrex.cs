@@ -10,7 +10,7 @@ namespace JinEnergy.SISI
         [JSInvokable("ptx")]
         async public static ValueTask<ResultModel> Index(string args)
         {
-            var init = AppInit.Porntrex;
+            var init = AppInit.Porntrex.Clone();
 
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -27,11 +27,8 @@ namespace JinEnergy.SISI
 
             if (playlist.Count == 0)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("playlist");
             }
@@ -43,17 +40,14 @@ namespace JinEnergy.SISI
         [JSInvokable("ptx/vidosik")]
         async public static ValueTask<dynamic> Stream(string args)
         {
-            var init = AppInit.Porntrex;
+            var init = AppInit.Porntrex.Clone();
 
             refresh: var stream_links = await PorntrexTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
 
             if (stream_links == null)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("stream_links");
             }

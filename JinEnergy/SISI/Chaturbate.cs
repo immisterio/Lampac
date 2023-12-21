@@ -10,7 +10,7 @@ namespace JinEnergy.SISI
         [JSInvokable("chu")]
         async public static ValueTask<ResultModel> Index(string args)
         {
-            var init = AppInit.Chaturbate;
+            var init = AppInit.Chaturbate.Clone();
 
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
@@ -25,11 +25,8 @@ namespace JinEnergy.SISI
 
             if (playlist.Count == 0)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("playlist");
             }
@@ -41,16 +38,14 @@ namespace JinEnergy.SISI
         [JSInvokable("chu/potok")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var init = AppInit.Chaturbate;
+            var init = AppInit.Chaturbate.Clone();
 
             refresh: var stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), parse_arg("baba", args), url => JsHttpClient.Get(init.cors(url)));
+
             if (stream_links == null)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("stream_links");
             }

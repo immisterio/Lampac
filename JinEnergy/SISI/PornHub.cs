@@ -35,7 +35,7 @@ namespace JinEnergy.SISI
 
         async static ValueTask<ResultModel> result(string args, string plugin)
         {
-            var init = AppInit.PornHub;
+            var init = AppInit.PornHub.Clone();
 
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args);
@@ -52,11 +52,8 @@ namespace JinEnergy.SISI
 
             if (playlist.Count == 0)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("playlist");
             }
@@ -68,17 +65,14 @@ namespace JinEnergy.SISI
         [JSInvokable("phub/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var init = AppInit.PornHub;
+            var init = AppInit.PornHub.Clone();
 
             refresh: var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
 
             if (stream_links == null)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("stream_links");
             }

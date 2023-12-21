@@ -10,7 +10,7 @@ namespace JinEnergy.SISI
         [JSInvokable("bgs")]
         async public static ValueTask<ResultModel> Index(string args)
         {
-            var init = AppInit.BongaCams;
+            var init = AppInit.BongaCams.Clone();
 
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
@@ -33,11 +33,8 @@ namespace JinEnergy.SISI
 
             if (playlist.Count == 0)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("playlist");
             }

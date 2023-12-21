@@ -8,6 +8,8 @@ namespace Shared.Model
     {
         public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
+        public string? apn { get; set; } = "https://apn.watch";
+
         public string? corsehost { get; set; }
 
         public SisiConf sisi { get; set; } = new SisiConf() { heightPicture = 200 };

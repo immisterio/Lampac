@@ -44,6 +44,10 @@ namespace JinEnergy
         {
             try
             {
+                string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 8);
+                if (geo != null)
+                    Country = geo;
+
                 if (!string.IsNullOrEmpty(urlconf))
                 {
                     string? json = urlconf;
@@ -62,10 +66,6 @@ namespace JinEnergy
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
                         }
-
-                        string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 8);
-                        if (geo != null)
-                            Country = geo;
                     }
                 }
             }
@@ -91,9 +91,9 @@ namespace JinEnergy
 
         public static string? Country { get; private set; }
 
-        public static string apn => "https://apn.watch";
-
         public static SisiConf sisi => conf.sisi;
+
+        public static string? apn => conf.apn;
 
         public static SisiSettings BongaCams => conf.BongaCams;
 

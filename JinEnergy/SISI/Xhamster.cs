@@ -19,7 +19,7 @@ namespace JinEnergy.SISI
 
         async static ValueTask<ResultModel> result(string args, string plugin)
         {
-            var init = AppInit.Xhamster;
+            var init = AppInit.Xhamster.Clone();
 
             string? search = parse_arg("search", args);
             string? sort = parse_arg("sort", args) ?? "newest";
@@ -37,11 +37,8 @@ namespace JinEnergy.SISI
 
             if (playlist.Count == 0)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("playlist");
             }
@@ -53,17 +50,14 @@ namespace JinEnergy.SISI
         [JSInvokable("xmr/vidosik")]
         async public static ValueTask<ResultModel> Stream(string args)
         {
-            var init = AppInit.Xhamster;
+            var init = AppInit.Xhamster.Clone();
 
             refresh: var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
 
             if (stream_links == null)
             {
-                if (!init.corseu)
-                {
-                    init.corseu = true;
+                if (IsRefresh(init))
                     goto refresh;
-                }
 
                 return OnError("stream_links");
             }

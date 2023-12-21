@@ -13,5 +13,10 @@ namespace Lampac.Models.SISI
         }
 
         public string? cookie { get; set; }
+
+        public SisiSettings Clone()
+        {
+            return (SisiSettings)MemberwiseClone();
+        }
     }
 }
