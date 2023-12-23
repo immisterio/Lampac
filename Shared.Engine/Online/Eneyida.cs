@@ -123,8 +123,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, int clarification, string? title, string? original_title, int year, int t, int s, string? href)
+        public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href)
         {
+            if (result == null)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");

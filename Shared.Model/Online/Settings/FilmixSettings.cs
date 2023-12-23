@@ -25,5 +25,11 @@ namespace Lampac.Models.LITE
         public string? user_name { get; set; }
 
         public string? user_passw { get; set; }
+
+
+        public FilmixSettings Clone()
+        {
+            return (FilmixSettings)MemberwiseClone();
+        }
     }
 }

@@ -13,15 +13,17 @@ namespace Shared.Engine.Online
         #region VoidboostInvoke
         string? host;
         string apihost;
+        bool usehls;
         Func<string, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public VoidboostInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VoidboostInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
+            usehls = hls;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
@@ -42,7 +44,7 @@ namespace Shared.Engine.Online
                 uri = $"{apihost}/serial/{t}/iframe";
 
             string? content = await onget(uri);
-            if (content == null)
+            if (string.IsNullOrEmpty(content))
                 return null;
 
             return content;
@@ -50,8 +52,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(string content, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string? t)
+        public string Html(string? content, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string? t)
         {
+            if (string.IsNullOrEmpty(content))
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
@@ -217,8 +222,11 @@ namespace Shared.Engine.Online
             return new MovieModel() { url = mfile.Groups[1].Value.Trim(), subtitlehtml = Regex.Match(content, "'subtitle': '([^']+)'").Groups[1].Value };
         }
 
-        public string? Movie(MovieModel md, string? title, string? original_title, bool play)
+        public string Movie(MovieModel? md, string? title, string? original_title, bool play)
         {
+            if (md == null)
+                return string.Empty;
+
             #region subtitle
             string subtitles = string.Empty;
 
@@ -244,7 +252,7 @@ namespace Shared.Engine.Online
                 streansquality += $"\"{l.title}\":\"" + l.stream_url + "\",";
 
             if (play)
-                return links[0].stream_url;
+                return links[0].stream_url!;
 
             return "{\"method\":\"play\",\"url\":\"" + links[0].stream_url + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}, \"subtitles\": [" + subtitles + "]}";
         }
@@ -292,10 +300,15 @@ namespace Shared.Engine.Online
             _data = decodeBase64(_data);
             var links = new List<ApiModel>() { Capacity = 4 };
 
+            onlog?.Invoke(_data);
+
             #region getLink
             string? getLink(string _q)
             {
-                string link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
+                string link = usehls ? new Regex($"\\[{_q}\\](https?://[^\\[\n\r, ]+:manifest.m3u8)").Match(_data).Groups[1].Value : string.Empty;
+
+                if (string.IsNullOrWhiteSpace(link))
+                    link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
 
                 if (string.IsNullOrWhiteSpace(link))
                     link = new Regex($"\\[{_q}\\](https?://[^\n\r, ]+.mp4([^\n\r, ]+)?)").Match(_data).Groups[1].Value;
@@ -308,14 +321,11 @@ namespace Shared.Engine.Online
             #endregion
 
             #region Максимально доступное
-            foreach (var q in new List<string> { "2160p", "1440p", "1080p Ultra", "1080p", "720p", "480p", "360p" })
+            foreach (var q in new List<string> { "1080p", "720p", "480p", "360p" })
             {
                 string? link = getLink(q);
                 if (string.IsNullOrEmpty(link))
                     continue;
-
-                if (!link.Contains(".m3u"))
-                    link += ":hls:manifest.m3u8";
 
                 links.Add(new ApiModel()
                 {

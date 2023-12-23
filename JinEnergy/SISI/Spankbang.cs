@@ -24,13 +24,8 @@ namespace JinEnergy.SISI
                 return pl;
             });
 
-            if (playlist.Count == 0)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
-
-                return OnError("playlist");
-            }
+            if (playlist.Count == 0 && IsRefresh(init))
+                goto refresh;
 
             return OnResult(SpankbangTo.Menu(null, sort), playlist);
         }
@@ -43,13 +38,8 @@ namespace JinEnergy.SISI
 
             refresh: var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
 
-            if (stream_links == null)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
-
-                return OnError("stream_links");
-            }
+            if (stream_links == null && IsRefresh(init))
+                goto refresh;
 
             return OnResult(init, stream_links);
         }

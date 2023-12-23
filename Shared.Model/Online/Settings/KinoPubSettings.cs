@@ -21,5 +21,10 @@ namespace Lampac.Models.LITE
         public bool hdr { get; set; }
 
         public bool uhd { get; set; }
+
+        public KinoPubSettings Clone()
+        {
+            return (KinoPubSettings)MemberwiseClone();
+        }
     }
 }

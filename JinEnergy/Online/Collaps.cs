@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/collaps")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.Collaps;
+            var init = AppInit.Collaps.Clone();
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -25,11 +25,18 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var content = await InvokeCache(arg.id, $"collaps:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id));
-            if (content == null)
-                return EmptyError("content");
+            string memkey = $"collaps:view:{arg.imdb_id}:{arg.kinopoisk_id}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id));
 
-            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, s);
+            string html = oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, s);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
+
+            return html;
         }
     }
 }

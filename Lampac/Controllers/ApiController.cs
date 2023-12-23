@@ -59,6 +59,14 @@ namespace Lampac.Controllers
         public ActionResult Version() => Content(appversion, contentType: "text/plain; charset=utf-8");
         #endregion
 
+        #region Headers / myip
+        [Route("/headers")]
+        public ActionResult Headers() => Json(HttpContext.Request.Headers);
+
+        [Route("/myip")]
+        public ActionResult MyIP() => Content(HttpContext.Connection.RemoteIpAddress.ToString());
+        #endregion
+
 
         #region app.min.js
         [Route("lampa-{type}/app.min.js")]

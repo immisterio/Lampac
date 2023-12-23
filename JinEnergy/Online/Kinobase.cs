@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/kinobase")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.Kinobase;
+            var init = AppInit.Kinobase.Clone();
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -26,11 +26,13 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, code => JSRuntime.InvokeAsync<string?>("eval", evalcode(code))));
-            if (content == null)
-                return EmptyError("content");
+            refresh: var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, code => JSRuntime.InvokeAsync<string?>("eval", evalcode(code))));
 
-            return oninvk.Html(content, arg.title, arg.year, s);
+            string html = oninvk.Html(content, arg.title, arg.year, s);
+            if (string.IsNullOrEmpty(html) && IsRefresh(init))
+                goto refresh;
+
+            return html;
         }
 
 

@@ -74,11 +74,7 @@ namespace Shared.Engine.Online
             string IDENTIFIER = Regex.Match(news, "var IDENTIFIER = \"([^\"]+)").Groups[1].Value;
             string PLAYER_CUID = Regex.Match(news, "var PLAYER_CUID = \"([^\"]+)").Groups[1].Value;
 
-            string? fix_args = null;
-            if (fix_args == null)
-                return null;
-
-            string? evalcode = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&identifier={IDENTIFIER}&player_type=new&file_type=hls" + fix_args);
+            string? evalcode = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&identifier={IDENTIFIER}&player_type=new&file_type=hls");
             if (evalcode == null)
                 return null;
 
@@ -108,8 +104,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel md, string? title, int year, int s)
+        public string Html(EmbedModel? md, string? title, int year, int s)
         {
+            if (md == null)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");

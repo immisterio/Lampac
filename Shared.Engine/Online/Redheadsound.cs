@@ -62,7 +62,7 @@ namespace Shared.Engine.Online
             if (news == null)
                 return null;
 
-            string iframeUri = Regex.Match(news, "<iframe data-src=\"(https?://[^\"]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "<iframe data-src=\"(https?://redheadsound\\.[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
 
@@ -80,8 +80,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel content, string? title)
+        public string Html(EmbedModel? content, string? title)
         {
+            if (content == null)
+                return string.Empty;
+
             var mtpl = new MovieTpl(title, null, 4);
 
             foreach (var quality in new List<string> { "1080p", "720p", "480p", "360p" })

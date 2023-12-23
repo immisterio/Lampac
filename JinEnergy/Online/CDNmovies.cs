@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/cdnmovies")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.CDNmovies;
+            var init = AppInit.CDNmovies.Clone();
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -31,11 +31,18 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var content = await InvokeCache(arg.id, $"cdnmovies:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
-            if (content == null)
-                return EmptyError("content");
+            string memkey = $"cdnmovies:view:{arg.kinopoisk_id}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id));
 
-            return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
+
+            return html;
         }
     }
 }

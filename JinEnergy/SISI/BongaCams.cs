@@ -31,13 +31,8 @@ namespace JinEnergy.SISI
                 return pl;
             });
 
-            if (playlist.Count == 0)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
-
-                return OnError("playlist");
-            }
+            if (playlist.Count == 0 && IsRefresh(init))
+                goto refresh;
 
             return OnResult(BongaCamsTo.Menu(null, sort), playlist);
         }

@@ -109,8 +109,7 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             bool isanime = arg.original_language == "ja";
-            bool life = parse_arg(args, "life")?.ToLower() == "true";
-
+            //bool life = parse_arg(args, "life")?.ToLower() == "true";
 
             if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
                 online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
@@ -121,7 +120,7 @@ namespace JinEnergy.Online
             if (AppInit.VoKino.enable && serial == 0 && !isanime && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"VoKino - 4K HDR\",\"url\":\"lite/vokino\"},");
 
-            if (AppInit.Filmix.enable && (AppInit.Filmix.pro || AppInit.Filmix.freehash))
+            if (AppInit.Filmix.enable && AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
             if (AppInit.KinoPub.enable)
@@ -130,47 +129,50 @@ namespace JinEnergy.Online
             if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");
 
-            if (AppInit.VCDN.enable)
-                online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
-
-            if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
-
             if (AppInit.Rezka.enable)
                 online.Append("{\"name\":\"Rezka - 4K\",\"url\":\"lite/rezka\"},");
 
             if (AppInit.Kinobase.enable)
                 online.Append("{\"name\":\"Kinobase - 1080p\",\"url\":\"lite/kinobase\"},");
 
-            if (AppInit.Voidboost.enable)
-                online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
-
-            if (AppInit.Filmix.enable && !(AppInit.Filmix.pro || AppInit.Filmix.freehash))
+            if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 720p\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
-            if (AppInit.Ashdi.enable && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"Ashdi (UKR) - 1080p\",\"url\":\"lite/ashdi\"},");
+            if (AppInit.Country != "RU" && AppInit.Country != "BY")
+            {
+                if (AppInit.Ashdi.enable && arg.kinopoisk_id > 0)
+                    online.Append("{\"name\":\"Ashdi (UKR) - 1080p\",\"url\":\"lite/ashdi\"},");
 
-            if (AppInit.Eneyida.enable)
-                online.Append("{\"name\":\"Eneyida (UKR) - 1080p\",\"url\":\"lite/eneyida\"},");
+                if (AppInit.Eneyida.enable)
+                    online.Append("{\"name\":\"Eneyida (UKR) - 1080p\",\"url\":\"lite/eneyida\"},");
+            }
 
             if (AppInit.Collaps.enable)
                 online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
 
-            if (AppInit.VDBmovies.enable)
-                online.Append("{\"name\":\"VDBmovies - 720p\",\"url\":\"lite/vdbmovies\"},");
-
-            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
-                online.Append("{\"name\":\"CDNmovies\",\"url\":\"lite/cdnmovies\"},");
+            if (AppInit.Voidboost.enable && AppInit.Country != "UA")
+                online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
 
             if (serial == 0)
             {
-                if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
-                    online.Append("{\"name\":\"Kinotochka\",\"url\":\"lite/kinotochka\"},");
-
                 if (AppInit.Redheadsound.enable)
-                    online.Append("{\"name\":\"Redheadsound\",\"url\":\"lite/redheadsound\"},");
+                    online.Append("{\"name\":\"RedHeadSound - 1080p\",\"url\":\"lite/redheadsound\"},");
+
+                if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
+                    online.Append("{\"name\":\"Kinotochka - 480p\",\"url\":\"lite/kinotochka\"},");
             }
+
+            if (AppInit.VCDN.enable)
+                online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
+
+            if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
+                online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
+
+            if (AppInit.VDBmovies.enable && AppInit.Country != "UA")
+                online.Append("{\"name\":\"VDBmovies - 720p\",\"url\":\"lite/vdbmovies\"},");
+
+            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
+                online.Append("{\"name\":\"CDNmovies - 360p\",\"url\":\"lite/cdnmovies\"},");
 
 
             return $"[{Regex.Replace(online.ToString(), ",$", "")}]";

@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/redheadsound")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.Redheadsound;
+            var init = AppInit.Redheadsound.Clone();
 
             var arg = defaultArgs(args);
             int clarification = arg.clarification;
@@ -29,11 +29,13 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var content = await InvokeCache(arg.id, $"redheadsound:view:{arg.title}:{arg.year}:{clarification}", () => oninvk.Embed(clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year));
-            if (content == null)
-                return EmptyError("content");
+            refresh: var content = await oninvk.Embed(clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year);
 
-            return oninvk.Html(content, arg.title);
+            string html = oninvk.Html(content, arg.title);
+            if (string.IsNullOrEmpty(html) && IsRefresh(init))
+                goto refresh;
+
+            return html;
         }
     }
 }

@@ -258,8 +258,11 @@ namespace Shared.Engine.Online
             return streams;
         }
 
-        public string? VideoParse(List<StreamModel> streams, string? title, string? original_title, int episode, bool play)
+        public string VideoParse(List<StreamModel>? streams, string? title, string? original_title, int episode, bool play)
         {
+            if (streams == null || streams.Count == 0)
+                return string.Empty;
+
             if (play)
                 return onstreamfile(streams[0].url);
 

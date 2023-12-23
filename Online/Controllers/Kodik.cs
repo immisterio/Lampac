@@ -169,7 +169,7 @@ namespace Lampac.Controllers.LITE
                 return OnError(proxyManager);
 
             string result = oninvk.VideoParse(streams, title, original_title, episode, play);
-            if (result == null)
+            if (string.IsNullOrEmpty(result))
                 return OnError();
 
             if (play)

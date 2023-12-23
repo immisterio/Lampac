@@ -58,8 +58,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel md, long kinopoisk_id, string? title, string? original_title, int t, int s)
+        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s)
         {
+            if (md == null || (string.IsNullOrEmpty(md.content) && md.serial == null))
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");

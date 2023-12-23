@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online.Kodik;
@@ -10,21 +11,27 @@ namespace JinEnergy.Online
         #region KodikInvoke
         static bool origstream;
 
-        static KodikInvoke oninvk = new KodikInvoke
-        (
-            null,
-            AppInit.Kodik.apihost!,
-            AppInit.Kodik.token,
-            (uri, head) => JsHttpClient.Get(AppInit.Kodik.cors(uri), addHeaders: head),
-            (uri, data) => JsHttpClient.Post(AppInit.Kodik.cors(uri), data),
-            streamfile => IsApnIncluded(AppInit.Kodik) ? HostStreamProxy(AppInit.Kodik, streamfile) : DefaultStreamProxy(streamfile, origstream)
-            //AppInit.log
-        );
+        static KodikInvoke kodikInvoke(KodikSettings init)
+        {
+            return new KodikInvoke
+            (
+                null,
+                init.apihost!,
+                init.token,
+                (uri, head) => JsHttpClient.Get(init.cors(uri), addHeaders: head),
+                (uri, data) => JsHttpClient.Post(init.cors(uri), data),
+                streamfile => IsApnIncluded(init) ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+                //AppInit.log
+            );
+        }
         #endregion
 
         [JSInvokable("lite/kodik")]
         async public static ValueTask<string> Index(string args)
         {
+            var init = AppInit.Kodik;
+            var oninvk = kodikInvoke(init);
+
             var arg = defaultArgs(args);
             string? kid = parse_arg("kid", args);
             string? pick = parse_arg("pick", args);
@@ -35,7 +42,7 @@ namespace JinEnergy.Online
             if (arg.clarification == 1 || (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id)))
             {
                 if (string.IsNullOrWhiteSpace(arg.title))
-                    return EmptyError("arg");
+                    return EmptyError("title");
 
                 var res = await InvokeCache(arg.id, $"kodik:search:{arg.title}", () => oninvk.Embed(arg.title));
                 if (res?.result == null || res.result.Count == 0)
@@ -49,7 +56,7 @@ namespace JinEnergy.Online
             else
             {
                 if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
-                    return EmptyError("arg");
+                    return EmptyError("kinopoisk_id / imdb_id");
 
                 content = await InvokeCache(arg.id, $"kodik:search:{arg.kinopoisk_id}:{arg.imdb_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, s));
                 if (content == null || content.Count == 0)
@@ -64,22 +71,28 @@ namespace JinEnergy.Online
         [JSInvokable("lite/kodik/video")]
         async public static ValueTask<string> VideoParse(string args)
         {
+            var init = AppInit.Kodik.Clone();
+            var oninvk = kodikInvoke(init);
+
             var arg = defaultArgs(args);
             int episode = int.Parse(parse_arg("episode", args) ?? "0");
             string? link = parse_arg("link", args);
             if (link == null)
                 return EmptyError("link");
 
-            var streams = await InvokeCache(0, $"kodik:video:{link}", () => oninvk.VideoParse(AppInit.Kodik.linkhost, link));
-            if (streams == null)
-                return EmptyError("streams");
+            string memkey = $"kodik:video:{link}";
+            refresh: var streams = await InvokeCache(0, memkey, () => oninvk.VideoParse(init.linkhost, link));
 
-            if (!IsApnIncluded(AppInit.Kodik))
+            if (streams != null && !IsApnIncluded(init))
                 origstream = await IsOrigStream(streams[0].url);
 
-            string? result = oninvk.VideoParse(streams, arg.title, arg.original_title, episode, false);
-            if (result == null)
-                return EmptyError("result");
+            string result = oninvk.VideoParse(streams, arg.title, arg.original_title, episode, false);
+            if (string.IsNullOrEmpty(result))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
 
             return result;
         }

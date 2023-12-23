@@ -14,10 +14,17 @@ namespace Lampac.Models.LITE
 
         public string? cookie { get; set; }
 
+        public string? uacdn { get; set; }
+
         public bool xrealip { get; set; }
 
         public bool xapp { get; set; }
 
         public bool hls { get; set; }
+
+        public RezkaSettings Clone()
+        {
+            return (RezkaSettings)MemberwiseClone();
+        }
     }
 }

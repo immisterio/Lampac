@@ -89,23 +89,23 @@ namespace JinEnergy.Engine
         public static ResultModel OnResult(List<MenuItem> menu, List<PlaylistItem> playlists)
         {
             if (playlists == null || playlists.Count == 0)
-                return OnError("playlists.Count == 0");
+                return OnError("playlists");
 
             return new ResultModel() { menu = menu, list = playlists };
         }
 
-        public static ResultModel OnResult(Istreamproxy conf, Dictionary<string, string> stream_links)
+        public static ResultModel OnResult(Istreamproxy conf, Dictionary<string, string>? stream_links)
         {
             if (stream_links == null || stream_links.Count == 0)
-                return OnError("stream_links.Count == 0");
+                return OnError("stream_links");
 
             return OnResult(conf, new StreamItem() { qualitys = stream_links });
         }
 
-        public static ResultModel OnResult(Istreamproxy conf, StreamItem stream_links, bool isebalovo = false)
+        public static ResultModel OnResult(Istreamproxy conf, StreamItem? stream_links, bool isebalovo = false)
         {
             if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                return OnError("qualitys.Count == 0");
+                return OnError("stream_links");
 
             List<PlaylistItem>? recomends = null;
             if (stream_links.recomends != null && stream_links.recomends.Count > 0)
@@ -163,7 +163,7 @@ namespace JinEnergy.Engine
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
 
-            if (AppInit.Country != "UA" || orig)
+            if (string.IsNullOrEmpty(AppInit.apn) || AppInit.Country != "UA" || orig)
                 return uri;
 
             return $"{AppInit.apn}/{uri}";
@@ -171,16 +171,17 @@ namespace JinEnergy.Engine
 
         public static string HostStreamProxy(Istreamproxy conf, string? uri)
         {
-            if (string.IsNullOrWhiteSpace(uri) || conf == null || string.IsNullOrEmpty(conf.apn))
+            string? apn = conf?.apn ?? AppInit.apn;
+            if (conf == null || string.IsNullOrWhiteSpace(uri) || string.IsNullOrEmpty(apn))
                 return uri;
 
             if (conf.streamproxy)
-                return $"{conf.apn}/{uri}";
+                return $"{apn}/{uri}";
 
             if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {
                 if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
-                    return $"{conf.apn}/{uri}";
+                    return $"{apn}/{uri}";
             }
 
             return uri;
@@ -188,7 +189,8 @@ namespace JinEnergy.Engine
 
         public static bool IsApnIncluded(Istreamproxy conf)
         {
-            if (conf == null || string.IsNullOrEmpty(conf.apn))
+            string? apn = conf?.apn ?? AppInit.apn;
+            if (conf == null || string.IsNullOrEmpty(apn))
                 return false;
 
             if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
@@ -200,13 +202,22 @@ namespace JinEnergy.Engine
             return conf.streamproxy;
         }
 
-        public static bool IsRefresh(SisiSettings conf, bool NotUseDefaultApn = false)
+        public static bool IsRefresh(BaseSettings conf, bool NotUseDefaultApn = false)
         {
             if (NotUseDefaultApn)
-                return (AppInit.apn != null && AppInit.apn.Contains("apn.watch")) || (Shared.Model.AppInit.corseuhost != null && Shared.Model.AppInit.corseuhost.Contains("apn.monster"));
+            {
+                string? apn = conf.apn ?? AppInit.apn;
+                if ((apn != null && apn.Contains("apn.watch")) || (Shared.Model.AppInit.corseuhost != null && Shared.Model.AppInit.corseuhost.Contains("apn.monster")))
+                    return false;
+            }
 
-            conf.corseu = !conf.corseu && string.IsNullOrEmpty(conf.webcorshost);
-            return conf.corseu;
+            if (string.IsNullOrEmpty(Shared.Model.AppInit.corseuhost) && string.IsNullOrEmpty(conf.webcorshost))
+                return false;
+
+            if (conf.corseu || !string.IsNullOrEmpty(conf.webcorshost))
+                return false;
+
+            return conf.corseu = true;
         }
     }
 }

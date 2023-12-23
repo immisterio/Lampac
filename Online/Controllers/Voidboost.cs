@@ -31,6 +31,7 @@ namespace Lampac.Controllers.LITE
             (
                 host,
                 init.corsHost(),
+                init.hls,
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "voidboost")

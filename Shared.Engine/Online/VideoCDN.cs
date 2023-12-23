@@ -139,8 +139,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s)
+        public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s)
         {
+            if (result == null)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
@@ -148,11 +151,14 @@ namespace Shared.Engine.Online
             if (result.type is "movie" or "anime")
             {
                 #region Фильм
+                if (result.movie == null || result.movie.Count == 0)
+                    return string.Empty;
+
                 var mtpl = new MovieTpl(title, original_title, result.movie.Count);
 
                 foreach (var voice in result.movie)
                 {
-                    result.voices.TryGetValue(voice.Key, out string name);
+                    result.voices.TryGetValue(voice.Key, out string? name);
                     if (string.IsNullOrEmpty(name))
                     {
                         if (result.movie.Count > 1)
@@ -194,6 +200,9 @@ namespace Shared.Engine.Online
 
                 try
                 {
+                    if (result.serial == null || result.serial.Count == 0)
+                        return string.Empty;
+
                     if (s == -1)
                     {
                         var seasons = new HashSet<int>();
@@ -281,10 +290,16 @@ namespace Shared.Engine.Online
         #endregion
 
         #region FirstLink
-        public string? FirstLink(EmbedModel result, string t, int s)
+        public string? FirstLink(EmbedModel? result, string t, int s)
         {
+            if (result == null)
+                return string.Empty;
+
             if (result.type is "movie" or "anime")
             {
+                if (result.movie == null || result.movie.Count == 0)
+                    return string.Empty;
+
                 foreach (var voice in result.movie)
                 {
                     string link = Regex.Match(voice.Value, $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
@@ -307,7 +322,7 @@ namespace Shared.Engine.Online
                         return null;
 
                     #region Перевод
-                    if (string.IsNullOrEmpty(t))
+                    if (string.IsNullOrEmpty(t) && result.voiceSeasons != null)
                     {
                         foreach (var voice in result.voiceSeasons)
                         {
@@ -322,6 +337,9 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(t))
                         t = "0";
                     #endregion
+
+                    if (result.serial == null || result.serial.Count == 0)
+                        return string.Empty;
 
                     var season = result.serial[t].First(i => i.id == s);
                     if (season.folder != null)

@@ -14,7 +14,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/vdbmovies")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.VDBmovies;
+            var init = AppInit.VDBmovies.Clone();
 
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
@@ -48,7 +48,7 @@ namespace JinEnergy.Online
                     ("Referer", "https://cdnmovies.net/")
                 });
 
-                string file = Regex.Match(html ?? "", "file: ?'(#[^']+)'").Groups[1].Value;
+                string file = Regex.Match(html ?? "", "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
                     return null;
 
@@ -67,7 +67,7 @@ namespace JinEnergy.Online
 	                        }).join(''));
                           };
 
-                          var trashList = ['-*frofpscprpamfpQ*45612.3256dfrgd', '54vjfhcgdbrydkcfkndz568436fred+*d', 'lvfycgndqcydrcgcfg+95147gfdgf-zd*', 'az+-erw*3457edgtjd-feqsptf/re*q*Y', 'df8vg69r9zxWdlyf+*fgx455g8fh9z-e*Q'];
+                          var trashList = ['wNp2wBTNcPRQvTC0_CpxCsq_8T1u9Q', 'md-Od2G9RWOgSa5HoBSSbWrCyIqQyY', 'kzuOYQqB_QSOL-xzN_Kz3kkgkHhHit', '6-xQWMh7ertLp8t_M9huUDk1M0VrYJ', 'RyTwtf15_GLEsXxnpU4Ljjd0ReY-VH'];
                           var x = '" + file + @"'.substring(2);
                           trashList.forEach(function (trash) {
 	                        x = x.replace('//' + enc(trash), '');

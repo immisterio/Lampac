@@ -42,8 +42,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject> result, string title, string? code, int year)
+        public string Html(List<RootObject>? result, string title, string? code, int year)
         {
+            if (result == null || result.Count == 0)
+                return string.Empty;
+
             if (!string.IsNullOrWhiteSpace(code) || (result.Count == 1 && result[0].season.year == year && result[0].names.ru?.ToLower() == title.ToLower()))
             {
                 #region Серии

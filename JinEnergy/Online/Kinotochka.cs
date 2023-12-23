@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
@@ -11,10 +12,9 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var arg = defaultArgs(args);
+            var init = AppInit.Kinotochka.Clone();
 
-            string? file = await InvokeCache(arg.id, $"kinotochka:{arg.kinopoisk_id}", () => Embed(arg.kinopoisk_id));
-            if (string.IsNullOrEmpty(file))
-                return EmptyError("file");
+            refresh: string file = await Embed(init, arg.kinopoisk_id);
 
             var mtpl = new MovieTpl(arg.title, arg.original_title);
 
@@ -23,22 +23,20 @@ namespace JinEnergy.Online
                 if (string.IsNullOrEmpty(f))
                     continue;
 
-                return mtpl.ToHtml("По умолчанию", HostStreamProxy(AppInit.Kinotochka, f));
+                return mtpl.ToHtml("По умолчанию", HostStreamProxy(init, f));
             }
+
+            if (IsRefresh(init))
+                goto refresh;
 
             return EmptyError("play_url");
         }
 
 
-        async static ValueTask<string?> Embed(long kinopoisk_id)
+        async static ValueTask<string> Embed(OnlinesSettings init, long kinopoisk_id)
         {
-            string? embed = await JsHttpClient.Get($"{AppInit.Kinotochka.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8);
-            string file = Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
-
-            if (string.IsNullOrEmpty(file))
-                return null;
-
-            return file;
+            string? embed = await JsHttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8);
+            return Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
         }
     }
 }

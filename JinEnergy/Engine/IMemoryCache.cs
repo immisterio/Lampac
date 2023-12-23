@@ -26,5 +26,20 @@ namespace JinEnergy.Engine
         {
             cache.TryAdd(key, JsonSerializer.Serialize(ob));
         }
+
+        public static void Remove(string key)
+        {
+            if (cache.ContainsKey(key))
+                cache.Remove(key);
+        }
+
+        public static void RemoveAll(string key)
+        {
+            foreach (var item in cache.ToArray())
+            {
+                if (item.Key.Contains(key))
+                    cache.Remove(key);
+            }
+        }
     }
 }

@@ -22,5 +22,10 @@ namespace Lampac.Models.LITE
         public string secret_token { get; set; }
 
         public bool localip { get; set; }
+
+        public KodikSettings Clone()
+        {
+            return (KodikSettings)MemberwiseClone();
+        }
     }
 }

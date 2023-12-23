@@ -9,23 +9,25 @@ namespace JinEnergy.Online
         [JSInvokable("lite/vokino")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.VoKino;
+            var init = AppInit.VoKino.Clone();
             var arg = defaultArgs(args);
 
             var oninvk = new VoKinoInvoke
             (
                null,
                init.corsHost(),
-               init.token,
+               init.token!,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var content = await InvokeCache(arg.id, $"vokino:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
-            if (content == null)
-                return EmptyError("content");
+            refresh: var content = await oninvk.Embed(arg.kinopoisk_id);
 
-            return oninvk.Html(content, arg.title, arg.original_title);
+            string html = oninvk.Html(content, arg.title, arg.original_title);
+            if (string.IsNullOrEmpty(html) && IsRefresh(init, true))
+                goto refresh;
+
+            return html;
         }
     }
 }

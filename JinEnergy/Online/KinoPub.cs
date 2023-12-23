@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/kinopub")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.KinoPub;
+            var init = AppInit.KinoPub.Clone();
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -31,22 +31,37 @@ namespace JinEnergy.Online
                 if (arg.original_language != "en")
                     clarification = 1;
 
-                var res = await InvStructCache(arg.id, $"kinopub:search:{arg.title}:{clarification}:{arg.imdb_id}", () => oninvk.Search(arg.title, arg.original_title, arg.year, clarification, arg.imdb_id, arg.kinopoisk_id));
+                string memkey = $"kinopub:search:{arg.title}:{clarification}:{arg.imdb_id}";
+                refresh_similars: var res = await InvStructCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.year, clarification, arg.imdb_id, arg.kinopoisk_id));
 
-                if (res.similars != null)
+                if (!string.IsNullOrEmpty(res.similars))
                     return res.similars;
 
                 postid = res.id;
 
                 if (postid == 0 || postid == -1)
+                {
+                    IMemoryCache.Remove(memkey);
+
+                    if (IsRefresh(init))
+                        goto refresh_similars;
+
                     return EmptyError("postid");
+                }
             }
 
-            var root = await InvokeCache(arg.id, $"kinopub:post:{postid}", () => oninvk.Post(postid));
-            if (root == null)
-                return EmptyError("root");
+            string mkey = $"kinopub:post:{postid}";
+            refresh: var root = await InvokeCache(arg.id, mkey, () => oninvk.Post(postid));
 
-            return oninvk.Html(root, init.filetype, arg.title, arg.original_title, postid, s);
+            string html = oninvk.Html(root, init.filetype, arg.title, arg.original_title, postid, s);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(mkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
+
+            return html;
         }
     }
 }

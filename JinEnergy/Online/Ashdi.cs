@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/ashdi")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.Ashdi;
+            var init = AppInit.Ashdi.Clone();
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -26,15 +26,18 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var content = await InvokeCache(arg.id, $"ashdi:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id));
+            string memkey = $"ashdi:view:{arg.kinopoisk_id}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id));
 
-            if (content == null)
-                return EmptyError("content");
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init, true))
+                    goto refresh;
+            }
 
-            if (string.IsNullOrEmpty(content.content) && content.serial == null)
-                return EmptyError("content 2");
-
-            return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
+            return html;
         }
     }
 }

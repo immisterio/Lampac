@@ -36,6 +36,8 @@ namespace Lampac.Controllers.LITE
 
             if (serial == 1)
             {
+                // https://kinovibe.tv/embed.html
+
                 if (s == -1)
                 {
                     #region Сезоны

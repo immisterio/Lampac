@@ -15,7 +15,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/videodb")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.VideoDB;
+            var init = AppInit.VideoDB.Clone();
             bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
@@ -33,9 +33,8 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var content = await InvokeCache(arg.id, $"videodb:view:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id, arg.serial));
-            if (content?.pl == null)
-                return EmptyError("content");
+            string memkey = $"videodb:view:{arg.kinopoisk_id}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.serial));
 
             if (!userapn && AppInit.Country == "UA" && lastcheckid != arg.kinopoisk_id)
             {
@@ -47,7 +46,15 @@ namespace JinEnergy.Online
                 }
             }
 
-            return oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
+
+            return html;
         }
     }
 }

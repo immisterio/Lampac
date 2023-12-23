@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/eneyida")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.Eneyida;
+            var init = AppInit.Eneyida.Clone();
 
             var arg = defaultArgs(args);
             string? href = parse_arg("href", args);
@@ -26,11 +26,18 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var content = await InvokeCache(arg.id, $"eneyida:view:{arg.original_title}:{arg.year}:{href}:{arg.clarification}", () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
-            if (content == null)
-                return EmptyError("content");
+            string memkey = string.IsNullOrEmpty(href) ? $"eneyida:{arg.original_title}:{arg.year}:{arg.clarification}" : $"eneyida:{href}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
 
-            return oninvk.Html(content, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
+            string html = oninvk.Html(content, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
+            
+            return html;
         }
     }
 }

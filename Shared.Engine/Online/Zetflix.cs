@@ -93,8 +93,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s)
+        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s)
         {
+            if (root?.pl == null || root.pl.Count == 0)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
@@ -223,8 +226,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region FirstLink
-        public string? FirstLink(EmbedModel root, string? t, int s)
+        public string? FirstLink(EmbedModel? root, string? t, int s)
         {
+            if (root?.pl == null || root.pl.Count == 0)
+                return string.Empty;
+
             if (root.movie)
             {
                 foreach (var pl in root.pl)

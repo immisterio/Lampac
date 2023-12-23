@@ -59,8 +59,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Сhannel> channels, string? title, string? original_title)
+        public string Html(List<Сhannel>? channels, string? title, string? original_title)
         {
+            if (channels == null || channels.Count == 0)
+                return string.Empty;
+
             var mtpl = new MovieTpl(title, original_title, channels.Count);
 
             foreach (var ch in channels)

@@ -33,6 +33,8 @@ namespace Lampac.Controllers.LITE
             headers.Add(("Origin", init.host));
             headers.Add(("Referer", init.host + "/"));
 
+            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+
             return new RezkaInvoke
             (
                 host,
@@ -40,7 +42,7 @@ namespace Lampac.Controllers.LITE
                 init.hls,
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "rezka")
+                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka")
             );
         }
         #endregion

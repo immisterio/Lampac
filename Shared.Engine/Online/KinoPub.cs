@@ -116,8 +116,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject root, string? filetype, string? title, string? original_title, int postid, int s = -1)
+        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1)
         {
+            if (root == null)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");

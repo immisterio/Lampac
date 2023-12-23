@@ -50,13 +50,8 @@ namespace JinEnergy.SISI
                 return pl;
             });
 
-            if (playlist.Count == 0)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
-
-                return OnError("playlist");
-            }
+            if (playlist.Count == 0 && IsRefresh(init))
+                goto refresh;
 
             return OnResult(PornHubTo.Menu(null, plugin, sort, c), playlist);
         }
@@ -69,13 +64,8 @@ namespace JinEnergy.SISI
 
             refresh: var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
 
-            if (stream_links == null)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
-
-                return OnError("stream_links");
-            }
+            if (stream_links == null && IsRefresh(init))
+                goto refresh;
 
             return OnResult(init, stream_links);
         }

@@ -10,7 +10,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/anilibria")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.AnilibriaOnline;
+            var init = AppInit.AnilibriaOnline.Clone();
 
             var arg = defaultArgs(args);
             string? code = parse_arg("code", args);
@@ -27,13 +27,18 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            var content = await InvokeCache(arg.id, $"anilibriaonline:{arg.title}", () => oninvk.Embed(arg.title));
-            if (content == null)
+            string memkey = $"anilibriaonline:{arg.title}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.title));
+
+            string html = oninvk.Html(content, arg.title, code, arg.year);
+            if (string.IsNullOrEmpty(html))
             {
-                return EmptyError("content");
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
             }
 
-            return oninvk.Html(content, arg.title, code, arg.year);
+            return html;
         }
     }
 }

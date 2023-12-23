@@ -25,13 +25,8 @@ namespace JinEnergy.SISI
                 return pl;
             });
 
-            if (playlist.Count == 0)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
-
-                return OnError("playlist");
-            }
+            if (playlist.Count == 0 && IsRefresh(init))
+                goto refresh;
 
             return OnResult(EpornerTo.Menu(null, sort, c), playlist);
         }
@@ -46,12 +41,17 @@ namespace JinEnergy.SISI
                             url => JsHttpClient.Get(init.cors(url)), 
                             jsonurl => JsHttpClient.Get(init.cors(jsonurl)));
 
-            if (stream_links == null)
-            {
-                if (IsRefresh(init))
-                    goto refresh;
+            if (stream_links == null && IsRefresh(init))
+                goto refresh;
 
-                return OnError("stream_links");
+            if (!init.streamproxy && AppInit.IsAndrod && JSRuntime != null)
+            {
+                try
+                {
+                    string player = await JSRuntime.InvokeAsync<string>("eval", "Lampa.Storage.field('player')");
+                    init.streamproxy = player == "inner";
+                }
+                catch { }
             }
 
             return OnResult(init, stream_links);

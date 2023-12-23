@@ -15,7 +15,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/vcdn")]
         async public static ValueTask<string> Index(string args)
         {
-            var init = AppInit.VCDN;
+            var init = AppInit.VCDN.Clone();
             bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
@@ -34,18 +34,27 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
+            #region similars
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
             {
-                string? similars = await InvokeCache(arg.id, $"videocdn:search:{arg.title}:{arg.original_title}", () => oninvk.Search(arg.title!, arg.original_title));
-                if (similars == null)
+                string similar_memkey = $"videocdn:search:{arg.title}:{arg.original_title}";
+                similar_refresh: string? similars = await InvokeCache(arg.id, similar_memkey, () => oninvk.Search(arg.title!, arg.original_title));
+
+                if (string.IsNullOrEmpty(similars))
+                {
+                    IMemoryCache.Remove(similar_memkey);
+                    if (IsRefresh(init))
+                        goto similar_refresh;
+
                     return EmptyError("similars");
+                }
 
                 return similars;
             }
+            #endregion
 
-            var content = await InvokeCache(arg.id, $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}", () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id));
-            if (content == null)
-                return EmptyError("content");
+            string memkey = $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id));
 
             string checkid = $"{arg.imdb_id}:{arg.kinopoisk_id}";
             if (!userapn && AppInit.Country == "UA" && lastcheckid != checkid)
@@ -58,7 +67,15 @@ namespace JinEnergy.Online
                 }
             }
 
-            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
+            string html = oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
+
+            return html;
         }
     }
 }

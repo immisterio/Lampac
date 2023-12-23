@@ -25,13 +25,8 @@ namespace JinEnergy.SISI
                 return pl;
             });
 
-            if (playlist.Count == 0)
-            {
-                if (IsRefresh(init, true))
-                    goto refresh;
-
-                return OnError("playlist");
-            }
+            if (playlist.Count == 0 && IsRefresh(init, true))
+                goto refresh;
 
             return OnResult(EbalovoTo.Menu(null, sort, c), playlist);
         }
@@ -44,13 +39,8 @@ namespace JinEnergy.SISI
 
             refresh: var stream_links = await EbalovoTo.StreamLinks("elo/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
 
-            if (stream_links == null)
-            {
-                if (IsRefresh(init, true))
-                    goto refresh;
-
-                return OnError("stream_links");
-            }
+            if (stream_links == null && IsRefresh(init, true))
+                goto refresh;
 
             return OnResult(init, stream_links, isebalovo: true);
         }

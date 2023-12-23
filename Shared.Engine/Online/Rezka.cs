@@ -1,7 +1,6 @@
 ﻿using Lampac.Models.LITE;
 using Shared.Model.Online.Rezka;
 using Shared.Model.Templates;
-using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -87,8 +86,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
+        public string Html(EmbedModel? result, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
         {
+            if (result == null)
+                return string.Empty;
+
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
             string? enc_href = HttpUtility.UrlEncode(href);
@@ -253,8 +255,11 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes root, EmbedModel result, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream)
+        public string Serial(Episodes? root, EmbedModel? result, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream)
         {
+            if (root == null || result == null)
+                return string.Empty;
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 
@@ -344,6 +349,7 @@ namespace Shared.Engine.Online
             {
                 data = $"id={id}&translator_id={t}&season={s}&episode={e}&favs={favs}&action=get_stream";
             }
+
             string? json = await onpost(uri, data);
             if (string.IsNullOrEmpty(json))
                 return null;
@@ -375,7 +381,7 @@ namespace Shared.Engine.Online
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
-        public string? Movie(MovieModel md, string? title, string? original_title, bool play)
+        public string Movie(MovieModel md, string? title, string? original_title, bool play)
         {
             if (play)
                 return onstreamfile(md.links[0].stream_url!);
@@ -451,7 +457,10 @@ namespace Shared.Engine.Online
             #region getLink
             string? getLink(string _q)
             {
-                string link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
+                string link = usehls ? new Regex($"\\[{_q}\\](https?://[^\\[\n\r, ]+:manifest.m3u8)").Match(_data).Groups[1].Value : string.Empty;
+
+                if (string.IsNullOrWhiteSpace(link))
+                    link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
 
                 if (string.IsNullOrWhiteSpace(link))
                     link = new Regex($"\\[{_q}\\](https?://[^\n\r, ]+.mp4([^\n\r, ]+)?)").Match(_data).Groups[1].Value;
@@ -470,9 +479,6 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(link))
                     continue;
 
-                if (usehls && !link.Contains(".m3u"))
-                    link += ":hls:manifest.m3u8";
-
                 links.Add(new ApiModel()
                 {
                     title = q.Contains("p") ? q : $"{q}p",
@@ -482,6 +488,16 @@ namespace Shared.Engine.Online
             #endregion
 
             return links;
+        }
+        #endregion
+
+        #region fixcdn
+        public static string fixcdn(string? country, string? uacdn, string link)
+        {
+            if (uacdn != null && country == "UA" && link.Contains("voidboost."))
+                return Regex.Replace(link, "https?://[^/]+", uacdn);
+
+            return link;
         }
         #endregion
     }

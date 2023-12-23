@@ -20,5 +20,10 @@ namespace Lampac.Models.LITE
         public string? cookie { get; set; }
 
         public bool hls { get; set; }
+
+        public OnlinesSettings Clone()
+        {
+            return (OnlinesSettings)MemberwiseClone();
+        }
     }
 }

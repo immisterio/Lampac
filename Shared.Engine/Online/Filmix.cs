@@ -45,9 +45,15 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("json: " + json);
 
-            var root = JsonSerializer.Deserialize<List<SearchModel>>(json);
-            if (root == null || root.Count == 0)
-                return (0, null);
+            List<SearchModel>? root = null;
+
+            try
+            {
+                root = JsonSerializer.Deserialize<List<SearchModel>>(json);
+                if (root == null || root.Count == 0)
+                    return (0, null);
+            }
+            catch { return (0, null); }
 
             onlog?.Invoke("root.Count " + root.Count);
 
@@ -95,19 +101,26 @@ namespace Shared.Engine.Online
             json = json.Replace("\"playlist\":[],", "\"playlist\":null,");
             onlog?.Invoke(json);
 
-            var root = JsonSerializer.Deserialize<RootObject>(json);
+            try
+            {
+                var root = JsonSerializer.Deserialize<RootObject>(json);
 
-            if (root?.player_links == null)
-                return null;
+                if (root?.player_links == null)
+                    return null;
 
-            onlog?.Invoke("player_links ok");
-            return root.player_links;
+                onlog?.Invoke("player_links ok");
+                return root.player_links;
+            }
+            catch { return null; }
         }
         #endregion
 
         #region Html
-        public string Html(PlayerLinks player_links, bool pro, int postid, string? title, string? original_title, int t, int s)
+        public string Html(PlayerLinks? player_links, bool pro, int postid, string? title, string? original_title, int t, int s)
         {
+            if (player_links == null)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");

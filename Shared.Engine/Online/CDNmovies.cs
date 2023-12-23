@@ -50,8 +50,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Voice> voices, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid)
+        public string Html(List<Voice>? voices, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid)
         {
+            if (voices == null || voices.Count == 0)
+                return string.Empty;
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
