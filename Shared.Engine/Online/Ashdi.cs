@@ -78,7 +78,7 @@ namespace Shared.Engine.Online
 
                 #region subtitle
                 var subtitles = new SubtitleTpl();
-                string subtitle = new Regex("\"subtitle\":\"([^\"]+)\"").Match(md.content).Groups[1].Value;
+                string subtitle = new Regex("subtitle(\")?:\"([^\"]+)\"").Match(md.content).Groups[2].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {

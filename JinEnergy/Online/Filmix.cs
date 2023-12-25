@@ -25,13 +25,11 @@ namespace JinEnergy.Online
             if (arg.original_language != "en")
                 clarification = 1;
 
-            string dmcatoken = "bc170de3b2cafb09283b936011f054ed";
-
             var oninvk = new FilmixInvoke
             (
                null,
                init.corsHost(),
-               string.IsNullOrEmpty(init.token) ? dmcatoken : init.token,
+               string.IsNullOrEmpty(init.token) ? FilmixInvoke.dmcatoken : init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                streamfile => HostStreamProxy(init, replaceLink(streamfile))
             );
@@ -57,7 +55,7 @@ namespace JinEnergy.Online
                 postid = res.id;
             }
 
-            if (lastpostid != postid && oninvk.token == dmcatoken)
+            if (lastpostid != postid && oninvk.token == FilmixInvoke.dmcatoken)
             {
                 await refreshash(init, postid);
                 if (hashfimix == null)

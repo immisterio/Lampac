@@ -10,6 +10,8 @@ namespace Shared.Engine.Online
 {
     public class FilmixInvoke
     {
+        public static string dmcatoken => "bc170de3b2cafb09283b936011f054ed";
+
         #region FilmixInvoke
         public string? token;
         string? host;
@@ -37,13 +39,9 @@ namespace Shared.Engine.Online
 
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
            
-            onlog?.Invoke("uri: " + uri);
-            
             string? json = await onget.Invoke(uri);
             if (json == null)
                 return (0, null);
-
-            onlog?.Invoke("json: " + json);
 
             List<SearchModel>? root = null;
 
@@ -54,8 +52,6 @@ namespace Shared.Engine.Online
                     return (0, null);
             }
             catch { return (0, null); }
-
-            onlog?.Invoke("root.Count " + root.Count);
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);
@@ -92,14 +88,11 @@ namespace Shared.Engine.Online
         {
             string uri = $"{apihost}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
 
-            onlog?.Invoke(uri);
-
             string? json = await onget.Invoke(uri);
             if (json == null)
                 return null;
 
             json = json.Replace("\"playlist\":[],", "\"playlist\":null,");
-            onlog?.Invoke(json);
 
             try
             {
@@ -108,7 +101,6 @@ namespace Shared.Engine.Online
                 if (root?.player_links == null)
                     return null;
 
-                onlog?.Invoke("player_links ok");
                 return root.player_links;
             }
             catch { return null; }
@@ -125,8 +117,8 @@ namespace Shared.Engine.Online
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
 
-            var filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
-            bool hidefree720 = string.IsNullOrWhiteSpace(token) && filmixservtime >= 19 && filmixservtime <= 23;
+            int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
+            bool hidefree720 = (dmcatoken == token || string.IsNullOrEmpty(token)) && filmixservtime >= 19 && filmixservtime <= 23;
 
             if (player_links.movie != null && player_links.movie.Count > 0)
             {

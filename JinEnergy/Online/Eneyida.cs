@@ -33,7 +33,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init))
+                if (IsRefresh(init, true))
                     goto refresh;
             }
             

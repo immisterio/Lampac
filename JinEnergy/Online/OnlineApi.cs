@@ -117,9 +117,6 @@ namespace JinEnergy.Online
             if (AppInit.AnilibriaOnline.enable && isanime)
                 online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
 
-            if (AppInit.VoKino.enable && serial == 0 && !isanime && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"VoKino - 4K HDR\",\"url\":\"lite/vokino\"},");
-
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
@@ -131,6 +128,9 @@ namespace JinEnergy.Online
 
             if (AppInit.Rezka.enable)
                 online.Append("{\"name\":\"Rezka - 4K\",\"url\":\"lite/rezka\"},");
+
+            if (AppInit.VoKino.enable && serial == 0 && !isanime && arg.kinopoisk_id > 0)
+                online.Append("{\"name\":\"VoKino - 4K HDR\",\"url\":\"lite/vokino\"},");
 
             if (AppInit.Kinobase.enable)
                 online.Append("{\"name\":\"Kinobase - 1080p\",\"url\":\"lite/kinobase\"},");
