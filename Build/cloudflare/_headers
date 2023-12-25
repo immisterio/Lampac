@@ -1,2 +1,5 @@
-/*
+/aot/*
   Access-Control-Allow-Origin: http://lampa.mx
+  Access-Control-Allow-Credentials: true
+  Access-Control-Allow-Methods: *
+  Access-Control-Allow-Headers: *
