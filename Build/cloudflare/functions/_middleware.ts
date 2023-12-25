@@ -1,7 +1,7 @@
 export async function onRequest(context) {
   try {
-    let reqHeaders = new Headers(context.request.headers),
-    let response = await context.next();
+    var reqHeaders = new Headers(context.request.headers);
+    var response = await context.next();
   
     response.headers.set('Access-Control-Allow-Origin', reqHeaders.get('Origin') || reqHeaders.get('Referer') || "*");
     response.headers.set('Access-Control-Allow-Credentials', 'true');
