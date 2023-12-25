@@ -3,3 +3,8 @@
   Access-Control-Allow-Credentials: true
   Access-Control-Allow-Methods: *
   Access-Control-Allow-Headers: *
+/aot-durex/*
+  Access-Control-Allow-Origin: https://lampa.mx
+  Access-Control-Allow-Credentials: true
+  Access-Control-Allow-Methods: *
+  Access-Control-Allow-Headers: *
