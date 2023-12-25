@@ -10,7 +10,7 @@
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
-    <WasmEnableSIMD>false</WasmEnableSIMD>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
   </PropertyGroup>
 
   <ItemGroup>
