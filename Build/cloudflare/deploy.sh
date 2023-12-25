@@ -9,4 +9,6 @@ chmod +x dotnet-install.sh
 ./dotnet/dotnet workload install wasm-tools
 ./dotnet/dotnet publish JinEnergy -c Release
 
-cat Build/cloudflare/_headers > JinEnergy/bin/Release/net8.0/wwwroot/_framework/_headers
+mkdir -p out
+mv Build/cloudflare/_headers out/
+mv JinEnergy/bin/Release/net8.0/wwwroot/_framework out/aot
