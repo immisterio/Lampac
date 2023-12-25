@@ -4,8 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <WasiTrim>true</WasiTrim>
-	<!--<RunAOTCompilation>true</RunAOTCompilation>-->
+    <!--<WasiTrim>true</WasiTrim>
+	<RunAOTCompilation>true</RunAOTCompilation>-->
   </PropertyGroup>
 
   <ItemGroup>
