@@ -8,6 +8,9 @@
     <WasiTrim>false</WasiTrim>
 	<RunAOTCompilation>true</RunAOTCompilation>
 	<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+	<EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
+	<WasmStripILAfterAOT>true</WasmStripILAfterAOT>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
