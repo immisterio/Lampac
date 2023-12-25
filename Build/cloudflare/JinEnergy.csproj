@@ -5,7 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <WasiTrim>false</WasiTrim>
-	<RunAOTCompilation>false</RunAOTCompilation>
+	<RunAOTCompilation>true</RunAOTCompilation>
+	<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
