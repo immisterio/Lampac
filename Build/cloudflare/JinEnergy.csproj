@@ -4,17 +4,13 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-	<CompressionEnabled>false</CompressionEnabled>
+    <CompressionEnabled>false</CompressionEnabled>
     <WasiTrim>false</WasiTrim>
-	<RunAOTCompilation>true</RunAOTCompilation>
-	<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-	<EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
-	<WasmStripILAfterAOT>true</WasmStripILAfterAOT>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<PublishTrimmed>true</PublishTrimmed>
-	<TrimMode>full</TrimMode>
-	<WasmEnableSIMD>true</WasmEnableSIMD>
-	<PublishSingleFile>true</PublishSingleFile>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
   </PropertyGroup>
 
   <ItemGroup>
