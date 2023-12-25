@@ -10,10 +10,6 @@ chmod +x dotnet-install.sh
 ./dotnet/dotnet publish JinEnergy -c Release
 
 mkdir -p out/aot/
-mkdir -p out/functions/
-
-#mv Build/cloudflare/_headers out/
-cp -R Build/cloudflare/functions/* out/functions/
+cp -R Build/cloudflare/functions out/
 cat out/functions/_middleware.ts
-
 cp -R JinEnergy/bin/Release/net8.0/wwwroot/_framework/* out/aot/
