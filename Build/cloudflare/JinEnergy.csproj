@@ -5,12 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
-    <WasiTrim>true</WasiTrim>
-    <RunAOTCompilation>false</RunAOTCompilation>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
-    <WasmEnableSIMD>false</WasmEnableSIMD>
+    <WasiTrim>true</WasiTrim>
+	<EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
   </PropertyGroup>
 
   <ItemGroup>
