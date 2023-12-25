@@ -7,7 +7,8 @@ chmod +x dotnet-install.sh
 ./dotnet-install.sh -InstallDir ./dotnet
 
 ./dotnet/dotnet workload install wasm-tools
-./dotnet/dotnet publish JinEnergy -c Release
+#./dotnet/dotnet publish JinEnergy -c Release
+./dotnet/dotnet build JinEnergy -c Release -r browser-wasm
 
 mkdir -p out/aot/
 cp -R Build/cloudflare/functions .
