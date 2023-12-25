@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<CompressionEnabled>false</CompressionEnabled>
     <WasiTrim>false</WasiTrim>
+	<WasmEnableWebcil>false</WasmEnableWebcil>
 	<RunAOTCompilation>true</RunAOTCompilation>
 	<WasmStripILAfterAOT>true</WasmStripILAfterAOT>
 	<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
