@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <WasiTrim>true</WasiTrim>
-	<RunAOTCompilation>true</RunAOTCompilation>
+	<!--<RunAOTCompilation>true</RunAOTCompilation>-->
   </PropertyGroup>
 
   <ItemGroup>
