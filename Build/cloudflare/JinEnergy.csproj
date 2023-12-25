@@ -5,12 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<CompressionEnabled>false</CompressionEnabled>
-    <WasiTrim>false</WasiTrim>
-	<WasmEnableWebcil>false</WasmEnableWebcil>
+    <WasiTrim>true</WasiTrim>
 	<RunAOTCompilation>true</RunAOTCompilation>
-	<WasmStripILAfterAOT>true</WasmStripILAfterAOT>
 	<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-	<EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
   </PropertyGroup>
 
   <ItemGroup>
