@@ -6,7 +6,10 @@ curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 ./dotnet-install.sh -InstallDir ./dotnet
 ./dotnet/dotnet workload install wasm-tools
-./dotnet/dotnet publish JinEnergy -c Release
+
+cd JinEnergy
+/opt/buildhome/repo/dotnet/dotnet publish JinEnergy -c Release
+cd /opt/buildhome/repo
 
 mkdir -p out/aot/
 cp -R Build/cloudflare/functions .
