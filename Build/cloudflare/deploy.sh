@@ -6,8 +6,8 @@ curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 ./dotnet-install.sh -InstallDir ./dotnet
 
-#./dotnet/dotnet workload install wasm-tools
-./dotnet/dotnet workload install wasm-experimental
+./dotnet/dotnet workload install wasm-tools
+#./dotnet/dotnet workload install wasm-experimental
 #./dotnet/dotnet publish JinEnergy -c Release
 ./dotnet/dotnet build JinEnergy --configuration Release
 
