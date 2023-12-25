@@ -11,4 +11,4 @@ chmod +x dotnet-install.sh
 mkdir -p out/aot/
 #cp -R Build/cloudflare/functions .
 cp -R JinEnergy/bin/Release/net8.0/publish/wwwroot/_framework/* out/aot/
-cat Build/cloudflare/_headers > out/aot/_headers
+cat Build/cloudflare/_headers > out/_headers
