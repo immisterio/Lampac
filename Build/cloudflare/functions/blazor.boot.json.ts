@@ -1,4 +1,4 @@
-export function onRequest(context) {
+export async function onRequest(context) {
   var reqHeaders = new Headers(context.request.headers);
   var response = await context.next();
   
