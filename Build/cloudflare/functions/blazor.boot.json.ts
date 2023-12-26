@@ -1,4 +1,4 @@
-export const onRequest: PagesFunction = async (context) => {
+export function onRequest(context) {
   var reqHeaders = new Headers(context.request.headers);
   var response = await context.next();
   
@@ -7,4 +7,4 @@ export const onRequest: PagesFunction = async (context) => {
   response.headers.set('Access-Control-Allow-Methods', '*');
   response.headers.set('Access-Control-Allow-Headers', '*');
   return response;
-};
+}

@@ -9,9 +9,7 @@ chmod +x dotnet-install.sh
 ./dotnet/dotnet publish JinEnergy -c Release
 
 mkdir -p out/aot/
-mkdir -p out/aot-durex/
 
-#cp -R Build/cloudflare/functions .
-cp -R JinEnergy/bin/Release/net8.0/publish/wwwroot/_framework/* out/aot/
-cp -R JinEnergy/bin/Release/net8.0/publish/wwwroot/_framework/* out/aot-durex/
+cp -R Build/cloudflare/functions .
 cat Build/cloudflare/_headers > out/_headers
+cp -R JinEnergy/bin/Release/net8.0/publish/wwwroot/_framework/* out/
