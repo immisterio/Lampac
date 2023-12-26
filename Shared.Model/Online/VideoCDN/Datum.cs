@@ -12,5 +12,6 @@
 
         public string? add { get; set; }
 
+        public string? content_type { get; set; }
     }
 }

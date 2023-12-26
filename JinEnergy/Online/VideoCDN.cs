@@ -6,12 +6,6 @@ namespace JinEnergy.Online
 {
     public class VideoCDNController : BaseController
     {
-        #region VideoCDNController
-        static bool origstream;
-
-        static string? lastcheckid;
-        #endregion
-
         [JSInvokable("lite/vcdn")]
         async public static ValueTask<string> Index(string args)
         {
@@ -20,6 +14,7 @@ namespace JinEnergy.Online
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
+            int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             string? t = parse_arg("t", args);
 
             var oninvk = new VideoCDNInvoke
@@ -30,7 +25,7 @@ namespace JinEnergy.Online
                init.token!,
                init.hls,
                (url, referer) => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
-               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile)
                //AppInit.log
             );
 
@@ -38,7 +33,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
             {
                 string similar_memkey = $"videocdn:search:{arg.title}:{arg.original_title}";
-                similar_refresh: string? similars = await InvokeCache(arg.id, similar_memkey, () => oninvk.Search(arg.title!, arg.original_title));
+                similar_refresh: string? similars = await InvokeCache(arg.id, similar_memkey, () => oninvk.Search(arg.title!, arg.original_title, serial));
 
                 if (string.IsNullOrEmpty(similars))
                 {
@@ -55,17 +50,6 @@ namespace JinEnergy.Online
 
             string memkey = $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}";
             refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id));
-
-            string checkid = $"{arg.imdb_id}:{arg.kinopoisk_id}";
-            if (!userapn && AppInit.Country == "UA" && lastcheckid != checkid)
-            {
-                string? uri = oninvk.FirstLink(content, t, s);
-                if (!string.IsNullOrEmpty(uri))
-                {
-                    lastcheckid = checkid;
-                    origstream = await IsOrigStream(uri);
-                }
-            }
 
             string html = oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
             if (string.IsNullOrEmpty(html))

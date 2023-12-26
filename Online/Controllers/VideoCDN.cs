@@ -11,7 +11,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vcdn")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1)
         {
             var init = AppInit.conf.VCDN;
 
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
             {
-                string similars = await InvokeCache($"videocdn:search:{title}:{original_title}", cacheTime(40), () => oninvk.Search(title, original_title));
+                string similars = await InvokeCache($"videocdn:search:{title}:{original_title}", cacheTime(40), () => oninvk.Search(title, original_title, serial));
                 if (string.IsNullOrEmpty(similars))
                     return OnError("similars");
 

@@ -155,7 +155,6 @@ namespace JinEnergy.Engine
             if (string.IsNullOrWhiteSpace(uri) || AppInit.Country != "UA")
                 return true;
 
-            return false;
             return await JsHttpClient.StatusCode(uri) == 200;
         }
 

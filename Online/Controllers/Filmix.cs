@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int postid, int t, int s = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int postid, int t, int? s = null)
         {
             var init = AppInit.conf.Filmix;
 
@@ -51,6 +51,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                string.IsNullOrEmpty(init.token) ? dmcatoken : init.token,
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, addHeaders: head),
                onstreamtofile => HostStreamProxy(init, replaceLink(onstreamtofile), proxy: proxy)
             );
 

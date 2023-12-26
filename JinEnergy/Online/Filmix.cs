@@ -17,8 +17,8 @@ namespace JinEnergy.Online
             var init = AppInit.Filmix.Clone();
 
             var arg = defaultArgs(args);
-            int s = int.Parse(parse_arg("s", args) ?? "-1");
             int t = int.Parse(parse_arg("t", args) ?? "0");
+            int? s = parse_arg("s", args) != null ? int.Parse(parse_arg("s", args)!) : null;
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
             int clarification = arg.clarification;
 
@@ -31,6 +31,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                string.IsNullOrEmpty(init.token) ? FilmixInvoke.dmcatoken : init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
+               (url, data, head) => JsHttpClient.Post(init.cors(url), data, addHeaders: head),
                streamfile => HostStreamProxy(init, replaceLink(streamfile))
             );
 

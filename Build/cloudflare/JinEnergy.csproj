@@ -7,10 +7,10 @@
     <CompressionEnabled>false</CompressionEnabled>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WasiTrim>true</WasiTrim>
-	<EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
-    <RunAOTCompilation>true</RunAOTCompilation>
-    <WasmEnableSIMD>true</WasmEnableSIMD>
+    <WasiTrim>false</WasiTrim>
+	<EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <WasmEnableSIMD>false</WasmEnableSIMD>
   </PropertyGroup>
 
   <ItemGroup>

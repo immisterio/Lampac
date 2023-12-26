@@ -17,15 +17,17 @@ namespace Shared.Engine.Online
         string? host;
         string apihost;
         Func<string, ValueTask<string?>> onget;
+        Func<string, string, List<(string name, string val)>?, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<(string name, string val)>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.token = token;
             this.onget = onget;
+            this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
         }
@@ -42,6 +44,9 @@ namespace Shared.Engine.Online
             string? json = await onget.Invoke(uri);
             if (json == null)
                 return (0, null);
+
+            if (json.Contains("Too many connections"))
+                return await Search2(title, original_title, clarification, year);
 
             List<SearchModel>? root = null;
 
@@ -83,6 +88,59 @@ namespace Shared.Engine.Online
         }
         #endregion
 
+        #region Search2
+        async ValueTask<(int id, string? similars)> Search2(string? title, string? original_title, int clarification, int year)
+        {
+            string? html = await onpost.Invoke("https://filmix.biz/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", new List<(string name, string val)>() 
+            {
+                ("Origin", "https://filmix.biz"),
+                ("Referer", "https://filmix.biz/search/"),
+                ("X-Requested-With", "XMLHttpRequest"),
+                ("Sec-Fetch-Site", "same-origin"),
+                ("Sec-Fetch-Mode", "cors"),
+                ("Sec-Fetch-Dest", "empty"),
+                ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123"),
+                ("Accept-Language", "ru-RU,ru;q=0.9")
+            });
+
+            if (html == null)
+                return (0, null);
+
+            var ids = new List<int>();
+            var stpl = new SimilarTpl();
+
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            foreach (string row in html.Split("</article>"))
+            {
+                string ftitle = Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value;
+                string ftitle_orig = Regex.Match(row, "itemprop=\"alternativeHeadline\" content=\"([^\"]+)\"").Groups[1].Value;
+                string fyear = Regex.Match(row, "itemprop=\"copyrightYear\"[^>]+>([0-9]{4})").Groups[1].Value;
+                string fid = Regex.Match(row, "data-id=\"([0-9]+)\"").Groups[1].Value;
+
+                if (int.TryParse(fid, out int id) && id > 0)
+                {
+                    string? name = !string.IsNullOrEmpty(ftitle) && !string.IsNullOrEmpty(ftitle_orig) ? $"{ftitle} / {ftitle_orig}" : (ftitle ?? ftitle_orig);
+
+                    stpl.Append(name, fyear, string.Empty, host + $"lite/filmix?postid={id}&title={enc_title}&original_title={enc_original_title}");
+
+                    if ((!string.IsNullOrEmpty(title) && ftitle.ToLower() == title.ToLower()) ||
+                        (!string.IsNullOrEmpty(original_title) && ftitle_orig.ToLower() == original_title.ToLower()))
+                    {
+                        if (fyear == year.ToString())
+                            ids.Add(id);
+                    }
+                }
+            }
+
+            if (ids.Count == 1)
+                return (ids[0], null);
+
+            return (0, stpl.ToHtml());
+        }
+        #endregion
+
         #region Post
         async public ValueTask<PlayerLinks?> Post(int postid)
         {
@@ -108,7 +166,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(PlayerLinks? player_links, bool pro, int postid, string? title, string? original_title, int t, int s)
+        public string Html(PlayerLinks? player_links, bool pro, int postid, string? title, string? original_title, int t, int? s)
         {
             if (player_links == null)
                 return string.Empty;
@@ -168,14 +226,14 @@ namespace Shared.Engine.Online
                 string? enc_title = HttpUtility.UrlEncode(title);
                 string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-                if (s == -1)
+                if (s == null)
                 {
                     #region Сезоны
                     foreach (var season in player_links.playlist)
                     {
                         string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
 
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>");
+                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key.Replace("-1", "1")} сезон" + "</div></div></div>");
                         firstjson = false;
                     }
                     #endregion
@@ -249,7 +307,8 @@ namespace Shared.Engine.Online
 
                         string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
 
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>");
+                        int? fis = s == -1 ? 1 : s;
+                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + fis + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>");
                         firstjson = false;
                     }
                     #endregion

@@ -13,6 +13,8 @@ namespace JinEnergy.Online
 
         static KodikInvoke kodikInvoke(KodikSettings init)
         {
+            bool userapn = IsApnIncluded(init);
+
             return new KodikInvoke
             (
                 null,
@@ -20,7 +22,7 @@ namespace JinEnergy.Online
                 init.token,
                 (uri, head) => JsHttpClient.Get(init.cors(uri), addHeaders: head),
                 (uri, data) => JsHttpClient.Post(init.cors(uri), data),
-                streamfile => IsApnIncluded(init) ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+                streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
                 //AppInit.log
             );
         }

@@ -109,7 +109,7 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             bool isanime = arg.original_language == "ja";
-            //bool life = parse_arg(args, "life")?.ToLower() == "true";
+            bool titleSearch = string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0;
 
             if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
                 online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
@@ -147,10 +147,10 @@ namespace JinEnergy.Online
                     online.Append("{\"name\":\"Eneyida (UKR) - 1080p\",\"url\":\"lite/eneyida\"},");
             }
 
-            if (AppInit.Collaps.enable)
+            if (AppInit.Collaps.enable && !titleSearch)
                 online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
 
-            if (AppInit.Voidboost.enable && AppInit.Country != "UA")
+            if (AppInit.Voidboost.enable && AppInit.Country != "UA" && !titleSearch)
                 online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
 
             if (serial == 0)
@@ -168,10 +168,10 @@ namespace JinEnergy.Online
             if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
 
-            if (AppInit.VDBmovies.enable && AppInit.Country != "UA")
+            if (AppInit.VDBmovies.enable && AppInit.Country != "UA" && !titleSearch)
                 online.Append("{\"name\":\"VDBmovies - 720p\",\"url\":\"lite/vdbmovies\"},");
 
-            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
+            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"CDNmovies - 360p\",\"url\":\"lite/cdnmovies\"},");
 
 

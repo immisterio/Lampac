@@ -19,10 +19,12 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
             var init = AppInit.conf.Rezka;
 
-            var headers = new List<(string name, string val)>();
-
-            if (!string.IsNullOrEmpty(init.cookie))
-                headers.Add(("Cookie", init.cookie));
+            var headers = new List<(string name, string val)>
+            {
+                ("Cookie", string.IsNullOrEmpty(init.cookie) ? "PHPSESSID=ulsp3783953bm7ejojgakcicco; dle_user_token=3c7bafea181a12a4b2d2dc2555fcc86c; _ym_uid=170332480144901774; _ym_d=1703324801; _ym_isad=2; _ym_visorc=b" : init.cookie),
+                ("Origin", init.host),
+                ("Referer", init.host + "/")
+            };
 
             if (init.xapp)
                 headers.Add(("X-App-Hdrezka-App", "1"));
@@ -30,10 +32,7 @@ namespace Lampac.Controllers.LITE
             if (init.xrealip)
                 headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
 
-            headers.Add(("Origin", init.host));
-            headers.Add(("Referer", init.host + "/"));
-
-            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+            string country = init.forceua ? "UA" : GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
 
             return new RezkaInvoke
             (

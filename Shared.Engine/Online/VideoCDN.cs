@@ -33,7 +33,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<string?> Search(string title, string? original_title)
+        public async ValueTask<string?> Search(string title, string? original_title, int serial)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -58,10 +58,24 @@ namespace Shared.Engine.Online
                 if (item.kp_id == 0 && string.IsNullOrEmpty(item.imdb_id))
                     continue;
 
+                if (serial != -1)
+                {
+                    if ((serial == 0 && item.content_type != "movie") || (serial == 1 && item.content_type == "movie"))
+                        continue;
+                }
+
+                bool isok = title != null && title.Length > 3 && item.title != null && item.title.ToLower().Contains(title.ToLower());
+                isok = isok ? true : original_title != null && original_title.Length > 3 && item.orig_title != null && item.orig_title.ToLower().Contains(original_title.ToLower());
+
+                if (!isok)
+                    continue;
+
                 string year = item.add?.Split("-")?[0] ?? string.Empty;
                 string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
 
-                stpl.Append(name, year, string.Empty, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
+                string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
+
+                stpl.Append(name, year, details, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
             }
 
             return stpl.ToHtml();

@@ -16,6 +16,8 @@ namespace Lampac.Models.LITE
 
         public string? uacdn { get; set; }
 
+        public bool forceua { get; set; }
+
         public bool xrealip { get; set; }
 
         public bool xapp { get; set; }

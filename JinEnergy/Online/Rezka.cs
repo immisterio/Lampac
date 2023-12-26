@@ -12,6 +12,8 @@ namespace JinEnergy.Online
 
         static RezkaInvoke rezkaInvoke(RezkaSettings init)
         {
+            bool userapn = IsApnIncluded(init);
+
             return new RezkaInvoke
             (
                 null,
@@ -19,9 +21,7 @@ namespace JinEnergy.Online
                 init.hls,
                 ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                 (url, data) => JsHttpClient.Post(init.cors(url), data),
-                streamfile => IsApnIncluded(init) ?
-                              HostStreamProxy(init, streamfile) :
-                              DefaultStreamProxy(origstream ? RezkaInvoke.fixcdn(AppInit.Country, init.uacdn, streamfile) : streamfile, origstream)
+                streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(origstream ? RezkaInvoke.fixcdn(AppInit.Country, init.uacdn, streamfile) : streamfile, origstream)
             );
         }
         #endregion
