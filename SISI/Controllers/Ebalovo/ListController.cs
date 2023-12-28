@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;

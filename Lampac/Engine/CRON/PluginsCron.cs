@@ -1,6 +1,7 @@
 ﻿using Lampac.Engine.CORE;
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -46,6 +47,31 @@ namespace Lampac.Engine.CRON
                     update("http://cub.red/plugin/etor", path: "etor.js");
                     update("http://95.215.8.180/checker.js");
                     update("https://plugin.rootu.top/ts-preload.js");
+                }
+                catch { }
+
+                try
+                {
+                    if (Directory.Exists("wwwroot/bwa/_framework/"))
+                    {
+                        string bootapp = await HttpClient.Get("https://bwa.pages.dev/blazor.boot.json");
+                        if (bootapp != null && bootapp.Contains("JinEnergy.dll"))
+                        {
+                            string currentapp = await File.ReadAllTextAsync("wwwroot/bwa/_framework/blazor.boot.json");
+                            currentapp = CrypTo.md5(currentapp);
+
+                            if (CrypTo.md5(bootapp) != currentapp)
+                            {
+                                byte[] array = await HttpClient.Download("https://bwa.pages.dev/latest.zip", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
+                                if (array != null)
+                                {
+                                    await File.WriteAllBytesAsync("wwwroot/bwa/latest.zip", array);
+                                    ZipFile.ExtractToDirectory("wwwroot/bwa/latest.zip", "wwwroot/bwa/_framework/", overwriteFiles: true);
+                                    File.Delete("wwwroot/bwa/latest.zip");
+                                }
+                            }
+                        }
+                    }
                 }
                 catch { }
 

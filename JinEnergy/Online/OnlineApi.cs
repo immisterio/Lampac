@@ -117,6 +117,9 @@ namespace JinEnergy.Online
             if (AppInit.AnilibriaOnline.enable && isanime)
                 online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
 
+            online.Append("{\"name\":\"Animevost\",\"url\":\"http://env-8837577.mircloud.host/lite/animevost\"},");
+            online.Append("{\"name\":\"AniMedia\",\"url\":\"http://env-8837577.mircloud.host/lite/animedia\"},");
+
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
@@ -156,7 +159,7 @@ namespace JinEnergy.Online
             if (serial == 0)
             {
                 if (AppInit.Redheadsound.enable)
-                    online.Append("{\"name\":\"RedHeadSound - 1080p\",\"url\":\"lite/redheadsound\"},");
+                    online.Append("{\"name\":\"RHS - 1080p\",\"url\":\"lite/redheadsound\"},");
 
                 if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
                     online.Append("{\"name\":\"Kinotochka - 480p\",\"url\":\"lite/kinotochka\"},");
@@ -164,6 +167,8 @@ namespace JinEnergy.Online
 
             if (AppInit.VCDN.enable)
                 online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
+
+            online.Append("{\"name\":\"HDVB\",\"url\":\"http://env-8837577.mircloud.host/lite/hdvb\"},");
 
             if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");

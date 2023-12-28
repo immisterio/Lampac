@@ -172,10 +172,10 @@ namespace JinEnergy.Engine
         public static string HostStreamProxy(Istreamproxy conf, string? uri)
         {
             string? apn = conf?.apn ?? AppInit.apn;
-            if (conf == null || string.IsNullOrWhiteSpace(uri) || string.IsNullOrEmpty(apn))
+            if (conf == null || string.IsNullOrEmpty(uri) || string.IsNullOrEmpty(apn) || !apn.StartsWith("http"))
                 return uri;
 
-            if (conf.streamproxy)
+            if (conf.streamproxy || conf.apnstream)
                 return $"{apn}/{uri}";
 
             if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)

@@ -19,7 +19,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "93";
+        public static string appversion => "94";
 
         public IMemoryCache memoryCache { get; private set; }
 
@@ -70,7 +70,10 @@ namespace Lampac.Engine
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
 
-            bool streamproxy = conf == null || conf.streamproxy || conf.useproxystream;
+            if (conf == null)
+                return uri;
+
+            bool streamproxy = conf.streamproxy || conf.useproxystream;
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {
                 string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
@@ -80,8 +83,11 @@ namespace Lampac.Engine
 
             if (streamproxy)
             {
-                if (!string.IsNullOrEmpty(conf.apn))
+                if (!string.IsNullOrEmpty(conf.apn) && conf.apn.StartsWith("http"))
                     return $"{conf.apn}/{uri}";
+
+                if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf.apn) && AppInit.conf.apn.StartsWith("http"))
+                    return $"{AppInit.conf.apn}/{uri}";
 
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 

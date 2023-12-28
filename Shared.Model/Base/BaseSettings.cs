@@ -22,11 +22,13 @@
 
         public bool streamproxy { get; set; }
 
+        public bool apnstream { get; set; }
+
         public List<string>? geostreamproxy { get; set; }
 
         public string? apn { get; set; }
 
-        public bool qualitys_proxy { get; set; }
+        public bool qualitys_proxy { get; set; } = true;
         #endregion
 
         #region cors

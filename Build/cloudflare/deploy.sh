@@ -13,3 +13,7 @@ mkdir -p out/aot/
 cp -R Build/cloudflare/functions .
 cat Build/cloudflare/_headers > out/_headers
 cp -R JinEnergy/bin/Release/net7.0/publish/wwwroot/_framework/* out/
+
+apt-get install -y zip
+cd out/
+zip latest.zip *

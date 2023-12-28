@@ -44,7 +44,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", enable: false, streamproxy: true);
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx.ukrtelcdn.net" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx-ams.ukrtelcdn.net" };
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.tv", streamproxy: true);
 
