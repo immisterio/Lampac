@@ -1,5 +1,4 @@
-cat /etc/issue
-apt-get install -y zip
+#cat /etc/issue
 
 #cat Build/cloudflare/JinEnergy.csproj > JinEnergy/JinEnergy.csproj
 cat Build/cloudflare/Shared.Engine.csproj > Shared.Engine/Shared.Engine.csproj
@@ -18,4 +17,5 @@ cat Build/cloudflare/_headers > out/_headers
 cp -R JinEnergy/bin/Release/net7.0/publish/wwwroot/_framework/* out/
 
 cd out/
+apt-get instal -y unzip
 zip latest.zip *
