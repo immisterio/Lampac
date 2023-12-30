@@ -25,8 +25,6 @@ namespace JinEnergy.Online
             if (arg.original_language != "en")
                 clarification = 1;
 
-            AppInit.log("1");
-
             var oninvk = new FilmixInvoke
             (
                null,
@@ -34,16 +32,11 @@ namespace JinEnergy.Online
                string.IsNullOrEmpty(init.token) ? FilmixInvoke.dmcatoken : init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                (url, data, head) => JsHttpClient.Post(init.cors(url), data, addHeaders: head),
-               streamfile => HostStreamProxy(init, replaceLink(streamfile)),
-               AppInit.log
+               streamfile => HostStreamProxy(init, replaceLink(streamfile))
             );
-
-            AppInit.log("2");
 
             if (postid == 0)
             {
-                AppInit.log("3");
-
                 string memkey = $"filmix:search:{arg.title}:{arg.original_title}:{clarification}";
                 refresh_similars: var res = await InvStructCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
 
@@ -63,8 +56,6 @@ namespace JinEnergy.Online
                 postid = res.id;
             }
 
-            AppInit.log("4");
-
             if (lastpostid != postid && oninvk.token == FilmixInvoke.dmcatoken)
             {
                 await refreshash(init, postid);
@@ -72,15 +63,10 @@ namespace JinEnergy.Online
                     oninvk.token = null;
             }
 
-            AppInit.log("5");
-
             string mkey = $"filmix:post:{postid}";
             refresh: var player_links = await InvokeCache(arg.id, mkey, () => oninvk.Post(postid));
 
             string html = oninvk.Html(player_links, init.pro, postid, arg.title, arg.original_title, t, s);
-            AppInit.log("6");
-            AppInit.log(html);
-
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(mkey);
