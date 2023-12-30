@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.LITE.Filmix;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
+using System;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -40,7 +41,8 @@ namespace Shared.Engine.Online
                 return (0, null);
 
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
-           
+            onlog?.Invoke(uri);
+
             string? json = await onget.Invoke(uri);
             if (json == null)
                 return (0, null);
@@ -81,6 +83,8 @@ namespace Shared.Engine.Online
                 }
             }
 
+            onlog?.Invoke("ids: " + ids.Count);
+
             if (ids.Count == 1)
                 return (ids[0], null);
 
@@ -91,6 +95,8 @@ namespace Shared.Engine.Online
         #region Search2
         async ValueTask<(int id, string? similars)> Search2(string? title, string? original_title, int clarification, int year)
         {
+            onlog?.Invoke("Search2");
+
             string? html = await onpost.Invoke("https://filmix.biz/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", new List<(string name, string val)>() 
             {
                 ("Origin", "https://filmix.biz"),
@@ -134,6 +140,8 @@ namespace Shared.Engine.Online
                 }
             }
 
+            onlog?.Invoke("ids: " + ids.Count);
+
             if (ids.Count == 1)
                 return (ids[0], null);
 
@@ -145,6 +153,7 @@ namespace Shared.Engine.Online
         async public ValueTask<PlayerLinks?> Post(int postid)
         {
             string uri = $"{apihost}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
+            onlog?.Invoke(uri);
 
             string? json = await onget.Invoke(uri);
             if (json == null)
@@ -171,6 +180,8 @@ namespace Shared.Engine.Online
             if (player_links == null)
                 return string.Empty;
 
+            onlog?.Invoke("html reder");
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
@@ -181,9 +192,12 @@ namespace Shared.Engine.Online
             if (player_links.movie != null && player_links.movie.Count > 0)
             {
                 #region Фильм
+                onlog?.Invoke("movie 1");
+
                 if (player_links.movie.Count == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
                     return string.Empty;
 
+                onlog?.Invoke("movie 2");
                 var mtpl = new MovieTpl(title, original_title, player_links.movie.Count);
 
                 foreach (var v in player_links.movie)
@@ -220,8 +234,12 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
+                onlog?.Invoke("sersial 1");
+
                 if (player_links.playlist == null || player_links.playlist.Count == 0)
                     return string.Empty;
+
+                onlog?.Invoke("sersial 2");
 
                 string? enc_title = HttpUtility.UrlEncode(title);
                 string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -229,6 +247,8 @@ namespace Shared.Engine.Online
                 if (s == null)
                 {
                     #region Сезоны
+                    onlog?.Invoke("season");
+
                     foreach (var season in player_links.playlist)
                     {
                         string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
@@ -283,6 +303,8 @@ namespace Shared.Engine.Online
                     #endregion
 
                     #region Серии
+                    onlog?.Invoke("episodes: " + episodes.Count);
+
                     foreach (var episode in episodes)
                     {
                         var streams = new List<(string link, string quality)>() { Capacity = pro ? episode.Value.qualities.Count : 2 };

@@ -32,7 +32,8 @@ namespace JinEnergy.Online
                string.IsNullOrEmpty(init.token) ? FilmixInvoke.dmcatoken : init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                (url, data, head) => JsHttpClient.Post(init.cors(url), data, addHeaders: head),
-               streamfile => HostStreamProxy(init, replaceLink(streamfile))
+               streamfile => HostStreamProxy(init, replaceLink(streamfile)),
+               AppInit.log
             );
 
             if (postid == 0)
