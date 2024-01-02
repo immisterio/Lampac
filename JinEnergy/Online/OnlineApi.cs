@@ -117,8 +117,11 @@ namespace JinEnergy.Online
             if (AppInit.AnilibriaOnline.enable && isanime)
                 online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
 
-            online.Append("{\"name\":\"Animevost\",\"url\":\"http://env-8837577.mircloud.host/lite/animevost\"},");
-            online.Append("{\"name\":\"AniMedia\",\"url\":\"http://env-8837577.mircloud.host/lite/animedia\"},");
+            if (isanime)
+            {
+                online.Append("{\"name\":\"Animevost\",\"url\":\"http://env-8837577.mircloud.host/lite/animevost\"},");
+                online.Append("{\"name\":\"AniMedia\",\"url\":\"http://env-8837577.mircloud.host/lite/animedia\"},");
+            }
 
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
@@ -156,7 +159,7 @@ namespace JinEnergy.Online
             if (AppInit.Voidboost.enable && AppInit.Country != "UA" && !titleSearch)
                 online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
 
-            if (serial == 0)
+            if (serial == 0 && !isanime)
             {
                 if (AppInit.Redheadsound.enable)
                     online.Append("{\"name\":\"RHS - 1080p\",\"url\":\"lite/redheadsound\"},");
