@@ -126,8 +126,8 @@ namespace JinEnergy.Online
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
-            if (AppInit.KinoPub.enable)
-                online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub"+(arg.source == "pub" ? $"?postid={arg.id}" : "")+"\"},");
+            if (AppInit.KinoPub.enable || AppInit.KinoPub.displayname != null)
+                online.Append("{\"name\":\""+(AppInit.KinoPub.displayname ?? "KinoPub - 4K HDR")+"\",\"url\":\"lite/kinopub"+(arg.source == "pub" ? $"?postid={arg.id}" : "")+"\"},");
 
             if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");

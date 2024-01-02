@@ -176,8 +176,8 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http), f.quality)));
-                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
+                        var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(fixuri(f.url.http, f.file)), f.quality)));
+                        mtpl.Append(v.files[0].quality, onstreamfile(fixuri(v.files[0].url.http, v.files[0].file)), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
                     }
                 }
 
@@ -245,14 +245,14 @@ namespace Shared.Engine.Online
 
                             foreach (var f in episode.files)
                             {
-                                string l = onstreamfile(f.url.http);
+                                string l = onstreamfile(fixuri(f.url.http, f.file));
                                 streansquality += $"\"{f.quality}\":\"" + l + "\",";
                             }
 
                             streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                             #endregion
 
-                            string mp4 = onstreamfile(episode.files[0].url.http);
+                            string mp4 = onstreamfile(fixuri(episode.files[0].url.http, episode.files[0].file));
 
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
                             firstjson = false;
@@ -266,5 +266,15 @@ namespace Shared.Engine.Online
             return html.ToString() + "</div>";
         }
         #endregion
+
+
+        string fixuri(string http, string file)
+        {
+            if (!http.Contains("/demo/demo.mp4"))
+                return http;
+
+            http = http.Replace("/demo/demo.mp4", file);
+            return Regex.Replace(http, "/pd/[^/]+", "/pd/aWQ9ODU0ODQ7MTUwMzkwOTc1NzsxNTY0MjgzNTs5NzIzMTA7MTcwNDEzODc5MSZoPWM2bU1xQTM1WDR5UldmVEVPSFNtdGcmZT0xNzA0MjI1MTkx");
+        }
     }
 }
