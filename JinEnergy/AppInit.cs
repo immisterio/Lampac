@@ -69,7 +69,7 @@ namespace JinEnergy
                             #region BOOSTiK
                             if (!conf.KinoPub.enable)
                             {
-                                conf.KinoPub.corseu = true;
+                                conf.KinoPub.enable = true;
                                 conf.KinoPub.filetype = "mp4";
                                 conf.KinoPub.token = "tke4plvt4gde68tt07fkmpuj9lnw2w16";
                                 conf.KinoPub.displayname = "BOOSTiK - 4K HDR";

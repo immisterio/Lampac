@@ -14,10 +14,10 @@ namespace Shared.Engine.Online
         string? host, token;
         string apihost;
         Func<string, ValueTask<string?>> onget;
-        Func<string, string> onstreamfile;
+        Func<string, string?, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public KinoPubInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public KinoPubInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string?, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -162,7 +162,7 @@ namespace Shared.Engine.Online
 
                     if (filetype == "hls4")
                     {
-                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4), voice_name: voicename);
+                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename);
                     }
                     else
                     {
@@ -172,12 +172,12 @@ namespace Shared.Engine.Online
                         if (v.subtitles != null)
                         {
                             foreach (var sub in v.subtitles)
-                                subtitles.Append(sub.lang, onstreamfile(sub.url));
+                                subtitles.Append(sub.lang, onstreamfile(sub.url, null));
                         }
                         #endregion
 
-                        var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(fixuri(f.url.http, f.file)), f.quality)));
-                        mtpl.Append(v.files[0].quality, onstreamfile(fixuri(v.files[0].url.http, v.files[0].file)), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
+                        var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http, f.file), f.quality)));
+                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http, v.files[0].file), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
                     }
                 }
 
@@ -225,7 +225,7 @@ namespace Shared.Engine.Online
 
                         if (filetype == "hls4")
                         {
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(episode.files[0].url.hls4) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(episode.files[0].url.hls4, null) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
                             firstjson = false;
                         }
                         else
@@ -236,7 +236,7 @@ namespace Shared.Engine.Online
                             if (episode.subtitles != null)
                             {
                                 foreach (var sub in episode.subtitles)
-                                    subtitles.Append(sub.lang, onstreamfile(sub.url));
+                                    subtitles.Append(sub.lang, onstreamfile(sub.url, null));
                             }
                             #endregion
 
@@ -245,14 +245,14 @@ namespace Shared.Engine.Online
 
                             foreach (var f in episode.files)
                             {
-                                string l = onstreamfile(fixuri(f.url.http, f.file));
+                                string l = onstreamfile(f.url.http, f.file);
                                 streansquality += $"\"{f.quality}\":\"" + l + "\",";
                             }
 
                             streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                             #endregion
 
-                            string mp4 = onstreamfile(fixuri(episode.files[0].url.http, episode.files[0].file));
+                            string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
 
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
                             firstjson = false;
@@ -266,20 +266,5 @@ namespace Shared.Engine.Online
             return html.ToString() + "</div>";
         }
         #endregion
-
-
-        string kbtk = null;
-
-        string fixuri(string http, string file)
-        {
-            if (!http.Contains("/demo/demo.mp4"))
-                return http;
-
-            if (kbtk == null)
-                kbtk = onget.Invoke("https://bwa.to/temp/kinopubtk.txt").Result;
-
-            http = http.Replace("/demo/demo.mp4", file);
-            return Regex.Replace(http, "/pd/[^/]+", $"/pd/{kbtk}");
-        }
     }
 }
