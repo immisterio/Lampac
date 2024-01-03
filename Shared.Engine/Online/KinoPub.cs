@@ -268,13 +268,18 @@ namespace Shared.Engine.Online
         #endregion
 
 
+        string kbtk = null;
+
         string fixuri(string http, string file)
         {
             if (!http.Contains("/demo/demo.mp4"))
                 return http;
 
+            if (kbtk == null)
+                kbtk = onget.Invoke("https://bwa.to/temp/kinopubtk.txt").Result;
+
             http = http.Replace("/demo/demo.mp4", file);
-            return Regex.Replace(http, "/pd/[^/]+", "/pd/aWQ9ODU0ODQ7MTUwMzkwOTc1NzsxNTY0MjgzNTs5NzIzMTA7MTcwNDEzODc5MSZoPWM2bU1xQTM1WDR5UldmVEVPSFNtdGcmZT0xNzA0MjI1MTkx");
+            return Regex.Replace(http, "/pd/[^/]+", $"/pd/{kbtk}");
         }
     }
 }
