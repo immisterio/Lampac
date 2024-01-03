@@ -68,12 +68,12 @@ namespace JinEnergy.Online
         }
 
 
-        static string fixuri(string http, string? file, string? kbtk)
+        static string? fixuri(string? http, string? file, string? kbtk)
         {
             AppInit.log("http: " + http);
             AppInit.log("file: " + file);
 
-            if (!http.Contains("/demo/demo.mp4") || file == null || string.IsNullOrEmpty(kbtk))
+            if (http == null || !http.Contains("/demo/demo.mp4") || file == null || string.IsNullOrEmpty(kbtk))
                 return http;
 
             http = http.Replace("/demo/demo.mp4", file);
