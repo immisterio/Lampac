@@ -162,17 +162,24 @@ namespace Shared.Engine.Online
 
                     if (filetype == "hls4")
                     {
-                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename);
+                        if (v.files[0].url.hls4 != null)
+                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename);
                     }
                     else
                     {
+                        if (v.files[0].url.http == null)
+                            continue;
+
                         #region subtitle
                         var subtitles = new SubtitleTpl();
 
                         if (v.subtitles != null)
                         {
                             foreach (var sub in v.subtitles)
-                                subtitles.Append(sub.lang, onstreamfile(sub.url, null));
+                            {
+                                if (sub.url != null)
+                                    subtitles.Append(sub.lang, onstreamfile(sub.url, null));
+                            }
                         }
                         #endregion
 
@@ -225,18 +232,27 @@ namespace Shared.Engine.Online
 
                         if (filetype == "hls4")
                         {
+                            if (episode.files[0].url.hls4 == null)
+                                continue;
+
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(episode.files[0].url.hls4, null) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
                             firstjson = false;
                         }
                         else
                         {
+                            if (episode.files[0].url.http == null)
+                                continue;
+
                             #region subtitle
                             var subtitles = new SubtitleTpl();
 
                             if (episode.subtitles != null)
                             {
                                 foreach (var sub in episode.subtitles)
-                                    subtitles.Append(sub.lang, onstreamfile(sub.url, null));
+                                {
+                                    if (sub.url != null)
+                                        subtitles.Append(sub.lang, onstreamfile(sub.url, null));
+                                }
                             }
                             #endregion
 
@@ -245,8 +261,11 @@ namespace Shared.Engine.Online
 
                             foreach (var f in episode.files)
                             {
-                                string l = onstreamfile(f.url.http, f.file);
-                                streansquality += $"\"{f.quality}\":\"" + l + "\",";
+                                if (f.url.http != null)
+                                {
+                                    string l = onstreamfile(f.url.http, f.file);
+                                    streansquality += $"\"{f.quality}\":\"" + l + "\",";
+                                }
                             }
 
                             streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
