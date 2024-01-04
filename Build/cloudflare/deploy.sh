@@ -16,6 +16,11 @@ cp -R Build/cloudflare/functions .
 cat Build/cloudflare/_headers > out/_headers
 cp -R JinEnergy/bin/Release/net7.0/publish/wwwroot/_framework/* out/
 
+
+python --version
+perl --version
+
+
 #cd out/
 #apt-get instal -y unzip
 #zip latest.zip *
