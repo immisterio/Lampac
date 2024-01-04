@@ -35,12 +35,12 @@ namespace JinEnergy.Online
                     clarification = 1;
 
                 string memkey = $"kinopub:search:{arg.title}:{clarification}:{arg.imdb_id}";
-                refresh_similars: var res = await InvStructCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.year, clarification, arg.imdb_id, arg.kinopoisk_id));
+                refresh_similars: var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.year, clarification, arg.imdb_id, arg.kinopoisk_id));
 
-                if (!string.IsNullOrEmpty(res.similars))
+                if (!string.IsNullOrEmpty(res?.similars))
                     return res.similars;
 
-                postid = res.id;
+                postid = res == null ? 0 : res.id;
 
                 if (postid == 0 || postid == -1)
                 {

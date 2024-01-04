@@ -34,17 +34,17 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<(int id, string? similars)> Search(string? title, string? original_title, int clarification, int year)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int clarification, int year)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
-                return (0, null);
+                return null;
 
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
             onlog?.Invoke(uri);
 
             string? json = await onget.Invoke(uri);
             if (json == null)
-                return (0, null);
+                return null;
 
             if (json.Contains("Too many connections") || json == "[]")
                 return await Search2(title, original_title, clarification, year);
@@ -55,9 +55,9 @@ namespace Shared.Engine.Online
             {
                 root = JsonSerializer.Deserialize<List<SearchModel>>(json);
                 if (root == null || root.Count == 0)
-                    return (0, null);
+                    return null;
             }
-            catch { return (0, null); }
+            catch { return null; }
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);
@@ -85,14 +85,14 @@ namespace Shared.Engine.Online
             onlog?.Invoke("ids: " + ids.Count);
 
             if (ids.Count == 1)
-                return (ids[0], null);
+                return new SearchResult() { id = ids[0] };
 
-            return (0, stpl.ToHtml());
+            return new SearchResult() { similars = stpl.ToHtml() };
         }
         #endregion
 
         #region Search2
-        async ValueTask<(int id, string? similars)> Search2(string? title, string? original_title, int clarification, int year)
+        async ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
         {
             onlog?.Invoke("Search2");
 
@@ -109,7 +109,7 @@ namespace Shared.Engine.Online
             });
 
             if (html == null)
-                return (0, null);
+                return null;
 
             var ids = new List<int>();
             var stpl = new SimilarTpl();
@@ -142,9 +142,9 @@ namespace Shared.Engine.Online
             onlog?.Invoke("ids: " + ids.Count);
 
             if (ids.Count == 1)
-                return (ids[0], null);
+                return new SearchResult() { id = ids[0] };
 
-            return (0, stpl.ToHtml());
+            return new SearchResult() { similars = stpl.ToHtml() };
         }
         #endregion
 

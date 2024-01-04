@@ -33,15 +33,15 @@ namespace Shared.Engine.Online
         /// 0 - Данные не получены
         /// 1 - Нет нужного контента 
         /// </returns>
-        async public ValueTask<(int id, string? similars)> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
         {
             string? searchtitle = clarification == 1 ? title : (original_title ?? title);
             if (string.IsNullOrWhiteSpace(searchtitle))
-                return (0, null);
+                return null;
 
             string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(searchtitle)}&access_token={token}&field=title&perpage=200");
             if (json == null)
-                return (0, null);
+                return null;
 
             try
             {
@@ -71,28 +71,28 @@ namespace Shared.Engine.Online
                         }
 
                         if (ids.Count == 1)
-                            return (ids[0], null);
+                            return new SearchResult() { id = ids[0] };
 
-                        return (0, stpl.ToHtml());
+                        return new SearchResult() { similars = stpl.ToHtml() };
                     }
                     else
                     {
                         foreach (var item in items)
                         {
                             if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
-                                return (item.id, null);
+                                return new SearchResult() { id = item.id };
 
                             if ($"tt{item.imdb}" == imdb_id)
-                                return (item.id, null);
+                                return new SearchResult() { id = item.id };
                         }
 
-                        return (-1, null);
+                        return new SearchResult() { id = -1 };
                     }
                 }
             }
             catch { }
 
-            return (0, null);
+            return null;
         }
         #endregion
 

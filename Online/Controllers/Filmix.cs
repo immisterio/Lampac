@@ -58,8 +58,8 @@ namespace Lampac.Controllers.LITE
             if (postid == 0)
             {
                 var res = await InvokeCache($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40), () => oninvk.Search(title, original_title, clarification, year));
-                if (res.id == 0)
-                    return Content(res.similars ?? string.Empty);
+                if (res == null || res.id == 0)
+                    return Content(res?.similars ?? string.Empty);
 
                 postid = res.id;
             }

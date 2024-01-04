@@ -146,10 +146,10 @@ namespace Lampac.Controllers.LITE
                 if (json == null || !json.Contains("\"status\":\"success\""))
                     return OnError("json");
 
-                _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\"]+\\.m3u8)").Groups[1].Value;
+                _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(_cache.m3u8))
                 {
-                    _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"(https?://[^;\"]+\\.m3u8)").Groups[1].Value;
+                    _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(_cache.m3u8))
                         return OnError("m3u8");
                 }

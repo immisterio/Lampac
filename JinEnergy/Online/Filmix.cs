@@ -38,11 +38,11 @@ namespace JinEnergy.Online
             if (postid == 0)
             {
                 string memkey = $"filmix:search:{arg.title}:{arg.original_title}:{clarification}";
-                refresh_similars: var res = await InvStructCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
+                refresh_similars: var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
 
-                if (res.id == 0)
+                if (res == null || res.id == 0)
                 {
-                    if (string.IsNullOrEmpty(res.similars))
+                    if (string.IsNullOrEmpty(res?.similars))
                     {
                         IMemoryCache.Remove(memkey);
 
@@ -50,7 +50,7 @@ namespace JinEnergy.Online
                             goto refresh_similars;
                     }
 
-                    return res.similars ?? string.Empty;
+                    return res?.similars ?? string.Empty;
                 }
 
                 postid = res.id;

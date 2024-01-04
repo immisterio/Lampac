@@ -73,10 +73,10 @@ namespace Lampac.Controllers.LITE
 
                 var res = await InvokeCache($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40), () => oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id));
 
-                if (res.similars != null)
+                if (res?.similars != null)
                     return Content(res.similars, "text/html; charset=utf-8");
 
-                postid = res.id;
+                postid = res == null ? 0 : res.id;
 
                 if (postid == 0)
                     return OnError(proxyManager);
