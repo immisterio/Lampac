@@ -18,4 +18,5 @@ cp -R JinEnergy/bin/Release/net7.0/publish/wwwroot/_framework/* out/
 
 
 cd out/
+rm -f *.gz *.br
 python -m zipfile -c latest.zip *
