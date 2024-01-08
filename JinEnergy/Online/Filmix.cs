@@ -35,12 +35,12 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, replaceLink(streamfile))
             );
 
-            oninvk.disableSphinxSearch = !init.corseu && !AppInit.IsAndrod;
-
             if (postid == 0)
             {
                 string memkey = $"filmix:search:{arg.title}:{arg.original_title}:{clarification}";
-                refresh_similars: var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
+                refresh_similars: oninvk.disableSphinxSearch = !init.corseu && !AppInit.IsAndrod;
+            
+                var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
 
                 if (res == null || res.id == 0)
                 {

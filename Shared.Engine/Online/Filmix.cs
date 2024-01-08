@@ -48,9 +48,6 @@ namespace Shared.Engine.Online
             if (json == null)
                 return await Search2(title, original_title, clarification, year);
 
-            if (json.Contains("Too many connections") || json == "[]")
-                return await Search2(title, original_title, clarification, year);
-
             List<SearchModel>? root = null;
 
             try
