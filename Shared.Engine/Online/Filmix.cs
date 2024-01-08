@@ -13,6 +13,8 @@ namespace Shared.Engine.Online
         public static string dmcatoken => "bc170de3b2cafb09283b936011f054ed";
 
         #region FilmixInvoke
+        public bool disableSphinxSearch;
+
         public string? token;
         string? host;
         string apihost;
@@ -44,7 +46,7 @@ namespace Shared.Engine.Online
 
             string? json = await onget.Invoke(uri);
             if (json == null)
-                return null;
+                return await Search2(title, original_title, clarification, year);
 
             if (json.Contains("Too many connections") || json == "[]")
                 return await Search2(title, original_title, clarification, year);
@@ -54,10 +56,11 @@ namespace Shared.Engine.Online
             try
             {
                 root = JsonSerializer.Deserialize<List<SearchModel>>(json);
-                if (root == null || root.Count == 0)
-                    return null;
             }
-            catch { return null; }
+            catch { }
+
+            if (root == null || root.Count == 0)
+                return await Search2(title, original_title, clarification, year);
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);
@@ -94,6 +97,9 @@ namespace Shared.Engine.Online
         #region Search2
         async ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
         {
+            if (disableSphinxSearch)
+                return null;
+
             onlog?.Invoke("Search2");
 
             string? html = await onpost.Invoke("https://filmix.biz/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", new List<(string name, string val)>() 

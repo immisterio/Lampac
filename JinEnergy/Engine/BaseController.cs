@@ -160,7 +160,7 @@ namespace JinEnergy.Engine
 
         public static string DefaultStreamProxy(string? uri, bool orig = false)
         {
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrWhiteSpace(uri) || uri.Contains("ukrtelcdn.")) // rezka ua
                 return string.Empty;
 
             if (string.IsNullOrEmpty(AppInit.apn) || AppInit.Country != "UA" || orig)

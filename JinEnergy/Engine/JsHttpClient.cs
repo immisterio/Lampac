@@ -53,12 +53,10 @@ namespace JinEnergy.Engine
         {
             try
             {
-                if (AppInit.IsAndrod)
+                if (AppInit.IsAndrod && AppInit.JSRuntime != null)
                 {
-                    if (AppInit.JSRuntime == null)
-                        return default;
-
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "', false, {dataType: 'text', " + headers(addHeaders) + "})");
+                    string h = $"dataType: 'text', timeout: {timeoutSeconds * 1000}, {headers(addHeaders)}";
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('"+url+"',false,{"+h+"})");
                 }
 
                 using (var client = new HttpClient())

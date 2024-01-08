@@ -30,23 +30,11 @@ namespace Shared.Engine.Online
         {
             try
             {
-                string? json = await onget($"{apihost}/v2/list?name=%2B{kinopoisk_id}&token={token}");
+                string? json = await onget($"{apihost}/v2/online/vokino/{kinopoisk_id}?token={token}");
                 if (json == null)
                     return null;
 
                 var root = JsonSerializer.Deserialize<RootObject>(json);
-                if (root?.channels == null || root.channels.Count == 0)
-                    return null;
-
-                string? id = root.channels.First().details?.id;
-                if (string.IsNullOrWhiteSpace(id))
-                    return null;
-
-                json = await onget($"{apihost}/v2/online/vokino?id={id}&token={token}");
-                if (json == null)
-                    return null;
-
-                root = JsonSerializer.Deserialize<RootObject>(json);
                 if (root?.channels == null || root.channels.Count == 0)
                     return null;
 

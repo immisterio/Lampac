@@ -52,7 +52,7 @@ namespace Lampac.Engine.CRON
 
                 try
                 {
-                    if (Directory.Exists("wwwroot/bwa/_framework/"))
+                    if (File.Exists("wwwroot/bwa/_framework/blazor.boot.json"))
                     {
                         string bootapp = await HttpClient.Get("https://bwa.pages.dev/blazor.boot.json");
                         if (bootapp != null && bootapp.Contains("JinEnergy.dll"))

@@ -35,6 +35,8 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, replaceLink(streamfile))
             );
 
+            oninvk.disableSphinxSearch = !init.corseu && !AppInit.IsAndrod;
+
             if (postid == 0)
             {
                 string memkey = $"filmix:search:{arg.title}:{arg.original_title}:{clarification}";
