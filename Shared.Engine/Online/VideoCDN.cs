@@ -111,7 +111,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string files = Regex.Match(content, "id=\"(fs|files)\" value='([^\n\r]+)'>").Groups[1].Value;
+            string files = Regex.Match(content, "id=\"(fs|files)\" value='([^\n\r]+)'>").Groups[2].Value;
 
             if (result.type is "movie" or "anime")
             {
