@@ -5,7 +5,6 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
-using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -43,16 +42,14 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();
 
-            string dmcatoken = "bc170de3b2cafb09283b936011f054ed";
-
             var oninvk = new FilmixInvoke
             (
                host,
                init.corsHost(),
-               string.IsNullOrEmpty(init.token) ? dmcatoken : init.token,
+               init.token,
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
                (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, addHeaders: head),
-               onstreamtofile => HostStreamProxy(init, replaceLink(onstreamtofile), proxy: proxy)
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 
             if (postid == 0)
@@ -64,46 +61,11 @@ namespace Lampac.Controllers.LITE
                 postid = res.id;
             }
 
-            if (lastpostid != postid && oninvk.token == dmcatoken)
-            {
-                await refreshash(postid);
-                if (hashfimix == null)
-                    oninvk.token = null;
-            }
-
             var player_links = await InvokeCache($"filmix:post:{postid}", cacheTime(20), () => oninvk.Post(postid));
             if (player_links == null)
                 return OnError(proxyManager);
 
             return Content(oninvk.Html(player_links, init.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
-        }
-
-
-        static string hashfimix = null;
-        static int lastpostid = -1;
-
-        async static ValueTask refreshash(int postid)
-        {
-            lastpostid = postid;
-
-            string json = await HttpClient.Get($"{AppInit.conf.Filmix.corsHost()}/api/v2/post/2057?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 4);
-            string hash = Regex.Match(json ?? "", "/s\\\\/([^\\/]+)\\\\/").Groups[1].Value;
-
-            if (string.IsNullOrEmpty(hash))
-            {
-                hashfimix = null;
-                return;
-            }
-
-            hashfimix = hash;
-        }
-
-        static string replaceLink(string l)
-        {
-            if (hashfimix == null)
-                return l;
-
-            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");
         }
     }
 }

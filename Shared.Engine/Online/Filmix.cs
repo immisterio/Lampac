@@ -10,8 +10,6 @@ namespace Shared.Engine.Online
 {
     public class FilmixInvoke
     {
-        public static string dmcatoken => "bc170de3b2cafb09283b936011f054ed";
-
         #region FilmixInvoke
         public bool disableSphinxSearch;
 
@@ -189,7 +187,7 @@ namespace Shared.Engine.Online
             html.Append("<div class=\"videos__line\">");
 
             int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
-            bool hidefree720 = (dmcatoken == token || string.IsNullOrEmpty(token)) && filmixservtime >= 19 && filmixservtime <= 23;
+            bool hidefree720 = string.IsNullOrEmpty(token) && filmixservtime >= 19 && filmixservtime <= 23;
 
             if (player_links.movie != null && player_links.movie.Count > 0)
             {

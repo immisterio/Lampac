@@ -1,16 +1,11 @@
 ﻿using JinEnergy.Engine;
-using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
-using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
 {
     public class FilmixController : BaseController
     {
-        static string? hashfimix = null;
-        static int lastpostid = -1;
-
         [JSInvokable("lite/filmix")]
         async public static ValueTask<string> Index(string args)
         {
@@ -29,10 +24,10 @@ namespace JinEnergy.Online
             (
                null,
                init.corsHost(),
-               string.IsNullOrEmpty(init.token) ? FilmixInvoke.dmcatoken : init.token,
+               init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
                (url, data, head) => JsHttpClient.Post(init.cors(url), data, addHeaders: head),
-               streamfile => HostStreamProxy(init, replaceLink(streamfile))
+               streamfile => HostStreamProxy(init, streamfile)
             );
 
             if (postid == 0)
@@ -58,13 +53,6 @@ namespace JinEnergy.Online
                 postid = res.id;
             }
 
-            if (lastpostid != postid && oninvk.token == FilmixInvoke.dmcatoken)
-            {
-                await refreshash(init, postid);
-                if (hashfimix == null)
-                    oninvk.token = null;
-            }
-
             string mkey = $"filmix:post:{postid}";
             refresh: var player_links = await InvokeCache(arg.id, mkey, () => oninvk.Post(postid));
 
@@ -77,31 +65,6 @@ namespace JinEnergy.Online
             }
 
             return html;
-        }
-
-
-        async static ValueTask refreshash(FilmixSettings init, int postid)
-        {
-            lastpostid = postid;
-
-            string? json = await JsHttpClient.Get($"{init.corsHost()}/api/v2/post/2057?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi", timeoutSeconds: 5);
-            string hash = Regex.Match(json ?? "", "/s\\\\/([^\\/]+)\\\\/").Groups[1].Value;
-
-            if (string.IsNullOrEmpty(hash))
-            {
-                hashfimix = null;
-                return;
-            }
-
-            hashfimix = hash;
-        }
-
-        static string replaceLink(string l)
-        {
-            if (hashfimix == null)
-                return l;
-
-            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hashfimix}/");
         }
     }
 }
