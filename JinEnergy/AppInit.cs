@@ -65,17 +65,6 @@ namespace JinEnergy
 
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
-
-                            #region BOOSTiK
-                            if (!conf.KinoPub.enable)
-                            {
-                                conf.KinoPub.host = "https://cors.apn.monster/boostik.app";
-                                conf.KinoPub.enable = true;
-                                conf.KinoPub.filetype = "mp4";
-                                conf.KinoPub.token = "bwajs";
-                                conf.KinoPub.displayname = "BOOSTiK - 4K HDR";
-                            }
-                            #endregion
                         }
                     }
                 }

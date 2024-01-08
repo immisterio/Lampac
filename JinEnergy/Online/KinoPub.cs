@@ -1,7 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
-using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
 {
@@ -17,15 +16,13 @@ namespace JinEnergy.Online
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
             int clarification = arg.clarification;
 
-            string? kbtk = await JsHttpClient.Get("https://bwa.to/temp/kinopubtk.txt");
-            
             var oninvk = new KinoPubInvoke
             (
                null,
                init.corsHost(),
                init.token,
                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
-               (stream, filepath) => HostStreamProxy(init, fixuri(stream, filepath, kbtk))
+               (stream, filepath) => HostStreamProxy(init, stream)
                //AppInit.log
             );
 
@@ -65,16 +62,6 @@ namespace JinEnergy.Online
             }
 
             return html;
-        }
-
-
-        static string? fixuri(string? http, string? file, string? kbtk)
-        {
-            if (http == null || !http.Contains("/demo/demo.mp4") || file == null || string.IsNullOrEmpty(kbtk))
-                return http;
-
-            http = http.Replace("/demo/demo.mp4", file);
-            return Regex.Replace(http, "/pd/[^/]+", $"/pd/{kbtk}");
         }
     }
 }
