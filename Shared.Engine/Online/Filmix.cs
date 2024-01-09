@@ -208,11 +208,14 @@ namespace Shared.Engine.Online
                     {
                         if (!pro)
                         {
-                            if (hidefree720 && q > 480)
+                            if (q != 480)
                                 continue;
 
-                            if (q > 720)
-                                continue;
+                            //if (hidefree720 && q > 480)
+                            //    continue;
+
+                            //if (q > 720)
+                            //    continue;
                         }
 
                         if (!v.link.Contains($"{q},"))
@@ -313,11 +316,14 @@ namespace Shared.Engine.Online
                         {
                             if (!pro)
                             {
-                                if (hidefree720 && lq > 480)
+                                if (lq != 480)
                                     continue;
 
-                                if (lq > 720)
-                                    continue;
+                                //if (hidefree720 && lq > 480)
+                                //    continue;
+
+                                //if (lq > 720)
+                                //    continue;
                             }
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
