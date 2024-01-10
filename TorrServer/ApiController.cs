@@ -55,7 +55,8 @@ namespace Lampac.Controllers
 
             if (pathRequest.Contains(".js"))
             {
-                html = html.Replace(".concat(C,\"/", ".concat(C,\"/ts/");
+                string key = Regex.Match(html, "\\.concat\\(([^,]+),\"/echo\"").Groups[1].Value;
+                html = html.Replace($".concat({key},\"/", $".concat({key},\"/ts/");
                 return Content(html, "application/javascript; charset=utf-8");
             }
             else
