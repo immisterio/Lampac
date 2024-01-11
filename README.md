@@ -17,6 +17,9 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
 3. Запустить Lampac.exe
 
+# Запуск в Android через Termux
+https://github.com/bbk14/TermuxDebian/blob/main/README.md
+
 # Плагины для Lampa
 1. онлайн   - "http://IP:9118/online.js"
 2. xxx      - "http://IP:9118/sisi.js"
