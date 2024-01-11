@@ -179,7 +179,7 @@ namespace JinEnergy.Online
             if (AppInit.VDBmovies.enable && AppInit.Country != "UA" && !titleSearch)
                 online.Append("{\"name\":\"VDBmovies - 720p\",\"url\":\"lite/vdbmovies\"},");
 
-            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 0 && !isanime)
+            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 online.Append("{\"name\":\"CDNmovies - 360p\",\"url\":\"lite/cdnmovies\"},");
 
 
