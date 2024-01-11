@@ -11,13 +11,13 @@ namespace Lampac.Controllers.LITE
 {
     public class Rezka : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
-
         #region InitRezkaInvoke
         public RezkaInvoke InitRezkaInvoke()
         {
-            var proxy = proxyManager.Get();
             var init = AppInit.conf.Rezka;
+
+            var proxyManager = new ProxyManager("rezka", init);
+            var proxy = proxyManager.Get();
 
             var headers = new List<(string name, string val)>
             {
@@ -60,8 +60,9 @@ namespace Lampac.Controllers.LITE
                 clarification = 1;
 
             var oninvk = InitRezkaInvoke();
+            var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
-            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href), proxyManager);
+            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
@@ -81,12 +82,13 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var oninvk = InitRezkaInvoke();
+            var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
-            Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t), proxyManager);
+            Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t));
             if (root == null)
                 return OnError(proxyManager);
 
-            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href), proxyManager);
+            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
@@ -103,6 +105,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var oninvk = InitRezkaInvoke();
+            var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
             var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(20), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)

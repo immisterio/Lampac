@@ -29,20 +29,23 @@ namespace Shared.Engine.CORE
         #region Get
         public WebProxy Get()
         {
-            if (!conf.useproxy && !conf.useproxystream)
+            if (conf == null || (!conf.useproxy && !conf.useproxystream))
                 return null;
 
             ICredentials credentials = null;
 
-            if (conf.proxy != null)
+            if (conf.proxy != null && conf.proxy.list.Count > 0)
             {
                 if (conf.proxy.useAuth)
                     credentials = new NetworkCredential(conf.proxy.username, conf.proxy.password);
 
                 string key = $"{plugin}:conf";
 
-                if (!database.TryGetValue(key, out var val) || !conf.proxy.list.Contains(val.proxyip))
+                if (!database.TryGetValue(key, out ProxyManagerModel val) || !conf.proxy.list.Contains(val.proxyip))
                 {
+                    if (val == null)
+                        val = new ProxyManagerModel();
+
                     val.proxyip = conf.proxy.list.OrderBy(a => Guid.NewGuid()).First();
 
                     if (database.ContainsKey(key))
@@ -70,8 +73,11 @@ namespace Shared.Engine.CORE
                     bypassOnLocal = p.BypassOnLocal;
                     string key = $"{plugin}:globalname";
 
-                    if (!database.TryGetValue(key, out var val) || !p.list.Contains(val.proxyip))
+                    if (!database.TryGetValue(key, out ProxyManagerModel val) || !p.list.Contains(val.proxyip))
                     {
+                        if (val == null)
+                            val = new ProxyManagerModel();
+
                         val.proxyip = p.list.OrderBy(a => Guid.NewGuid()).First();
 
                         if (database.ContainsKey(key))
@@ -92,8 +98,11 @@ namespace Shared.Engine.CORE
 
                     bypassOnLocal = AppInit.conf.proxy.BypassOnLocal;
 
-                    if (!database.TryGetValue(plugin, out var val) || !AppInit.conf.proxy.list.Contains(val.proxyip))
+                    if (!database.TryGetValue(plugin, out ProxyManagerModel val) || !AppInit.conf.proxy.list.Contains(val.proxyip))
                     {
+                        if (val == null)
+                            val = new ProxyManagerModel();
+
                         val.proxyip = AppInit.conf.proxy.list.OrderBy(a => Guid.NewGuid()).First();
 
                         if (database.ContainsKey(plugin))
@@ -130,7 +139,10 @@ namespace Shared.Engine.CORE
                     val.errors += 1;
                 }
             }
-            
+
+            if (conf == null)
+                return;
+
             if (database.TryGetValue($"{plugin}:conf", out val))
             {
                 if (val.errors >= 3)
