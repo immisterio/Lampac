@@ -127,7 +127,7 @@ namespace Lampac.Controllers
                         memoryCache.Set(mkey, 0 , DateTime.Now.AddHours(1));
 
                         string cat = serial == 1 ? "tv" : "movie";
-                        string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 8);
+                        string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 6);
                         if (!string.IsNullOrWhiteSpace(json))
                         {
                             imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;

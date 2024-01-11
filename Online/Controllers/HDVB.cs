@@ -10,6 +10,7 @@ using Lampac.Engine.CORE;
 using Lampac.Models.LITE.HDVB;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -34,14 +35,16 @@ namespace Lampac.Controllers.LITE
             if (data.First.Value<string>("type") == "movie")
             {
                 #region Фильм
+                var mtpl = new MovieTpl(title, original_title, data.Count);
+
                 foreach (var m in data)
                 {
                     string link = $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={HttpUtility.UrlEncode(m.Value<string>("iframe_url"))}";
-                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
-
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Value<string>("translator") + "</div></div>";
-                    firstjson = false;
+                    
+                    mtpl.Append(m.Value<string>("translator"), link, "call", $"{link.Replace("/video", "/video.m3u8")}&play=true");
                 }
+
+                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
             }
             else
