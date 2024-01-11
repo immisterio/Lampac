@@ -47,6 +47,7 @@ namespace Lampac.Controllers.Tizam
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, playlists, cacheTime(60));
             }
 

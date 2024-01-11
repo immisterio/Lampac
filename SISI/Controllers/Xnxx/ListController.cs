@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
-using System;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
@@ -37,6 +36,7 @@ namespace Lampac.Controllers.Xnxx
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 

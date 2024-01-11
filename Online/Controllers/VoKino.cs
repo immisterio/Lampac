@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
-            var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(kinopoisk_id));
+            var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(kinopoisk_id), proxyManager);
             if (content == null)
                 return OnError(proxyManager);
 

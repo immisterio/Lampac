@@ -33,6 +33,7 @@ namespace Lampac.Controllers.Porntrex
                 if (links == null || links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, links, cacheTime(20));
             }
 
@@ -67,6 +68,7 @@ namespace Lampac.Controllers.Porntrex
                 if (location == null || link == location)
                     return OnError("location");
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, location, cacheTime(40));
             }
 

@@ -141,9 +141,6 @@ namespace JinEnergy.Online
             if (AppInit.Kinobase.enable)
                 online.Append("{\"name\":\"Kinobase - 1080p\",\"url\":\"lite/kinobase\"},");
 
-            if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
-                online.Append("{\"name\":\"Filmix - 720p\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
-
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
                 if (AppInit.Ashdi.enable && arg.kinopoisk_id > 0)
@@ -158,6 +155,9 @@ namespace JinEnergy.Online
 
             if (AppInit.Voidboost.enable && AppInit.Country != "UA" && !titleSearch)
                 online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
+
+            if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
+                online.Append("{\"name\":\"Filmix - 480p\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
             if (serial == 0 && !isanime)
             {

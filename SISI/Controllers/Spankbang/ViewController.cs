@@ -35,6 +35,7 @@ namespace Lampac.Controllers.Spankbang
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 

@@ -164,6 +164,7 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager);
                 }
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
@@ -238,6 +239,7 @@ namespace Lampac.Controllers.LITE
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return OnError(proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
@@ -259,6 +261,7 @@ namespace Lampac.Controllers.LITE
                 if (root == null || root.Count == 0)
                     return null;
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, root, cacheTime(40));
             }
 

@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps")
             );
 
-            var content = await InvokeCache($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(imdb_id, kinopoisk_id));
+            var content = await InvokeCache($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(imdb_id, kinopoisk_id), proxyManager);
             if (content == null)
                 return OnError(proxyManager);
 

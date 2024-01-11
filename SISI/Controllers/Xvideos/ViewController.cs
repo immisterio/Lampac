@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
-using System;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
@@ -32,6 +31,7 @@ namespace Lampac.Controllers.Xvideos
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 

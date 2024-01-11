@@ -104,7 +104,7 @@ namespace Lampac.Engine
             return uri;
         }
 
-        async public ValueTask<T> InvokeCache<T>(string key, DateTime time, Func<ValueTask<T>> onget)
+        async public ValueTask<T> InvokeCache<T>(string key, DateTime time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
         {
             if (memoryCache.TryGetValue(key, out T val))
                 return val;
@@ -113,6 +113,7 @@ namespace Lampac.Engine
             if (val == null || val.Equals(default(T)))
                 return default;
 
+            proxyManager?.Success();
             memoryCache.Set(key, val, time);
             return val;
         }

@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
                //AppInit.log
             );
 
-            var content = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, s));
+            var content = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, s), proxyManager);
             if (content?.pl == null)
                 return OnError(proxyManager);
 

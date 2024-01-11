@@ -1,6 +1,7 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Models.Proxy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace Shared.Engine.CORE
 {
     public class ProxyManager
     {
-        static Dictionary<string, string> database = new Dictionary<string, string>();
+        static Dictionary<string, ProxyManagerModel> database = new Dictionary<string, ProxyManagerModel>();
 
         #region ProxyManager
         string plugin;
@@ -38,17 +39,23 @@ namespace Shared.Engine.CORE
                 if (conf.proxy.useAuth)
                     credentials = new NetworkCredential(conf.proxy.username, conf.proxy.password);
 
-                if (!database.TryGetValue($"{plugin}:conf", out string proxyip) || !conf.proxy.list.Contains(proxyip))
+                string key = $"{plugin}:conf";
+
+                if (!database.TryGetValue(key, out var val) || !conf.proxy.list.Contains(val.proxyip))
                 {
-                    proxyip = conf.proxy.list.OrderBy(a => Guid.NewGuid()).First();
-                    database.Add($"{plugin}:conf", proxyip);
+                    val.proxyip = conf.proxy.list.OrderBy(a => Guid.NewGuid()).First();
+
+                    if (database.ContainsKey(key))
+                        database.Remove(key);
+
+                    database.TryAdd(key, val);
                 }
 
-                return new WebProxy(proxyip, conf.proxy.BypassOnLocal, null, credentials);
+                return new WebProxy(val.proxyip, conf.proxy.BypassOnLocal, null, credentials);
             }
             else
             {
-                string proxyip;
+                string proxyip = null;
                 bool bypassOnLocal = false;
 
                 if (!string.IsNullOrEmpty(conf.globalnameproxy))
@@ -61,26 +68,45 @@ namespace Shared.Engine.CORE
                         credentials = new NetworkCredential(p.username, p.password);
 
                     bypassOnLocal = p.BypassOnLocal;
+                    string key = $"{plugin}:globalname";
 
-                    if (!database.TryGetValue($"{plugin}:globalname", out proxyip) || !p.list.Contains(proxyip))
+                    if (!database.TryGetValue(key, out var val) || !p.list.Contains(val.proxyip))
                     {
-                        proxyip = p.list.OrderBy(a => Guid.NewGuid()).First();
-                        database.Add($"{plugin}:globalname", proxyip);
+                        val.proxyip = p.list.OrderBy(a => Guid.NewGuid()).First();
+
+                        if (database.ContainsKey(key))
+                            database.Remove(key);
+
+                        database.TryAdd(key, val);
                     }
+
+                    proxyip = val.proxyip;
                 }
                 else
                 {
+                    if (AppInit.conf.proxy == null)
+                        return null;
+
                     if (AppInit.conf.proxy.useAuth)
                         credentials = new NetworkCredential(AppInit.conf.proxy.username, AppInit.conf.proxy.password);
 
                     bypassOnLocal = AppInit.conf.proxy.BypassOnLocal;
 
-                    if (!database.TryGetValue(plugin, out proxyip) || !AppInit.conf.proxy.list.Contains(proxyip))
+                    if (!database.TryGetValue(plugin, out var val) || !AppInit.conf.proxy.list.Contains(val.proxyip))
                     {
-                        proxyip = AppInit.conf.proxy.list.OrderBy(a => Guid.NewGuid()).First();
-                        database.Add(plugin, proxyip);
+                        val.proxyip = AppInit.conf.proxy.list.OrderBy(a => Guid.NewGuid()).First();
+
+                        if (database.ContainsKey(plugin))
+                            database.Remove(plugin);
+
+                        database.TryAdd(plugin, val);
                     }
+
+                    proxyip = val.proxyip;
                 }
+
+                if (proxyip == null)
+                    return null;
 
                 return new WebProxy(proxyip, bypassOnLocal, null, credentials);
             }
@@ -93,23 +119,58 @@ namespace Shared.Engine.CORE
             if (!refresh)
                 return;
 
-            if (conf.proxy != null)
+            if (database.TryGetValue(plugin, out var val))
             {
-                if (!string.IsNullOrEmpty(conf.proxy.refresh_uri))
-                    _ = HttpClient.Get(conf.proxy.refresh_uri, timeoutSeconds: 4);
+                if (val.errors >= 3)
+                {
+                    database.Remove(plugin);
+                }
+                else
+                {
+                    val.errors += 1;
+                }
             }
-
-            if (!string.IsNullOrEmpty(conf.globalnameproxy))
+            
+            if (database.TryGetValue($"{plugin}:conf", out val))
             {
-                string refresh_uri = AppInit.conf.globalproxy.FirstOrDefault(i => i.name == conf.globalnameproxy)?.refresh_uri;
-                if (!string.IsNullOrEmpty(refresh_uri))
-                    _ = HttpClient.Get(refresh_uri, timeoutSeconds: 4);
-            }
+                if (val.errors >= 3)
+                {
+                    if (!string.IsNullOrEmpty(conf.proxy.refresh_uri))
+                        _ = HttpClient.Get(conf.proxy.refresh_uri, timeoutSeconds: 5);
 
+                    database.Remove($"{plugin}:conf");
+                }
+                else
+                {
+                    val.errors += 1;
+                }
+            }
+            
+            if (database.TryGetValue($"{plugin}:globalname", out val))
+            {
+                if (val.errors >= 3)
+                {
+                    string refresh_uri = AppInit.conf.globalproxy.FirstOrDefault(i => i.name == conf.globalnameproxy)?.refresh_uri;
+                    if (!string.IsNullOrEmpty(refresh_uri))
+                        _ = HttpClient.Get(refresh_uri, timeoutSeconds: 5);
+
+                    database.Remove($"{plugin}:globalname");
+                }
+                else
+                {
+                    val.errors += 1;
+                }
+            }
+        }
+        #endregion
+
+        #region Success
+        public void Success()
+        {
             foreach (string key in new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" })
             {
-                if (database.ContainsKey(key))
-                    database.Remove(key);
+                if (database.TryGetValue(key, out var val) && val.errors > 0)
+                    val.errors = 0;
             }
         }
         #endregion
@@ -121,8 +182,8 @@ namespace Shared.Engine.CORE
             {
                 foreach (string key in new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" })
                 {
-                    if (database.TryGetValue(key, out string proxyip))
-                        return proxyip;
+                    if (database.TryGetValue(key, out var val))
+                        return val.proxyip;
                 }
 
                 return null;

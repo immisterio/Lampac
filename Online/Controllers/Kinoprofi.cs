@@ -62,6 +62,7 @@ namespace Lampac.Controllers.LITE
                         if (links.Count == 0)
                             return OnError(proxyManager);
 
+                        proxyManager.Success();
                         memoryCache.Set(memKey, links, cacheTime(30));
                     }
 
@@ -108,6 +109,7 @@ namespace Lampac.Controllers.LITE
                         if (links.Count == 0)
                             return OnError(proxyManager);
 
+                        proxyManager.Success();
                         memoryCache.Set(memKey, links, cacheTime(30));
                     }
 
@@ -165,6 +167,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(file))
                         return OnError(proxyManager);
 
+                    proxyManager.Success();
                     memoryCache.Set(memKey, file, cacheTime(40));
                 }
 

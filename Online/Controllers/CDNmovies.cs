@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 
-            var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id));
+            var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id), proxyManager);
             if (voices == null)
                 return OnError(proxyManager);
 

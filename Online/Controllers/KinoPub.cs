@@ -85,7 +85,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
             }
 
-            var root = await InvokeCache($"kinopub:post:{postid}", cacheTime(10), () => oninvk.Post(postid));
+            var root = await InvokeCache($"kinopub:post:{postid}", cacheTime(10), () => oninvk.Post(postid), proxyManager);
             if (root == null)
                 return OnError(proxyManager);
 

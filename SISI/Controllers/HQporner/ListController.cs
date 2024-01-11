@@ -37,6 +37,7 @@ namespace Lampac.Controllers.HQporner
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 

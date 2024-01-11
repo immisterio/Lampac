@@ -144,7 +144,7 @@ namespace Lampac.Controllers.LITE
 
                 string json = await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (json == null || !json.Contains("\"status\":\"success\""))
-                    return OnError("json");
+                    return OnError("json", proxyManager);
 
                 _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(_cache.m3u8))
@@ -158,6 +158,7 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrWhiteSpace(subtitle) && subtitle.Contains(".vtt"))
                     _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, _cache, cacheTime(10));
             }
 
@@ -220,6 +221,7 @@ namespace Lampac.Controllers.LITE
                     res.category_id = res.data.Value<int>("category");
                 }
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, res, cacheTime(40));
             }
 

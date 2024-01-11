@@ -44,6 +44,8 @@ namespace Lampac.Controllers.Tizam
                     return OnError("location", proxyManager);
 
                 location = HttpUtility.UrlDecode(location);
+
+                proxyManager.Success();
                 memoryCache.Set(memKey, location, cacheTime(360));
             }
 

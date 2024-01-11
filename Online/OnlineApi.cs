@@ -458,7 +458,6 @@ namespace Lampac.Controllers
                     switch (balanser)
                     {
                         case "bazon":
-                        case "filmix":
                         case "fxapi":
                         case "kinopub":
                         case "vokino":
@@ -500,6 +499,9 @@ namespace Lampac.Controllers
                         default:
                             break;
                     }
+
+                    if (balanser == "filmix")
+                        quality = AppInit.conf.Filmix.pro ? " ~ 2160p" : " - 480p";
                 }
             }
             #endregion

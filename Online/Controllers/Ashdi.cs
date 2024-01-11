@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi")
             );
 
-            var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", cacheTime(40), () => oninvk.Embed(kinopoisk_id));
+            var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", cacheTime(40), () => oninvk.Embed(kinopoisk_id), proxyManager);
 
             if (content == null)
                 return OnError(proxyManager);

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -53,6 +52,7 @@ namespace Lampac.Controllers.Spankbang
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 

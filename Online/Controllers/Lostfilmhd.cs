@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -92,6 +91,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(urim3u8))
                     return OnError(proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, urim3u8, cacheTime(40));
             }
 
@@ -162,6 +162,7 @@ namespace Lampac.Controllers.LITE
                 cache.iframe_src = $"http://{iframe_src}";
                 cache.seasons = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, cache, cacheTime(40));
             }
 

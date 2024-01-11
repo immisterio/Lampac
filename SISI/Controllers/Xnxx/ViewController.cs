@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -32,6 +31,7 @@ namespace Lampac.Controllers.Xnxx
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);
 
+                proxyManager.Success();
                 memoryCache.Set(memKey, stream_links, cacheTime(20));
             }
 

@@ -49,6 +49,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError(proxyManager);
 
+                    proxyManager.Success();
                     memoryCache.Set(memkey, catalog, cacheTime(40));
                 }
 
@@ -98,6 +99,7 @@ namespace Lampac.Controllers.LITE
                         if (links.Count == 0)
                             return OnError(proxyManager);
 
+                        proxyManager.Success();
                         memoryCache.Set(memKey, links, cacheTime(30));
                     }
 
@@ -133,6 +135,7 @@ namespace Lampac.Controllers.LITE
                         if (links.Count == 0)
                             return OnError(proxyManager);
 
+                        proxyManager.Success();
                         memoryCache.Set(memKey, links, cacheTime(30));
                     }
 

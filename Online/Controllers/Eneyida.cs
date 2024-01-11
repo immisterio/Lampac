@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
             );
 
             string search_title = clarification == 1 ? title : original_title;
-            var result = await InvokeCache($"eneyida:view:{search_title}:{year}:{href}", cacheTime(40), () => oninvk.Embed(search_title, year, href));
+            var result = await InvokeCache($"eneyida:view:{search_title}:{year}:{href}", cacheTime(40), () => oninvk.Embed(search_title, year, href), proxyManager);
             if (result == null)
                 return OnError(proxyManager);
 

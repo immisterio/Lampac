@@ -57,6 +57,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError(proxyManager);
 
+                    proxyManager.Success();
                     memoryCache.Set(memkey, catalog, cacheTime(40));
                 }
 
@@ -139,6 +140,7 @@ namespace Lampac.Controllers.LITE
                     }
                     #endregion
 
+                    proxyManager.Success();
                     memoryCache.Set(memKey, cache, cacheTime(30));
                 }
 
@@ -206,6 +208,8 @@ namespace Lampac.Controllers.LITE
                     return OnError(proxyManager);
 
                 hls = "https:" + hls;
+
+                proxyManager.Success();
                 memoryCache.Set(memKey, hls, cacheTime(30));
             }
 
