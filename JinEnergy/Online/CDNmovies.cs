@@ -9,6 +9,9 @@ namespace JinEnergy.Online
         [JSInvokable("lite/cdnmovies")]
         async public static ValueTask<string> Index(string args)
         {
+			
+			await Task.Delay(1000 * 10);
+			
             var init = AppInit.CDNmovies.Clone();
 
             var arg = defaultArgs(args);
