@@ -5,5 +5,7 @@
         public string proxyip { get; set; }
 
         public int errors { get; set; }
+
+        public bool refresh { get; set; }
     }
 }
