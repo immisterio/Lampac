@@ -1,7 +1,5 @@
 mkdir -p lpc/
 
-./dotnet-install.sh --channel 6.0.1xx -InstallDir ./dotnet6
-
 ./dotnet6/dotnet publish Lampac -c Release
 cp -R Lampac/bin/Release/net6.0/publish/* lpc/
 
@@ -32,5 +30,3 @@ cd lpc/
 python -m zipfile -c update.zip *
 
 cd ../
-mkdir -p out/lpc
-cp lpc/update.zip out/lpc/
