@@ -28,5 +28,5 @@ if test -f "out/JinEnergy.dll"; then
 	python -m zipfile -c latest.zip *
 	
 	mkdir -p lpc
-	cp ../lpc/update.zip lpc/
+	cp -R ../lpc/* lpc/
 fi
