@@ -20,4 +20,8 @@ if test -f "out/JinEnergy.dll"; then
 	cd out/
 	rm -f *.gz *.br
 	python -m zipfile -c latest.zip *
+	
+	cd ../
+	chmod +x Build/cloudflare/nightlies.sh
+	./Build/cloudflare/nightlies.sh
 fi
