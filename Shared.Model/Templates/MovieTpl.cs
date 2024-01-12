@@ -6,7 +6,7 @@ namespace Shared.Model.Templates
     {
         string? title, original_title;
 
-        List<(string name, string link, string method, string stream, StreamQualityTpl streamquality, SubtitleTpl subtitles, string voice_name, string year, string details, string quality)> data = new List<(string, string, string, string, StreamQualityTpl, SubtitleTpl, string, string, string, string)>();
+        List<(string? name, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?)>();
 
         public MovieTpl(string? title, string? original_title = null, int capacity = 0) 
         {

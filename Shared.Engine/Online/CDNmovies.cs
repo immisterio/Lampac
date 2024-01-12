@@ -94,9 +94,9 @@ namespace Shared.Engine.Online
                 #region Серии
                 foreach (var item in voices[t].folder[sid].folder)
                 {
-                    var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                    var streams = new List<(string link, string quality)>() { Capacity = 2 };
 
-                    foreach (Match m in Regex.Matches(item.file, "\\[(1080|720|480|360|240)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                    foreach (Match m in Regex.Matches(item.file, "\\[(360|240)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
