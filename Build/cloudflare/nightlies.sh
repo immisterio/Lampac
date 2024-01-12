@@ -1,6 +1,7 @@
 mkdir -p lpc/
 
 ./dotnet6/dotnet publish Lampac -c Release
+rm -rf Lampac/bin/Release/net6.0/publish/runtimes
 cp -R Lampac/bin/Release/net6.0/publish/* lpc/
 
 mkdir -p lpc/module
