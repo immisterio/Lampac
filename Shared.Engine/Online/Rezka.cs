@@ -397,10 +397,13 @@ namespace Shared.Engine.Online
                     while (m.Success)
                     {
                         if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
-                            subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + onstreamfile(m.Groups[2].Value) + "\"},";
+                            subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + m.Groups[2].Value + "\"},";
 
                         m = m.NextMatch();
                     }
+
+                    if (subtitles != string.Empty)
+                        subtitles = Regex.Replace(subtitles, ",$", "");
                 }
             }
             catch { }
@@ -408,7 +411,7 @@ namespace Shared.Engine.Online
 
             string streansquality = "\"quality\": {" + string.Join(",", md.links.Select(s => $"\"{s.title}\":\"{onstreamfile(s.stream_url!)}\"")) + "}";
 
-            return "{\"method\":\"play\",\"url\":\"" + onstreamfile(md.links[0].stream_url!) + "\",\"title\":\"" + (title ?? original_title) + "\",\"subtitles\": [" + Regex.Replace(subtitles, ",$", "") + "]," + streansquality + "}";
+            return "{\"method\":\"play\",\"url\":\"" + onstreamfile(md.links[0].stream_url!) + "\",\"title\":\"" + (title ?? original_title) + "\",\"subtitles\": [" + subtitles + "]," + streansquality + "}";
         }
         #endregion
 
