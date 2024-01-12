@@ -4,7 +4,6 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -90,11 +89,6 @@ namespace SISI
         public JsonResult OnResult(Dictionary<string, string> stream_links, Istreamproxy proxyconf, WebProxy proxy)
         {
             return OnResult(new StreamItem() { qualitys = stream_links }, proxyconf, proxy);
-        }
-
-        public DateTime cacheTime(int multiaccess, int home = 3, int mikrotik = 1)
-        {
-            return DateTime.Now.AddMinutes(AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? multiaccess : home);
         }
     }
 }

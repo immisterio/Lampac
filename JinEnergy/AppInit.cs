@@ -130,15 +130,9 @@ namespace JinEnergy
 
         public static OnlinesSettings Eneyida => conf.Eneyida;
 
-        public static OnlinesSettings Kinokrad => conf.Kinokrad;
-
         public static OnlinesSettings Kinotochka => conf.Kinotochka;
 
         public static OnlinesSettings Redheadsound => conf.Redheadsound;
-
-        public static OnlinesSettings Kinoprofi => conf.Kinoprofi;
-
-        public static OnlinesSettings Lostfilmhd => conf.Lostfilmhd;
 
         public static FilmixSettings Filmix => conf.Filmix;
 
@@ -157,31 +151,11 @@ namespace JinEnergy
 
         public static OnlinesSettings VoKino => conf.VoKino;
 
-        public static OnlinesSettings VideoAPI => conf.VideoAPI;
-
-        public static IframeVideoSettings IframeVideo => conf.IframeVideo;
-
-        public static OnlinesSettings HDVB => conf.HDVB;
-
-        public static OnlinesSettings Seasonvar => conf.Seasonvar;
-
         public static KinoPubSettings KinoPub => conf.KinoPub;
-
-        public static BazonSettings Bazon => conf.Bazon;
-
-        public static AllohaSettings Alloha => conf.Alloha;
 
         public static KodikSettings Kodik => conf.Kodik;
 
 
         public static OnlinesSettings AnilibriaOnline => conf.AnilibriaOnline;
-
-        public static OnlinesSettings AniMedia => conf.AniMedia;
-
-        public static OnlinesSettings AnimeGo => conf.AnimeGo;
-
-        public static OnlinesSettings Animevost => conf.Animevost;
-
-        public static OnlinesSettings Animebesst => conf.Animebesst;
     }
 }

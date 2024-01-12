@@ -16,7 +16,8 @@ cp -R Build/cloudflare/functions .
 cat Build/cloudflare/_headers > out/_headers
 cp -R JinEnergy/bin/Release/net7.0/publish/wwwroot/_framework/* out/
 
-
-cd out/
-rm -f *.gz *.br
-python -m zipfile -c latest.zip *
+if test -f "out/JinEnergy.dll"; then
+	cd out/
+	rm -f *.gz *.br
+	python -m zipfile -c latest.zip *
+fi
