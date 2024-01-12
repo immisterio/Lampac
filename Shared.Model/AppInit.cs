@@ -42,7 +42,7 @@ namespace Shared.Model
 
 
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", enable: false, streamproxy: true);
+        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", enable: false, streamproxy: true, rip: true);
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx.ukrtelcdn.net" };
 
@@ -54,18 +54,11 @@ namespace Shared.Model
 
         public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv");
 
-        /// <summary>
-        /// убрали собственный cdn
-        /// </summary>
-        public OnlinesSettings Kinokrad { get; set; } = new OnlinesSettings("https://kinokrad.cc", streamproxy: true, enable: false);
-
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinovibe.tv", streamproxy: true);
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio", streamproxy: true);
 
-        public OnlinesSettings Kinoprofi { get; set; } = new OnlinesSettings("https://kinoprofi.io", apihost: "https://api.kinoprofi.io", streamproxy: true, enable: false);
-
-        public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true);
+        public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("http://filmixapp.cyou");
 
@@ -75,7 +68,7 @@ namespace Shared.Model
 
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay1.site");
 
-        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://cdnmovies.nl");
+        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://1f29036bcf55d.sarnage.cc"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
 
@@ -83,8 +76,6 @@ namespace Shared.Model
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE");
 
         public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("http://api.vokino.tv", enable: false, streamproxy: true);
-
-        public OnlinesSettings VideoAPI { get; set; } = new OnlinesSettings("https://videoapi.tv", token: "qR0taraBKvEZULgjoIRj69AJ7O6Pgl9O", enable: false);
 
         public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("https://iframe.video", "https://videoframe.space");
 
@@ -94,8 +85,6 @@ namespace Shared.Model
 
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
 
-        public BazonSettings Bazon { get; set; } = new BazonSettings("https://bazon.cc", "", true);
-
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.alloha.tv", "https://torso-as.newplayjj.com:9443", "", "", true);
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
@@ -103,10 +92,6 @@ namespace Shared.Model
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");
 
-
-        /// <summary>
-        /// cdn сервер сдох
-        /// </summary>
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
         public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true);

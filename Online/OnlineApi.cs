@@ -288,9 +288,6 @@ namespace Lampac.Controllers
             if (conf.FilmixPartner.enable)
                 online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
 
-            if (conf.Bazon.enable)
-                online += "{\"name\":\"" + (conf.Bazon.displayname ?? "Bazon") + "\",\"url\":\"{localhost}/bazon\"},";
-
             if (conf.Alloha.enable)
                 online += "{\"name\":\"" + (conf.Alloha.displayname ?? "Alloha") + "\",\"url\":\"{localhost}/alloha\"},";
 
@@ -300,7 +297,7 @@ namespace Lampac.Controllers
             if (conf.VideoDB.enable && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.VideoDB.displayname ?? "VideoDB") + "\",\"url\":\"{localhost}/videodb\"},";
 
-            if (conf.Kinobase.enable)
+            if (conf.Kinobase.enable && !conf.Kinobase.rip)
                 online += "{\"name\":\"" + (conf.Kinobase.displayname ?? "Kinobase") + "\",\"url\":\"{localhost}/kinobase\"},";
 
             if (conf.Zetflix.enable && kinopoisk_id > 0)
@@ -321,7 +318,7 @@ namespace Lampac.Controllers
             if (conf.Seasonvar.enable && (serial == -1 || serial == 1))
                 online += "{\"name\":\"" + (conf.Seasonvar.displayname ?? "Seasonvar") + "\",\"url\":\"{localhost}/seasonvar\"},";
 
-            if (conf.Lostfilmhd.enable && (serial == -1 || serial == 1))
+            if (conf.Lostfilmhd.enable && !conf.Lostfilmhd.rip && (serial == -1 || serial == 1))
                 online += "{\"name\":\"" + (conf.Lostfilmhd.displayname ?? "LostfilmHD") + "\",\"url\":\"{localhost}/lostfilmhd\"},";
 
             if (conf.Collaps.enable)
@@ -330,26 +327,14 @@ namespace Lampac.Controllers
             if (conf.HDVB.enable)
                 online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
 
+            if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
+                online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
+
             if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
 
             if (conf.Kinotochka.enable)
                 online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";
-
-            if (serial == -1 || serial == 0 || (serial == 1 && !isanime))
-            {
-                if (conf.Kinokrad.enable)
-                    online += "{\"name\":\"" + (conf.Kinokrad.displayname ?? "Kinokrad") + "\",\"url\":\"{localhost}/kinokrad\"},";
-
-                if (conf.Kinoprofi.enable)
-                    online += "{\"name\":\"" + (conf.Kinoprofi.displayname ?? "Kinoprofi") + "\",\"url\":\"{localhost}/kinoprofi\"},";
-
-                if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
-                    online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
-
-                if (conf.VideoAPI.enable && (serial == -1 || serial == 0))
-                    online += "{\"name\":\"" + (conf.VideoAPI.displayname ?? "VideoAPI (ENG)") + "\",\"url\":\"{localhost}/videoapi\"},";
-            }
 
             if (conf.IframeVideo.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
@@ -457,14 +442,13 @@ namespace Lampac.Controllers
                 {
                     switch (balanser)
                     {
-                        case "bazon":
                         case "fxapi":
                         case "kinopub":
                         case "vokino":
                         case "rezka":
+                        case "alloha":
                             quality = " ~ 2160p";
                             break;
-                        case "alloha":
                         case "videodb":
                         case "kinobase":
                         case "zetflix":

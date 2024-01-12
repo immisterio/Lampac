@@ -4,6 +4,8 @@
     {
         public bool enable { get; set; }
 
+        public bool rip { get; set; }
+
         public string? displayname { get; set; }
 
         public string? host { get; set; }
