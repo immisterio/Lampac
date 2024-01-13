@@ -147,7 +147,7 @@ namespace Lampac.Controllers
                 if (HttpContext.Request.Method != "POST")
                 {
                     HttpContext.Response.StatusCode = 404;
-                    await HttpContext.Response.WriteAsync("404 page not found");
+                    await HttpContext.Response.WriteAsync("404 page not found", HttpContext.RequestAborted);
                     return;
                 }
 
@@ -155,18 +155,24 @@ namespace Lampac.Controllers
                 await HttpContext.Request.Body.CopyToAsync(mem);
                 string requestJson = Encoding.UTF8.GetString(mem.ToArray());
 
-                if (requestJson.Contains("\"get\""))
+                using (HttpClient client = new HttpClient())
                 {
-                    using (HttpClient client = new HttpClient())
+                    client.Timeout = TimeSpan.FromSeconds(15);
+                    client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
+
+                    if (requestJson.Contains("\"get\""))
                     {
-                        client.Timeout = TimeSpan.FromSeconds(15);
-                        client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
+                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
+                        await response.Content.CopyToAsync(HttpContext.Response.Body);
 
-                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
-                        string settingsJson = await response.Content.ReadAsStringAsync();
-
-                        await HttpContext.Response.WriteAsync(settingsJson);
+                        //string settingsJson = await response.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                        //await HttpContext.Response.WriteAsync(settingsJson, HttpContext.RequestAborted);
                         return;
+                    }
+                    else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1")
+                    {
+                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
+                        IO.File.WriteAllText("torrserver/settings.json", requestJson);
                     }
                 }
 
@@ -244,11 +250,12 @@ namespace Lampac.Controllers
                             if (!string.IsNullOrWhiteSpace(settingsJson))
                             {
                                 string requestJson = IO.File.ReadAllText("torrserver/settings.json");
-                                requestJson = Regex.Replace(requestJson, "[\n\r\t ]+", "");
 
                                 if (requestJson != settingsJson)
                                 {
-                                    requestJson = "{\"action\":\"set\",\"sets\":" + requestJson + "}";
+                                    if (!requestJson.Contains("\"action\""))
+                                        requestJson = "{\"action\":\"set\",\"sets\":" + Regex.Replace(requestJson, "[\n\r\t ]+", "") + "}";
+
                                     await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                                 }
                             }
