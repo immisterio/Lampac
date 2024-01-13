@@ -164,19 +164,17 @@ namespace Lampac.Controllers
                     {
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
                         await response.Content.CopyToAsync(HttpContext.Response.Body);
-
-                        //string settingsJson = await response.Content.ReadAsStringAsync(HttpContext.RequestAborted);
-                        //await HttpContext.Response.WriteAsync(settingsJson, HttpContext.RequestAborted);
                         return;
                     }
                     else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1")
                     {
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
                         IO.File.WriteAllText("torrserver/settings.json", requestJson);
+                        return;
                     }
                 }
 
-                await HttpContext.Response.WriteAsync(string.Empty);
+                await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted);
                 return;
             }
             #endregion
