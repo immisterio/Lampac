@@ -30,6 +30,7 @@ namespace Lampac.Controllers.LITE
                 host,
                 init.apihost,
                 init.token,
+                init.hls,
                 (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy),
                 (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik")

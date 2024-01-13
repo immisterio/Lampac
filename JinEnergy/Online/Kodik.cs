@@ -20,6 +20,7 @@ namespace JinEnergy.Online
                 null,
                 init.apihost!,
                 init.token,
+                init.hls,
                 (uri, head) => JsHttpClient.Get(init.cors(uri), addHeaders: head),
                 (uri, data) => JsHttpClient.Post(init.cors(uri), data),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)

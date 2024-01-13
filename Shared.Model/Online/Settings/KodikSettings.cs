@@ -23,6 +23,8 @@ namespace Lampac.Models.LITE
 
         public bool localip { get; set; }
 
+        public bool hls { get; set; }
+
         public KodikSettings Clone()
         {
             return (KodikSettings)MemberwiseClone();

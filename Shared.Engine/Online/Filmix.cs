@@ -187,7 +187,7 @@ namespace Shared.Engine.Online
             html.Append("<div class=\"videos__line\">");
 
             int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
-            bool hidefree720 = string.IsNullOrEmpty(token) && filmixservtime >= 19 && filmixservtime <= 23;
+            bool hidefree720 = string.IsNullOrEmpty(token) /*&& filmixservtime >= 19 && filmixservtime <= 23*/;
 
             if (player_links.movie != null && player_links.movie.Count > 0)
             {
@@ -208,14 +208,11 @@ namespace Shared.Engine.Online
                     {
                         if (!pro)
                         {
-                            if (q != 480)
+                            if (hidefree720 && q > 480)
                                 continue;
 
-                            //if (hidefree720 && q > 480)
-                            //    continue;
-
-                            //if (q > 720)
-                            //    continue;
+                            if (q > 720)
+                                continue;
                         }
 
                         if (!v.link.Contains($"{q},"))
@@ -316,14 +313,11 @@ namespace Shared.Engine.Online
                         {
                             if (!pro)
                             {
-                                if (lq != 480)
+                                if (hidefree720 && lq > 480)
                                     continue;
 
-                                //if (hidefree720 && lq > 480)
-                                //    continue;
-
-                                //if (lq > 720)
-                                //    continue;
+                                if (lq > 720)
+                                    continue;
                             }
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");

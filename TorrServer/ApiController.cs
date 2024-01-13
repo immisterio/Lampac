@@ -162,7 +162,7 @@ namespace Lampac.Controllers
                         client.Timeout = TimeSpan.FromSeconds(15);
                         client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
 
-                        var response = await client.PostAsync($"http://127.0.0.1:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
+                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                         string settingsJson = await response.Content.ReadAsStringAsync();
 
                         await HttpContext.Response.WriteAsync(settingsJson);
@@ -177,7 +177,7 @@ namespace Lampac.Controllers
 
             #region Отправляем запрос в torrserver
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
-            string servUri = $"http://127.0.0.1:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+            string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
             using (var client = new HttpClient())
             {
@@ -236,6 +236,7 @@ namespace Lampac.Controllers
                         using (HttpClient client = new HttpClient())
                         {
                             client.Timeout = TimeSpan.FromSeconds(10);
+                            client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
 
                             var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                             string settingsJson = await response.Content.ReadAsStringAsync();
@@ -288,7 +289,7 @@ namespace Lampac.Controllers
                             if (response.StatusCode == System.Net.HttpStatusCode.OK)
                             {
                                 string echo = await response.Content.ReadAsStringAsync();
-                                if (echo.StartsWith("MatriX."))
+                                if (echo != null && echo.StartsWith("MatriX."))
                                 {
                                     servIsWork = true;
                                     break;

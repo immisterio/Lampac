@@ -307,13 +307,13 @@ namespace Shared.Engine.Online
             {
                 string link = usehls ? new Regex($"\\[{_q}\\](https?://[^\\[\n\r, ]+:manifest.m3u8)").Match(_data).Groups[1].Value : string.Empty;
 
-                if (string.IsNullOrWhiteSpace(link))
+                if (string.IsNullOrEmpty(link))
                     link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
 
-                if (string.IsNullOrWhiteSpace(link))
+                if (string.IsNullOrEmpty(link))
                     link = new Regex($"\\[{_q}\\](https?://[^\n\r, ]+.mp4([^\n\r, ]+)?)").Match(_data).Groups[1].Value;
 
-                if (string.IsNullOrWhiteSpace(link) || !Regex.IsMatch(link, "^[a-z0-9/\\-:\\.\\=]+$", RegexOptions.IgnoreCase))
+                if (string.IsNullOrEmpty(link) /*|| !Regex.IsMatch(link, "^[a-z0-9/\\-:\\.\\=]+$", RegexOptions.IgnoreCase)*/)
                     return null;
 
                 return link;

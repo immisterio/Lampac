@@ -191,7 +191,7 @@ namespace Shared.Engine.Online
 
                         if (usehls && !link.Contains(".m3u"))
                             link += ":hls:manifest.m3u8";
-                        else if (!usehls && link.Contains(":hls:manifest.m3u8"))
+                        else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
 
                         streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
@@ -275,7 +275,7 @@ namespace Shared.Engine.Online
 
                                 if (usehls && !link.Contains(".m3u"))
                                     link += ":hls:manifest.m3u8";
-                                else if (!usehls && link.Contains(":hls:manifest.m3u8"))
+                                else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
                                 streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
@@ -300,83 +300,6 @@ namespace Shared.Engine.Online
             }
 
             return html.ToString() + "</div>";
-        }
-        #endregion
-
-        #region FirstLink
-        public string? FirstLink(EmbedModel? result, string t, int s)
-        {
-            if (result == null)
-                return string.Empty;
-
-            if (result.type is "movie" or "anime")
-            {
-                if (result.movie == null || result.movie.Count == 0)
-                    return string.Empty;
-
-                foreach (var voice in result.movie)
-                {
-                    string link = Regex.Match(voice.Value, $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
-                    if (!string.IsNullOrEmpty(link))
-                    {
-                        if (usehls && !link.Contains(".m3u"))
-                            link += ":hls:manifest.m3u8";
-                        else if (!usehls && link.Contains(":hls:manifest.m3u8"))
-                            link = link.Replace(":hls:manifest.m3u8", "");
-
-                        return $"https:{link}";
-                    }
-                }
-            }
-            else
-            {
-                try
-                {
-                    if (s == -1)
-                        return null;
-
-                    #region Перевод
-                    if (string.IsNullOrEmpty(t) && result.voiceSeasons != null)
-                    {
-                        foreach (var voice in result.voiceSeasons)
-                        {
-                            if (!voice.Value.Contains(s))
-                                continue;
-
-                            t = voice.Key;
-                            break;
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(t))
-                        t = "0";
-                    #endregion
-
-                    if (result.serial == null || result.serial.Count == 0)
-                        return string.Empty;
-
-                    var season = result.serial[t].First(i => i.id == s);
-                    if (season.folder != null)
-                    {
-                        foreach (var episode in season.folder)
-                        {
-                            string link = Regex.Match(episode.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
-                            if (!string.IsNullOrEmpty(link))
-                            {
-                                if (usehls && !link.Contains(".m3u"))
-                                    link += ":hls:manifest.m3u8";
-                                else if (!usehls && link.Contains(":hls:manifest.m3u8"))
-                                    link = link.Replace(":hls:manifest.m3u8", "");
-
-                                return $"https:{link}";
-                            }
-                        }
-                    }
-                }
-                catch { }
-            }
-
-            return null;
         }
         #endregion
     }

@@ -12,12 +12,13 @@ namespace Shared.Engine.Online
         #region KodikInvoke
         string? host;
         string apihost, token;
+        bool usehls;
         Func<string, List<(string name, string val)>?, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public KodikInvoke(string? host, string apihost, string token, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public KodikInvoke(string? host, string apihost, string token, bool hls, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -26,6 +27,7 @@ namespace Shared.Engine.Online
             this.onpost= onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            this.usehls = hls;
         }
         #endregion
 
@@ -245,6 +247,9 @@ namespace Shared.Engine.Online
 
                     if (decodedString.StartsWith("//"))
                         decodedString = $"https:{decodedString}";
+
+                    if (!usehls && decodedString.Contains(".m3u"))
+                        decodedString = decodedString.Replace(":hls:manifest.m3u8", "");
 
                     streams.Insert(0, new StreamModel() { q = $"{match.Groups[1].Value}p", url = decodedString });
                 }

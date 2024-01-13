@@ -397,7 +397,7 @@ namespace Shared.Engine.Online
                     while (m.Success)
                     {
                         if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
-                            subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + m.Groups[2].Value + "\"},";
+                            subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + onstreamfile(m.Groups[2].Value) + "\"},";
 
                         m = m.NextMatch();
                     }
@@ -462,13 +462,13 @@ namespace Shared.Engine.Online
             {
                 string link = usehls ? new Regex($"\\[{_q}\\](https?://[^\\[\n\r, ]+:manifest.m3u8)").Match(_data).Groups[1].Value : string.Empty;
 
-                if (string.IsNullOrWhiteSpace(link))
+                if (string.IsNullOrEmpty(link))
                     link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
 
-                if (string.IsNullOrWhiteSpace(link))
+                if (string.IsNullOrEmpty(link))
                     link = new Regex($"\\[{_q}\\](https?://[^\n\r, ]+.mp4([^\n\r, ]+)?)").Match(_data).Groups[1].Value;
 
-                if (string.IsNullOrWhiteSpace(link) || !Regex.IsMatch(link, "^[a-z0-9/\\-:\\.\\=]+$", RegexOptions.IgnoreCase))
+                if (string.IsNullOrEmpty(link) /*|| !Regex.IsMatch(link, "^[a-z0-9/\\-:\\.\\=]+$", RegexOptions.IgnoreCase)*/)
                     return null;
 
                 return link;
@@ -497,7 +497,7 @@ namespace Shared.Engine.Online
         #region fixcdn
         public static string fixcdn(string? country, string? uacdn, string link)
         {
-            if (uacdn != null && country == "UA" && link.Contains("voidboost."))
+            if (uacdn != null && country == "UA" && link.Contains("voidboost.") && !link.Contains("static.voidboost."))
                 return Regex.Replace(link, "https?://[^/]+", uacdn);
 
             return link;

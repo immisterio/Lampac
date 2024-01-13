@@ -125,6 +125,8 @@ namespace Shared.Engine.Online
 
                         if (usehls && !link.Contains(".m3u"))
                             link += ":hls:manifest.m3u8";
+                        else if (!usehls && link.Contains(".m3u"))
+                            link = link.Replace(":hls:manifest.m3u8", "");
 
                         streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                     }
@@ -202,6 +204,8 @@ namespace Shared.Engine.Online
 
                                 if (usehls && !link.Contains(".m3u"))
                                     link += ":hls:manifest.m3u8";
+                                else if (!usehls && link.Contains(".m3u"))
+                                    link = link.Replace(":hls:manifest.m3u8", "");
 
                                 streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                             }
@@ -222,62 +226,6 @@ namespace Shared.Engine.Online
             }
 
             return html.ToString() + "</div>";
-        }
-        #endregion
-
-        #region FirstLink
-        public string? FirstLink(EmbedModel? root, string? t, int s)
-        {
-            if (root?.pl == null || root.pl.Count == 0)
-                return string.Empty;
-
-            if (root.movie)
-            {
-                foreach (var pl in root.pl)
-                {
-                    string link = Regex.Match(pl.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
-                    if (!string.IsNullOrEmpty(link))
-                    {
-                        if (usehls && !link.Contains(".m3u"))
-                            link += ":hls:manifest.m3u8";
-
-                        return link;
-                    }
-                }
-            }
-            else
-            {
-                if (s == -1)
-                    return null;
-
-                foreach (var episode in root.pl.AsEnumerable().Reverse())
-                {
-                    var episodes = episode?.folder;
-                    if (episodes == null || episodes.Count == 0)
-                        continue;
-
-                    string? perevod = episode?.title;
-                    if (perevod != null && string.IsNullOrEmpty(t))
-                        t = perevod;
-
-                    if (perevod != t)
-                        continue;
-
-                    foreach (var pl in episodes)
-                    {
-                        string link = Regex.Match(pl?.file ?? "", $"\\[(1080|720|480)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))").Groups[2].Value;
-                        if (!string.IsNullOrEmpty(link))
-                        {
-                            if (usehls && !link.Contains(".m3u"))
-                                link += ":hls:manifest.m3u8";
-
-                            return link;
-                        }
-                    }
-                }
-            }
-
-            return null;
         }
         #endregion
     }
