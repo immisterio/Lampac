@@ -31,7 +31,8 @@ namespace Shared.Model.Templates
 
             foreach (var i in data) 
             {
-                string year = string.IsNullOrEmpty(i.year) ? "0" : i.year;
+                string year = string.IsNullOrEmpty(i.year) || !int.TryParse(i.year, out int _) ? "0" : i.year;
+
                 html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\""+i.link+"\",\"similar\":true,\"year\":"+year+ ",\"details\":\""+i.details + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">"+i.title+"</div></div></div>");
                 firstjson = false;
             }

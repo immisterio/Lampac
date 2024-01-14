@@ -107,7 +107,7 @@ namespace Shared.Engine.Online
             {
                 string href = Regex.Match(row, "href=\"(https?://[^\"]+)\"").Groups[1].Value;
                 string name = Regex.Match(row, "<span class=\"enty\">([^<]+)</span>").Groups[1].Value;
-                string year = Regex.Match(row, "(, [0-9]{4}\\)|, [0-9]{4} -)").Groups[1].Value;
+                string year = Regex.Match(row, ", ([0-9]{4})(\\)| -)").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
                     continue;
