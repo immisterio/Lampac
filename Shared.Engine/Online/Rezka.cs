@@ -32,13 +32,16 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string? title, string? original_title, int clarification, int year, string? href)
+        async public ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href)
         {
             var result = new EmbedModel();
             string? link = href, reservedlink = null;
 
             if (string.IsNullOrWhiteSpace(link))
             {
+                if (kinopoisk_id > 0 || !string.IsNullOrEmpty(imdb_id))
+                    return await EmbedID(kinopoisk_id, imdb_id);
+
                 string? search = await onget($"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}");
                 if (search == null)
                     return null;
@@ -47,7 +50,7 @@ namespace Shared.Engine.Online
                 {
                     var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
 
-                    if (string.IsNullOrWhiteSpace(g[1].Value))
+                    if (string.IsNullOrEmpty(g[1].Value))
                         continue;
 
                     string name = g[2].Value.ToLower().Trim();
@@ -67,10 +70,15 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(link))
+                if (string.IsNullOrEmpty(link))
                 {
-                    if (string.IsNullOrWhiteSpace(reservedlink))
-                        return result;
+                    if (string.IsNullOrEmpty(reservedlink))
+                    {
+                        if (result?.similar != null && result.similar.Count > 0)
+                            return result;
+
+                        return null;
+                    }
 
                     link = reservedlink;
                 }
@@ -78,7 +86,48 @@ namespace Shared.Engine.Online
 
             result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
             result.content = await onget(link);
-            if (result.content == null || string.IsNullOrWhiteSpace(result.id))
+            if (result.content == null || string.IsNullOrEmpty(result.id))
+                return null;
+
+            return result;
+        }
+        #endregion
+
+        #region EmbedID
+        async public ValueTask<EmbedModel?> EmbedID(long kinopoisk_id, string? imdb_id)
+        {
+            string? search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()));
+            if (search == null)
+                return null;
+
+            string? link = null;
+            var result = new EmbedModel();
+
+            foreach (string row in search.Split("<li>").Skip(1))
+            {
+                string href = Regex.Match(row, "href=\"(https?://[^\"]+)\"").Groups[1].Value;
+                string name = Regex.Match(row, "<span class=\"enty\">([^<]+)</span>").Groups[1].Value;
+                string year = Regex.Match(row, "(, [0-9]{4}\\)|, [0-9]{4} -)").Groups[1].Value;
+
+                if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
+                    continue;
+
+                if (result.similar == null)
+                    result.similar = new List<SimilarModel>();
+
+                result.similar.Add(new SimilarModel(name, year, href));
+                link = href;
+            }
+
+            if (result?.similar != null && result.similar.Count > 1)
+                return result;
+
+            if (string.IsNullOrEmpty(link))
+                return null;
+
+            result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
+            result.content = await onget(link);
+            if (result.content == null || string.IsNullOrEmpty(result.id))
                 return null;
 
             return result;
@@ -86,7 +135,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
         {
             if (result == null)
                 return string.Empty;
@@ -174,7 +223,7 @@ namespace Shared.Engine.Online
                     while (match.Success)
                     {
                         string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                        string link = host + $"lite/rezka/serial?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
+                        string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
 
                         html.Append("<div class=\"videos__button selector " + (match.Groups[1].Value == trs ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
 

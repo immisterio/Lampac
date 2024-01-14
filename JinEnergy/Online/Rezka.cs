@@ -44,10 +44,10 @@ namespace JinEnergy.Online
             if (arg.original_language != "en")
                 clarification = 1;
 
-            string memkey = $"rezka:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}";
-            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.title, arg.original_title, clarification, arg.year, href));
+            string memkey = $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, href));
 
-            string html = oninvk.Html(content, arg.title, arg.original_title, clarification, arg.year, s, href, false);
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, s, href, false);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
@@ -79,7 +79,7 @@ namespace JinEnergy.Online
                 clarification = 1;
 
             refresh: var root = await InvokeCache(0, $"rezka:serial:{arg.id}:{t}", () => oninvk.SerialEmbed(arg.id, t));
-            var content = await InvokeCache(0, $"rezka:serial:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}", () => oninvk.Embed(arg.title, arg.original_title, clarification, arg.year, href));
+            var content = await InvokeCache(0, $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}", () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, href));
 
             string html = oninvk.Serial(root, content, arg.title, arg.original_title, clarification, arg.year, href, arg.id, t, s, false);
             if (string.IsNullOrEmpty(html))

@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int s = -1, string href = null)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, string original_language, int year, int s = -1, string href = null)
         {
             if (!AppInit.conf.Rezka.enable)
                 return OnError();
@@ -62,18 +62,18 @@ namespace Lampac.Controllers.LITE
             var oninvk = InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
-            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(content, title, original_title, clarification, year, s, href, true), "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true), "text/html; charset=utf-8");
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(string title, string original_title, int clarification, int year, string href, long id, int t, int s = -1)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, string href, long id, int t, int s = -1)
         {
             if (!AppInit.conf.Rezka.enable)
                 return OnError();
@@ -88,7 +88,7 @@ namespace Lampac.Controllers.LITE
             if (root == null)
                 return OnError(proxyManager);
 
-            var content = await InvokeCache($"rezka:view:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
