@@ -321,7 +321,7 @@ namespace Shared.Engine.Online
             #endregion
 
             #region Максимально доступное
-            foreach (var q in new List<string> { "1080p", "720p", "480p", "360p" })
+            foreach (string q in new List<string> { "1080p", "720p", "480p", "360p" })
             {
                 string? link = getLink(q);
                 if (string.IsNullOrEmpty(link))
@@ -329,7 +329,7 @@ namespace Shared.Engine.Online
 
                 links.Add(new ApiModel()
                 {
-                    title = q.Contains("p") ? q : $"{q}p",
+                    title = q,
                     stream_url = onstreamfile(link)
                 });
             }
