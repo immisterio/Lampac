@@ -4,7 +4,7 @@ namespace Lampac.Models.LITE
 {
     public class KodikSettings : BaseSettings
     {
-        public KodikSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool enable = true)
+        public KodikSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool enable = true, bool hls = true)
         {
             this.apihost = apihost;
             this.linkhost = linkhost;
@@ -12,6 +12,7 @@ namespace Lampac.Models.LITE
             this.secret_token = secret_token;
             this.localip = localip;
             this.enable = enable;
+            this.hls = hls; 
         }
 
 
