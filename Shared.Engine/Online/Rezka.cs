@@ -506,6 +506,8 @@ namespace Shared.Engine.Online
             _data = decodeBase64(_data);
             var links = new List<ApiModel>() { Capacity = 6 };
 
+            onlog?.Invoke(_data);
+
             #region getLink
             string? getLink(string _q)
             {
