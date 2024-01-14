@@ -506,8 +506,6 @@ namespace Shared.Engine.Online
             _data = decodeBase64(_data);
             var links = new List<ApiModel>() { Capacity = 6 };
 
-            onlog?.Invoke(_data);
-
             #region getLink
             string? getLink(string _q)
             {
@@ -557,7 +555,7 @@ namespace Shared.Engine.Online
 
                 links.Add(new ApiModel()
                 {
-                    title = q, //q.Contains("p") ? q : $"{q}p",
+                    title = q,
                     stream_url = link
                 });
             }

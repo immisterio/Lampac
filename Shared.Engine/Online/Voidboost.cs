@@ -305,16 +305,21 @@ namespace Shared.Engine.Online
             #region getLink
             string? getLink(string _q)
             {
-                string link = usehls ? new Regex($"\\[{_q}\\](https?://[^\\[\n\r, ]+:manifest.m3u8)").Match(_data).Groups[1].Value : string.Empty;
-
-                if (string.IsNullOrEmpty(link))
-                    link = new Regex($"\\[{_q}\\][^ ]+ or (https?://[^\n\r ]+.mp4)(,|$)").Match(_data).Groups[1].Value;
-
-                if (string.IsNullOrEmpty(link))
-                    link = new Regex($"\\[{_q}\\](https?://[^\n\r, ]+.mp4([^\n\r, ]+)?)").Match(_data).Groups[1].Value;
-
-                if (string.IsNullOrEmpty(link) /*|| !Regex.IsMatch(link, "^[a-z0-9/\\-:\\.\\=]+$", RegexOptions.IgnoreCase)*/)
+                string qline = Regex.Match(_data, $"\\[{_q}\\]([^\\[]+)").Groups[1].Value;
+                if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
                     return null;
+
+                string link = usehls ? Regex.Match(qline, "(https?://[^\\[\n\r, ]+:manifest.m3u8)").Groups[1].Value : string.Empty;
+
+                if (string.IsNullOrEmpty(link))
+                    link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+\\.mp4)(,| |$)").Groups[1].Value;
+
+                if (string.IsNullOrEmpty(link))
+                {
+                    link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                    if (string.IsNullOrEmpty(link))
+                        return null;
+                }
 
                 return link;
             }
