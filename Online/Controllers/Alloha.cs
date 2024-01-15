@@ -46,7 +46,8 @@ namespace Lampac.Controllers.LITE
                     string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
                     string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
-                    mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: translation.Value["quality"].ToString());
+                    bool uhd = translation.Value["uhd"].ToString() == "True";
+                    mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" :translation.Value["quality"].ToString());
                 }
 
                 return Content(mtpl.ToHtml(), "text/html; charset=utf-8");

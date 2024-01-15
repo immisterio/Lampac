@@ -37,7 +37,9 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.HQporner.Clone();
 
-            refresh: var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), iframeurl => JsHttpClient.Get(init.cors(iframeurl)));
+            var head = new List<(string, string)>() { ("referer", init.host!) };
+
+            refresh: var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), iframeurl => JsHttpClient.Get(init.cors(iframeurl), addHeaders: head));
 
             if (stream_links == null && IsRefresh(init, true))
                 goto refresh;
