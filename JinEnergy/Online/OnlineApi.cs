@@ -129,8 +129,6 @@ namespace JinEnergy.Online
             if (AppInit.KinoPub.enable)
                 online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub" + (arg.source == "pub" ? $"?postid={arg.id}" : "")+"\"},");
 
-            online.Append("{\"name\":\"Alloha ~ 1080p\",\"url\":\"https://cors.apn.monster/alloha.app/lite/alloha\"},");
-
             if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");
 
