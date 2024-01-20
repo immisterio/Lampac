@@ -119,8 +119,8 @@ namespace JinEnergy.Online
 
             if (isanime)
             {
-                online.Append("{\"name\":\"Animevost\",\"url\":\"http://env-8837577.mircloud.host/lite/animevost\"},");
-                online.Append("{\"name\":\"AniMedia\",\"url\":\"http://env-8837577.mircloud.host/lite/animedia\"},");
+                online.Append("{\"name\":\"Animevost\",\"url\":\"http://lampac.mircloud.host/lite/animevost\"},");
+                online.Append("{\"name\":\"AniMedia\",\"url\":\"http://lampac.mircloud.host/lite/animedia\"},");
             }
 
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
@@ -171,7 +171,7 @@ namespace JinEnergy.Online
             if (AppInit.VCDN.enable)
                 online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
 
-            online.Append("{\"name\":\"HDVB\",\"url\":\"http://env-8837577.mircloud.host/lite/hdvb\"},");
+            online.Append("{\"name\":\"HDVB\",\"url\":\"http://lampac.mircloud.host/lite/hdvb\"},");
 
             if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
