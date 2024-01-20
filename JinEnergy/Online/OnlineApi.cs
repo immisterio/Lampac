@@ -168,7 +168,7 @@ namespace JinEnergy.Online
                     online.Append("{\"name\":\"Kinotochka - 480p\",\"url\":\"lite/kinotochka\"},");
             }
 
-            if (AppInit.VCDN.enable)
+            if (AppInit.VCDN.enable && AppInit.Country != "UA")
                 online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
 
             online.Append("{\"name\":\"HDVB\",\"url\":\"http://lampac.mircloud.host/lite/hdvb\"},");

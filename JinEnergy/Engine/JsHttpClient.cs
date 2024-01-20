@@ -24,18 +24,18 @@ namespace JinEnergy.Engine
 
 
         #region Get
-        public static ValueTask<string?> Get(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null)
+        public static ValueTask<string?> Get(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
         {
             return BaseGetAsync(url, encoding: encoding, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders);
         }
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T?> Get<T>(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null)
+        async public static ValueTask<T?> Get<T>(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
         {
             try
             {
-                string? html = await BaseGetAsync(url, encoding: encoding, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders);
+                string? html = await BaseGetAsync(url, encoding: encoding, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, androidHttpReq: androidHttpReq);
                 if (html == null)
                     return default;
 
@@ -49,11 +49,11 @@ namespace JinEnergy.Engine
         #endregion
 
         #region BaseGetAsync
-        async static ValueTask<string?> BaseGetAsync(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null)
+        async static ValueTask<string?> BaseGetAsync(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
         {
             try
             {
-                if (AppInit.IsAndrod && AppInit.JSRuntime != null)
+                if (androidHttpReq && AppInit.IsAndrod && AppInit.JSRuntime != null)
                 {
                     string h = $"dataType: 'text', timeout: {timeoutSeconds * 1000}, {headers(addHeaders)}";
                     return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('"+url+"',false,{"+h+"})");

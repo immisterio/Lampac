@@ -36,7 +36,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init, true))
+                if (IsRefresh(init))
                     goto refresh;
             }
 
@@ -62,7 +62,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init, true))
+                if (IsRefresh(init))
                     goto refresh;
             }
 
@@ -87,7 +87,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(result))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init, true))
+                if (IsRefresh(init))
                     goto refresh;
             }
 

@@ -24,7 +24,7 @@ namespace JinEnergy.Online
                init.cors(init.apihost!),
                init.token!,
                init.hls,
-               (url, referer) => JsHttpClient.Get(init.cors(url), addHeaders: new List<(string name, string val)> { ("referer", referer) }),
+               (url, referer) => JsHttpClient.Get(init.cors(url), androidHttpReq: false),
                streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile)
                //AppInit.log
             );
@@ -49,13 +49,20 @@ namespace JinEnergy.Online
             #endregion
 
             string memkey = $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}";
-            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id));
+            refresh: var content = await InvokeCache(arg.id, memkey, () => 
+            {
+                AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
+                var res = oninvk.Embed(arg.kinopoisk_id, arg.imdb_id);
+                AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
+                return res;
+
+            });
 
             string html = oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init))
+                if (IsRefresh(init, true))
                     goto refresh;
             }
 
