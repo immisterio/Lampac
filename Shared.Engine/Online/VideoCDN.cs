@@ -86,7 +86,7 @@ namespace Shared.Engine.Online
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
         {
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.biz/53104-avatar-2-2022.html");
+            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.biz/82065-pchelovod.html");
             if (content == null)
                 return null;
 

@@ -10,7 +10,6 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.VCDN.Clone();
-            bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -25,7 +24,7 @@ namespace JinEnergy.Online
                init.token!,
                init.hls,
                (url, referer) => JsHttpClient.Get(init.cors(url), androidHttpReq: false),
-               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile)
+               streamfile => HostStreamProxy(init, streamfile)
                //AppInit.log
             );
 
