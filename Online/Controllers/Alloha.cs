@@ -147,15 +147,24 @@ namespace Lampac.Controllers.LITE
                 if (json == null || !json.Contains("\"status\":\"success\""))
                     return OnError("json", proxyManager);
 
-                _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
+                json = json.Replace("\\", "");
+
+                _cache.m3u8 = Regex.Match(json, "\"playlist_file\":\"(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(_cache.m3u8))
                 {
-                    _cache.m3u8 = Regex.Match(json.Replace("\\", ""), "\"playlist_file\":\"(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
+                    string default_audio = Regex.Match(json, "\"default_audio\":\"([^<]+)\"").Groups[1].Value;
+                    if (!string.IsNullOrWhiteSpace(default_audio))
+                        _cache.m3u8 = Regex.Match(json, $"{default_audio}\",\"[^\"]+\":\"(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
+
                     if (string.IsNullOrWhiteSpace(_cache.m3u8))
-                        return OnError("m3u8");
+                    {
+                        _cache.m3u8 = Regex.Match(json, "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
+                        if (string.IsNullOrWhiteSpace(_cache.m3u8))
+                            return OnError("m3u8");
+                    }
                 }
 
-                string subtitle = Regex.Match(json.Replace("\\", ""), "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;
+                string subtitle = Regex.Match(json, "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(subtitle) && subtitle.Contains(".vtt"))
                     _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 

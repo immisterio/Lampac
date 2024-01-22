@@ -19,7 +19,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "96";
+        public static string appversion => "97";
 
         public IMemoryCache memoryCache { get; private set; }
 
@@ -48,7 +48,7 @@ namespace Lampac.Engine
             return userIp;
         }
 
-        public string HostImgProxy( int width, int height, string uri, List<(string name, string val)> headers = null)
+        public string HostImgProxy(int width, int height, string uri, List<(string name, string val)> headers = null)
         {
             if (string.IsNullOrWhiteSpace(uri)) 
                 return null;

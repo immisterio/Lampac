@@ -61,8 +61,7 @@ namespace Lampac.Controllers
             }
             else
             {
-                html = html.Replace("href=\"/", "href=\"").Replace("src=\"/", "src=\"");
-                html = html.Replace("<meta charset=\"utf-8\">", "<meta charset=\"utf-8\"><base href=\"/ts/\" />");
+                html = html.Replace("href=\"/", "href=\"/ts/").Replace("src=\"/", "src=\"/ts/");
                 return Content(html, "text/html; charset=utf-8");
             }
         }

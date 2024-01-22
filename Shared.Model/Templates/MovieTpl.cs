@@ -18,7 +18,7 @@ namespace Shared.Model.Templates
 
         public void Append(string? name, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null)
         {
-            if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(link))
+            if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(link))
                 data.Add((name, link, method, stream, streamquality, subtitles, voice_name, year, details, quality));
         }
 
