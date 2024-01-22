@@ -4,7 +4,7 @@
     {
         public string syncapi = "http://85.17.54.98:9117";
 
-        public int syntime = 40;
+        public int syntime = 60;
 
         public string[] trackers = new string[] { "rutracker", "rutor", "kinozal", "nnmclub", "megapeer", "bitru", "toloka", "lostfilm", "baibako", "torrentby", "hdrezka", "selezen", "animelayer", "anilibria", "anifilm" };
 

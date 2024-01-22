@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Jackett;
 using JacRed.Engine.CORE;
@@ -58,14 +59,13 @@ namespace JacRed.Engine
         {
             if (empty)
             {
-                var fdb = new FileDB(key, empty: empty);
-                var md = new WriteTaskModel() { db = fdb, openconnection = 1 };
-                openWriteTask.AddOrUpdate(key, md, (k, v) => md);
-                return fdb;
+                openWriteTask.TryRemove(key, out _);
+                return new FileDB(key, empty: empty);
             }
 
             if (openWriteTask.TryGetValue(key, out WriteTaskModel val))
             {
+                val.countread++;
                 val.openconnection += 1;
                 val.lastread = DateTime.UtcNow;
                 return val.db;
@@ -73,7 +73,7 @@ namespace JacRed.Engine
             else
             {
                 var fdb = new FileDB(key);
-                openWriteTask.TryAdd(key, new WriteTaskModel() { db = fdb, openconnection = 1 });
+                openWriteTask.TryAdd(key, new WriteTaskModel() { db = fdb, openconnection = 1, countread = 1, lastread = DateTime.UtcNow });
                 return fdb;
             }
         }
@@ -112,6 +112,30 @@ namespace JacRed.Engine
                     foreach (var i in openWriteTask)
                     {
                         if (DateTime.UtcNow > i.Value.lastread.AddHours(ModInit.conf.Red.evercache.validHour))
+                            openWriteTask.TryRemove(i.Key, out _);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        async public static Task CronFast()
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20));
+
+                if (!ModInit.conf.Red.evercache.enable || 0 >= ModInit.conf.Red.evercache.validHour)
+                    continue;
+
+                try
+                {
+                    if (openWriteTask.Count > ModInit.conf.Red.evercache.maxOpenWriteTask)
+                    {
+                        var query = openWriteTask.Where(i => DateTime.Now > i.Value.create.AddMinutes(10));
+                        query = query.OrderBy(i => i.Value.countread).ThenBy(i => i.Value.lastread);
+
+                        foreach (var i in query.Take(ModInit.conf.Red.evercache.dropCacheTake))
                             openWriteTask.TryRemove(i.Key, out _);
                     }
                 }

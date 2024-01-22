@@ -31,8 +31,11 @@ namespace JacRed.Engine
             if (openWriteTask.TryGetValue(fdbkey, out WriteTaskModel val))
             {
                 val.openconnection -= 1;
-                if (val.openconnection <= 0 && !ModInit.conf.Red.evercache.enable)
-                    openWriteTask.TryRemove(fdbkey, out _);
+                if (0 >= val.openconnection)
+                {
+                    if (!ModInit.conf.Red.evercache.enable || (ModInit.conf.Red.evercache.enable && ModInit.conf.Red.evercache.validHour > 0))
+                        openWriteTask.TryRemove(fdbkey, out _);
+                }
             }
         }
     }

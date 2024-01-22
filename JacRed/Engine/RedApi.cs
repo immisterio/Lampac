@@ -72,7 +72,7 @@ namespace JacRed.Engine
 
                 // Быстрая выборка по совпадению ключа в имени
                 var mdb = FileDB.masterDb.Where(i => _n != null && i.Key.StartsWith($"{_n}:") || _o != null && i.Key.EndsWith($":{_o}"));
-                if (!red.evercache.enable)
+                if (!red.evercache.enable || red.evercache.validHour > 0)
                     mdb = mdb.Take(red.maxreadfile);
 
                 foreach (var val in mdb)
@@ -214,8 +214,8 @@ namespace JacRed.Engine
                 #region torrentsSearch
                 void torrentsSearch(bool exact)
                 {
-                    var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s));
-                    if (!red.evercache.enable)
+                    var mdb = FileDB.masterDb.Where(i => i.Key.Contains(_s));
+                    if (!red.evercache.enable || red.evercache.validHour > 0)
                         mdb = mdb.Take(red.maxreadfile);
 
                     foreach (var val in mdb)
@@ -281,7 +281,7 @@ namespace JacRed.Engine
             }
 
             #region Объединить дубликаты
-            var tsort = new List<TorrentDetails>();
+            IEnumerable<TorrentDetails> tsort = null;
 
             if (ModInit.conf.typesearch == "red" && ((!rqnum && red.mergeduplicates) || (rqnum && red.mergenumduplicates)))
             {
@@ -416,12 +416,11 @@ namespace JacRed.Engine
                     }
                 }
 
-                foreach (var item in temp.Select(i => i.Value.torrent))
-                    tsort.Add(item);
+                tsort = temp.Select(i => i.Value.torrent);
             }
             else
             {
-                tsort = torrents.Values.Where(i => red.trackers == null || red.trackers.Contains(i.trackerName)).ToList();
+                tsort = torrents.Values.Where(i => red.trackers == null || red.trackers.Contains(i.trackerName));
             }
             #endregion
 
@@ -486,8 +485,8 @@ namespace JacRed.Engine
             else
             {
                 #region Поиск по совпадению ключа в имени
-                var mdb = FileDB.masterDb.OrderByDescending(i => i.Value).Where(i => i.Key.Contains(_s) || _altsearch != null && i.Key.Contains(_altsearch));
-                if (!red.evercache.enable)
+                var mdb = FileDB.masterDb.Where(i => i.Key.Contains(_s) || _altsearch != null && i.Key.Contains(_altsearch));
+                if (!red.evercache.enable || red.evercache.validHour > 0)
                     mdb = mdb.Take(red.maxreadfile);
 
                 foreach (var val in mdb)
