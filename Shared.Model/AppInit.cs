@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.SISI;
 using Lampac.Models.LITE;
 using Lampac.Models.AppConf;
+using Shared.Model.Base;
 
 namespace Shared.Model
 {
@@ -87,7 +88,7 @@ namespace Shared.Model
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.alloha.tv", "https://torso-as.newplayjj.com:9443", "", "", true);
 
-        public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true);
+        public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "b7cc4293ed475c4ad1fd599d114f4435", "", true, streamproxy: true);
 
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");

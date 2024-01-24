@@ -9,12 +9,8 @@ namespace JinEnergy.Online
     public class KodikController : BaseController
     {
         #region KodikInvoke
-        static bool origstream;
-
         static KodikInvoke kodikInvoke(KodikSettings init)
         {
-            bool userapn = IsApnIncluded(init);
-
             return new KodikInvoke
             (
                 null,
@@ -23,7 +19,7 @@ namespace JinEnergy.Online
                 init.hls,
                 (uri, head) => JsHttpClient.Get(init.cors(uri), addHeaders: head),
                 (uri, data) => JsHttpClient.Post(init.cors(uri), data),
-                streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+                streamfile => HostStreamProxy(init, streamfile)
                 //AppInit.log
             );
         }
@@ -85,15 +81,11 @@ namespace JinEnergy.Online
 
             string memkey = $"kodik:video:{link}";
             refresh: var streams = await InvokeCache(0, memkey, () => oninvk.VideoParse(init.linkhost, link));
-
-            if (streams != null && !IsApnIncluded(init))
-                origstream = await IsOrigStream(streams[0].url);
-
             string result = oninvk.VideoParse(streams, arg.title, arg.original_title, episode, false);
             if (string.IsNullOrEmpty(result))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init))
+                if (IsRefresh(init, true))
                     goto refresh;
             }
 
