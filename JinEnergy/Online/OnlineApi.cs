@@ -111,16 +111,22 @@ namespace JinEnergy.Online
             bool isanime = arg.original_language == "ja";
             bool titleSearch = string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0;
 
-            if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
-                online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
+            //if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
+            //    online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
+
+            if (arg.original_language is "ja" or "ko" or "zh")
+            {
+                string url = AppInit.Kodik.enable && AppInit.Country != "UA" ? "lite/kodik" : "https://bwa-cloud.apn.monster/lite/kodik";
+                online.Append("{\"name\":\"Kodik - 720p\",\"url\":\""+url+"\"},");
+            }
 
             if (AppInit.AnilibriaOnline.enable && isanime)
                 online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
 
             if (isanime)
             {
-                online.Append("{\"name\":\"Animevost\",\"url\":\"http://lampac.mircloud.host/lite/animevost\"},");
-                online.Append("{\"name\":\"AniMedia\",\"url\":\"http://lampac.mircloud.host/lite/animedia\"},");
+                online.Append("{\"name\":\"Animevost\",\"url\":\"https://bwa-cloud.apn.monster/lite/animevost\"},");
+                online.Append("{\"name\":\"AniMedia\",\"url\":\"https://bwa-cloud.apn.monster/lite/animedia\"},");
             }
 
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
@@ -153,8 +159,8 @@ namespace JinEnergy.Online
             if (AppInit.Collaps.enable && !titleSearch)
                 online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
 
-            if (AppInit.Voidboost.enable && AppInit.Country != "UA" && !titleSearch)
-                online.Append("{\"name\":\"Voidboost - 720p\",\"url\":\"lite/voidboost\"},");
+            if (AppInit.Voidboost.enable && !titleSearch)
+                online.Append("{\"name\":\"Voidboost - 720p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/voidboost\"},");
 
             if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 480p\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
@@ -168,16 +174,16 @@ namespace JinEnergy.Online
                     online.Append("{\"name\":\"Kinotochka - 480p\",\"url\":\"lite/kinotochka\"},");
             }
 
-            if (AppInit.VCDN.enable && AppInit.Country != "UA")
-                online.Append("{\"name\":\"VideoCDN - 1080p\",\"url\":\"lite/vcdn\"},");
+            if (AppInit.VCDN.enable)
+                online.Append("{\"name\":\"VideoCDN - 1080p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/vcdn\"},");
 
-            online.Append("{\"name\":\"HDVB\",\"url\":\"http://lampac.mircloud.host/lite/hdvb\"},");
+            online.Append("{\"name\":\"HDVB\",\"url\":\"https://bwa-cloud.apn.monster/lite/hdvb\"},");
 
             if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
 
-            if (AppInit.VDBmovies.enable && AppInit.Country != "UA" && !titleSearch)
-                online.Append("{\"name\":\"VDBmovies - 720p\",\"url\":\"lite/vdbmovies\"},");
+            if (AppInit.VDBmovies.enable && !titleSearch)
+                online.Append("{\"name\":\"VDBmovies - 720p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/vdbmovies\"},");
 
             if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 online.Append("{\"name\":\"CDNmovies - 360p\",\"url\":\"lite/cdnmovies\"},");

@@ -50,7 +50,9 @@ namespace JinEnergy.Online
             string memkey = $"videocdn:view:{arg.imdb_id}:{arg.kinopoisk_id}";
             refresh: var content = await InvokeCache(arg.id, memkey, () => 
             {
-                AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
+                if (AppInit.JSRuntime != null)
+                 AppInit.JSRuntime.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');").AsTask().Wait();
+
                 var res = oninvk.Embed(arg.kinopoisk_id, arg.imdb_id);
                 AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
                 return res;
