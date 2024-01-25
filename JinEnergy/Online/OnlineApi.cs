@@ -111,14 +111,8 @@ namespace JinEnergy.Online
             bool isanime = arg.original_language == "ja";
             bool titleSearch = string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0;
 
-            //if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
-            //    online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
-
-            if (arg.original_language is "ja" or "ko" or "zh")
-            {
-                string url = AppInit.Kodik.enable && AppInit.Country != "UA" ? "lite/kodik" : "https://bwa-cloud.apn.monster/lite/kodik";
-                online.Append("{\"name\":\"Kodik - 720p\",\"url\":\""+url+"\"},");
-            }
+            if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
+                online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
 
             if (AppInit.AnilibriaOnline.enable && isanime)
                 online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
