@@ -81,41 +81,35 @@ namespace Lampac
             #region UseForwardedHeaders
             var forwarded = new ForwardedHeadersOptions
             {
+                ForwardLimit = null,
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             };
 
+            if (AppInit.conf.real_ip_cf)
+            {
+                string ips = HttpClient.Get("https://www.cloudflare.com/ips-v4", timeoutSeconds: 10).Result;
+                if (ips != null)
+                {
+                    forwarded.ForwardedForHeaderName = "CF-Connecting-IP";
+                    foreach (string line in ips.Split('\n'))
+                    {
+                        if (string.IsNullOrEmpty(line) || !line.Contains("/"))
+                            continue;
+
+                        string[] ln = line.Split('/');
+                        forwarded.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(ln[0]), int.Parse(ln[1])));
+                    }
+                }
+            }
+
             if (AppInit.conf.KnownProxies != null && AppInit.conf.KnownProxies.Count > 0)
             {
-                forwarded.ForwardLimit = null;
                 foreach (var k in AppInit.conf.KnownProxies)
                     forwarded.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(k.ip), k.prefixLength));
             }
 
             app.UseForwardedHeaders(forwarded);
             #endregion
-
-            #region Update KinoPub device
-            if (AppInit.conf.KinoPub.enable && !string.IsNullOrWhiteSpace(AppInit.conf.KinoPub.token))
-            {
-                try
-                {
-                    var root = HttpClient.Get<JObject>($"{AppInit.conf.KinoPub.apihost}/v1/device/info?access_token={AppInit.conf.KinoPub.token}", timeoutSeconds: 5).Result;
-                    if (root != null && root.ContainsKey("device"))
-                    {
-                        long? device_id = root.Value<JObject>("device")?.Value<long>("id");
-                        if (device_id > 0)
-                        {
-                            string data = "{\"supportSsl\": " + AppInit.conf.KinoPub.ssl.ToString().ToLower() + ", \"support4k\": " + AppInit.conf.KinoPub.uhd.ToString().ToLower() + ", \"supportHevc\": " + AppInit.conf.KinoPub.hevc.ToString().ToLower() + ", \"supportHdr\": " + AppInit.conf.KinoPub.hdr.ToString().ToLower() + "}";
-                            _= HttpClient.Post($"{AppInit.conf.KinoPub.apihost}/v1/device/{device_id}/settings?access_token={AppInit.conf.KinoPub.token}", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/json"));
-                        }
-                    }
-                }
-                catch { }
-            }
-            #endregion
-
-            //AppInit.conf.Toloka.login = new Models.JAC.LoginSettings() { u = "user", p = "passwd" };
-            //System.IO.File.WriteAllText("example.conf", Newtonsoft.Json.JsonConvert.SerializeObject(AppInit.conf, Newtonsoft.Json.Formatting.Indented));
 
             app.UseRouting();
             app.UseResponseCompression();

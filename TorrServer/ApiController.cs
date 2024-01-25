@@ -82,16 +82,19 @@ namespace Lampac.Controllers
                 #region Обработка stream потока
                 if (HttpContext.Request.Method == "GET" && Regex.IsMatch(HttpContext.Request.Path.Value, "^/ts/(stream|play)"))
                 {
-                    if (ModInit.clientIps.Contains(HttpContext.Connection.RemoteIpAddress.ToString()))
-                    {
-                        await TorAPI();
-                        return;
-                    }
-                    else
-                    {
-                        HttpContext.Response.StatusCode = 404;
-                        return;
-                    }
+                    await TorAPI();
+                    return;
+
+                    //if (ModInit.clientIps.Contains(HttpContext.Connection.RemoteIpAddress.ToString()))
+                    //{
+                    //    await TorAPI();
+                    //    return;
+                    //}
+                    //else
+                    //{
+                    //    HttpContext.Response.StatusCode = 404;
+                    //    return;
+                    //}
                 }
                 #endregion
 
@@ -151,22 +154,23 @@ namespace Lampac.Controllers
                 }
 
                 MemoryStream mem = new MemoryStream();
-                await HttpContext.Request.Body.CopyToAsync(mem);
+                await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted);
                 string requestJson = Encoding.UTF8.GetString(mem.ToArray());
 
                 using (HttpClient client = new HttpClient())
                 {
-                    client.Timeout = TimeSpan.FromSeconds(15);
                     client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
 
                     if (requestJson.Contains("\"get\""))
                     {
+                        client.Timeout = TimeSpan.FromSeconds(5);
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
-                        await response.Content.CopyToAsync(HttpContext.Response.Body);
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                         return;
                     }
                     else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1")
                     {
+                        client.Timeout = TimeSpan.FromSeconds(10);
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
                         IO.File.WriteAllText("torrserver/settings.json", requestJson);
                         return;
@@ -197,7 +201,7 @@ namespace Lampac.Controllers
         #region Start
         async public ValueTask<bool> Start()
         {
-            if (ModInit.tsprocess == null || await CheckPort(ModInit.tsport, HttpContext) == false)
+            if (ModInit.tsprocess == null /*|| await CheckPort(ModInit.tsport, HttpContext) == false*/)
             {
                 #region Запускаем TorrServer
                 var thread = new Thread(() =>
@@ -287,7 +291,7 @@ namespace Lampac.Controllers
                     {
                         using (var client = new HttpClient())
                         {
-                            client.Timeout = TimeSpan.FromSeconds(2);
+                            client.Timeout = TimeSpan.FromSeconds(i == 0 ? 4 : 3);
 
                             var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo", httpContext.RequestAborted);
                             if (response.StatusCode == System.Net.HttpStatusCode.OK)

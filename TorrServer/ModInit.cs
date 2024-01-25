@@ -80,25 +80,25 @@ namespace TorrServer
                     catch { }
                 }
 
-                while (true)
-                {
-                    await Task.Delay(TimeSpan.FromMinutes(2));
-                    if (lastActve == default)
-                        continue;
+                //while (true)
+                //{
+                //    await Task.Delay(TimeSpan.FromMinutes(2));
+                //    if (lastActve == default)
+                //        continue;
 
-                    try
-                    {
-                        if (lastActve > DateTime.Now.AddMinutes(-20))
-                            continue;
+                //    try
+                //    {
+                //        if (lastActve > DateTime.Now.AddMinutes(-20))
+                //            continue;
 
-                        tsprocess?.Dispose();
-                        tsprocess = null;
+                //        tsprocess?.Dispose();
+                //        tsprocess = null;
 
-                        lastActve = default;
-                        clientIps.Clear();
-                    }
-                    catch { }
-                }
+                //        lastActve = default;
+                //        clientIps.Clear();
+                //    }
+                //    catch { }
+                //}
             });
         }
     }

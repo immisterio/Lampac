@@ -186,6 +186,8 @@ namespace Lampac
 
         public HashSet<Known> KnownProxies { get; set; }
 
+        public bool real_ip_cf { get; set; }
+
         public ProxySettings proxy = new ProxySettings();
 
         public ConcurrentBag<ProxySettings> globalproxy = new ConcurrentBag<ProxySettings>()
