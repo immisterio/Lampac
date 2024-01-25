@@ -86,6 +86,7 @@ namespace Lampac
 
             if (AppInit.conf.KnownProxies != null && AppInit.conf.KnownProxies.Count > 0)
             {
+                forwarded.ForwardLimit = null;
                 foreach (var k in AppInit.conf.KnownProxies)
                     forwarded.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(k.ip), k.prefixLength));
             }
