@@ -28,6 +28,7 @@ cp TorrServer/bin/Release/net6.0/publish/TorrServer.dll lpc/module/
 cp Tracks/bin/Release/net6.0/publish/Tracks.dll lpc/module/
 
 cd lpc/
+rm -f Lampac.runtimeconfig.json
 python -m zipfile -c update.zip *
 
 cd ../
