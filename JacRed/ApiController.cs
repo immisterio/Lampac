@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Globalization;
 using JacRed.Models;
+using Shared.Model.Online.Kodik;
 
 namespace JacRed.Controllers
 {
@@ -34,25 +35,40 @@ namespace JacRed.Controllers
         async public Task<ActionResult> Indexers(string apikey, string query, string title, string title_original, int year, Dictionary<string, string> category, int is_serial = -1)
         {
             #region Запрос с NUM
-            bool rqnum = false;
+            bool rqnum = !HttpContext.Request.QueryString.Value.Contains("&is_serial=") && HttpContext.Request.Headers.UserAgent.ToString() == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36";
 
-            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(title_original))
+            if (rqnum && query != null)
             {
-                var mNum = Regex.Match(query ?? string.Empty, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
+                var mNum = Regex.Match(query, "^([^a-z-A-Z]+) ([^а-я-А-Я]+) ([0-9]{4})$");
 
-                if (mNum.Success && Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z0-9]{2}"))
+                if (mNum.Success)
                 {
-                    rqnum = true;
-                    var g = mNum.Groups;
+                    if (Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z0-9]{2}"))
+                    {
+                        var g = mNum.Groups;
+                        title = g[1].Value;
+                        title_original = g[2].Value;
+                        year = int.Parse(g[3].Value);
+                    }
+                }
+                else
+                {
+                    if (Regex.IsMatch(query, "^([^a-z-A-Z]+) ((19|20)[0-9]{2})$"))
+                        return Content(JsonConvert.SerializeObject(new { Results = new List<Result>(), jacred = ModInit.conf.typesearch == "red" }), "application/json; charset=utf-8");
 
-                    title = g[1].Value;
-                    title_original = g[2].Value;
-                    year = int.Parse(g[3].Value);
+                    mNum = Regex.Match(query, "^([^a-z-A-Z]+) ([^а-я-А-Я]+)$");
+
+                    if (mNum.Success)
+                    {
+                        if (Regex.IsMatch(mNum.Groups[2].Value, "[a-zA-Z0-9]{2}"))
+                        {
+                            var g = mNum.Groups;
+                            title = g[1].Value;
+                            title_original = g[2].Value;
+                        }
+                    }
                 }
             }
-
-            if (!rqnum)
-                rqnum = !HttpContext.Request.QueryString.Value.Contains("&is_serial=") && HttpContext.Request.Headers.UserAgent.ToString() == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36";
             #endregion
 
             IEnumerable<TorrentDetails> torrents = null;

@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
                         while (match.Success)
                         {
                             if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                                links.Add((match.Groups[2].Value.ToLower(), $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}"));
+                                links.Add((match.Groups[2].Value.ToLower(), $"lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}"));
 
                             match = match.NextMatch();
                         }
@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + l.uri + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + l.name + "</div></div></div>";
+                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + $"{host}/{l.uri}" + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + l.name + "</div></div></div>";
                         firstjson = false;
                     }
                     #endregion

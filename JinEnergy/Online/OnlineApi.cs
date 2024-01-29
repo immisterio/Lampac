@@ -119,8 +119,8 @@ namespace JinEnergy.Online
 
             if (isanime)
             {
-                online.Append("{\"name\":\"Animevost\",\"url\":\"https://bwa-cloud.apn.monster/lite/animevost\"},");
-                online.Append("{\"name\":\"AniMedia\",\"url\":\"https://bwa-cloud.apn.monster/lite/animedia\"},");
+                online.Append("{\"name\":\"Animevost - 720p\",\"url\":\"https://bwa-cloud.apn.monster/lite/animevost\"},");
+                online.Append("{\"name\":\"AniMedia - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/animedia\"},");
             }
 
             if (AppInit.Filmix.enable && AppInit.Filmix.pro)
@@ -171,7 +171,7 @@ namespace JinEnergy.Online
             if (AppInit.VCDN.enable)
                 online.Append("{\"name\":\"VideoCDN - 1080p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/vcdn\"},");
 
-            online.Append("{\"name\":\"HDVB\",\"url\":\"https://bwa-cloud.apn.monster/lite/hdvb\"},");
+            online.Append("{\"name\":\"HDVB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/hdvb\"},");
 
             if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
                 online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
