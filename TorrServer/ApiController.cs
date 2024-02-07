@@ -168,7 +168,7 @@ namespace Lampac.Controllers
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                         return;
                     }
-                    else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1")
+                    else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
                         client.Timeout = TimeSpan.FromSeconds(10);
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
@@ -201,7 +201,7 @@ namespace Lampac.Controllers
         #region Start
         async public ValueTask<bool> Start()
         {
-            if (ModInit.tsprocess == null /*|| await CheckPort(ModInit.tsport, HttpContext) == false*/)
+            if (ModInit.tsprocess == null)
             {
                 #region Запускаем TorrServer
                 var thread = new Thread(() =>

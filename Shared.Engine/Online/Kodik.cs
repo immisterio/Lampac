@@ -244,7 +244,7 @@ namespace Shared.Engine.Online
             }
 
             if (string.IsNullOrEmpty(uri))
-                uri = "/bor";
+                return null;
 
             string? json = await onpost($"{linkhost + uri}", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D");
             if (json == null || !json.Contains("\"src\":\""))

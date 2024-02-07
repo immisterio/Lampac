@@ -6,12 +6,17 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using Shared.Model.Online.Rezka;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
     public class Rezka : BaseOnlineController
     {
         #region InitRezkaInvoke
+        static DateTimeOffset _ym = DateTimeOffset.UtcNow;
+
+        static string cookie_default = $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
+
         public RezkaInvoke InitRezkaInvoke()
         {
             var init = AppInit.conf.Rezka;
@@ -21,7 +26,7 @@ namespace Lampac.Controllers.LITE
 
             var headers = new List<(string name, string val)>
             {
-                ("Cookie", string.IsNullOrEmpty(init.cookie) ? "PHPSESSID=ulsp3783953bm7ejojgakcicco; dle_user_token=3c7bafea181a12a4b2d2dc2555fcc86c; _ym_uid=170332480144901774; _ym_d=1703324801; _ym_isad=2; _ym_visorc=b" : init.cookie),
+                ("Cookie", string.IsNullOrEmpty(init.cookie) ? cookie_default : init.cookie),
                 ("Origin", init.host),
                 ("Referer", init.host + "/")
             };

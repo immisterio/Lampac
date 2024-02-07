@@ -469,11 +469,11 @@ namespace Lampac.Controllers
                         case "animevost":
                         case "animebesst":
                         case "kodik":
+                        case "kinotochka":
                             quality = " ~ 720p";
                             break;
                         case "kinokrad":
                         case "kinoprofi":
-                        case "kinotochka":
                         case "seasonvar":
                             quality = " - 480p";
                             break;

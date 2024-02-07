@@ -143,29 +143,35 @@ namespace Lampac.Controllers.LITE
                     uri += $"&episode={e}";
                 #endregion
 
-                string json = await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
-                if (json == null || !json.Contains("\"status\":\"success\""))
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
+                if (root == null || !root.ContainsKey("data"))
                     return OnError("json", proxyManager);
 
-                json = json.Replace("\\", "");
+                var data = root["data"];
+                string default_audio = data.Value<string>("default_audio");
+                string subtitle = data.Value<string>("subtitle");
+                string playlist_file = data.Value<string>("playlist_file");
 
-                _cache.m3u8 = Regex.Match(json, "\"playlist_file\":\"(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(_cache.m3u8))
+                foreach (var item in data["file"])
                 {
-                    string default_audio = Regex.Match(json, "\"default_audio\":\"([^<]+)\"").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(default_audio))
-                        _cache.m3u8 = Regex.Match(json, $"{default_audio}\",\"[^\"]+\":\"(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
+                    string h264 = item.Value<string>("h264");
+                    string audio = item.Value<string>("audio");
 
-                    if (string.IsNullOrWhiteSpace(_cache.m3u8))
+                    if (string.IsNullOrEmpty(h264))
+                        continue;
+
+                    if (!string.IsNullOrEmpty(default_audio))
                     {
-                        _cache.m3u8 = Regex.Match(json, "\"playlist_file\":\"\\{[^\\}]+\\}(https?://[^;\" ]+\\.m3u8)").Groups[1].Value;
-                        if (string.IsNullOrWhiteSpace(_cache.m3u8))
-                            return OnError("m3u8");
+                        if (string.IsNullOrEmpty(audio) || !audio.ToLower().Contains(default_audio.ToLower()))
+                            continue;
                     }
+
+                    string oiha = h264.Replace("/oihs/", "/oiha/"); // как бы мы жили без костелей
+                    _cache.m3u8 = playlist_file.Contains(oiha) ? oiha : h264;
+                    break;
                 }
 
-                string subtitle = Regex.Match(json, "\"subtitle\":\"(https?://[^;\" ]+)").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(subtitle) && subtitle.Contains(".vtt"))
+                if (!string.IsNullOrEmpty(subtitle) && subtitle.Contains(".vtt"))
                     _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 
                 proxyManager.Success();
@@ -201,7 +207,7 @@ namespace Lampac.Controllers.LITE
                     if (root == null || !root.ContainsKey("data"))
                         return (true, 0, null);
 
-                    foreach (var item in root.Value<JArray>("data"))
+                    foreach (var item in root["data"])
                     {
                         if (item.Value<string>("name")?.ToLower()?.Trim() == title.ToLower())
                         {

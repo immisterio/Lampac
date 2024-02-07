@@ -18,7 +18,7 @@ namespace Lampac.Engine.CORE
         {
             var handler = new HttpClientHandler()
             {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
 
             handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
@@ -62,7 +62,7 @@ namespace Lampac.Engine.CORE
             if (MaxResponseContentBufferSize != -1)
                 client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
 
-            client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate");
+            client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
             client.DefaultRequestHeaders.Add("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5");
 
             if (cookie != null)
@@ -85,7 +85,7 @@ namespace Lampac.Engine.CORE
             }
 
             if (setDefaultUseragent)
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36");
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
         }
         #endregion
 
