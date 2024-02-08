@@ -270,6 +270,7 @@ namespace Lampac.Controllers
             if (ModInit.tsprocess == null)
                 return false;
 
+            ModInit.lastActve = DateTime.Now;
             ModInit.clientIps.Add(HttpContext.Connection.RemoteIpAddress.ToString());
 
             return true;

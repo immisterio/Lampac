@@ -77,7 +77,7 @@ namespace Shared.Model
 
         public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("http://api.vokino.tv", enable: false, streamproxy: true);
 
-        public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("https://iframe.video", "https://videoframe.space");
+        public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("https://iframe.video", "https://videoframe.space", enable: false);
 
         public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("https://apivb.info", token: "5e2fe4c70bafd9a7414c4f170ee1b192");
 

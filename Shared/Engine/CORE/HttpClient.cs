@@ -57,6 +57,12 @@ namespace Lampac.Engine.CORE
         #region DefaultRequestHeaders
         static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<(string name, string val)> addHeaders)
         {
+            string loglines = string.Empty;
+            DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders, ref loglines);
+        }
+
+        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<(string name, string val)> addHeaders, ref string loglines)
+        {
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
             if (MaxResponseContentBufferSize != -1)
@@ -65,11 +71,20 @@ namespace Lampac.Engine.CORE
             client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
             client.DefaultRequestHeaders.Add("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5");
 
+            loglines += "Accept-Encoding: gzip, deflate, br\n";
+            loglines += "Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5\n";
+
             if (cookie != null)
+            {
                 client.DefaultRequestHeaders.Add("cookie", cookie);
+                loglines += $"cookie: {cookie}\n";
+            }
 
             if (referer != null)
+            {
                 client.DefaultRequestHeaders.Add("referer", referer);
+                loglines += $"referer: {referer}\n";
+            }
 
             bool setDefaultUseragent = true;
 
@@ -81,11 +96,15 @@ namespace Lampac.Engine.CORE
                         setDefaultUseragent = false;
 
                     client.DefaultRequestHeaders.Add(item.name, item.val);
+                    loglines += $"{item.name}: {item.val}\n";
                 }
             }
 
             if (setDefaultUseragent)
+            {
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
+                loglines += "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36\n";
+            }
         }
         #endregion
 
@@ -161,7 +180,7 @@ namespace Lampac.Engine.CORE
             {
                 using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders);
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders, ref loglines);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -170,7 +189,9 @@ namespace Lampac.Engine.CORE
 
                     using (HttpResponseMessage response = await client.SendAsync(req))
                     {
-                        loglines += $"StatusCode: {(int)response.StatusCode}";
+                        loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
+                        foreach (var h in response.Headers)
+                            loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
 
                         if (response.StatusCode != HttpStatusCode.OK)
                             return (null, response);
@@ -183,7 +204,7 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                loglines += "\n\n" + res;
+                                loglines += "\n" + res;
                                 return (res, response);
                             }
                             else
@@ -192,7 +213,7 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                loglines += "\n\n" + res;
+                                loglines += "\n" + res;
                                 return (res, response);
                             }
                         }
@@ -231,7 +252,7 @@ namespace Lampac.Engine.CORE
             {
                 using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, addHeaders);
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, addHeaders, ref loglines);
 
                     var req = new HttpRequestMessage(HttpMethod.Post, url)
                     {
@@ -241,7 +262,9 @@ namespace Lampac.Engine.CORE
 
                     using (HttpResponseMessage response = await client.SendAsync(req))
                     {
-                        loglines += $"StatusCode: {(int)response.StatusCode}";
+                        loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
+                        foreach (var h in response.Headers)
+                            loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
 
                         if (response.StatusCode != HttpStatusCode.OK)
                             return null;
@@ -254,7 +277,7 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return null;
 
-                                loglines += "\n\n" + res;
+                                loglines += "\n" + res;
                                 return res;
                             }
                             else
@@ -263,7 +286,7 @@ namespace Lampac.Engine.CORE
                                 if (string.IsNullOrWhiteSpace(res))
                                     return null;
 
-                                loglines += "\n\n" + res;
+                                loglines += "\n" + res;
                                 return res;
                             }
                         }
@@ -377,9 +400,25 @@ namespace Lampac.Engine.CORE
         #region WriteLog
         static FileStream logFileStream = null;
 
+        public static List<string> logWeb = new List<string>();
+
         async static Task WriteLog(string url, string method, string postdata, string result)
         {
-            if (!AppInit.conf.log || url.Contains("127.0.0.1"))
+            if (url.Contains("127.0.0.1"))
+                return;
+
+            string log = $"{DateTime.Now}\n{method}: {url}\n";
+
+            if (!string.IsNullOrEmpty(postdata))
+                log += $"{postdata}\n\n";
+
+            log += result;
+
+            logWeb.Insert(0, log);
+            if (logWeb.Count > (AppInit.conf.disablecache ? 50 : 200))
+                logWeb.RemoveAt(logWeb.Count - 1);
+
+            if (!AppInit.conf.log)
                 return;
 
             string dateLog = DateTime.Today.ToString("dd.MM.yy");
@@ -388,16 +427,7 @@ namespace Lampac.Engine.CORE
             if (logFileStream == null || !File.Exists(patchlog))
                 logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
 
-            string log = $"{DateTime.Now}\n{method}: {url}\n";
-
-            if (!string.IsNullOrWhiteSpace(postdata))
-                log += $"{postdata}\n";
-
-            log += result;
-
-            string splitline = "################################################################";
-            var buffer = Encoding.UTF8.GetBytes($"\n\n\n{splitline}\n\n{log}");
-
+            var buffer = Encoding.UTF8.GetBytes($"\n\n\n################################################################\n\n{log}");
             await logFileStream.WriteAsync(buffer, 0, buffer.Length);
             await logFileStream.FlushAsync();
         }
