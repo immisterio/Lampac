@@ -193,9 +193,6 @@ namespace Lampac.Engine.CORE
                         foreach (var h in response.Headers)
                             loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
 
-                        if (response.StatusCode != HttpStatusCode.OK)
-                            return (null, response);
-
                         using (HttpContent content = response.Content)
                         {
                             if (encoding != default)
@@ -205,6 +202,9 @@ namespace Lampac.Engine.CORE
                                     return (null, response);
 
                                 loglines += "\n" + res;
+                                if (response.StatusCode != HttpStatusCode.OK)
+                                    return (null, response);
+
                                 return (res, response);
                             }
                             else
@@ -214,6 +214,9 @@ namespace Lampac.Engine.CORE
                                     return (null, response);
 
                                 loglines += "\n" + res;
+                                if (response.StatusCode != HttpStatusCode.OK)
+                                    return (null, response);
+
                                 return (res, response);
                             }
                         }
@@ -266,9 +269,6 @@ namespace Lampac.Engine.CORE
                         foreach (var h in response.Headers)
                             loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
 
-                        if (response.StatusCode != HttpStatusCode.OK)
-                            return null;
-
                         using (HttpContent content = response.Content)
                         {
                             if (encoding != default)
@@ -278,6 +278,9 @@ namespace Lampac.Engine.CORE
                                     return null;
 
                                 loglines += "\n" + res;
+                                if (response.StatusCode != HttpStatusCode.OK)
+                                    return null;
+
                                 return res;
                             }
                             else
@@ -287,6 +290,9 @@ namespace Lampac.Engine.CORE
                                     return null;
 
                                 loglines += "\n" + res;
+                                if (response.StatusCode != HttpStatusCode.OK)
+                                    return null;
+
                                 return res;
                             }
                         }

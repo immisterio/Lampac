@@ -92,7 +92,7 @@ namespace TorrServer
 
                     try
                     {
-                        if (lastActve > DateTime.Now.AddMinutes(-20))
+                        if (lastActve > DateTime.Now.AddMinutes(-conf.disposeTime))
                             continue;
 
                         tsprocess?.Dispose();
