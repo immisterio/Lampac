@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.0.4" />
     <PackageReference Include="NetVips" Version="2.2.0" />
     <PackageReference Include="NetVips.Native" Version="8.13.2" />
   </ItemGroup>

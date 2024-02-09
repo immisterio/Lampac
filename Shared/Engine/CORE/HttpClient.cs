@@ -406,7 +406,7 @@ namespace Lampac.Engine.CORE
         #region WriteLog
         static FileStream logFileStream = null;
 
-        public static List<string> logWeb = new List<string>();
+        public static EventHandler<string> onlog = null;
 
         async static Task WriteLog(string url, string method, string postdata, string result)
         {
@@ -420,9 +420,7 @@ namespace Lampac.Engine.CORE
 
             log += result;
 
-            logWeb.Insert(0, log);
-            if (logWeb.Count > (AppInit.conf.disablecache ? 50 : 200))
-                logWeb.RemoveAt(logWeb.Count - 1);
+            onlog?.Invoke(null, log);
 
             if (!AppInit.conf.log)
                 return;

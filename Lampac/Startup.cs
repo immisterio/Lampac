@@ -10,10 +10,9 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Lampac.Engine.Middlewares;
 using Lampac.Engine.CORE;
-using Newtonsoft.Json.Linq;
-using System.Text;
 using System.Net;
 using System;
+using Lampac.Engine;
 
 namespace Lampac
 {
@@ -43,6 +42,8 @@ namespace Lampac
             {
                 options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/vnd.apple.mpegurl", "image/svg+xml" });
             });
+
+            services.AddSignalR();
 
             #region mvcBuilder
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
@@ -77,6 +78,8 @@ namespace Lampac
             Shared.Startup.Configure(app, memory);
 
             app.UseDeveloperExceptionPage();
+
+            HttpClient.onlog += (e, log) => { _= soks.Send(log, "http"); };
 
             #region UseForwardedHeaders
             var forwarded = new ForwardedHeadersOptions
@@ -122,6 +125,7 @@ namespace Lampac
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<soks>("/ws");
                 endpoints.MapControllers();
             });
         }

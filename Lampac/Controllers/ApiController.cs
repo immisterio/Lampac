@@ -65,9 +65,6 @@ namespace Lampac.Controllers
 
         [Route("/myip")]
         public ActionResult MyIP() => Content(HttpContext.Connection.RemoteIpAddress.ToString());
-
-        [Route("/weblog/http")]
-        public ActionResult WebLogHttp() => Content(string.Join("\n\n\n################################################################\n\n", HttpClient.logWeb));
         #endregion
 
 

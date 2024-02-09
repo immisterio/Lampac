@@ -10,7 +10,7 @@ namespace Tracks
     {
         public static async void loaded()
         {
-            if (File.Exists("cache/ffprobe.exe") || !AppInit.Win32NT)
+            if (File.Exists(@"C:\ProgramData\lampac\disablesync") || File.Exists("cache/ffprobe.exe") || !AppInit.Win32NT)
                 return;
 
             string version = await HttpClient.Get("https://ffbinaries.com/api/v1/version/latest");
