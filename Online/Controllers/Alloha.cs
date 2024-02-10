@@ -157,8 +157,16 @@ namespace Lampac.Controllers.LITE
                     string h264 = item.Value<string>("h264");
                     string audio = item.Value<string>("audio");
 
+                    void setvideo() {
+                        string oiha = h264.Replace("/oihs/", "/oiha/"); // как бы мы жили без костелей
+                        _cache.m3u8 = playlist_file.Contains(oiha) ? oiha : h264;
+                    }
+
                     if (string.IsNullOrEmpty(h264))
                         continue;
+
+                    if (string.IsNullOrEmpty(_cache.m3u8))
+                        setvideo();
 
                     if (!string.IsNullOrEmpty(default_audio))
                     {
@@ -166,8 +174,7 @@ namespace Lampac.Controllers.LITE
                             continue;
                     }
 
-                    string oiha = h264.Replace("/oihs/", "/oiha/"); // как бы мы жили без костелей
-                    _cache.m3u8 = playlist_file.Contains(oiha) ? oiha : h264;
+                    setvideo();
                     break;
                 }
 

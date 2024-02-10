@@ -422,7 +422,7 @@ namespace Lampac.Engine.CORE
 
             onlog?.Invoke(null, log);
 
-            if (!AppInit.conf.log)
+            if (!AppInit.conf.log || log.Length > 400_000)
                 return;
 
             string dateLog = DateTime.Today.ToString("dd.MM.yy");
