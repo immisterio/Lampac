@@ -134,6 +134,8 @@ namespace JinEnergy
 
         public static OnlinesSettings Redheadsound => conf.Redheadsound;
 
+        public static OnlinesSettings iRemux => conf.iRemux;
+
         public static FilmixSettings Filmix => conf.Filmix;
 
         public static FilmixSettings FilmixPartner => conf.FilmixPartner;

@@ -509,7 +509,10 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy")
+                        continue;
+
+                    if (header.Key.ToLower().StartsWith("x-"))
                         continue;
 
                     if (header.Key.ToLower().Contains("access-control"))

@@ -300,6 +300,9 @@ namespace Lampac.Controllers
             if (conf.Kinobase.enable && !conf.Kinobase.rip)
                 online += "{\"name\":\"" + (conf.Kinobase.displayname ?? "Kinobase") + "\",\"url\":\"{localhost}/kinobase\"},";
 
+            if (conf.iRemux.enable && (serial == -1 || serial == 0))
+                online += "{\"name\":\"" + (conf.iRemux.displayname ?? "iRemux") + "\",\"url\":\"{localhost}/remux\"},";
+
             if (conf.Zetflix.enable && kinopoisk_id > 0)
                 online += "{\"name\":\"" + (conf.Zetflix.displayname ?? "Zetflix") + "\",\"url\":\"{localhost}/zetflix\"},";
 
@@ -462,6 +465,7 @@ namespace Lampac.Controllers
                         case "iframevideo":
                         case "animego":
                         case "lostfilmhd":
+                        case "remux":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":

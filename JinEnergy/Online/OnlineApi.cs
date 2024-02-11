@@ -164,6 +164,9 @@ namespace JinEnergy.Online
                 if (AppInit.Redheadsound.enable)
                     online.Append("{\"name\":\"RHS - 1080p\",\"url\":\"lite/redheadsound\"},");
 
+                if (AppInit.iRemux.enable)
+                    online.Append("{\"name\":\"iRemux - 1080p\",\"url\":\"lite/remux\"},");
+
                 if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
                     online.Append("{\"name\":\"Kinotochka - 720p\",\"url\":\"lite/kinotochka\"},");
             }

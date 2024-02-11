@@ -58,6 +58,8 @@ namespace Shared.Model
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio", streamproxy: true);
 
+        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://oblakofailov.ru", streamproxy: true) { corseu = true };
+
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("http://filmixapp.cyou");
