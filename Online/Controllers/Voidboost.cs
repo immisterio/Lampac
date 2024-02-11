@@ -21,11 +21,10 @@ namespace Lampac.Controllers.LITE
             var headers = new List<(string name, string val)>();
 
             if (init.xrealip)
-            {
-                headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
-                headers.Add(("Origin", "http://baskino.me"));
-                headers.Add(("Referer", "http://baskino.me/"));
-            }
+                headers.Add(("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
+
+            headers.Add(("Origin", "http://baskino.me"));
+            headers.Add(("Referer", "http://baskino.me/"));
 
             return new VoidboostInvoke
             (
@@ -88,7 +87,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", cacheTime(20), () => oninvk.Movie(t, s, e), proxyManager);
+            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
             if (md == null)
                 return OnError(proxyManager);
 

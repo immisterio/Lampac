@@ -112,7 +112,7 @@ namespace Lampac.Controllers.LITE
             var oninvk = InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
-            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(20), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
+            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
                 return OnError(proxyManager);
 
