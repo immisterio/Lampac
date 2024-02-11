@@ -52,14 +52,14 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/remux/movie")]
-        async public Task<ActionResult> Movie(string id, string title, string original_title)
+        async public Task<ActionResult> Movie(string linkid, string title, string original_title)
         {
             if (!AppInit.conf.iRemux.enable)
                 return OnError();
 
             var oninvk = InitRemuxInvoke();
 
-            string weblink = await InvokeCache($"remux:view:{id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Weblink(id), proxyManager);
+            string weblink = await InvokeCache($"remux:view:{linkid}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Weblink(linkid), proxyManager);
             if (weblink == null)
                 return OnError(proxyManager);
 

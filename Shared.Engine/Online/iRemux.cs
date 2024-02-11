@@ -80,9 +80,9 @@ namespace Shared.Engine.Online
 
             var mtpl = new MovieTpl(title, original_title);
 
-            string id = Regex.Match(content, "1080p(<br>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\"").Groups[2].Value;
-            if (!string.IsNullOrEmpty(id))
-                mtpl.Append("1080p", host + $"lite/remux/movie?id={id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}", "call");
+            string linkid = Regex.Match(content, "1080p(<br>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\"").Groups[2].Value;
+            if (!string.IsNullOrEmpty(linkid))
+                mtpl.Append("1080p", host + $"lite/remux/movie?linkid={linkid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}", "call");
 
             return mtpl.ToHtml();
         }
@@ -90,9 +90,9 @@ namespace Shared.Engine.Online
 
 
         #region Weblink
-        async public ValueTask<string?> Weblink(string id)
+        async public ValueTask<string?> Weblink(string linkid)
         {
-            string? html = await onget($"https://cloud.mail.ru/public/{id}");
+            string? html = await onget($"https://cloud.mail.ru/public/{linkid}");
             if (html == null)
                 return null;
 
@@ -104,7 +104,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(location))
                 return null;
 
-            return $"{location}/weblink/view/{id}";
+            return $"{location}/weblink/view/{linkid}";
         }
         #endregion
 

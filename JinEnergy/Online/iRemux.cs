@@ -41,9 +41,9 @@ namespace JinEnergy.Online
                 return EmptyError("enable");
 
             var arg = defaultArgs(args);
-            string? id = parse_arg("id", args);
+            string? linkid = parse_arg("linkid", args);
 
-            string? weblink = await InvokeCache(0, $"remux:view:{id}", () => oninvk.Weblink(id));
+            string? weblink = await InvokeCache(0, $"remux:view:{linkid}", () => oninvk.Weblink(linkid));
             if (weblink == null)
                 return EmptyError("weblink");
 
