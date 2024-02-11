@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
                 headers.Add(("X-App-Hdrezka-App", "1"));
 
             if (init.xrealip)
-                headers.Add(("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
+                headers.Add(("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
 
             string country = init.forceua ? "UA" : GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
 

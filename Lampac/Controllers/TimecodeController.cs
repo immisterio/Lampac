@@ -43,9 +43,13 @@ namespace Lampac.Controllers
             return Json(await getData(path));
         }
 
+        [HttpPost]
         [Route("/timecode/add")]
-        async public Task<ActionResult> Set(long profile, string card_id, string id, string data)
+        async public Task<ActionResult> Set([FromQuery]long profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
         {
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
+                return Content(string.Empty);
+
             string path = getFilePath(card_id, profile, true);
             var db = await getData(path);
 
