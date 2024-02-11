@@ -34,7 +34,7 @@ namespace JinEnergy.Online
             return content;
         }
 
-        [JSInvokable("lite/voidboost/movie")]
+        [JSInvokable("lite/remux/movie")]
         async public static ValueTask<string> Movie(string args)
         {
             if (!AppInit.iRemux.enable)
