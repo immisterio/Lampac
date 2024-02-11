@@ -111,7 +111,8 @@ namespace Shared.Engine.Online
         #region Movie
         public string Movie(string weblink, string title, string original_title)
         {
-            return "{\"method\":\"play\",\"url\":\"" + onstreamfile?.Invoke(weblink) + "\",\"title\":\"" + (title ?? original_title) + "\"}";
+            string lnk = onstreamfile?.Invoke(weblink);
+            return "{\"method\":\"play\",\"url\":\"" + lnk + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {\"1080p\":\""+lnk+ "\"}, \"subtitles\": []}";
         }
         #endregion
     }
