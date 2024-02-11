@@ -31,7 +31,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(content))
                 return EmptyError("content");
 
-            return content;
+            return oninvk.Html(content, arg.title, arg.original_title);
         }
 
         [JSInvokable("lite/remux/movie")]
