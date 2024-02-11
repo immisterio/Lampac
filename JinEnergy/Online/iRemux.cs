@@ -10,7 +10,7 @@ namespace JinEnergy.Online
         static iRemuxInvoke oninvk = new iRemuxInvoke
         (
             null,
-            AppInit.Voidboost.corsHost(),
+            AppInit.iRemux.corsHost(),
             ongettourl => JsHttpClient.Get(AppInit.iRemux.cors(ongettourl)),
             (url, data) => JsHttpClient.Post(AppInit.iRemux.cors(url), data),
             streamfile => HostStreamProxy(AppInit.iRemux, streamfile)
