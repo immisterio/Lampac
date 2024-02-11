@@ -6,6 +6,8 @@
         
         public string? hls { get; set; }
 
+        public string? dash { get; set; }
+
         public List<Cc>? cc { get; set; }
 
         public Audio? audio { get; set; }

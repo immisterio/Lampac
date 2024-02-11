@@ -22,6 +22,8 @@ namespace Lampac.Models.LITE
 
         public bool hls { get; set; }
 
+        public bool dash { get; set; }
+
         public OnlinesSettings Clone()
         {
             return (OnlinesSettings)MemberwiseClone();
