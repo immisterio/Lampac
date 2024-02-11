@@ -42,7 +42,7 @@ namespace Shared.Model
 
 
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", enable: false, streamproxy: true, rip: true);
+        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", streamproxy: true);
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx.ukrtelcdn.net" };
 

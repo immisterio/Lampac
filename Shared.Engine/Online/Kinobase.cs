@@ -30,19 +30,19 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string? title, int year, Func<string, ValueTask<string?>> oneval)
+        async public ValueTask<EmbedModel?> Embed(string? title, int year, Func<string, ValueTask<string?>>? oneval = null)
         {
             string? content = await onget($"{apihost}/search?query={HttpUtility.UrlEncode(title)}");
             if (content == null)
                 return null;
 
             string? link = null, reservedlink = null;
-            foreach (string row in content.Split("<div class=\"col-xs-2 item\">").Skip(1))
+            foreach (string row in content.Split("<li class=\"item\">").Skip(1))
             {
                 if (row.Contains(">Трейлер</span>"))
                     continue;
 
-                var g = Regex.Match(row, "class=\"link\" alt=\"([^\"]+) \\(([0-9]{4})\\)\"").Groups;
+                var g = Regex.Match(row, "alt=\"([^\"]+) \\(([0-9]{4})\\)\"").Groups;
 
                 if (g[1].Value.ToLower().Trim() == title.ToLower())
                 {
@@ -73,33 +73,31 @@ namespace Shared.Engine.Online
             string MOVIE_ID = Regex.Match(news, "var MOVIE_ID = ([0-9]+)").Groups[1].Value;
             string IDENTIFIER = Regex.Match(news, "var IDENTIFIER = \"([^\"]+)").Groups[1].Value;
             string PLAYER_CUID = Regex.Match(news, "var PLAYER_CUID = \"([^\"]+)").Groups[1].Value;
+            var time = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            string? evalcode = await onget($"{apihost}/videoplayer.js?movie_id={MOVIE_ID}&identifier={IDENTIFIER}&player_type=new&file_type=hls");
-            if (evalcode == null)
+            string? user_data = await onget($"{apihost}/user_data?page=movie&movie_id={MOVIE_ID}&cuid={PLAYER_CUID}&_={time}");
+            if (user_data == null)
                 return null;
 
-            string? vod_url = await oneval(evalcode);
-            if (string.IsNullOrEmpty(vod_url))
-                return null;
+            string vod_hash2 = Regex.Match(user_data, "\"vod_hash2\":\"([^\"]+)\"").Groups[1].Value;
+            string vod_time2 = Regex.Match(user_data, "\"vod_time2\":([0-9]+)").Groups[1].Value;
 
-            content = await onget(apihost + vod_url);
+            content = await onget($"{apihost}/vod/{MOVIE_ID}?identifier={IDENTIFIER}&player_type=new&file_type=mp4&st={vod_hash2}&e={vod_time2}&_={time}");
             if (content == null)
                 return null;
 
-            if (!content.Contains("file|"))
+            if (content.StartsWith("file|"))
+                return new EmbedModel() { content = content };
+
+            try
             {
-                try
-                {
-                    var res = JsonSerializer.Deserialize<List<Season>>(Regex.Match(content, "^pl\\|(\\[[^\n\r]+\\])").Groups[1].Value);
-                    if (res == null || res.Count == 0)
-                        return null;
+                var res = JsonSerializer.Deserialize<List<Season>>(Regex.Match(content, "^pl\\|(\\[[^\n\r]+\\])").Groups[1].Value);
+                if (res == null || res.Count == 0)
+                    return null;
 
-                    return new EmbedModel() { serial = res };
-                }
-                catch { return null; }
+                return new EmbedModel() { serial = res };
             }
-
-            return new EmbedModel() { content = content };
+            catch { return null; }
         }
         #endregion
 
@@ -146,7 +144,7 @@ namespace Shared.Engine.Online
                             continue;
 
                         bool end = false;
-                        var smatch = new Regex("\\{([^\\}]+)\\}(https?://[^\\[\\|;\n\r\t ]+.m3u8)").Match(g[1].Value);
+                        var smatch = new Regex("\\{([^\\}]+)\\}(https?://[^\\[\\|;\n\r\t ]+\\.(mp4|m3u8))").Match(g[1].Value);
                         while (smatch.Success)
                         {
                             if (!string.IsNullOrWhiteSpace(smatch.Groups[1].Value) && !string.IsNullOrWhiteSpace(smatch.Groups[2].Value))
@@ -164,7 +162,7 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    foreach (Match m in Regex.Matches(md.content, $"\\[(1080|720|480|360)p?\\](\\{{[^\\}}]+\\}})?(https?://[^\\[\\|,;\n\r\t ]+.m3u8)").Reverse())
+                    foreach (Match m in Regex.Matches(md.content, $"\\[(1080|720|480|360)p?\\](\\{{[^\\}}]+\\}})?(https?://[^\\[\\|,;\n\r\t ]+\\.(mp4|m3u8))").Reverse())
                     {
                         string link = m.Groups[3].Value;
                         if (string.IsNullOrEmpty(link))
@@ -184,7 +182,7 @@ namespace Shared.Engine.Online
                 {
                     var streams = new List<(string link, string quality)>() { Capacity = 3 };
 
-                    foreach (Match m in Regex.Matches(_data, $"\\[(1080|720|480|360)p?\\](\\{{[^\\}}]+\\}})?(https?://[^\\[\\|,;\n\r\t ]+.m3u8)").Reverse())
+                    foreach (Match m in Regex.Matches(_data, $"\\[(1080|720|480|360)p?\\](\\{{[^\\}}]+\\}})?(https?://[^\\[\\|,;\n\r\t ]+\\.(mp4|m3u8))").Reverse())
                     {
                         string link = m.Groups[3].Value;
                         if (string.IsNullOrEmpty(link))
@@ -218,7 +216,7 @@ namespace Shared.Engine.Online
                                 continue;
 
                             var streams = getStreamLink(season.file);
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + Regex.Match(season.comment ?? season.title, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams.hls + $"\",{streams.streansquality},\"title\":\"" + title + "\", \"subtitles\": [" + getSubtitle(season.subtitle) + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (season.comment ?? season.title) + "</div></div>");
+                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"1\" e=\"" + Regex.Match(season.comment ?? season.title, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams.hls + $"\",{streams.streansquality},\"title\":\"" + title + "\", \"subtitles\": [" + getSubtitle(season.subtitle).ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + (season.comment ?? season.title) + "</div></div>");
                             firstjson = false;
                         }
                     }
