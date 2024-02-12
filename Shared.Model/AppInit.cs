@@ -68,7 +68,7 @@ namespace Shared.Model
 
         public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online", enable: false);
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("http://vdb.host") { corseu = true };
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("http://vdb.host", enable: false) { corseu = true };
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 

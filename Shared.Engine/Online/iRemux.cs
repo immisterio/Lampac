@@ -29,7 +29,7 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<string?> Embed(string? title, string? original_title, int year)
         {
-            string? search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
+            string? search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
             if (search == null)
                 return null;
 
