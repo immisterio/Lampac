@@ -38,13 +38,17 @@ namespace Shared.Engine.Online
             {
                 var g = Regex.Match(row, "class=\"entry__title [^\"]+\"><a href=\"(https?://[^\"]+)\">([^<]+)</a>").Groups;
 
-                if (g[2].Value.ToLower().Contains(title.ToLower()) || (!string.IsNullOrEmpty(original_title) && g[2].Value.ToLower().Contains(original_title.ToLower())))
+                string name = g[2].Value.ToLower();
+                if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
+                    continue;
+
+                if (name.Contains(title.ToLower()) || (!string.IsNullOrEmpty(original_title) && name.Contains(original_title.ToLower())))
                 {
                     reservedlink = g[1].Value;
                     if (string.IsNullOrEmpty(reservedlink))
                         continue;
 
-                    if (g[2].Value.Contains($"({year}/"))
+                    if (name.Contains($"({year}/"))
                     {
                         link = reservedlink;
                         break;
@@ -68,7 +72,7 @@ namespace Shared.Engine.Online
             if (!content.Contains("cloud.mail.ru/public/"))
                 return null;
 
-            return content;
+            return content.Replace("<!--colorend--></span><!--/colorend-->", "");
         }
         #endregion
 
@@ -78,13 +82,26 @@ namespace Shared.Engine.Online
             if (content == null)
                 return string.Empty;
 
-            var mtpl = new MovieTpl(title, original_title);
+            var mtpl = new MovieTpl(title, original_title, 4);
 
-            string linkid = Regex.Match(content, "1080p(<br>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\"").Groups[2].Value;
-            if (!string.IsNullOrEmpty(linkid))
-                mtpl.Append("1080p", host + $"lite/remux/movie?linkid={linkid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}", "call");
+            foreach (Match m in Regex.Matches(content, $">([^<]+)(<br>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\""))
+            {
+                string linkid = m.Groups[3].Value;
+                if (string.IsNullOrEmpty(linkid))
+                    continue;
 
-            return mtpl.ToHtml();
+                foreach (string q in new string[] { "2160p", "1080p", "720p", "480p" })
+                {
+                    string _qs = q == "480p" ? "1400" : q;
+                    if (m.Groups[1].Value.Contains(_qs))
+                    {
+                        mtpl.Append(q, host + $"lite/remux/movie?linkid={linkid}&quality={q}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}", "call");
+                        break;
+                    }
+                }
+            }
+
+            return mtpl.ToHtml(reverse: true);
         }
         #endregion
 
@@ -109,10 +126,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        public string Movie(string weblink, string title, string original_title)
+        public string Movie(string weblink, string quality, string title, string original_title)
         {
             string lnk = onstreamfile?.Invoke(weblink);
-            return "{\"method\":\"play\",\"url\":\"" + lnk + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {\"1080p\":\""+lnk+ "\"}, \"subtitles\": []}";
+            return "{\"method\":\"play\",\"url\":\"" + lnk + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {\""+(quality??"auto") + "\":\""+lnk+ "\"}, \"subtitles\": []}";
         }
         #endregion
     }

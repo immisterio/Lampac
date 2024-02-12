@@ -450,6 +450,7 @@ namespace Lampac.Controllers
                         case "vokino":
                         case "rezka":
                         case "alloha":
+                        case "remux":
                             quality = " ~ 2160p";
                             break;
                         case "videodb":
@@ -465,7 +466,6 @@ namespace Lampac.Controllers
                         case "iframevideo":
                         case "animego":
                         case "lostfilmhd":
-                        case "remux":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":

@@ -153,23 +153,23 @@ namespace JinEnergy.Online
             if (AppInit.Collaps.enable && !titleSearch)
                 online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
 
-            if (AppInit.Voidboost.enable && !titleSearch)
-                online.Append("{\"name\":\"Voidboost - 720p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/voidboost\"},");
-
             if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
                 online.Append("{\"name\":\"Filmix - 480p\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
 
             if (serial == 0 && !isanime)
             {
+                if (AppInit.iRemux.enable)
+                    online.Append("{\"name\":\"iRemux - 4K HDR\",\"url\":\"lite/remux\"},");
+
                 if (AppInit.Redheadsound.enable)
                     online.Append("{\"name\":\"RHS - 1080p\",\"url\":\"lite/redheadsound\"},");
-
-                if (AppInit.iRemux.enable)
-                    online.Append("{\"name\":\"iRemux - 1080p\",\"url\":\"lite/remux\"},");
 
                 if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
                     online.Append("{\"name\":\"Kinotochka - 720p\",\"url\":\"lite/kinotochka\"},");
             }
+
+            if (AppInit.Voidboost.enable && !titleSearch)
+                online.Append("{\"name\":\"Voidboost - 720p" + (AppInit.Country == "UA" ? " / vpn" : "") + "\",\"url\":\"lite/voidboost\"},");
 
             if (AppInit.VCDN.enable)
                 online.Append("{\"name\":\"VideoCDN - 1080p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/vcdn\"},");

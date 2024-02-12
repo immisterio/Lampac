@@ -34,6 +34,7 @@ namespace JinEnergy.Online
             return oninvk.Html(content, arg.title, arg.original_title);
         }
 
+
         [JSInvokable("lite/remux/movie")]
         async public static ValueTask<string> Movie(string args)
         {
@@ -47,7 +48,7 @@ namespace JinEnergy.Online
             if (weblink == null)
                 return EmptyError("weblink");
 
-            return oninvk.Movie(weblink, arg.title, arg.original_title);
+            return oninvk.Movie(weblink, parse_arg("quality", args), arg.title, arg.original_title);
         }
     }
 }

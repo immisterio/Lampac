@@ -28,7 +28,7 @@ namespace Shared.Model.Templates
             return ToHtml();
         }
 
-        public string ToHtml()
+        public string ToHtml(bool reverse = false)
         {
             if (data.Count == 0)
                 return string.Empty;
@@ -36,6 +36,9 @@ namespace Shared.Model.Templates
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
+
+            if (reverse)
+                data.Reverse();
 
             foreach (var i in data) 
             {

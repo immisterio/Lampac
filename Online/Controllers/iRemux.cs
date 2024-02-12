@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRemuxInvoke();
 
-            string content = await InvokeCache($"remux:{title}:{original_title}:{year}", cacheTime(30), () => oninvk.Embed(title, original_title, year), proxyManager);
+            string content = await InvokeCache($"remux:{title}:{original_title}:{year}", cacheTime(180), () => oninvk.Embed(title, original_title, year), proxyManager);
             if (content == null)
                 return OnError(proxyManager);
 
@@ -52,7 +52,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/remux/movie")]
-        async public Task<ActionResult> Movie(string linkid, string title, string original_title)
+        async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
             if (!AppInit.conf.iRemux.enable)
                 return OnError();
@@ -63,7 +63,7 @@ namespace Lampac.Controllers.LITE
             if (weblink == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Movie(weblink, title, original_title), "application/json; charset=utf-8");
+            return Content(oninvk.Movie(weblink, quality, title, original_title), "application/json; charset=utf-8");
         }
     }
 }
