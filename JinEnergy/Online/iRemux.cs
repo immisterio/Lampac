@@ -11,7 +11,7 @@ namespace JinEnergy.Online
         (
             null,
             AppInit.iRemux.corsHost(),
-            ongettourl => JsHttpClient.Get(AppInit.iRemux.cors(ongettourl), timeoutSeconds: 20),
+            ongettourl => JsHttpClient.Get(ongettourl.Contains("mail.ru") && AppInit.Country != "UA" ? ongettourl : AppInit.iRemux.cors(ongettourl)),
             (url, data) => JsHttpClient.Post(AppInit.iRemux.cors(url), data),
             streamfile => HostStreamProxy(AppInit.iRemux, streamfile)
         );

@@ -53,9 +53,6 @@
             if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri) || uri.Contains(crhost))
                 return uri;
 
-            if (uri.Contains("cloud.mail.ru"))
-                return uri;
-
             return $"{crhost}/{uri}";
         }
         #endregion
