@@ -44,7 +44,7 @@ namespace JinEnergy
         {
             try
             {
-                string? geo = await JsHttpClient.Get("https://apn.monster/country", timeoutSeconds: 8);
+                string? geo = await JsHttpClient.Get("https://apn.monster/country");
                 if (geo != null)
                     Country = geo;
 

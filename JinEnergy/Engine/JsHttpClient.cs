@@ -24,14 +24,14 @@ namespace JinEnergy.Engine
 
 
         #region Get
-        public static ValueTask<string?> Get(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
+        public static ValueTask<string?> Get(string url, Encoding? encoding = null, int timeoutSeconds = 8, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
         {
             return BaseGetAsync(url, encoding: encoding, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders);
         }
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T?> Get<T>(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
+        async public static ValueTask<T?> Get<T>(string url, Encoding? encoding = null, int timeoutSeconds = 8, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
         {
             try
             {
@@ -49,7 +49,7 @@ namespace JinEnergy.Engine
         #endregion
 
         #region BaseGetAsync
-        async static ValueTask<string?> BaseGetAsync(string url, Encoding? encoding = null, int timeoutSeconds = 5, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
+        async static ValueTask<string?> BaseGetAsync(string url, Encoding? encoding = null, int timeoutSeconds = 8, List<(string name, string val)>? addHeaders = null, bool androidHttpReq = true)
         {
             try
             {

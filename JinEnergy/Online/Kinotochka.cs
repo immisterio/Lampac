@@ -35,7 +35,7 @@ namespace JinEnergy.Online
 
         async static ValueTask<string> Embed(OnlinesSettings init, long kinopoisk_id)
         {
-            string? embed = await JsHttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8);
+            string? embed = await JsHttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}");
             return Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
         }
     }
