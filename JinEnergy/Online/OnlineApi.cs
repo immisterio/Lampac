@@ -14,6 +14,14 @@ namespace JinEnergy.Online
         [JSInvokable("externalids")]
         async public static ValueTask<string> Externalids(string args)
         {
+            string? kpid = parse_arg("id", args);
+            if (kpid != null && kpid.StartsWith("KP_"))
+            {
+                kpid = kpid.Replace("KP_", "");
+                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&kinopoisk_id=" + kpid, timeoutSeconds: 5);
+                return JsonSerializer.Serialize(new { imdb_id = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value, kinopoisk_id = kpid });
+            }
+
             var arg = defaultArgs(args);
             if (arg.id == 0)
                 return EmptyError("id");

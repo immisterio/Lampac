@@ -64,6 +64,9 @@ namespace Lampac.Controllers
         [Route("externalids")]
         async public Task<ActionResult> Externalids(long id, string imdb_id, long kinopoisk_id, int serial)
         {
+            if (id == 0)
+                return Json(new { });
+
             if (IO.File.Exists("cache/externalids/master.json"))
                 externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
 

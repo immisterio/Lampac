@@ -37,7 +37,7 @@ namespace JinEnergy.Online
                 if (string.IsNullOrEmpty(similars))
                 {
                     IMemoryCache.Remove(similar_memkey);
-                    if (IsRefresh(init))
+                    if (IsRefresh(init, true))
                         goto similar_refresh;
 
                     return EmptyError("similars");

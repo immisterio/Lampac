@@ -29,7 +29,7 @@ namespace JinEnergy.Online
             refresh: var content = await InvokeCache(arg.id, $"kinobase:view:{arg.title}:{arg.year}", () => oninvk.Embed(arg.title, arg.year, code => JSRuntime.InvokeAsync<string?>("eval", evalcode(code))));
 
             string html = oninvk.Html(content, arg.title, arg.year, s);
-            if (string.IsNullOrEmpty(html) && IsRefresh(init))
+            if (string.IsNullOrEmpty(html) && IsRefresh(init, true))
                 goto refresh;
 
             return html;
