@@ -333,11 +333,11 @@ namespace Lampac.Controllers
             if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
 
-            if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
-                online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
-
             if (conf.Kinotochka.enable)
                 online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";
+
+            if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
+                online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
 
             if (conf.IframeVideo.enable && (serial == -1 || serial == 0))
                 online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";

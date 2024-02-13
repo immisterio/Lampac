@@ -40,11 +40,18 @@ namespace JinEnergy.Engine
         public static (long id, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int serial, string? original_language, int year, string? source, int clarification, long cub_id, string? account_email) 
             defaultArgs(string args)
         {
+            long longParse(string name)
+            {
+                string? _val = parse_arg(name, args) ?? "0";
+                _val = Regex.Replace(_val, "[^0-9]+", "");
+                return long.Parse(_val);
+            }
+
             return
             (
-               long.Parse(parse_arg("id", args) ?? "0"),
+               longParse("id"),
                parse_arg("imdb_id", args),
-               long.Parse(parse_arg("kinopoisk_id", args) ?? "0"),
+               longParse("kinopoisk_id"),
                parse_arg("title", args),
                parse_arg("original_title", args),
                int.Parse(parse_arg("serial", args) ?? "0"),
@@ -52,7 +59,7 @@ namespace JinEnergy.Engine
                int.Parse(parse_arg("year", args) ?? "0"),
                parse_arg("source", args),
                int.Parse(parse_arg("clarification", args) ?? "0"),
-               long.Parse(parse_arg("cub_id", args) ?? "0"),
+               longParse("cub_id"),
                parse_arg("account_email", args)
             );
         }

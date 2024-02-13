@@ -84,7 +84,7 @@ namespace Shared.Engine.Online
 
             var mtpl = new MovieTpl(title, original_title, 4);
 
-            foreach (Match m in Regex.Matches(content, $">([^<]+)(<br>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\""))
+            foreach (Match m in Regex.Matches(content, $">([^<]+)(<[^>]+>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\""))
             {
                 string linkid = m.Groups[3].Value;
                 if (string.IsNullOrEmpty(linkid))
