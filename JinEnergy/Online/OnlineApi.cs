@@ -14,8 +14,8 @@ namespace JinEnergy.Online
         [JSInvokable("externalids")]
         async public static ValueTask<string> Externalids(string args)
         {
-            long id = long.Parse(parse_arg("id", args) ?? "0");
-            if (id == 0)
+            var arg = defaultArgs(args);
+            if (arg.id == 0)
                 return EmptyError("id");
 
             string? imdb_id = parse_arg("imdb_id", args);
@@ -65,11 +65,11 @@ namespace JinEnergy.Online
             #region get imdb_id
             if (string.IsNullOrWhiteSpace(imdb_id))
             {
-                string path = $"imdb_id:{serial}:{id}";
+                string path = $"imdb_id:{serial}:{arg.id}";
                 if (!eids.TryGetValue(path, out imdb_id))
                 {
                     string cat = serial == 1 ? "tv" : "movie";
-                    string? json = await JsHttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 5);
+                    string? json = await JsHttpClient.Get($"https://api.themoviedb.org/3/{cat}/{arg.id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 5);
                     if (!string.IsNullOrWhiteSpace(json))
                     {
                         imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
