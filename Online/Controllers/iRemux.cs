@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(ongettourl.Contains("mail.ru") ? ongettourl : init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie),
                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "remux")
             );
