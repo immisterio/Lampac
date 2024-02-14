@@ -10,7 +10,7 @@ namespace Lampac.Engine
 
         async public static Task Send(string message, string plugin)
         {
-            if (clients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 400_000)
+            if (!AppInit.conf.weblog || clients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 700_000)
                 return;
 
             await clients.SendAsync("Receive", message, plugin);

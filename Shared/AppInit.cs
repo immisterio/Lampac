@@ -160,7 +160,9 @@ namespace Lampac
 
         public bool litejac = true;
 
-        public bool log = false;
+        public bool filelog = false;
+
+        public bool weblog = false;
 
         public string anticaptchakey;
 
