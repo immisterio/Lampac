@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
             //if (content.pl == null)
             //    return OnError(proxyManager);
 
-            string html = await InvokeCache($"videodb:black_magic:{kinopoisk_id}", cacheTime(20), () => black_magic(kinopoisk_id));
+            string html = await InvokeCache($"videodb:black_magic:{kinopoisk_id}", /*cacheTime(20)*/ cacheTime(40, 40, 40), () => black_magic(kinopoisk_id));
             if (html == null)
                 return OnError();
 
@@ -58,23 +58,30 @@ namespace Lampac.Controllers.LITE
             if (browser == null)
             {
                 await new BrowserFetcher().DownloadAsync();
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions() { Headless = true /*false*/ });
+                browser = await Puppeteer.LaunchAsync(new LaunchOptions() 
+                { 
+                    Headless = true, /*false*/ 
+                    IgnoreHTTPSErrors = true,
+                    Args = new string[] { "--no-sandbox" }
+                });
             }
 
             if (page == null)
+            {
                 page = await browser.NewPageAsync();
 
-            await page.SetExtraHttpHeadersAsync(new Dictionary<string, string>()
-            {
-                ["Referer"] = "https://www.google.com/"
-            });
+                await page.SetExtraHttpHeadersAsync(new Dictionary<string, string>()
+                {
+                    ["Referer"] = "https://www.google.com/"
+                });
+            }
 
             string uri = $"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}";
 
             var response = await page.GoToAsync($"view-source:{uri}");
             string html = await response.TextAsync();
 
-            if (!html.Contains("Kinoplay App Scripts END"))
+            if (!html.Contains("new Playerjs"))
             {
                 await page.DeleteCookieAsync();
                 await page.GoToAsync(uri);
@@ -84,7 +91,7 @@ namespace Lampac.Controllers.LITE
             response = await page.GoToAsync($"view-source:{uri}");
             html = await response.TextAsync();
 
-            if (!html.Contains("Kinoplay App Scripts END"))
+            if (!html.Contains("new Playerjs"))
                 return null;
 
             return html;
