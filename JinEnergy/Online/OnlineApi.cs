@@ -139,9 +139,7 @@ namespace JinEnergy.Online
 
             //if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
             //    online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");
-
-            if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/videodb\"},");
+            online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/videodb\"},");
 
             if (AppInit.Rezka.enable)
                 online.Append("{\"name\":\"Rezka - 4K\",\"url\":\"lite/rezka\"},");
