@@ -37,8 +37,17 @@ namespace Shared.Engine.Online
                 //("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5")
             ));
 
-            onlog?.Invoke(html ?? "html null");
+            if (html == null)
+            {
+                onlog?.Invoke("html null");
+                return null;
+            }
 
+            return Embed(html);
+        }
+
+        public EmbedModel? Embed(string html)
+        {
             string? file = new Regex("file:([^\n\r]+,\\])").Match(html ?? "").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
                 return null;
