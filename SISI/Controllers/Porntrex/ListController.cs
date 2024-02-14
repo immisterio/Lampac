@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -40,7 +41,7 @@ namespace Lampac.Controllers.Porntrex
                 memoryCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: new List<(string name, string val)> { ("referer", $"{init.host}/") });
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: HeadersModel.Init("referer", $"{init.host}/"));
         }
     }
 }

@@ -40,7 +40,11 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(link))
             {
                 if (kinopoisk_id > 0 || !string.IsNullOrEmpty(imdb_id))
-                    return await EmbedID(kinopoisk_id, imdb_id);
+                {
+                    var res = await EmbedID(kinopoisk_id, imdb_id);
+                    if (res != null)
+                        return res;
+                }
 
                 string? search = await onget($"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}");
                 if (search == null)

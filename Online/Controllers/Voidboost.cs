@@ -5,6 +5,7 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using System.Collections.Generic;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,13 +19,13 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
             var init = AppInit.conf.Voidboost;
 
-            var headers = new List<(string name, string val)>();
+            var headers = new List<HeadersModel>();
 
             if (init.xrealip)
-                headers.Add(("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
+                headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
 
-            headers.Add(("Origin", "http://baskino.me"));
-            headers.Add(("Referer", "http://baskino.me/"));
+            headers.Add(new HeadersModel("Origin", "http://baskino.me"));
+            headers.Add(new HeadersModel("Referer", "http://baskino.me/"));
 
             return new VoidboostInvoke
             (

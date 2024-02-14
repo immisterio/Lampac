@@ -2,6 +2,7 @@
 using JinEnergy.Model;
 using Microsoft.JSInterop;
 using Shared.Engine.SISI;
+using Shared.Model.Online;
 
 namespace JinEnergy.SISI
 {
@@ -37,7 +38,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.HQporner.Clone();
 
-            var head = new List<(string, string)>() { ("referer", init.host!) };
+            var head = HeadersModel.Init("referer", init.host!);
 
             refresh: var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), iframeurl => JsHttpClient.Get(init.cors(iframeurl), addHeaders: head));
 

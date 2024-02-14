@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -86,8 +87,7 @@ namespace Lampac.Controllers.LITE
                 if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
                     #region content
-                    var player = await HttpClient.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>() 
-                    {
+                    var player = await HttpClient.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: HeadersModel.Init(
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("pragma", "no-cache"),
@@ -96,7 +96,7 @@ namespace Lampac.Controllers.LITE
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
                         ("x-requested-with", "XMLHttpRequest")
-                    });
+                    ));
 
                     string content = player?.Value<string>("content");
                     if (string.IsNullOrWhiteSpace(content))
@@ -186,8 +186,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: new List<(string name, string val)>()
-                {
+                string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("pragma", "no-cache"),
@@ -196,7 +195,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
                     ("x-requested-with", "XMLHttpRequest")
-                });
+                ));
 
                 if (string.IsNullOrWhiteSpace(embed))
                     return OnError(proxyManager);
@@ -213,11 +212,10 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, hls, cacheTime(30));
             }
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: new List<(string, string)>() 
-            {
+            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: HeadersModel.Init(
                 ("origin", "https://aniboom.one"),
                 ("referer", "https://aniboom.one/")
-            }));
+            )));
         }
         #endregion
     }

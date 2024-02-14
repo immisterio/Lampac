@@ -14,6 +14,7 @@ using System.Reflection;
 using Newtonsoft.Json;
 using Shared.Engine.CORE;
 using System.IO;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers
 {
@@ -403,10 +404,7 @@ namespace Lampac.Controllers
         async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
-            string res = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, addHeaders: new List<(string name, string val)>()
-            {
-                ("xhost", host)
-            });
+            string res = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, addHeaders: HeadersModel.Init("xhost", host));
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
 

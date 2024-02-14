@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
+using Shared.Model.Online;
 using SISI;
 
 namespace Lampac.Controllers.BongaCams
@@ -32,15 +33,14 @@ namespace Lampac.Controllers.BongaCams
             {
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
-                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
-                    {
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, addHeaders: HeadersModel.Init(
                         ("dnt", "1"),
                         ("referer", init.host),
                         ("sec-fetch-dest", "empty"),
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
                         ("x-requested-with", "XMLHttpRequest")
-                    });
+                    ));
                 });
 
                 if (html == null)

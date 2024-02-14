@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Model.Online;
 
 namespace Lampac.Engine
 {
@@ -19,7 +20,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "101";
+        public static string appversion => "102";
 
         public IMemoryCache memoryCache { get; private set; }
 
@@ -48,7 +49,7 @@ namespace Lampac.Engine
             return userIp;
         }
 
-        public string HostImgProxy(int width, int height, string uri, List<(string name, string val)> headers = null)
+        public string HostImgProxy(int width, int height, string uri, List<HeadersModel> headers = null)
         {
             if (string.IsNullOrWhiteSpace(uri)) 
                 return null;
@@ -65,7 +66,7 @@ namespace Lampac.Engine
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
-        public string HostStreamProxy(Istreamproxy conf, string uri, List<(string name, string val)> headers = null, WebProxy proxy = null, string plugin = null)
+        public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;

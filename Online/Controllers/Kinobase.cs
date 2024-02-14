@@ -7,6 +7,7 @@ using Shared.Engine.reCAPTCHA;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -34,7 +35,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2),
                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy),
-               streamfile => HostStreamProxy(init, streamfile, new List<(string, string)>() { ("referer", init.host) }, proxy: proxy)
+               streamfile => HostStreamProxy(init, streamfile, HeadersModel.Init("referer", init.host), proxy: proxy)
             );
 
             var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(title, year));

@@ -1,12 +1,12 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using Shared.Model.Online.Rezka;
 using System;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,18 +24,17 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("rezka", init);
             var proxy = proxyManager.Get();
 
-            var headers = new List<(string name, string val)>
-            {
+            var headers = HeadersModel.Init(
                 ("Cookie", string.IsNullOrEmpty(init.cookie) ? cookie_default : init.cookie),
                 ("Origin", init.host),
                 ("Referer", init.host + "/")
-            };
+            );
 
             if (init.xapp)
-                headers.Add(("X-App-Hdrezka-App", "1"));
+                headers.Add(new HeadersModel("X-App-Hdrezka-App", "1"));
 
             if (init.xrealip)
-                headers.Add(("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
+                headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
 
             string country = init.forceua ? "UA" : GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
 

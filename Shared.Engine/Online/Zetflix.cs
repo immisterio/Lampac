@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.Zetflix;
+﻿using Shared.Model.Online;
+using Shared.Model.Online.Zetflix;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
@@ -15,9 +16,9 @@ namespace Shared.Engine.Online
         bool usehls;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
-        Func<string, List<(string name, string val)>?, ValueTask<string?>> onget;
+        Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
 
-        public ZetflixInvoke(string? host, string? apihost, bool hls, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public ZetflixInvoke(string? host, string? apihost, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,13 +32,12 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, int s)
         {
-            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), new List<(string name, string val)>()
-            {
+            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), HeadersModel.Init(
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("referer", "https://www.google.com/"),
                 ("upgrade-insecure-requests", "1")
-            });
+            ));
 
             onlog?.Invoke(html ?? "html null");
 

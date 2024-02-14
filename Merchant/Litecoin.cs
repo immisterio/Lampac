@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Lampac.Models.Merchant.LtcWallet;
 using Shared;
 using System.Threading;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -62,10 +63,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                string json = await HttpClient.Post(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"getnewaddress\"}", addHeaders: new List<(string name, string val)>()
-                {
-                    ("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}")
-                });
+                string json = await HttpClient.Post(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"getnewaddress\"}", addHeaders: HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}"));
 
                 string payinAddress = Regex.Match(json ?? string.Empty, "\"result\":\"([^\"]+)\"").Groups[1].Value.Trim();
 
@@ -104,10 +102,7 @@ namespace Lampac.Controllers.LITE
                     if (kurs == -1)
                         continue;
 
-                    var root = await HttpClient.Post<RootTransactions>(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"listtransactions\", \"params\": [\"*\", 20]}", addHeaders: new List<(string name, string val)>()
-                    {
-                        ("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}")
-                    });
+                    var root = await HttpClient.Post<RootTransactions>(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"listtransactions\", \"params\": [\"*\", 20]}", addHeaders: HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}"));
 
                     var transactions = root?.result;
                     if (transactions == null || transactions.Count == 0)

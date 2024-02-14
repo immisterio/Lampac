@@ -12,6 +12,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Buffers;
 using Shared.Models;
+using Shared.Model.Online;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -452,7 +453,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<(string name, string val)> headers, Uri uri, bool ishls)
+        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<HeadersModel> headers, Uri uri, bool ishls)
         {
             var request = context.Request;
 

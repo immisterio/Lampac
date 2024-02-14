@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -81,8 +82,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{init.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, addHeaders: new List<(string name, string val)>()
-                {
+                string json = await HttpClient.Post($"{init.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, addHeaders: HeadersModel.Init(
                     ("DNT", "1"),
                     ("Origin", init.cdnhost),
                     ("P-REF", string.Empty),
@@ -94,7 +94,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\"")
-                });
+                ));
 
                 urim3u8 = Regex.Match(json ?? "", "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
@@ -140,8 +140,7 @@ namespace Lampac.Controllers.LITE
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");
 
-                res.content = await HttpClient.Get(res.path, timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
-                {
+                res.content = await HttpClient.Get(res.path, timeoutSeconds: 8, proxy: proxy, addHeaders: HeadersModel.Init(
                     ("DNT", "1"),
                     ("Referer", $"{init.host}/"),
                     ("Sec-Fetch-Dest", "iframe"),
@@ -151,7 +150,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\"")
-                });
+                ));
 
                 if (res.content == null)
                 {

@@ -12,8 +12,8 @@ using System.Threading;
 using System.Net.Http.Headers;
 using TorrServer;
 using Microsoft.Extensions.Caching.Memory;
-using System.Collections.Generic;
 using System.Buffers;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers
 {
@@ -45,10 +45,7 @@ namespace Lampac.Controllers
             if (!pathRequest.Contains(".js") && await Start() == false)
                 return StatusCode(500);
 
-            string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, addHeaders: new List<(string name, string val)>() 
-            {
-                ("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"),
-            });
+            string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, addHeaders: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
 
             if (html == null)
                 return StatusCode(500);

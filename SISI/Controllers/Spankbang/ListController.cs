@@ -7,14 +7,14 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.Spankbang
 {
     public class ListController : BaseSisiController
     {
         #region headers
-        public static List<(string name, string val)> headers = new List<(string name, string val)>() 
-        {
+        public static List<HeadersModel> headers = HeadersModel.Init( 
             ("cache-control", "no-cache"),
             ("dnt", "1"),
             ("pragma", "no-cache"),
@@ -25,7 +25,7 @@ namespace Lampac.Controllers.Spankbang
             ("sec-fetch-mode", "cors"),
             ("sec-fetch-site", "cross-site"),
             ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
-        };
+        );
         #endregion
 
         [HttpGet]

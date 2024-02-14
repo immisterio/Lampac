@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using Shared.Engine.CORE;
 using JacRed.Engine;
 using JacRed.Models;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.JAC
 {
@@ -81,8 +82,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("megapeer", jackett.Megapeer);
 
-            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, addHeaders: new List<(string name, string val)>()
-            {
+            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, addHeaders: HeadersModel.Init(
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("referer", $"{jackett.Megapeer.host}"),
@@ -91,7 +91,7 @@ namespace Lampac.Controllers.JAC
                 ("sec-fetch-site", "same-origin"),
                 ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1")
-            });
+            ));
 
             if (html == null || !html.Contains("id=\"logo\""))
             {

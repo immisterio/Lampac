@@ -1,6 +1,7 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Online;
 
 namespace JinEnergy.Online
 {
@@ -23,11 +24,10 @@ namespace JinEnergy.Online
             (
                null,
                init.corsHost(),
-               ongettourl => JsHttpClient.Get(init.cors(ongettourl), addHeaders: new List<(string name, string val)>()
-               {
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl), addHeaders: HeadersModel.Init(
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
-               }),
+               )),
                streamfile => HostStreamProxy(init, streamfile)
             );
 

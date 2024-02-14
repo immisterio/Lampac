@@ -11,6 +11,7 @@ using Lampac.Models.LITE.HDVB;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -135,8 +136,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
                     return OnError(proxyManager);
 
-                var header = new List<(string name, string val)>()
-                {
+                var header = HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("origin", $"https://{vid}.{href}"),
@@ -148,7 +148,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
                     ("x-csrf-token", csrftoken)
-                };
+                );
 
                 urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: header);
                 if (urim3u8 == null)
@@ -211,8 +211,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
                     return OnError(proxyManager);
 
-                var headers = new List<(string name, string val)>()
-                {
+                var headers = HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("origin", $"https://{vid}.{href}"),
@@ -224,7 +223,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
                     ("x-csrf-token", csrftoken)
-                };
+                );
 
                 var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, addHeaders: headers, IgnoreDeserializeObject: true);
                 if (playlist == null || playlist.Count == 0)

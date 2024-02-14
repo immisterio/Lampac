@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Base;
+using Shared.Model.Online;
 
 namespace Lampac.Models.LITE
 {
@@ -19,6 +20,8 @@ namespace Lampac.Models.LITE
         public string? token { get; set; }
 
         public string? cookie { get; set; }
+
+        public List<HeadersModel>? headers { get; set; }
 
         public bool hls { get; set; }
 

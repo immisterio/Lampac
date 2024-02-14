@@ -5,6 +5,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -26,11 +27,10 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: new List<(string name, string val)>()
-               {
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: HeadersModel.Init(
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
-               }),
+               )),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 

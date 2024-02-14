@@ -1,12 +1,13 @@
 ﻿using System.Net;
 using System;
 using System.Collections.Generic;
+using Shared.Model.Online;
 
 namespace Shared.Models
 {
     public class ProxyLinkModel
     {
-        public ProxyLinkModel(string reqip, List<(string name, string val)> headers, WebProxy proxy, string uri, string plugin = null)
+        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null)
         {
             this.upd = DateTime.Now;
             this.reqip = reqip;
@@ -20,7 +21,7 @@ namespace Shared.Models
 
         public string reqip { get; set; }
 
-        public List<(string name, string val)> headers { get; set; }
+        public List<HeadersModel> headers { get; set; }
 
         public WebProxy proxy { get; set; }
 

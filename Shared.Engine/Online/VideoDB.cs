@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.VideoDB;
+﻿using Shared.Model.Online;
+using Shared.Model.Online.VideoDB;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
@@ -15,9 +16,9 @@ namespace Shared.Engine.Online
         bool usehls;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
-        Func<string, List<(string name, string val)>?, ValueTask<string?>> onget;
+        Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
 
-        public VideoDBInvoke(string? host, string? apihost, bool hls, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoDBInvoke(string? host, string? apihost, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
@@ -31,12 +32,10 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, int serial)
         {
-            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (serial > 0 ? "&series=true" : ""), new List<(string name, string val)>()
-            {
+            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (serial > 0 ? "&series=true" : ""), HeadersModel.Init(
                 ("referer", "https://www.google.com/")
-                //("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5"),
-                //("referer", $"{apihost}/")
-            });
+                //("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5")
+            ));
 
             onlog?.Invoke(html ?? "html null");
 

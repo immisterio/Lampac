@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.hls,
-               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, addHeaders: head),
+               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, addHeaders: init.headers ?? head),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "videodb")
             );
 

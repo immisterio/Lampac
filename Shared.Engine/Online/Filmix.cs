@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.Filmix;
+using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
 using System.Text;
@@ -17,11 +18,11 @@ namespace Shared.Engine.Online
         string? host;
         string apihost;
         Func<string, ValueTask<string?>> onget;
-        Func<string, string, List<(string name, string val)>?, ValueTask<string?>> onpost;
+        Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<(string name, string val)>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -97,8 +98,7 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("Search2");
 
-            string? html = await onpost.Invoke("https://filmix.biz/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", new List<(string name, string val)>() 
-            {
+            string? html = await onpost.Invoke("https://filmix.biz/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
                 ("Origin", "https://filmix.biz"),
                 ("Referer", "https://filmix.biz/search/"),
                 ("X-Requested-With", "XMLHttpRequest"),
@@ -107,7 +107,7 @@ namespace Shared.Engine.Online
                 ("Sec-Fetch-Dest", "empty"),
                 ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123"),
                 ("Accept-Language", "ru-RU,ru;q=0.9")
-            });
+            ));
 
             if (html == null)
                 return null;

@@ -6,6 +6,7 @@ using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -30,11 +31,7 @@ namespace Lampac.Controllers.LITE
                 ["email"] = email.ToLower().Trim()
             };
 
-            var root = await HttpClient.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), addHeaders: new List<(string name, string val)>()
-            {
-                ("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}")
-            });
-
+            var root = await HttpClient.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), addHeaders: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || !root.ContainsKey("pay_url"))
                 return Content("root == null");
 
@@ -57,11 +54,7 @@ namespace Lampac.Controllers.LITE
 
             await System.IO.File.AppendAllTextAsync("merchant/log/cryptocloud.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
 
-            var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, addHeaders: new List<(string name, string val)>()
-            {
-                ("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}")
-            });
-
+            var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, addHeaders: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || root.Value<string>("status") != "success" || root.Value<string>("status_invoice") != "paid")
                 return StatusCode(403);
 

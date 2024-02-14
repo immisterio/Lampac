@@ -4,6 +4,7 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Model.Online;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -45,7 +46,7 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<(string name, string val)> headers = null)
+        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null)
         {
             return new JsonResult(new
             {
@@ -65,7 +66,7 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<(string name, string val)> headers = null, string plugin = null)
+        public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<HeadersModel> headers = null, string plugin = null)
         {
             Dictionary<string, string> qualitys_proxy = null;
 

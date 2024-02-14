@@ -1,4 +1,5 @@
-﻿using Shared.Models;
+﻿using Shared.Model.Online;
+using Shared.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ namespace Lampac.Engine.CORE
 
         public static string Encrypt(string uri, ProxyLinkModel p) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin);
 
-        public static string Encrypt(string uri, string reqip, List<(string name, string val)> headers = null, WebProxy proxy = null, string plugin = null)
+        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null)
         {
             if (!AppInit.conf.serverproxy.encrypt)
                 return uri;

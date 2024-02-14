@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.Kodik;
+﻿using Shared.Model.Online;
+using Shared.Model.Online.Kodik;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
@@ -15,12 +16,12 @@ namespace Shared.Engine.Online
         string? host;
         string apihost, token;
         bool usehls;
-        Func<string, List<(string name, string val)>?, ValueTask<string?>> onget;
+        Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public KodikInvoke(string? host, string apihost, string token, bool hls, Func<string, List<(string name, string val)>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public KodikInvoke(string? host, string apihost, string token, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -215,7 +216,7 @@ namespace Shared.Engine.Online
         #region VideoParse
         async public ValueTask<List<StreamModel>?> VideoParse(string linkhost, string link)
         {
-            string? iframe = await onget($"http:{link}", new List<(string name, string val)>() { ("referer", "https://animego.org/") });
+            string? iframe = await onget($"http:{link}", HeadersModel.Init("referer", "https://animego.org/"));
             if (iframe == null)
                 return null;
 
