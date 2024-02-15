@@ -30,9 +30,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, int serial)
+        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id)
         {
-            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (serial > 0 ? "&series=true" : ""), HeadersModel.Init(
+            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}", HeadersModel.Init(
                 ("referer", "https://www.google.com/")
                 //("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5")
             ));
@@ -42,6 +42,9 @@ namespace Shared.Engine.Online
                 onlog?.Invoke("html null");
                 return null;
             }
+
+            if (html.StartsWith("<script>(function(){"))
+                return new EmbedModel() { obfuscation = true};
 
             return Embed(html);
         }

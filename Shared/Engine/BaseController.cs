@@ -107,7 +107,7 @@ namespace Lampac.Engine
             return uri;
         }
 
-        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, DateTime time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
+        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
         {
             if (AppInit.conf.typecache == "file")
             {
@@ -119,7 +119,7 @@ namespace Lampac.Engine
                     return cache;
 
                 proxyManager?.Success();
-                cached.Save(cache.Value, time.TimeOfDay);
+                cached.Save(cache.Value, time);
                 return cache;
             }
             else
@@ -137,7 +137,7 @@ namespace Lampac.Engine
             }
         }
 
-        async public ValueTask<T> InvokeCache<T>(string key, DateTime time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
+        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
         {
             if (AppInit.conf.typecache == "file")
             {
@@ -149,7 +149,7 @@ namespace Lampac.Engine
                     return default;
 
                 proxyManager?.Success();
-                cached.Save(val, time.TimeOfDay);
+                cached.Save(val, time);
                 return val;
             }
             else
@@ -167,13 +167,13 @@ namespace Lampac.Engine
             }
         }
 
-        public DateTime cacheTime(int multiaccess, int home = 5, int mikrotik = 2)
+        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2)
         {
             int ctime = AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? multiaccess : home;
             if (ctime > multiaccess)
                 ctime = multiaccess;
 
-            return DateTime.Now.AddMinutes(ctime);
+            return TimeSpan.FromMinutes(ctime);
         }
 
 

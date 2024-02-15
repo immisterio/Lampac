@@ -56,14 +56,11 @@ namespace Lampac.Controllers.LITE
         {
             using (var browser = await PuppeteerTo.Browser())
             {
-                using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
+                using (var page = await PuppeteerTo.Page(browser, cookies, new Dictionary<string, string>()
                 {
                     ["Referer"] = "https://www.google.com/"
                 }))
                 {
-                    if (cookies != null)
-                        await page.SetCookieAsync(cookies);
-
                     string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
 
                     var response = await page.GoToAsync($"view-source:{uri}");
@@ -82,6 +79,7 @@ namespace Lampac.Controllers.LITE
 
                     cookies = await page.GetCookiesAsync();
                     await page.CloseAsync();
+                    await browser.CloseAsync();
 
                     if (!html.Contains("new Playerjs"))
                         return null;

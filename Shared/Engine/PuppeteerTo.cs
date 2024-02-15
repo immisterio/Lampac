@@ -17,7 +17,13 @@ namespace Shared.Engine
             });
         }
 
-        async public static ValueTask<IPage> Page(IBrowser browser, Dictionary<string, string> headers = null)
+
+        public static ValueTask<IPage> Page(IBrowser browser, Dictionary<string, string> headers = null)
+        {
+            return Page(browser, null, headers);
+        }
+
+        async public static ValueTask<IPage> Page(IBrowser browser, CookieParam[] cookies, Dictionary<string, string> headers = null)
         {
             var page = (await browser.PagesAsync())[0];
 
@@ -25,6 +31,10 @@ namespace Shared.Engine
                 await page.SetExtraHttpHeadersAsync(headers);
 
             await page.SetCacheEnabledAsync(false);
+            await page.DeleteCookieAsync();
+
+            if (cookies != null)
+                await page.SetCookieAsync(cookies);
 
             return page;
         }
