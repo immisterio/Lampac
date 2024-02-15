@@ -78,8 +78,11 @@ namespace Lampac.Controllers.LITE
                 }))
                 {
                     await page.GoToAsync($"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}");
-
                     string PHPSESSID = (await page.GetCookiesAsync())?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+
+                    await page.CloseAsync();
+                    await browser.CloseAsync();
+
                     if (!string.IsNullOrEmpty(PHPSESSID))
                     {
                         cookie = $"PHPSESSID={PHPSESSID};";
