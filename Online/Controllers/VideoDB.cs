@@ -65,34 +65,27 @@ namespace Lampac.Controllers.LITE
             if (nextUpdate > DateTime.Now)
                 return false;
 
-            cookie = null;
+            cookie = null;   
             nextUpdate = DateTime.Now.AddMinutes(2);
 
             using (var browser = await PuppeteerTo.Browser())
             {
-                try
+                userAgent = await browser.GetUserAgentAsync();
+
+                using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
                 {
-                    userAgent = await browser.GetUserAgentAsync();
+                    ["Referer"] = "https://www.google.com/"
+                }))
+                {
+                    await page.GoToAsync($"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}");
+                    string PHPSESSID = (await page.GetCookiesAsync())?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
 
-                    using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
+                    if (!string.IsNullOrEmpty(PHPSESSID))
                     {
-                        ["Referer"] = "https://www.google.com/"
-                    }))
-                    {
-                        await page.GoToAsync($"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}");
-                        string PHPSESSID = (await page.GetCookiesAsync())?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
-
-                        await page.CloseAsync();
-                        await browser.CloseAsync();
-
-                        if (!string.IsNullOrEmpty(PHPSESSID))
-                        {
-                            cookie = $"PHPSESSID={PHPSESSID};";
-                            return true;
-                        }
+                        cookie = $"PHPSESSID={PHPSESSID};";
+                        return true;
                     }
                 }
-                catch { await browser.CloseAsync(); }
             }
 
             return false;
