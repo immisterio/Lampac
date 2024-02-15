@@ -50,30 +50,33 @@ namespace Lampac.Controllers.LITE
 
         async ValueTask<string> black_magic(long kinopoisk_id, int s)
         {
-            var page = await AppInit.BrowserPage("zetflix", new Dictionary<string, string>()
+            using (var page = await AppInit.BrowserPage(new Dictionary<string, string>()
             {
                 ["Referer"] = "https://www.google.com/"
-            });
-
-            string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
-
-            var response = await page.GoToAsync($"view-source:{uri}");
-            string html = await response.TextAsync();
-
-            if (html.StartsWith("<script>(function(){"))
+            }))
             {
-                await page.DeleteCookieAsync();
-                await page.GoToAsync(uri);
+                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
 
-                //reskld = await page.ReloadAsync();
-                response = await page.GoToAsync($"view-source:{uri}");
-                html = await response.TextAsync();
+                var response = await page.GoToAsync($"view-source:{uri}");
+                string html = await response.TextAsync();
+
+                if (html.StartsWith("<script>(function(){"))
+                {
+                    await page.DeleteCookieAsync();
+                    await page.GoToAsync(uri);
+
+                    //reskld = await page.ReloadAsync();
+                    response = await page.GoToAsync($"view-source:{uri}");
+                    html = await response.TextAsync();
+                }
+
+                await page.CloseAsync();
+
+                if (!html.Contains("new Playerjs"))
+                    return null;
+
+                return html;
             }
-
-            if (!html.Contains("new Playerjs"))
-                return null;
-
-            return html;
         }
     }
 }

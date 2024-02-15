@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -21,27 +20,28 @@ namespace Lampac.Controllers.Eporner
             if (!init.enable)
                 return OnError("disable");
 
-            pg += 1;
-            string memKey = $"epr:{search}:{sort}:{c}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
-            {
-                var proxyManager = new ProxyManager("epr", init);
-                var proxy = proxyManager.Get();
+            var proxyManager = new ProxyManager("epr", init);
+            var proxy = proxyManager.Get();
 
+            pg += 1;
+            var cache = await InvokeCache<List<PlaylistItem>>($"epr:{search}:{sort}:{c}:{pg}", cacheTime(10), proxyManager, async res => 
+            {
                 string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
                 if (html == null)
-                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
+                    return res.Fail("html");
 
-                playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);
+                var playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);
 
                 if (playlists.Count == 0)
-                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    return res.Fail("playlists");
 
-                proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(10));
-            }
+                return res.Success(playlists);
+            });
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? EpornerTo.Menu(host, sort, c) : null);
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg, proxyManager, string.IsNullOrEmpty(search));
+
+            return OnResult(cache.Value, string.IsNullOrEmpty(search) ? EpornerTo.Menu(host, sort, c) : null);
         }
     }
 }

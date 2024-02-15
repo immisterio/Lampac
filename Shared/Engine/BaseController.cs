@@ -14,6 +14,7 @@ using Shared;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
+using Shared.Models;
 
 namespace Lampac.Engine
 {
@@ -104,6 +105,36 @@ namespace Lampac.Engine
             }
 
             return uri;
+        }
+
+        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, DateTime time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
+        {
+            if (AppInit.conf.typecache == "file")
+            {
+                if (Cached<T>.TryGet(key, out var cached))
+                    return new CacheResult<T>() { IsSuccess = true, Value = cached.Value };
+
+                var cache = await onget.Invoke(new CacheResult<T>());
+                if (cache == null || !cache.IsSuccess)
+                    return cache;
+
+                proxyManager?.Success();
+                cached.Save(cache.Value, time.TimeOfDay);
+                return cache;
+            }
+            else
+            {
+                if (memoryCache.TryGetValue(key, out T _val))
+                    return new CacheResult<T>() { IsSuccess = true, Value = _val };
+
+                var cache = await onget.Invoke(new CacheResult<T>());
+                if (cache == null || !cache.IsSuccess)
+                    return cache;
+
+                proxyManager?.Success();
+                memoryCache.Set(key, cache.Value, time);
+                return cache;
+            }
         }
 
         async public ValueTask<T> InvokeCache<T>(string key, DateTime time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)

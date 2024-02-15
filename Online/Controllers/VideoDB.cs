@@ -45,30 +45,33 @@ namespace Lampac.Controllers.LITE
 
         async ValueTask<string> black_magic(long kinopoisk_id)
         {
-            var page = await AppInit.BrowserPage("videodb", new Dictionary<string, string>()
+            using (var page = await AppInit.BrowserPage(new Dictionary<string, string>()
             {
                 ["Referer"] = "https://www.google.com/"
-            });
-
-            string uri = $"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}";
-
-            var response = await page.GoToAsync($"view-source:{uri}");
-            string html = await response.TextAsync();
-
-            if (html.StartsWith("<script>(function(){"))
+            }))
             {
-                await page.DeleteCookieAsync();
-                await page.GoToAsync(uri);
+                string uri = $"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}";
 
-                //reskld = await page.ReloadAsync();
-                response = await page.GoToAsync($"view-source:{uri}");
-                html = await response.TextAsync();
+                var response = await page.GoToAsync($"view-source:{uri}");
+                string html = await response.TextAsync();
+
+                if (html.StartsWith("<script>(function(){"))
+                {
+                    await page.DeleteCookieAsync();
+                    await page.GoToAsync(uri);
+
+                    //reskld = await page.ReloadAsync();
+                    response = await page.GoToAsync($"view-source:{uri}");
+                    html = await response.TextAsync();
+                }
+
+                await page.CloseAsync();
+
+                if (!html.Contains("new Playerjs"))
+                    return null;
+
+                return html;
             }
-
-            if (!html.Contains("new Playerjs"))
-                return null;
-
-            return html;
         }
     }
 }

@@ -13,6 +13,7 @@ using Lampac.Engine.CORE;
 using System.Net;
 using System;
 using Lampac.Engine;
+using PuppeteerSharp;
 
 namespace Lampac
 {
@@ -112,6 +113,18 @@ namespace Lampac
             }
 
             app.UseForwardedHeaders(forwarded);
+            #endregion
+
+            #region Puppeteer
+            new BrowserFetcher().DownloadAsync().Wait();
+
+            AppInit.browser = Puppeteer.LaunchAsync(new LaunchOptions()
+            {
+                Headless = true, /*false*/
+                IgnoreHTTPSErrors = true,
+                Args = new string[] { "--no-sandbox --disable-gpu" },
+                Timeout = 10_000
+            }).Result;
             #endregion
 
             app.UseRouting();
