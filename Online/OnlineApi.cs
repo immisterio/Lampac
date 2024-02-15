@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using Shared.Engine.CORE;
 using System.IO;
 using Shared.Model.Online;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers
 {
@@ -256,95 +257,78 @@ namespace Lampac.Controllers
                 }
             }
 
+            void send(string name, BaseSettings init, string plugin = null, string arg_title = null, string arg_url = null)
+            {
+                if (init.enable && !init.rip)
+                {
+                    string url = init.overridehost;
+                    if (string.IsNullOrEmpty(url))
+                        url = "{localhost}/" + (plugin ?? name.ToLower()) + arg_url;
+
+                    online += "{\"name\":\"" + $"{init.displayname ?? name}{arg_title}" + "\",\"url\":\"" + url + "\"},";
+                }
+            }
+
             if (!life && conf.litejac)
                 online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
-            if (conf.Kodik.enable && (original_language is "ja" or "ko" or "zh"))
-                online += "{\"name\":\"" + (conf.Kodik.displayname ?? "Kodik") + "\",\"url\":\"{localhost}/kodik\"},";
+            if (original_language is "ja" or "ko" or "zh")
+                send("Kodik", conf.Kodik);
 
             if (serial == -1 || isanime)
             {
-                if (conf.AnilibriaOnline.enable)
-                    online += "{\"name\":\"" + (conf.AnilibriaOnline.displayname ?? "Anilibria") + "\",\"url\":\"{localhost}/anilibria\"},";
-
-                if (conf.Animevost.enable)
-                    online += "{\"name\":\"" + (conf.Animevost.displayname ?? "Animevost") + "\",\"url\":\"{localhost}/animevost\"},";
-
-                if (conf.Animebesst.enable)
-                    online += "{\"name\":\"" + (conf.Animebesst.displayname ?? "Animebesst") + "\",\"url\":\"{localhost}/animebesst\"},";
-
-                if (conf.AnimeGo.enable)
-                    online += "{\"name\":\"" + (conf.AnimeGo.displayname ?? "AnimeGo") + "\",\"url\":\"{localhost}/animego\"},";
-
-                if (conf.AniMedia.enable)
-                    online += "{\"name\":\"" + (conf.AniMedia.displayname ?? "AniMedia") + "\",\"url\":\"{localhost}/animedia\"},";
+                send("Anilibria", conf.AnilibriaOnline);
+                send("Animevost", conf.Animevost);
+                send("Animebesst", conf.Animebesst);
+                send("AnimeGo", conf.AnimeGo);
+                send("AniMedia", conf.AniMedia);
             }
 
-            if (conf.VoKino.enable && (serial == -1 || serial == 0) && kinopoisk_id > 0)
-                online += "{\"name\":\"" + (conf.VoKino.displayname ?? "VoKino") + "\",\"url\":\"{localhost}/vokino\"},";
+            if ((serial == -1 || serial == 0) && kinopoisk_id > 0)
+                send("VoKino", conf.VoKino);
 
-            if (conf.Filmix.enable)
-                online += "{\"name\":\"" + (conf.Filmix.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/filmix" + (source == "filmix" ? $"?postid={id}" : "") + "\"},";
+            send("Filmix", conf.Filmix, arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            send("KinoPub", conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
+            send("Filmix", conf.FilmixPartner, "fxapi", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
 
-            if (conf.KinoPub.enable)
-                online += "{\"name\":\"" + (conf.KinoPub.displayname ?? "KinoPub") + "\",\"url\":\"{localhost}/kinopub"+(source == "pub" ? $"?postid={id}" : "")+"\"},";
+            send("Alloha", conf.Alloha);
+            send("Rezka", conf.Rezka);
 
-            if (conf.FilmixPartner.enable)
-                online += "{\"name\":\"" + (conf.FilmixPartner.displayname ?? "Filmix") + "\",\"url\":\"{localhost}/fxapi"+(source == "filmix" ? $"?postid={id}" : "")+"\"},";
+            if (kinopoisk_id > 0)
+                send("VideoDB", conf.VideoDB);
 
-            if (conf.Alloha.enable)
-                online += "{\"name\":\"" + (conf.Alloha.displayname ?? "Alloha") + "\",\"url\":\"{localhost}/alloha\"},";
+            send("Kinobase", conf.Kinobase);
 
-            if (conf.Rezka.enable)
-                online += "{\"name\":\"" + (conf.Rezka.displayname ?? "Rezka") + "\",\"url\":\"{localhost}/rezka\"},";
+            if (serial == -1 || serial == 0)
+                send("iRemux", conf.iRemux, "remux");
 
-            if (conf.VideoDB.enable && kinopoisk_id > 0)
-                online += "{\"name\":\"" + (conf.VideoDB.displayname ?? "VideoDB") + "\",\"url\":\"{localhost}/videodb\"},";
+            if (kinopoisk_id > 0)
+                send("Zetflix", conf.Zetflix);
 
-            if (conf.Kinobase.enable && !conf.Kinobase.rip)
-                online += "{\"name\":\"" + (conf.Kinobase.displayname ?? "Kinobase") + "\",\"url\":\"{localhost}/kinobase\"},";
+            send("Voidboost", conf.Voidboost);
+            send("VideoCDN", conf.VCDN, "vcdn");
+            send("Ashdi (UKR)", conf.Ashdi, "ashdi");
+            send("Eneyida (UKR)", conf.Eneyida, "eneyida");
 
-            if (conf.iRemux.enable && (serial == -1 || serial == 0))
-                online += "{\"name\":\"" + (conf.iRemux.displayname ?? "iRemux") + "\",\"url\":\"{localhost}/remux\"},";
+            if (serial == -1 || serial == 1)
+                send("Seasonvar", conf.Seasonvar);
 
-            if (conf.Zetflix.enable && kinopoisk_id > 0)
-                online += "{\"name\":\"" + (conf.Zetflix.displayname ?? "Zetflix") + "\",\"url\":\"{localhost}/zetflix\"},";
+            if (serial == -1 || serial == 1)
+                send("LostfilmHD", conf.Lostfilmhd);
 
-            if (conf.Voidboost.enable)
-                online += "{\"name\":\"" + (conf.Voidboost.displayname ?? "Voidboost") + "\",\"url\":\"{localhost}/voidboost\"},";
+            send("Collaps", conf.Collaps);
+            send("HDVB", conf.HDVB);
 
-            if (conf.VCDN.enable)
-                online += "{\"name\":\"" + (conf.VCDN.displayname ?? "VideoCDN") + "\",\"url\":\"{localhost}/vcdn\"},";
+            if (serial == -1 || serial == 0)
+                send("Redheadsound", conf.Redheadsound);
 
-            if (conf.Ashdi.enable && kinopoisk_id > 0)
-                online += "{\"name\":\"" + (conf.Ashdi.displayname ?? "Ashdi (UKR)") + "\",\"url\":\"{localhost}/ashdi\"},";
+            send("Kinotochka", conf.Kinotochka);
 
-            if (conf.Eneyida.enable)
-                online += "{\"name\":\"" + (conf.Eneyida.displayname ?? "Eneyida (UKR)") + "\",\"url\":\"{localhost}/eneyida\"},";
+            if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
+                send("CDNmovies", conf.CDNmovies);
 
-            if (conf.Seasonvar.enable && (serial == -1 || serial == 1))
-                online += "{\"name\":\"" + (conf.Seasonvar.displayname ?? "Seasonvar") + "\",\"url\":\"{localhost}/seasonvar\"},";
-
-            if (conf.Lostfilmhd.enable && !conf.Lostfilmhd.rip && (serial == -1 || serial == 1))
-                online += "{\"name\":\"" + (conf.Lostfilmhd.displayname ?? "LostfilmHD") + "\",\"url\":\"{localhost}/lostfilmhd\"},";
-
-            if (conf.Collaps.enable)
-                online += "{\"name\":\"" + (conf.Collaps.displayname ?? "Collaps") + "\",\"url\":\"{localhost}/collaps\"},";
-
-            if (conf.HDVB.enable)
-                online += "{\"name\":\"" + (conf.HDVB.displayname ?? "HDVB") + "\",\"url\":\"{localhost}/hdvb\"},";
-
-            if (conf.Redheadsound.enable && (serial == -1 || serial == 0))
-                online += "{\"name\":\"" + (conf.Redheadsound.displayname ?? "Redheadsound") + "\",\"url\":\"{localhost}/redheadsound\"},";
-
-            if (conf.Kinotochka.enable)
-                online += "{\"name\":\"" + (conf.Kinotochka.displayname ?? "Kinotochka") + "\",\"url\":\"{localhost}/kinotochka\"},";
-
-            if (conf.CDNmovies.enable && (serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
-                online += "{\"name\":\"" + (conf.CDNmovies.displayname ?? "CDNmovies") + "\",\"url\":\"{localhost}/cdnmovies\"},";
-
-            if (conf.IframeVideo.enable && (serial == -1 || serial == 0))
-                online += "{\"name\":\"" + (conf.IframeVideo.displayname ?? "IframeVideo") + "\",\"url\":\"{localhost}/iframevideo\"},";
+            if (serial == -1 || serial == 0)
+                send("IframeVideo", conf.IframeVideo);
 
             #region checkOnlineSearch
             bool chos = conf.online.checkOnlineSearch && id > 0;
@@ -470,7 +454,6 @@ namespace Lampac.Controllers
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":
-                        case "collaps":
                         case "animevost":
                         case "animebesst":
                         case "kodik":
@@ -491,6 +474,9 @@ namespace Lampac.Controllers
 
                     if (balanser == "filmix")
                         quality = AppInit.conf.Filmix.pro ? " ~ 2160p" : " - 480p";
+
+                    if (balanser == "collaps")
+                        quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
                 }
             }
             #endregion

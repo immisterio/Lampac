@@ -8,6 +8,8 @@
 
         public string? displayname { get; set; }
 
+        public string? overridehost { get; set; }
+
         public string? host { get; set; }
 
         public string? apihost { get; set; }

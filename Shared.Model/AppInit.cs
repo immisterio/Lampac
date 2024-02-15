@@ -66,7 +66,7 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
 
-        public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online", enable: false);
+        public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online");
 
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://lordsfilm3.net");
 

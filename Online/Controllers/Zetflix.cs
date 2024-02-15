@@ -4,6 +4,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -31,15 +32,48 @@ namespace Lampac.Controllers.LITE
                //AppInit.log
             );
 
-            var content = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, s), proxyManager);
-            if (content?.pl == null)
-                return OnError(proxyManager);
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(120), () => black_magic(kinopoisk_id, s), proxyManager);
+            if (html == null)
+                return OnError();
+
+            var content = oninvk.Embed(html);
+            if (content.pl == null)
+                return OnError();
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)
                 number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(60), () => oninvk.number_of_seasons(id));
 
             return Content(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
+        }
+
+
+        async ValueTask<string> black_magic(long kinopoisk_id, int s)
+        {
+            var page = await AppInit.BrowserPage("zetflix", new Dictionary<string, string>()
+            {
+                ["Referer"] = "https://www.google.com/"
+            });
+
+            string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+
+            var response = await page.GoToAsync($"view-source:{uri}");
+            string html = await response.TextAsync();
+
+            if (html.StartsWith("<script>(function(){"))
+            {
+                await page.DeleteCookieAsync();
+                await page.GoToAsync(uri);
+
+                //reskld = await page.ReloadAsync();
+                response = await page.GoToAsync($"view-source:{uri}");
+                html = await response.TextAsync();
+            }
+
+            if (!html.Contains("new Playerjs"))
+                return null;
+
+            return html;
         }
     }
 }

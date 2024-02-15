@@ -11,6 +11,8 @@ using Lampac.Models.Merchant;
 using System.Collections.Concurrent;
 using Shared.Model.Base;
 using System.Text.RegularExpressions;
+using PuppeteerSharp;
+using System.Threading.Tasks;
 
 namespace Lampac
 {
@@ -137,6 +139,37 @@ namespace Lampac
         }
         #endregion
 
+        #region browser
+        static IBrowser browser = null;
+        static Dictionary<string, IPage> browser_pages = new Dictionary<string, IPage>();
+
+        async public static ValueTask<IPage> BrowserPage(string plugin, Dictionary<string, string> headers = null)
+        {
+            if (browser == null)
+            {
+                await new BrowserFetcher().DownloadAsync();
+                browser = await Puppeteer.LaunchAsync(new LaunchOptions()
+                {
+                    Headless = true, /*false*/
+                    IgnoreHTTPSErrors = true,
+                    Args = new string[] { "--no-sandbox" },
+                    Timeout = 10_000
+                });
+            }
+
+            if (browser_pages.TryGetValue(plugin, out IPage page))
+                return page;
+
+            page = await browser.NewPageAsync();
+
+            if (headers != null && headers.Count > 0)
+                await page.SetExtraHttpHeadersAsync(headers);
+
+            browser_pages.TryAdd(plugin, page);
+            return page;
+        }
+        #endregion
+
         public static bool Win32NT => Environment.OSVersion.Platform == PlatformID.Win32NT;
 
 
@@ -152,7 +185,9 @@ namespace Lampac
 
         public bool multiaccess = false;
 
-        public bool disablecache = false;
+        public bool mikrotik = false;
+
+        public string typecache = "mem"; // mem|file
 
         public bool pirate_store = true;
 

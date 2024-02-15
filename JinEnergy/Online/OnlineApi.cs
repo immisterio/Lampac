@@ -1,5 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
+using Shared.Model.Base;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -118,81 +119,85 @@ namespace JinEnergy.Online
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             bool isanime = arg.original_language == "ja";
             bool titleSearch = string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0;
+            string argTitle_vpn = AppInit.Country == "UA" ? " / vpn" : "";
 
-            if (AppInit.Kodik.enable && (arg.original_language is "ja" or "ko" or "zh"))
-                online.Append("{\"name\":\"Kodik - 720p\",\"url\":\"lite/kodik\"},");
+            void send(string name, string plugin, BaseSettings init, string? arg_title = null, string? arg_url = null)
+            {
+                if (init.enable && !init.rip)
+                {
+                    string? url = init.overridehost;
+                    if (string.IsNullOrEmpty(url))
+                        url = "lite/" + plugin + arg_url;
 
-            if (AppInit.AnilibriaOnline.enable && isanime)
-                online.Append("{\"name\":\"Anilibria - 1080p\",\"url\":\"lite/anilibria\"},");
+                    online!.Append("{\"name\":\"" + $"{init.displayname ?? name}{arg_title}" + "\",\"url\":\"" + url + "\"},");
+                }
+            }
+
+            if (arg.original_language is "ja" or "ko" or "zh")
+                send("Kodik - 720p", "kodik", AppInit.Kodik);
 
             if (isanime)
             {
+                send("Anilibria - 1080p", "anilibria", AppInit.AnilibriaOnline);
                 online.Append("{\"name\":\"Animevost - 720p\",\"url\":\"https://bwa-cloud.apn.monster/lite/animevost\"},");
                 online.Append("{\"name\":\"AniMedia - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/animedia\"},");
             }
 
-            if (AppInit.Filmix.enable && AppInit.Filmix.pro)
-                online.Append("{\"name\":\"Filmix - 4K HDR\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
+            if (AppInit.Filmix.pro)
+                send("Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
-            if (AppInit.KinoPub.enable)
-                online.Append("{\"name\":\"KinoPub - 4K HDR\",\"url\":\"lite/kinopub" + (arg.source == "pub" ? $"?postid={arg.id}" : "")+"\"},");
+            send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
-            //if (AppInit.VideoDB.enable && arg.kinopoisk_id > 0)
-            //    online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"lite/videodb\"},");
-            online.Append("{\"name\":\"VideoDB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/videodb\"},");
+            if (arg.kinopoisk_id > 0)
+                send("VideoDB - 1080p", "videodb", AppInit.VideoDB);
 
-            if (AppInit.Rezka.enable)
-                online.Append("{\"name\":\"Rezka - 4K\",\"url\":\"lite/rezka\"},");
+            send("Rezka - 4K", "rezka", AppInit.Rezka);
 
-            if (AppInit.VoKino.enable && serial == 0 && !isanime && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"VoKino - 4K HDR\",\"url\":\"lite/vokino\"},");
+            if (serial == 0 && !isanime && arg.kinopoisk_id > 0)
+                send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
-            if (AppInit.Kinobase.enable)
-                online.Append("{\"name\":\"Kinobase - 1080p\",\"url\":\"lite/kinobase\"},");
+            send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
-                if (AppInit.Ashdi.enable && arg.kinopoisk_id > 0)
-                    online.Append("{\"name\":\"Ashdi (UKR) - 1080p\",\"url\":\"lite/ashdi\"},");
+                if (arg.kinopoisk_id > 0)
+                    send("Ashdi (UKR) - 1080p", "ashdi", AppInit.Ashdi);
 
-                if (AppInit.Eneyida.enable)
-                    online.Append("{\"name\":\"Eneyida (UKR) - 1080p\",\"url\":\"lite/eneyida\"},");
+                send("Eneyida (UKR) - 1080p", "eneyida", AppInit.Eneyida);
             }
 
-            if (AppInit.Collaps.enable && !titleSearch)
-                online.Append("{\"name\":\"Collaps - 720p\",\"url\":\"lite/collaps\"},");
+            if (!titleSearch)
+                send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
 
-            if (AppInit.Filmix.enable && !AppInit.Filmix.pro)
-                online.Append("{\"name\":\"Filmix - 480p\",\"url\":\"lite/filmix" + (arg.source == "filmix" ? $"?postid={arg.id}" : "") + "\"},");
+            if (!AppInit.Filmix.pro)
+                send("Filmix - 480p", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
             if (serial == 0 && !isanime)
             {
-                if (AppInit.iRemux.enable)
-                    online.Append("{\"name\":\"iRemux - 4K HDR\",\"url\":\"lite/remux\"},");
+                send("iRemux - 4K HDR", "remux", AppInit.iRemux);
+                send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
 
-                if (AppInit.Redheadsound.enable)
-                    online.Append("{\"name\":\"RHS - 1080p\",\"url\":\"lite/redheadsound\"},");
-
-                if (AppInit.Kinotochka.enable && arg.kinopoisk_id > 0)
-                    online.Append("{\"name\":\"Kinotochka - 720p\",\"url\":\"lite/kinotochka\"},");
+                if (arg.kinopoisk_id > 0)
+                    send("Kinotochka - 720p", "kinotochka", AppInit.Kinotochka);
             }
 
-            if (AppInit.Voidboost.enable && !titleSearch)
-                online.Append("{\"name\":\"Voidboost - 720p" + (AppInit.Country == "UA" ? " / vpn" : "") + "\",\"url\":\"lite/voidboost\"},");
+            // send("", "", AppInit.);
 
-            if (AppInit.VCDN.enable)
-                online.Append("{\"name\":\"VideoCDN - 1080p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/vcdn\"},");
+            if (!titleSearch)
+                send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
+
+            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
 
             online.Append("{\"name\":\"HDVB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/hdvb\"},");
 
-            if (AppInit.Zetflix.enable && arg.kinopoisk_id > 0)
-                online.Append("{\"name\":\"Zetflix - 1080p\",\"url\":\"lite/zetflix\"},");
+            if (arg.kinopoisk_id > 0)
+                send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
 
-            if (AppInit.VDBmovies.enable && !titleSearch)
-                online.Append("{\"name\":\"VDBmovies - 720p"+(AppInit.Country == "UA" ? " / vpn" : "")+"\",\"url\":\"lite/vdbmovies\"},");
+            if (!titleSearch)
+                send("VDBmovies - 720p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
-            if (AppInit.CDNmovies.enable && arg.kinopoisk_id > 0 && serial == 1 && !isanime)
-                online.Append("{\"name\":\"CDNmovies - 360p\",\"url\":\"lite/cdnmovies\"},");
+            if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
+                send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
 
             return $"[{Regex.Replace(online.ToString(), ",$", "")}]";

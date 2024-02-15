@@ -121,7 +121,7 @@ namespace Lampac.Engine
 
         public DateTime cacheTime(int multiaccess, int home = 5, int mikrotik = 2)
         {
-            int ctime = AppInit.conf.disablecache ? mikrotik : AppInit.conf.multiaccess ? multiaccess : home;
+            int ctime = AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? multiaccess : home;
             if (ctime > multiaccess)
                 ctime = multiaccess;
 

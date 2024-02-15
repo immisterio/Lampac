@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
-using PuppeteerSharp;
 using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
@@ -13,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string t, int s = -1, int sid = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1)
         {
             var init = AppInit.conf.VideoDB;
 
@@ -32,11 +31,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "videodb")
             );
 
-            //var content = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, serial), proxyManager);
-            //if (content.pl == null)
-            //    return OnError(proxyManager);
-
-            string html = await InvokeCache($"videodb:black_magic:{kinopoisk_id}", /*cacheTime(20)*/ cacheTime(40, 40, 40), () => black_magic(kinopoisk_id));
+            string html = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(120), () => black_magic(kinopoisk_id));
             if (html == null)
                 return OnError();
 
@@ -48,48 +43,27 @@ namespace Lampac.Controllers.LITE
         }
 
 
-
-        static IBrowser browser = null;
-
-        static IPage page = null;
-
         async ValueTask<string> black_magic(long kinopoisk_id)
         {
-            if (browser == null)
+            var page = await AppInit.BrowserPage("videodb", new Dictionary<string, string>()
             {
-                await new BrowserFetcher().DownloadAsync();
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions() 
-                { 
-                    Headless = true, /*false*/ 
-                    IgnoreHTTPSErrors = true,
-                    Args = new string[] { "--no-sandbox" }
-                });
-            }
-
-            if (page == null)
-            {
-                page = await browser.NewPageAsync();
-
-                await page.SetExtraHttpHeadersAsync(new Dictionary<string, string>()
-                {
-                    ["Referer"] = "https://www.google.com/"
-                });
-            }
+                ["Referer"] = "https://www.google.com/"
+            });
 
             string uri = $"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}";
 
             var response = await page.GoToAsync($"view-source:{uri}");
             string html = await response.TextAsync();
 
-            if (!html.Contains("new Playerjs"))
+            if (html.StartsWith("<script>(function(){"))
             {
                 await page.DeleteCookieAsync();
                 await page.GoToAsync(uri);
-            }
 
-            //reskld = await page.ReloadAsync();
-            response = await page.GoToAsync($"view-source:{uri}");
-            html = await response.TextAsync();
+                //reskld = await page.ReloadAsync();
+                response = await page.GoToAsync($"view-source:{uri}");
+                html = await response.TextAsync();
+            }
 
             if (!html.Contains("new Playerjs"))
                 return null;

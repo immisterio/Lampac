@@ -3,7 +3,9 @@ DEST="/home/lampac"
 
 # Become root
 # sudo su -
-apt-get update && apt-get install -y wget unzip ffmpeg
+apt-get update
+apt-get install -y wget unzip ffmpeg
+apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
 
 # Install .NET
 wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh 

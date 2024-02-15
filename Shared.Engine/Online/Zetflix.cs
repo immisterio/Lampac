@@ -39,6 +39,11 @@ namespace Shared.Engine.Online
                 ("upgrade-insecure-requests", "1")
             ));
 
+            return Embed(html);
+        }
+
+        public EmbedModel? Embed(string? html)
+        {
             onlog?.Invoke(html ?? "html null");
 
             if (html == null)
@@ -52,14 +57,14 @@ namespace Shared.Engine.Online
                     return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true };
 
                 return null;
-            }    
+            }
 
             file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
                         .Replace("},]", "}]");
 
             onlog?.Invoke("file: " + file);
             var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
-            if (pl == null || pl.Count == 0) 
+            if (pl == null || pl.Count == 0)
                 return null;
 
             onlog?.Invoke("pl " + pl.Count);
