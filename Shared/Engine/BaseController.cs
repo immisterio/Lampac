@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using FastCache;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -107,16 +108,32 @@ namespace Lampac.Engine
 
         async public ValueTask<T> InvokeCache<T>(string key, DateTime time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
         {
-            if (memoryCache.TryGetValue(key, out T val))
+            if (AppInit.conf.typecache == "file")
+            {
+                if (Cached<T>.TryGet(key, out var cached))
+                    return cached.Value;
+
+                var val = await onget.Invoke();
+                if (val == null || val.Equals(default(T)))
+                    return default;
+
+                proxyManager?.Success();
+                cached.Save(val, time.TimeOfDay);
                 return val;
+            }
+            else
+            {
+                if (memoryCache.TryGetValue(key, out T val))
+                    return val;
 
-            val = await onget.Invoke();
-            if (val == null || val.Equals(default(T)))
-                return default;
+                val = await onget.Invoke();
+                if (val == null || val.Equals(default(T)))
+                    return default;
 
-            proxyManager?.Success();
-            memoryCache.Set(key, val, time);
-            return val;
+                proxyManager?.Success();
+                memoryCache.Set(key, val, time);
+                return val;
+            }
         }
 
         public DateTime cacheTime(int multiaccess, int home = 5, int mikrotik = 2)
