@@ -70,25 +70,29 @@ namespace Lampac.Controllers.LITE
 
             using (var browser = await PuppeteerTo.Browser())
             {
-                userAgent = await browser.GetUserAgentAsync();
-
-                using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
+                try
                 {
-                    ["Referer"] = "https://www.google.com/"
-                }))
-                {
-                    await page.GoToAsync($"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}");
-                    string PHPSESSID = (await page.GetCookiesAsync())?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+                    userAgent = await browser.GetUserAgentAsync();
 
-                    await page.CloseAsync();
-                    await browser.CloseAsync();
-
-                    if (!string.IsNullOrEmpty(PHPSESSID))
+                    using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
                     {
-                        cookie = $"PHPSESSID={PHPSESSID};";
-                        return true;
+                        ["Referer"] = "https://www.google.com/"
+                    }))
+                    {
+                        await page.GoToAsync($"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}");
+                        string PHPSESSID = (await page.GetCookiesAsync())?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+
+                        await page.CloseAsync();
+                        await browser.CloseAsync();
+
+                        if (!string.IsNullOrEmpty(PHPSESSID))
+                        {
+                            cookie = $"PHPSESSID={PHPSESSID};";
+                            return true;
+                        }
                     }
                 }
+                catch { await browser.CloseAsync(); }
             }
 
             return false;
