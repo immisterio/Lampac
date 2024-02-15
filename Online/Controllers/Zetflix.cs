@@ -5,6 +5,8 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using System.Collections.Generic;
+using PuppeteerSharp;
+using Shared.Engine;
 
 namespace Lampac.Controllers.LITE
 {
@@ -48,34 +50,44 @@ namespace Lampac.Controllers.LITE
         }
 
 
+        static CookieParam[] cookies = null;
+
         async ValueTask<string> black_magic(long kinopoisk_id, int s)
         {
-            using (var page = await AppInit.BrowserPage(new Dictionary<string, string>()
+            using (var browser = await PuppeteerTo.Browser())
             {
-                ["Referer"] = "https://www.google.com/"
-            }))
-            {
-                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
-
-                var response = await page.GoToAsync($"view-source:{uri}");
-                string html = await response.TextAsync();
-
-                if (html.StartsWith("<script>(function(){"))
+                using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
                 {
-                    await page.DeleteCookieAsync();
-                    await page.GoToAsync(uri);
+                    ["Referer"] = "https://www.google.com/"
+                }))
+                {
+                    if (cookies != null)
+                        await page.SetCookieAsync(cookies);
 
-                    //reskld = await page.ReloadAsync();
-                    response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
+                    string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+
+                    var response = await page.GoToAsync($"view-source:{uri}");
+                    string html = await response.TextAsync();
+
+                    if (html.StartsWith("<script>(function(){"))
+                    {
+                        cookies = null;
+                        await page.DeleteCookieAsync();
+                        await page.GoToAsync(uri);
+
+                        //reskld = await page.ReloadAsync();
+                        response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
+                    }
+
+                    cookies = await page.GetCookiesAsync();
+                    await page.CloseAsync();
+
+                    if (!html.Contains("new Playerjs"))
+                        return null;
+
+                    return html;
                 }
-
-                await page.CloseAsync();
-
-                if (!html.Contains("new Playerjs"))
-                    return null;
-
-                return html;
             }
         }
     }

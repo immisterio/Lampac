@@ -11,8 +11,6 @@ using Lampac.Models.Merchant;
 using System.Collections.Concurrent;
 using Shared.Model.Base;
 using System.Text.RegularExpressions;
-using PuppeteerSharp;
-using System.Threading.Tasks;
 
 namespace Lampac
 {
@@ -136,20 +134,6 @@ namespace Lampac
                     }
                 }
             }
-        }
-        #endregion
-
-        #region BrowserPage
-        public static IBrowser browser = null;
-
-        async public static ValueTask<IPage> BrowserPage(Dictionary<string, string> headers = null)
-        {
-            var page = await browser.NewPageAsync();
-
-            if (headers != null && headers.Count > 0)
-                await page.SetExtraHttpHeadersAsync(headers);
-
-            return page;
         }
         #endregion
 

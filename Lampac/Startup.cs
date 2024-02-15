@@ -77,10 +77,10 @@ namespace Lampac
         {
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
+            new BrowserFetcher().DownloadAsync().Wait();
+            HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
 
             app.UseDeveloperExceptionPage();
-
-            HttpClient.onlog += (e, log) => { _= soks.Send(log, "http"); };
 
             #region UseForwardedHeaders
             var forwarded = new ForwardedHeadersOptions
@@ -113,18 +113,6 @@ namespace Lampac
             }
 
             app.UseForwardedHeaders(forwarded);
-            #endregion
-
-            #region Puppeteer
-            new BrowserFetcher().DownloadAsync().Wait();
-
-            AppInit.browser = Puppeteer.LaunchAsync(new LaunchOptions()
-            {
-                Headless = true, /*false*/
-                IgnoreHTTPSErrors = true,
-                Args = new string[] { "--no-sandbox --disable-gpu" },
-                Timeout = 10_000
-            }).Result;
             #endregion
 
             app.UseRouting();
