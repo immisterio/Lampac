@@ -56,36 +56,32 @@ namespace Lampac.Controllers.LITE
         {
             using (var browser = await PuppeteerTo.Browser())
             {
-                using (var page = await PuppeteerTo.Page(browser, cookies, new Dictionary<string, string>()
+                var page = await browser.Page(cookies, new Dictionary<string, string>()
                 {
                     ["Referer"] = "https://www.google.com/"
-                }))
+                });
+
+                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+
+                var response = await page.GoToAsync($"view-source:{uri}");
+                string html = await response.TextAsync();
+
+                if (html.StartsWith("<script>(function(){"))
                 {
-                    string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+                    cookies = null;
+                    await page.DeleteCookieAsync();
+                    await page.GoToAsync(uri);
 
-                    var response = await page.GoToAsync($"view-source:{uri}");
-                    string html = await response.TextAsync();
-
-                    if (html.StartsWith("<script>(function(){"))
-                    {
-                        cookies = null;
-                        await page.DeleteCookieAsync();
-                        await page.GoToAsync(uri);
-
-                        //reskld = await page.ReloadAsync();
-                        response = await page.GoToAsync($"view-source:{uri}");
-                        html = await response.TextAsync();
-                    }
-
-                    cookies = await page.GetCookiesAsync();
-                    await page.CloseAsync();
-                    await browser.CloseAsync();
-
-                    if (!html.Contains("new Playerjs"))
-                        return null;
-
-                    return html;
+                    response = await page.GoToAsync($"view-source:{uri}");
+                    html = await response.TextAsync();
                 }
+
+                cookies = await page.GetCookiesAsync();
+
+                if (!html.Contains("new Playerjs"))
+                    return null;
+
+                return html;
             }
         }
     }

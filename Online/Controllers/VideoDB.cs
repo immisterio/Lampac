@@ -5,16 +5,12 @@ using Shared.Engine.Online;
 using Online;
 using System.Collections.Generic;
 using Shared.Engine;
-using System.Linq;
-using Shared.Model.Online;
-using System;
+using PuppeteerSharp;
 
 namespace Lampac.Controllers.LITE
 {
     public class VideoDB : BaseOnlineController
     {
-        static string cookie = null, userAgent = null;
-
         [HttpGet]
         [Route("lite/videodb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1)
@@ -24,33 +20,18 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            if (cookie == null)
-            {
-                if (await updateCookie(kinopoisk_id) == false)
-                    return OnError();
-            }
-
             var oninvk = new VideoDBInvoke
             (
                host,
                init.corsHost(),
                init.hls,
-               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, cookie: cookie, referer: "https://www.google.com/", addHeaders: HeadersModel.Init(("User-Agent", userAgent))),
+               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, referer: "https://www.google.com/"),
                streamfile => HostStreamProxy(init, streamfile, plugin: "videodb")
             );
 
-            var content = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(120), async () => 
-            {
-                var res = await oninvk.Embed(kinopoisk_id);
-                if (res.obfuscation)
-                {
-                    if (await updateCookie(kinopoisk_id))
-                        res = await oninvk.Embed(kinopoisk_id);
-                }
+            string html = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(120), () => black_magic(kinopoisk_id));
 
-                return res;
-            });
-
+            var content = oninvk.Embed(html);
             if (content.pl == null)
                 return OnError();
 
@@ -58,37 +39,39 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        static DateTime nextUpdate;
+        static CookieParam[] cookies = null;
 
-        async ValueTask<bool> updateCookie(long kinopoisk_id)
+        async ValueTask<string> black_magic(long kinopoisk_id)
         {
-            if (nextUpdate > DateTime.Now)
-                return false;
-
-            cookie = null;   
-            nextUpdate = DateTime.Now.AddMinutes(2);
-
             using (var browser = await PuppeteerTo.Browser())
             {
-                userAgent = await browser.GetUserAgentAsync();
-
-                using (var page = await PuppeteerTo.Page(browser, new Dictionary<string, string>()
+                var page = await browser.Page(cookies, new Dictionary<string, string>()
                 {
                     ["Referer"] = "https://www.google.com/"
-                }))
+                });
+
+                string uri = $"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}";
+
+                var response = await page.GoToAsync($"view-source:{uri}");
+                string html = await response.TextAsync();
+
+                if (html.StartsWith("<script>(function(){"))
                 {
-                    await page.GoToAsync($"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}");
-                    string PHPSESSID = (await page.GetCookiesAsync())?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+                    cookies = null;
+                    await page.DeleteCookieAsync();
+                    await page.GoToAsync(uri);
 
-                    if (!string.IsNullOrEmpty(PHPSESSID))
-                    {
-                        cookie = $"PHPSESSID={PHPSESSID};";
-                        return true;
-                    }
+                    response = await page.GoToAsync($"view-source:{uri}");
+                    html = await response.TextAsync();
                 }
-            }
 
-            return false;
+                cookies = await page.GetCookiesAsync();
+
+                if (!html.Contains("new Playerjs"))
+                    return null;
+
+                return html;
+            }
         }
     }
 }

@@ -158,6 +158,8 @@ namespace Lampac
 
         public bool pirate_store = true;
 
+        public bool puppeteer_keepopen = false;
+
         public string apikey = null;
 
         public bool litejac = true;
