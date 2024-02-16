@@ -47,7 +47,7 @@ namespace JinEnergy.Online
             string memkey = $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}";
             refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, href));
 
-            string html = oninvk.Html(content, arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, s, href, false);
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.original_language, arg.year, s, href, false);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
