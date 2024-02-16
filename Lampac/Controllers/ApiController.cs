@@ -65,6 +65,9 @@ namespace Lampac.Controllers
 
         [Route("/myip")]
         public ActionResult MyIP() => Content(HttpContext.Connection.RemoteIpAddress.ToString());
+
+        [Route("/testaccsdb")]
+        public ActionResult TestAccsdb() => StatusCode(200);
         #endregion
 
 

@@ -41,7 +41,7 @@ namespace Lampac.Controllers.LITE
                 return Content(similars, "text/html; charset=utf-8");
             }
 
-            var content = await InvokeCache($"videocdn:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id), proxyManager);
+            var content = await InvokeCache($"videocdn:view:{imdb_id}:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id), proxyManager);
             if (content == null)
                 return OnError(proxyManager);
 
