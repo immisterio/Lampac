@@ -20,7 +20,7 @@ namespace Shared.Engine
 
         static List<string> tabs = new List<string>();
 
-        async public static ValueTask LaunchKeepOpen()
+        async public static Task LaunchKeepOpen()
         {
             browser_keepopen = await Launch();
         }

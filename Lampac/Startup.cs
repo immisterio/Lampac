@@ -82,7 +82,7 @@ namespace Lampac
             HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
 
             if (PuppeteerTo.IsKeepOpen)
-                _ = PuppeteerTo.LaunchKeepOpen();
+                PuppeteerTo.LaunchKeepOpen().Wait();
 
             app.UseDeveloperExceptionPage();
 

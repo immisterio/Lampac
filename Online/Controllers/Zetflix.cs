@@ -7,6 +7,7 @@ using Shared.Engine.Online;
 using System.Collections.Generic;
 using PuppeteerSharp;
 using Shared.Engine;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -52,8 +53,13 @@ namespace Lampac.Controllers.LITE
 
         static CookieParam[] cookies = null;
 
+        static DateTime excookies = default;
+
         async ValueTask<string> black_magic(long kinopoisk_id, int s)
         {
+            if (cookies != null && DateTime.Now > excookies)
+                cookies = null;
+
             using (var browser = await PuppeteerTo.Browser())
             {
                 var page = await browser.Page("zetflix", cookies, new Dictionary<string, string>()
@@ -76,10 +82,13 @@ namespace Lampac.Controllers.LITE
                     html = await response.TextAsync();
                 }
 
-                cookies = await page.GetCookiesAsync();
-
                 if (!html.Contains("new Playerjs"))
                     return null;
+
+                if (cookies == null)
+                    excookies = DateTime.Now.AddMinutes(10);
+
+                cookies = await page.GetCookiesAsync();
 
                 return html;
             }
