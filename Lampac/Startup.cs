@@ -14,6 +14,7 @@ using System.Net;
 using System;
 using Lampac.Engine;
 using PuppeteerSharp;
+using Shared.Engine;
 
 namespace Lampac
 {
@@ -79,6 +80,9 @@ namespace Lampac
             Shared.Startup.Configure(app, memory);
             new BrowserFetcher().DownloadAsync().Wait();
             HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
+
+            if (PuppeteerTo.IsKeepOpen)
+                _ = PuppeteerTo.LaunchKeepOpen();
 
             app.UseDeveloperExceptionPage();
 

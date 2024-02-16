@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
         {
             using (var browser = await PuppeteerTo.Browser())
             {
-                var page = await browser.Page(cookies, new Dictionary<string, string>()
+                var page = await browser.Page("videodb", cookies, new Dictionary<string, string>()
                 {
                     ["Referer"] = "https://www.google.com/"
                 });

@@ -16,12 +16,26 @@ namespace Shared.Engine
 
         static bool isdev = File.Exists(@"C:\ProgramData\lampac\disablesync");
 
+        public static bool IsKeepOpen => AppInit.conf.multiaccess || AppInit.conf.puppeteer_keepopen;
+
+        static List<string> tabs = new List<string>();
+
+        async public static ValueTask LaunchKeepOpen()
+        {
+            browser_keepopen = await Launch();
+        }
+
         async public static ValueTask<PuppeteerTo> Browser()
         {
-            if (browser_keepopen != null)
+            if (IsKeepOpen || browser_keepopen != null)
                 return new PuppeteerTo(browser_keepopen);
 
-            var b = await Puppeteer.LaunchAsync(new LaunchOptions()
+            return new PuppeteerTo(await Launch());
+        }
+
+        static Task<IBrowser> Launch()
+        {
+            return Puppeteer.LaunchAsync(new LaunchOptions()
             {
                 Headless = !isdev, /*false*/
                 Devtools = isdev,
@@ -29,34 +43,42 @@ namespace Shared.Engine
                 Args = new string[] { "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --renderer-process-limit=1" },
                 Timeout = 15_000
             });
-
-            if (AppInit.conf.multiaccess || AppInit.conf.puppeteer_keepopen)
-                browser_keepopen = b;
-
-            return new PuppeteerTo(b);
         }
         #endregion
 
         IBrowser browser;
+
+        int tabIndex = 0;
 
         public PuppeteerTo(IBrowser browser)
         {
             this.browser = browser; 
         }
 
-        public ValueTask<IPage> Page(Dictionary<string, string> headers = null)
+        public ValueTask<IPage> Page(string plugin, Dictionary<string, string> headers = null)
         {
-            return Page(null, headers);
+            return Page(plugin, null, headers);
         }
 
-        async public ValueTask<IPage> Page(CookieParam[] cookies, Dictionary<string, string> headers = null)
+        async public ValueTask<IPage> Page(string plugin, CookieParam[] cookies, Dictionary<string, string> headers = null)
         {
-            var page = (await browser.PagesAsync())[0];
+            if (IsKeepOpen)
+            {
+                if (!tabs.Contains(plugin))
+                {
+                    tabs.Add(plugin);
+                    await browser.NewPageAsync();
+                }
+
+                tabIndex = tabs.IndexOf(plugin);
+            }
+
+            var page = (await browser.PagesAsync())[tabIndex];
 
             if (headers != null && headers.Count > 0)
                 await page.SetExtraHttpHeadersAsync(headers);
 
-            await page.SetCacheEnabledAsync(AppInit.conf.multiaccess || AppInit.conf.puppeteer_keepopen);
+            await page.SetCacheEnabledAsync(IsKeepOpen);
             await page.DeleteCookieAsync();
 
             if (cookies != null)
@@ -81,17 +103,18 @@ namespace Shared.Engine
 
         public void Dispose()
         {
-            if (!AppInit.conf.multiaccess && !AppInit.conf.puppeteer_keepopen)
+            if (!IsKeepOpen)
                 browser.Dispose();
             else
             {
                 var pages = browser.PagesAsync().Result;
 
-                foreach (var pg in pages.Skip(1))
+                foreach (var pg in pages.Skip(tabs.Count))
                     pg.CloseAsync();
 
-                pages[0].GoToAsync("about:blank");
-                pages[0].Request -= Page_Request;
+                var page = pages[tabIndex];
+                page.GoToAsync("about:blank");
+                page.Request -= Page_Request;
             }
         }
     }

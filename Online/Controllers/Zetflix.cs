@@ -30,11 +30,11 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                init.hls,
                (url, head) => HttpClient.Get(init.cors(url), addHeaders: init.headers ?? head, timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "zetflix")
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix")
                //AppInit.log
             );
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(120), () => black_magic(kinopoisk_id, s), proxyManager);
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(120), () => black_magic(kinopoisk_id, s));
             if (html == null)
                 return OnError();
 
@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
         {
             using (var browser = await PuppeteerTo.Browser())
             {
-                var page = await browser.Page(cookies, new Dictionary<string, string>()
+                var page = await browser.Page("zetflix", cookies, new Dictionary<string, string>()
                 {
                     ["Referer"] = "https://www.google.com/"
                 });
