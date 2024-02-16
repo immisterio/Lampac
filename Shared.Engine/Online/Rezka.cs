@@ -139,7 +139,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, string original_language, int year, int s, string? href, bool showstream)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
         {
             if (result == null)
                 return string.Empty;
@@ -227,7 +227,7 @@ namespace Shared.Engine.Online
                     while (match.Success)
                     {
                         string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                        string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&original_language={original_language}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
+                        string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
 
                         html.Append("<div class=\"videos__button selector " + (match.Groups[1].Value == trs ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
 
@@ -249,7 +249,7 @@ namespace Shared.Engine.Online
                         if (!string.IsNullOrEmpty(m.Groups[2].Value) && !eshash.Contains(sname))
                         {
                             eshash.Add(sname);
-                            string link = host + $"lite/rezka?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&original_language={original_language}&year={year}&href={enc_href}&t={trs}&s={m.Groups[2].Value}";
+                            string link = host + $"lite/rezka?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&t={trs}&s={m.Groups[2].Value}";
 
                             html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + sname + "</div></div></div>");
                             firstjson = false;

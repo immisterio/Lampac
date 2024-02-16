@@ -52,16 +52,13 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, string original_language, int year, int s = -1, string href = null)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null)
         {
             if (!AppInit.conf.Rezka.enable)
                 return OnError();
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
-
-            if (original_language != "en")
-                clarification = 1;
 
             var oninvk = InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
@@ -70,14 +67,14 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, original_language, year, s, href, true), "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true), "text/html; charset=utf-8");
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, string original_language, int year, string href, long id, int t, int s = -1)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1)
         {
             if (!AppInit.conf.Rezka.enable)
                 return OnError();
@@ -91,9 +88,6 @@ namespace Lampac.Controllers.LITE
             Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t));
             if (root == null)
                 return OnError(proxyManager);
-
-            if (original_language != "en")
-                clarification = 1;
 
             var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
