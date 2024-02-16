@@ -13,12 +13,12 @@ namespace Shared.Engine
         #region static
         static IBrowser browser_keepopen = null;
 
+        static bool isdev = File.Exists(@"C:\ProgramData\lampac\disablesync");
+
         async public static ValueTask<PuppeteerTo> Browser()
         {
             if (browser_keepopen != null)
                 return new PuppeteerTo(browser_keepopen);
-
-            bool isdev = File.Exists(@"C:\ProgramData\lampac\disablesync");
 
             var b = await Puppeteer.LaunchAsync(new LaunchOptions()
             {
@@ -29,7 +29,7 @@ namespace Shared.Engine
                 Timeout = 15_000
             });
 
-            if (AppInit.conf.puppeteer_keepopen)
+            if (AppInit.conf.multiaccess)
                 browser_keepopen = b;
 
             return new PuppeteerTo(b);
@@ -55,7 +55,7 @@ namespace Shared.Engine
             if (headers != null && headers.Count > 0)
                 await page.SetExtraHttpHeadersAsync(headers);
 
-            await page.SetCacheEnabledAsync(AppInit.conf.puppeteer_keepopen);
+            await page.SetCacheEnabledAsync(AppInit.conf.multiaccess);
             await page.DeleteCookieAsync();
 
             if (cookies != null)
@@ -66,7 +66,7 @@ namespace Shared.Engine
 
         public void Dispose()
         {
-            if (!AppInit.conf.puppeteer_keepopen)
+            if (!AppInit.conf.multiaccess)
                 browser.Dispose();
             else
             {
