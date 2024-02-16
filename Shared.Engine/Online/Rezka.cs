@@ -308,7 +308,7 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream)
+        public string Serial(Episodes? root, EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream)
         {
             if (root == null || result == null)
                 return string.Empty;
@@ -333,7 +333,7 @@ namespace Shared.Engine.Online
                         while (match.Success)
                         {
                             string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                            string link = host + $"lite/rezka/serial?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={match.Groups[1].Value}";
+                            string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={match.Groups[1].Value}";
 
                             html += "<div class=\"videos__button selector " + (match.Groups[1].Value == t.ToString() ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>";
 
@@ -352,7 +352,7 @@ namespace Shared.Engine.Online
                 var match = new Regex("data-tab_id=\"([0-9]+)\">([^<]+)</li>").Match(root.seasons);
                 while (match.Success)
                 {
-                    string link = host + $"lite/rezka/serial?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={t}&s={match.Groups[1].Value}";
+                    string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={t}&s={match.Groups[1].Value}";
 
                     html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{match.Groups[1].Value} сезон" + "</div></div></div>";
                     firstjson = false;

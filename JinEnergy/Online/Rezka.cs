@@ -81,7 +81,7 @@ namespace JinEnergy.Online
             refresh: var root = await InvokeCache(0, $"rezka:serial:{arg.id}:{t}", () => oninvk.SerialEmbed(arg.id, t));
             var content = await InvokeCache(0, $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}", () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, href));
 
-            string html = oninvk.Serial(root, content, arg.title, arg.original_title, clarification, arg.year, href, arg.id, t, s, false);
+            string html = oninvk.Serial(root, content, arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, href, arg.id, t, s, false);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.RemoveAll("rezka:serial");

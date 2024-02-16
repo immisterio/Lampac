@@ -99,7 +99,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Serial(root, content, title, original_title, clarification, year, href, id, t, s, true), "text/html; charset=utf-8");
+            return Content(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true), "text/html; charset=utf-8");
         }
         #endregion
 
