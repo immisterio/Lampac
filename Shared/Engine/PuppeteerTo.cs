@@ -29,7 +29,7 @@ namespace Shared.Engine
                 Timeout = 15_000
             });
 
-            if (AppInit.conf.multiaccess)
+            if (AppInit.conf.multiaccess || AppInit.conf.puppeteer_keepopen)
                 browser_keepopen = b;
 
             return new PuppeteerTo(b);
@@ -55,7 +55,7 @@ namespace Shared.Engine
             if (headers != null && headers.Count > 0)
                 await page.SetExtraHttpHeadersAsync(headers);
 
-            await page.SetCacheEnabledAsync(AppInit.conf.multiaccess);
+            await page.SetCacheEnabledAsync(AppInit.conf.multiaccess || AppInit.conf.puppeteer_keepopen);
             await page.DeleteCookieAsync();
 
             if (cookies != null)
@@ -66,7 +66,7 @@ namespace Shared.Engine
 
         public void Dispose()
         {
-            if (!AppInit.conf.multiaccess)
+            if (!AppInit.conf.multiaccess && !AppInit.conf.puppeteer_keepopen)
                 browser.Dispose();
             else
             {
