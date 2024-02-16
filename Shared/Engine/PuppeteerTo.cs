@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Shared.Engine
@@ -61,7 +62,21 @@ namespace Shared.Engine
             if (cookies != null)
                 await page.SetCookieAsync(cookies);
 
+            await page.SetRequestInterceptionAsync(true);
+            page.Request += Page_Request;
+
             return page;
+        }
+
+        private void Page_Request(object sender, RequestEventArgs e)
+        {
+            if (Regex.IsMatch(e.Request.Url, "\\.(ico|png|jpe?g|WEBP|svg|css|EOT|TTF|WOFF2?|OTF)", RegexOptions.IgnoreCase) || e.Request.Url.StartsWith("data:image"))
+            {
+                e.Request.AbortAsync();
+                return;
+            }
+
+            e.Request.ContinueAsync();
         }
 
         public void Dispose()
@@ -76,6 +91,7 @@ namespace Shared.Engine
                     pg.CloseAsync();
 
                 pages[0].GoToAsync("about:blank");
+                pages[0].Request -= Page_Request;
             }
         }
     }

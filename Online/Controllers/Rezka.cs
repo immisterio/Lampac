@@ -108,13 +108,16 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/movie")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            if (!AppInit.conf.Rezka.enable)
+            var init = AppInit.conf.Rezka;
+            if (!init.enable)
                 return OnError();
 
             var oninvk = InitRezkaInvoke();
-            var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
+            var proxyManager = new ProxyManager("rezka", init);
 
-            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
+            string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
+
+            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
                 return OnError(proxyManager);
 
