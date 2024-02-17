@@ -83,12 +83,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/voidboost/episode")]
         async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e, bool play)
         {
-            if (!AppInit.conf.Voidboost.enable)
+            var init = AppInit.conf.Voidboost;
+            if (!init.enable)
                 return OnError();
 
             var oninvk = InitVoidboostInvoke();
 
-            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
+            string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
+
+            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
             if (md == null)
                 return OnError(proxyManager);
 

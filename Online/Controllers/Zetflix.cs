@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/zetflix")]
-        async public Task<ActionResult> Index(long id, long kinopoisk_id, string title, string original_title, string t, int s = -1)
+        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1)
         {
             var init = AppInit.conf.Zetflix;
 
@@ -35,7 +35,9 @@ namespace Lampac.Controllers.LITE
                //AppInit.log
             );
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{s}", cacheTime(120), () => black_magic(kinopoisk_id, s));
+            int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
+
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(120), () => black_magic(kinopoisk_id, rs));
             if (html == null)
                 return OnError();
 
