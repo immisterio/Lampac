@@ -86,7 +86,7 @@ namespace Lampac.Controllers.LITE
                     return null;
 
                 if (cookies == null)
-                    excookies = DateTime.Now.AddMinutes(10);
+                    excookies = DateTime.Now.AddMinutes(15);
 
                 cookies = await page.GetCookiesAsync();
 

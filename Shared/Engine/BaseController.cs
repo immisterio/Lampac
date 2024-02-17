@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using FastCache;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
-using Shared;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
@@ -24,15 +21,17 @@ namespace Lampac.Engine
 
         public static string appversion => "102";
 
-        public IMemoryCache memoryCache { get; private set; }
+        public HybridCache memoryCache { get; private set; }
 
         public string host => AppInit.Host(HttpContext);
 
         public BaseController()
         {
-            serviceScope = Startup.ApplicationServices.CreateScope();
-            var scopeServiceProvider = serviceScope.ServiceProvider;
-            memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
+            memoryCache = new HybridCache();
+
+            //serviceScope = Startup.ApplicationServices.CreateScope();
+            //var scopeServiceProvider = serviceScope.ServiceProvider;
+            //memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
         }
 
         async public ValueTask<string> mylocalip()
@@ -109,62 +108,30 @@ namespace Lampac.Engine
 
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
         {
-            if (AppInit.conf.typecache == "file")
-            {
-                if (Cached<T>.TryGet(key, out var cached))
-                    return new CacheResult<T>() { IsSuccess = true, Value = cached.Value };
+            if (memoryCache.TryGetValue(key, out T _val))
+                return new CacheResult<T>() { IsSuccess = true, Value = _val };
 
-                var cache = await onget.Invoke(new CacheResult<T>());
-                if (cache == null || !cache.IsSuccess)
-                    return cache;
-
-                proxyManager?.Success();
-                cached.Save(cache.Value, time);
+            var cache = await onget.Invoke(new CacheResult<T>());
+            if (cache == null || !cache.IsSuccess)
                 return cache;
-            }
-            else
-            {
-                if (memoryCache.TryGetValue(key, out T _val))
-                    return new CacheResult<T>() { IsSuccess = true, Value = _val };
 
-                var cache = await onget.Invoke(new CacheResult<T>());
-                if (cache == null || !cache.IsSuccess)
-                    return cache;
-
-                proxyManager?.Success();
-                memoryCache.Set(key, cache.Value, time);
-                return cache;
-            }
+            proxyManager?.Success();
+            memoryCache.Set(key, cache.Value, time);
+            return cache;
         }
 
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
         {
-            if (AppInit.conf.typecache == "file")
-            {
-                if (Cached<T>.TryGet(key, out var cached))
-                    return cached.Value;
-
-                var val = await onget.Invoke();
-                if (val == null || val.Equals(default(T)))
-                    return default;
-
-                proxyManager?.Success();
-                cached.Save(val, time);
+            if (memoryCache.TryGetValue(key, out T val))
                 return val;
-            }
-            else
-            {
-                if (memoryCache.TryGetValue(key, out T val))
-                    return val;
 
-                val = await onget.Invoke();
-                if (val == null || val.Equals(default(T)))
-                    return default;
+            val = await onget.Invoke();
+            if (val == null || val.Equals(default(T)))
+                return default;
 
-                proxyManager?.Success();
-                memoryCache.Set(key, val, time);
-                return val;
-            }
+            proxyManager?.Success();
+            memoryCache.Set(key, val, time);
+            return val;
         }
 
         public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2)

@@ -15,6 +15,7 @@ using System;
 using Lampac.Engine;
 using PuppeteerSharp;
 using Shared.Engine;
+using Shared.Engine.CORE;
 
 namespace Lampac
 {
@@ -78,6 +79,7 @@ namespace Lampac
         {
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
+            HybridCache.Configure(memory);
             new BrowserFetcher().DownloadAsync().Wait();
             HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
 
