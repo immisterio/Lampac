@@ -156,6 +156,7 @@ namespace JinEnergy.Online
             if (serial == 0 && !isanime && arg.kinopoisk_id > 0)
                 send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
+            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
@@ -185,8 +186,6 @@ namespace JinEnergy.Online
 
             if (!titleSearch)
                 send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
-
-            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
 
             online.Append("{\"name\":\"HDVB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/hdvb\"},");
 

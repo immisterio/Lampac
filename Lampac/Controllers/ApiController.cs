@@ -54,12 +54,10 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region Version
+        #region Version / Headers / myip / testaccsdb
         [Route("/version")]
         public ActionResult Version() => Content(appversion, contentType: "text/plain; charset=utf-8");
-        #endregion
 
-        #region Headers / myip
         [Route("/headers")]
         public ActionResult Headers() => Json(HttpContext.Request.Headers);
 

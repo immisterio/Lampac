@@ -293,21 +293,24 @@ namespace Lampac.Controllers
             send("Alloha", conf.Alloha);
             send("Rezka", conf.Rezka);
 
-            if (kinopoisk_id > 0)
-                send("VideoDB", conf.VideoDB);
+            send("VideoCDN", conf.VCDN, "vcdn");
 
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
                 send("iRemux", conf.iRemux, "remux");
 
-            if (kinopoisk_id > 0)
-                send("Zetflix", conf.Zetflix);
-
             send("Voidboost", conf.Voidboost);
-            send("VideoCDN", conf.VCDN, "vcdn");
             send("Ashdi (UKR)", conf.Ashdi, "ashdi");
             send("Eneyida (UKR)", conf.Eneyida, "eneyida");
+
+            if (kinopoisk_id > 0)
+            {
+                send("Zetflix", conf.Zetflix);
+
+                if (!isanime)
+                    send("VideoDB", conf.VideoDB);
+            }
 
             if (serial == -1 || serial == 1)
                 send("Seasonvar", conf.Seasonvar);
