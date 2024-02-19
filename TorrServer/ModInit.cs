@@ -117,6 +117,8 @@ namespace TorrServer
 
         public int disposeTime { get; set; } = -1;
 
+        public string defaultPasswd { get; set; } = "ts";
+
 
         static (ModInit, DateTime) cacheconf = default;
 

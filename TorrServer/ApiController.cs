@@ -11,7 +11,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Net.Http.Headers;
 using TorrServer;
-using Microsoft.Extensions.Caching.Memory;
 using System.Buffers;
 using Shared.Model.Online;
 
@@ -111,7 +110,7 @@ namespace Lampac.Controllers
                     string login = decodedString[0].ToLower().Trim();
                     string passwd = decodedString[1];
 
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(login, out DateTime ex) && ex > DateTime.UtcNow && passwd == "ts")
+                    if (AppInit.conf.accsdb.accounts.TryGetValue(login, out DateTime ex) && ex > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
                     {
                         await TorAPI();
                         return;
