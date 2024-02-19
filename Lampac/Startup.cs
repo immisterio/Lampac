@@ -16,6 +16,7 @@ using Lampac.Engine;
 using PuppeteerSharp;
 using Shared.Engine;
 using Shared.Engine.CORE;
+using Newtonsoft.Json;
 
 namespace Lampac
 {
@@ -86,6 +87,8 @@ namespace Lampac
             if (PuppeteerTo.IsKeepOpen)
                 PuppeteerTo.LaunchKeepOpen().Wait();
 
+            Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
+
             app.UseDeveloperExceptionPage();
 
             #region UseForwardedHeaders
@@ -129,6 +132,7 @@ namespace Lampac
             app.UseOverrideResponse();
             app.UseProxyIMG();
             app.UseProxyAPI();
+            app.UseModule();
 
             app.UseEndpoints(endpoints =>
             {
