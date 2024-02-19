@@ -27,7 +27,7 @@ namespace Shared.Model.Templates
             var build = new StringBuilder();
 
             foreach (var i in data)
-                build.Append("{\"label\": \"" + i.label + "\",\"url\": \"" + i.url + "\"},");
+                build.Append("{\"label\": \"" + i.label?.Replace("\"", "%22")?.Replace("'", "%27") + "\",\"url\": \"" + i.url + "\"},");
 
             return Regex.Replace(build.ToString(), ",$", "");
         }
