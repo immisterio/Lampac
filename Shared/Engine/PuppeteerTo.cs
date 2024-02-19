@@ -23,6 +23,14 @@ namespace Shared.Engine
         async public static Task LaunchKeepOpen()
         {
             browser_keepopen = await Launch();
+            browser_keepopen.Closed += Browser_keepopen_Closed; // Никогда не сдавайся!
+        }
+
+        async private static void Browser_keepopen_Closed(object sender, EventArgs e)
+        {
+            browser_keepopen.Closed -= Browser_keepopen_Closed;
+            browser_keepopen = await Launch();
+            browser_keepopen.Closed += Browser_keepopen_Closed;
         }
 
         async public static ValueTask<PuppeteerTo> Browser()
@@ -40,7 +48,7 @@ namespace Shared.Engine
                 Headless = !isdev, /*false*/
                 Devtools = isdev,
                 IgnoreHTTPSErrors = true,
-                Args = new string[] { "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --renderer-process-limit=1" },
+                Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
                 Timeout = 15_000
             });
         }

@@ -72,10 +72,12 @@ namespace Shared.Engine.CORE
             if (!memoryCache.TryGetValue($"{folderCache}:{key}", out _))
                 return false;
 
-            bool isText = typeof(TItem) == typeof(string);
-            bool isConstructor = typeof(TItem).GetConstructor(Type.EmptyTypes) != null;
+            var type = typeof(TItem);
+            bool isText = type == typeof(string);
+            bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
+            bool isValueType = type.IsValueType;
 
-            if (!isText && !isConstructor)
+            if (!isText && !isConstructor && !isValueType)
                 return false;
 
             string path = $"{folderCache}/{CrypTo.md5(key)}";
@@ -86,10 +88,10 @@ namespace Shared.Engine.CORE
             {
                 string content = BrotliTo.Decompress(File.ReadAllBytes(path));
 
-                if (isConstructor)
+                if (isConstructor || isValueType)
                     value = JsonConvert.DeserializeObject<TItem>(content);
                 else
-                    value = (TItem)Convert.ChangeType(content, typeof(TItem));
+                    value = (TItem)Convert.ChangeType(content, type);
 
                 return true;
             }
@@ -124,17 +126,19 @@ namespace Shared.Engine.CORE
             if (AppInit.conf.typecache != "file")
                 return false;
 
-            bool isText = typeof(TItem) == typeof(string);
-            bool isConstructor = typeof(TItem).GetConstructor(Type.EmptyTypes) != null;
+            var type = typeof(TItem);
+            bool isText = type == typeof(string);
+            bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
+            bool isValueType = type.IsValueType;
 
-            if (!isText && !isConstructor)
+            if (!isText && !isConstructor && !isValueType)
                 return false;
 
             try
             {
                 byte[] array = null;
 
-                if (isConstructor)
+                if (isConstructor || isValueType)
                 {
                     array = BrotliTo.Compress(JsonConvert.SerializeObject(value));
                 }
