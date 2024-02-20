@@ -192,7 +192,7 @@ namespace Shared.Engine.CORE
                 File.WriteAllBytes($"{folderCache}/{md5key}", array);
 
                 if (absoluteExpiration != default)
-                    condition.AddOrUpdate($"{folderCache}:{md5key}", absoluteExpiration, (k, v) => absoluteExpiration);
+                    memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpirationRelativeToNow);
                 else
                 {
                     memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpirationRelativeToNow);

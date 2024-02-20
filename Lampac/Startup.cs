@@ -87,7 +87,11 @@ namespace Lampac
             if (PuppeteerTo.IsKeepOpen)
                 PuppeteerTo.LaunchKeepOpen().Wait();
 
-            Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
+            Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+            {
+                DefaultValueHandling = DefaultValueHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore
+            }));
 
             app.UseDeveloperExceptionPage();
 
