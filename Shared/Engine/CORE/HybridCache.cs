@@ -32,7 +32,7 @@ namespace Shared.Engine.CORE
                 {
                     foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
                     {
-                        if (item.Value > DateTime.Now)
+                        if (item.Value > DateTimeOffset.Now)
                         {
                             memoryCache.Set(item.Key, (byte)0, item.Value);
                             condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
@@ -64,7 +64,7 @@ namespace Shared.Engine.CORE
                             catch { }
                         }
 
-                        foreach (var item in condition.Where(i => DateTime.Now > i.Value))
+                        foreach (var item in condition.Where(i => DateTimeOffset.Now > i.Value))
                             condition.TryRemove(item);
 
                         File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(condition)));

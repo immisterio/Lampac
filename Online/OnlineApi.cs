@@ -268,9 +268,6 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (!life && conf.litejac)
-                online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
-
             if (original_language is "ja" or "ko" or "zh")
                 send("Kodik", conf.Kodik);
 
@@ -331,6 +328,9 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
                 send("IframeVideo", conf.IframeVideo);
+
+            if (!life && conf.litejac)
+                online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
 
             #region checkOnlineSearch
             bool chos = conf.online.checkOnlineSearch && id > 0;

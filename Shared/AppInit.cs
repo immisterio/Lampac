@@ -154,7 +154,7 @@ namespace Lampac
 
         public bool mikrotik = false;
 
-        public string typecache = "file"; // mem|file
+        public string typecache = "hybrid"; // mem|file|hybrid
 
         public bool pirate_store = true;
 

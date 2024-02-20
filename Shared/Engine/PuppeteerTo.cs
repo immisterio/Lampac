@@ -22,8 +22,12 @@ namespace Shared.Engine
 
         async public static Task LaunchKeepOpen()
         {
-            browser_keepopen = await Launch();
-            browser_keepopen.Closed += Browser_keepopen_Closed; // Никогда не сдавайся!
+            try
+            {
+                browser_keepopen = await Launch();
+                browser_keepopen.Closed += Browser_keepopen_Closed; // Никогда не сдавайся!
+            }
+            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
         }
 
         async private static void Browser_keepopen_Closed(object sender, EventArgs e)
