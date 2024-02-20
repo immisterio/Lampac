@@ -38,7 +38,7 @@ namespace Lampac.Controllers.Tizam
                 if (page > 0)
                     uri += $"?p={page}";
 
-                string html = await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy);
+                string html = await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
                     return OnError("html", proxyManager);
 

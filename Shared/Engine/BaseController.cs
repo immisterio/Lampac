@@ -50,6 +50,58 @@ namespace Lampac.Engine
             return userIp;
         }
 
+        #region httpHeaders
+        public List<HeadersModel> httpHeaders(BaseSettings init, List<HeadersModel> _startHeaders = null)
+        {
+            var headers = HeadersModel.Init(_startHeaders);
+            if (init.headers == null)
+                return headers;
+
+            string ip = HttpContext.Connection.RemoteIpAddress.ToString();
+            string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "&account_email=([^&]+)").Groups[1].Value;
+
+            foreach (var h in init.headers)
+            {
+                if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
+                    continue;
+
+                string val = h.name.Replace("{account_email}", account_email).Replace("{ip}", ip);
+
+                if (val.Contains("{arg:"))
+                {
+                    foreach (Match m in Regex.Matches(val, "\\{arg:([^\\}]+)\\}"))
+                    {
+                        string _a = Regex.Match(HttpContext.Request.QueryString.Value, $"&{m.Groups[1].Value}=([^&]+)").Groups[1].Value;
+                        val = val.Replace(m.Groups[0].Value, _a);
+                    }
+                }
+
+                if (val.Contains("{head:"))
+                {
+                    foreach (Match m in Regex.Matches(val, "\\{head:([^\\}]+)\\}"))
+                    {
+                        if (HttpContext.Request.Headers.TryGetValue(m.Groups[1].Value, out var _h))
+                        {
+                            val = val.Replace(m.Groups[0].Value, string.Join(" ", _h));
+                        }
+                        else
+                        {
+                            val = val.Replace(m.Groups[0].Value, string.Empty);
+                        }
+
+                        string _a = Regex.Match(HttpContext.Request.QueryString.Value, $"&{m.Groups[1].Value}=([^&]+)").Groups[1].Value;
+                        val = val.Replace(m.Groups[0].Value, _a);
+                    }
+                }
+
+                headers.Add(new HeadersModel(h.val, val));
+            }
+
+            return headers;
+        }
+        #endregion
+
+        #region proxy
         public string HostImgProxy(int width, int height, string uri, List<HeadersModel> headers = null)
         {
             if (string.IsNullOrWhiteSpace(uri)) 
@@ -105,7 +157,9 @@ namespace Lampac.Engine
 
             return uri;
         }
+        #endregion
 
+        #region cache
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
         {
             if (memoryCache.TryGetValue(key, out T _val))
@@ -142,7 +196,7 @@ namespace Lampac.Engine
 
             return TimeSpan.FromMinutes(ctime);
         }
-
+        #endregion
 
         public new void Dispose()
         {

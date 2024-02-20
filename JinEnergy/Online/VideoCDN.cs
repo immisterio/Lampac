@@ -23,7 +23,7 @@ namespace JinEnergy.Online
                init.cors(init.apihost!),
                init.token!,
                init.hls,
-               (url, referer) => JsHttpClient.Get(init.cors(url), androidHttpReq: false),
+               (url, referer) => JsHttpClient.Get(init.cors(url), androidHttpReq: false, addHeaders: httpHeaders(args, init)),
                streamfile => HostStreamProxy(init, streamfile)
                //AppInit.log
             );

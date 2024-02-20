@@ -27,8 +27,8 @@ namespace Lampac.Controllers.Ebalovo
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", init.corsHost(), uri,
-                               url => HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy),
-                               location => HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{init.host}/"));
+                               url => HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                               location => HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{init.host}/", headers: httpHeaders(init)));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);

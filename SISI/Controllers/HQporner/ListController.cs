@@ -28,7 +28,7 @@ namespace Lampac.Controllers.HQporner
                 var proxyManager = new ProxyManager("hqr", init);
                 var proxy = proxyManager.Get();
 
-                string html = await HQpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await HQpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

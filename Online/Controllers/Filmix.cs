@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -42,13 +43,17 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();
 
+            string token = init.token;
+            if (init.tokens != null && init.tokens.Length > 1)
+                token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
+
             var oninvk = new FilmixInvoke
             (
                host,
                init.corsHost(),
-               init.token,
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, addHeaders: head),
+               token,
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 

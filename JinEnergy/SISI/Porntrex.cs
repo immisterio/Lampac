@@ -17,7 +17,7 @@ namespace JinEnergy.SISI
             string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = PorntrexTo.Playlist("ptx/vidosik", html, pl =>
             {
@@ -37,7 +37,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Porntrex.Clone();
 
-            refresh: var stream_links = await PorntrexTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
+            refresh: var stream_links = await PorntrexTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;

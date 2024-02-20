@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
                null,
                init.corsHost(),
                init.token,
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 

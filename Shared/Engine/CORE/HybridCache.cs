@@ -3,7 +3,9 @@ using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,18 +16,34 @@ namespace Shared.Engine.CORE
         #region HybridCache
         static IMemoryCache memoryCache;
 
+        static ConcurrentDictionary<string, DateTimeOffset> condition = new ConcurrentDictionary<string, DateTimeOffset>();
+
         static string folderCache => "cache/fdb";
 
         public static void Configure(IMemoryCache mem)
         {
             memoryCache = mem;
+            string conditionPath = $"{folderCache}/condition.json";
             Directory.CreateDirectory(folderCache);
+
+            if (File.Exists(conditionPath))
+            {
+                try
+                {
+                    foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(File.ReadAllText(conditionPath)))
+                    {
+                        if (item.Value > DateTime.Now)
+                            memoryCache.Set(item.Key, (byte)0, item.Value);
+                    }
+                }
+                catch { }
+            }
 
             ThreadPool.QueueUserWorkItem(async _ => 
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(20));
+                    await Task.Delay(TimeSpan.FromMinutes(10));
 
                     try
                     {
@@ -34,11 +52,19 @@ namespace Shared.Engine.CORE
                             try
                             {
                                 string md5key = Path.GetFileName(infile);
+                                if (md5key == "condition.json")
+                                    continue;
+
                                 if (!memoryCache.TryGetValue($"{folderCache}:{md5key}", out _))
                                     File.Delete(infile);
                             }
                             catch { }
                         }
+
+                        foreach (var item in condition.Where(i => DateTime.Now > i.Value))
+                            condition.TryRemove(item);
+
+                        File.WriteAllText(conditionPath, JsonConvert.SerializeObject(condition));
                     }
                     catch { }
                 }
@@ -55,8 +81,23 @@ namespace Shared.Engine.CORE
 
         public bool TryGetValue<TItem>(string key, out TItem value)
         {
-            if (ReadCache(key, out value))
+            int extend = 2;
+
+            if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
+            {
+                if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddMinutes(extend))
+                    memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+
                 return true;
+            }
+
+            if (ReadCache(key, out value))
+            {
+                if (AppInit.conf.typecache == "hybrid")
+                    memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+
+                return true;
+            }
 
             return memoryCache.TryGetValue(key, out value);
         }
@@ -66,10 +107,10 @@ namespace Shared.Engine.CORE
         public bool ReadCache<TItem>(string key, out TItem value)
         {
             value = default;
-            if (AppInit.conf.typecache != "file")
+            if (AppInit.conf.typecache == "mem")
                 return false;
 
-            if (!memoryCache.TryGetValue($"{folderCache}:{key}", out _))
+            if (!memoryCache.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out _))
                 return false;
 
             var type = typeof(TItem);
@@ -123,7 +164,7 @@ namespace Shared.Engine.CORE
         #region WriteCache
         public bool WriteCache<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, TimeSpan absoluteExpirationRelativeToNow)
         {
-            if (AppInit.conf.typecache != "file")
+            if (AppInit.conf.typecache == "mem")
                 return false;
 
             var type = typeof(TItem);
@@ -151,15 +192,14 @@ namespace Shared.Engine.CORE
                 File.WriteAllBytes($"{folderCache}/{md5key}", array);
 
                 if (absoluteExpiration != default)
-                {
-                    memoryCache.Set($"{folderCache}:{key}", (byte)0, absoluteExpiration);
-                    memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpiration);
-                }
+                    condition.AddOrUpdate($"{folderCache}:{md5key}", absoluteExpiration, (k, v) => absoluteExpiration);
                 else
                 {
-                    memoryCache.Set($"{folderCache}:{key}", (byte)0, absoluteExpirationRelativeToNow);
                     memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpirationRelativeToNow);
+                    absoluteExpiration = new DateTimeOffset(absoluteExpirationRelativeToNow.Ticks, TimeSpan.Zero);
                 }
+
+                condition.AddOrUpdate($"{folderCache}:{md5key}", absoluteExpiration, (k, v) => absoluteExpiration);
 
                 return true;
             }

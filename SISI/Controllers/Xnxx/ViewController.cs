@@ -26,7 +26,7 @@ namespace Lampac.Controllers.Xnxx
             string memKey = $"xnxx:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);

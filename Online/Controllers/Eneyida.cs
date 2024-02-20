@@ -28,8 +28,8 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
-               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "eneyida")
             );
 

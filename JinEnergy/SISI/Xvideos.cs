@@ -26,7 +26,7 @@ namespace JinEnergy.SISI
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = XvideosTo.Playlist("xds/vidosik", html, pl =>
             {
@@ -46,7 +46,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Xvideos.Clone();
 
-            refresh: var stream_links = await XvideosTo.StreamLinks("xds/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), m3u => JsHttpClient.Get(init.cors(m3u)));
+            refresh: var stream_links = await XvideosTo.StreamLinks("xds/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)), m3u => JsHttpClient.Get(init.cors(m3u), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init, true))
                 goto refresh;

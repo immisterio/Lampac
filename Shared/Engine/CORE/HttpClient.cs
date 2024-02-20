@@ -14,6 +14,8 @@ namespace Lampac.Engine.CORE
 {
     public static class HttpClient
     {
+        public static string UserAgent => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
+
         #region Handler
         static HttpClientHandler Handler(string url, WebProxy proxy)
         {
@@ -56,13 +58,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region DefaultRequestHeaders
-        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> addHeaders)
+        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers)
         {
             string loglines = string.Empty;
-            DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders, ref loglines);
+            DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines);
         }
 
-        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> addHeaders, ref string loglines)
+        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines)
         {
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
@@ -89,9 +91,9 @@ namespace Lampac.Engine.CORE
 
             bool setDefaultUseragent = true;
 
-            if (addHeaders != null)
+            if (headers != null)
             {
-                foreach (var item in addHeaders)
+                foreach (var item in headers)
                 {
                     if (item.name.ToLower() == "user-agent")
                         setDefaultUseragent = false;
@@ -103,15 +105,15 @@ namespace Lampac.Engine.CORE
 
             if (setDefaultUseragent)
             {
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
-                loglines += "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36\n";
+                client.DefaultRequestHeaders.Add("User-Agent", "UserAgent");
+                loglines += $"User-Agent: {UserAgent}\n";
             }
         }
         #endregion
 
 
         #region GetLocation
-        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<HeadersModel> addHeaders = null, int httpversion = 1, bool allowAutoRedirect = false, WebProxy proxy = null)
+        async public static ValueTask<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, List<HeadersModel> headers = null, int httpversion = 1, bool allowAutoRedirect = false, WebProxy proxy = null)
         {
             try
             {
@@ -120,7 +122,7 @@ namespace Lampac.Engine.CORE
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, referer, addHeaders);
+                    DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, referer, headers);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -145,18 +147,18 @@ namespace Lampac.Engine.CORE
 
 
         #region Get
-        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> addHeaders = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1)
         {
-            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion)).content;
+            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion)).content;
         }
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> addHeaders = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null)
+        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null)
         {
             try
             {
-                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, proxy: proxy)).content;
+                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy)).content;
                 if (html == null)
                     return default;
 
@@ -173,7 +175,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region BaseGetAsync
-        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> addHeaders = null, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1)
         {
             string loglines = string.Empty;
 
@@ -181,7 +183,7 @@ namespace Lampac.Engine.CORE
             {
                 using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders, ref loglines);
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -243,12 +245,12 @@ namespace Lampac.Engine.CORE
 
 
         #region Post
-        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> addHeaders = null, WebProxy proxy = null, int httpversion = 1)
+        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1)
         {
-            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, proxy: proxy, httpversion: httpversion);
+            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion);
         }
 
-        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> addHeaders = null, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1)
         {
             string loglines = string.Empty;
 
@@ -256,7 +258,7 @@ namespace Lampac.Engine.CORE
             {
                 using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, addHeaders, ref loglines);
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, headers, ref loglines);
 
                     var req = new HttpRequestMessage(HttpMethod.Post, url)
                     {
@@ -313,16 +315,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post<T>
-        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> addHeaders = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
+        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
         {
-            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject);
+            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject);
         }
 
-        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> addHeaders = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
+        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false)
         {
             try
             {
-                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, encoding: encoding, proxy: proxy);
+                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy);
                 if (json == null)
                     return default;
 
@@ -340,7 +342,7 @@ namespace Lampac.Engine.CORE
 
 
         #region Download
-        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> addHeaders = null, WebProxy proxy = null)
+        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             try
             {
@@ -349,7 +351,7 @@ namespace Lampac.Engine.CORE
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, addHeaders);
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers);
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {
@@ -375,7 +377,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region DownloadFile
-        async public static ValueTask<bool> DownloadFile(string url, string path, int timeoutSeconds = 20, List<HeadersModel> addHeaders = null, WebProxy proxy = null)
+        async public static ValueTask<bool> DownloadFile(string url, string path, int timeoutSeconds = 20, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             try
             {
@@ -384,7 +386,7 @@ namespace Lampac.Engine.CORE
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, -1, null, null, addHeaders);
+                    DefaultRequestHeaders(client, timeoutSeconds, -1, null, null, headers);
 
                     using (var stream = await client.GetStreamAsync(url))
                     {

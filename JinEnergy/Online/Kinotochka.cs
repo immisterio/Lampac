@@ -14,7 +14,7 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
             var init = AppInit.Kinotochka.Clone();
 
-            refresh: string file = await Embed(init, arg.kinopoisk_id);
+            refresh: string file = await Embed(args, init, arg.kinopoisk_id);
 
             var mtpl = new MovieTpl(arg.title, arg.original_title);
 
@@ -33,9 +33,9 @@ namespace JinEnergy.Online
         }
 
 
-        async static ValueTask<string> Embed(OnlinesSettings init, long kinopoisk_id)
+        async static ValueTask<string> Embed(string args, OnlinesSettings init, long kinopoisk_id)
         {
-            string? embed = await JsHttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}");
+            string? embed = await JsHttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", httpHeaders(args, init));
             return Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
         }
     }

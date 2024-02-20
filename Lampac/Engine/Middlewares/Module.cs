@@ -22,11 +22,11 @@ namespace Lampac.Engine.Middlewares
 
         public async Task InvokeAsync(HttpContext httpContext)
         {
-            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.initspace == "Middlewares.Module") is RootModule mod)
+            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.initspace == "ModEvents") is RootModule mod)
             {
                 try
                 {
-                    if (mod.assembly.GetType(mod.initspace) is Type t)
+                    if (mod.assembly.GetType("ModEvents.Middlewares") is Type t)
                     {
                         if (t.GetMethod("Invoke") is MethodInfo m2)
                         {

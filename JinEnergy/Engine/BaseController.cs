@@ -3,6 +3,8 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
+using Shared.Model.Online;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -225,6 +227,33 @@ namespace JinEnergy.Engine
                 return false;
 
             return conf.corseu = true;
+        }
+
+        public static List<HeadersModel> httpHeaders(string args, BaseSettings init, List<HeadersModel>? _startHeaders = null)
+        {
+            var headers = HeadersModel.Init(_startHeaders);
+            if (init.headers == null)
+                return headers;
+
+            string? account_email = parse_arg("account_email", args);
+
+            foreach (var h in init.headers)
+            {
+                if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
+                    continue;
+
+                string val = h.name.Contains("{") ? h.name.Replace("{account_email}", account_email) : h.name;
+
+                if (val.Contains("{arg:"))
+                {
+                    foreach (Match m in Regex.Matches(val, "\\{arg:([^\\}]+)\\}"))
+                        val = val.Replace(m.Groups[0].Value, parse_arg(m.Groups[1].Value, args));
+                }
+
+                headers.Add(new HeadersModel(h.val, val));
+            }
+
+            return headers;
         }
     }
 }

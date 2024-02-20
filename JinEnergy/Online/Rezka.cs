@@ -10,7 +10,7 @@ namespace JinEnergy.Online
         #region RezkaInvoke
         static bool origstream;
 
-        static RezkaInvoke rezkaInvoke(RezkaSettings init)
+        static RezkaInvoke rezkaInvoke(string args, RezkaSettings init)
         {
             bool userapn = IsApnIncluded(init);
 
@@ -19,8 +19,8 @@ namespace JinEnergy.Online
                 null,
                 init.corsHost(),
                 init.hls,
-                ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
-                (url, data) => JsHttpClient.Post(init.cors(url), data),
+                ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init)),
+                (url, data) => JsHttpClient.Post(init.cors(url), data, httpHeaders(args, init)),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(origstream ? RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile) : streamfile, origstream)
             );
         }
@@ -30,7 +30,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.Rezka.Clone();
-            var oninvk = rezkaInvoke(init);
+            var oninvk = rezkaInvoke(args, init);
 
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);
@@ -60,7 +60,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Serial(string args)
         {
             var init = AppInit.Rezka.Clone();
-            var oninvk = rezkaInvoke(init);
+            var oninvk = rezkaInvoke(args, init);
 
             var arg = defaultArgs(args);
             int t = int.Parse(parse_arg("t", args) ?? "0");
@@ -90,7 +90,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Movie(string args)
         {
             var init = AppInit.Rezka.Clone();
-            var oninvk = rezkaInvoke(init);
+            var oninvk = rezkaInvoke(args, init);
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");

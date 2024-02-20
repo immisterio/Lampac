@@ -25,11 +25,11 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi")
             );
 
-            var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", cacheTime(40), () => oninvk.Embed(kinopoisk_id), proxyManager);
+            var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id), proxyManager);
 
             if (content == null)
                 return OnError(proxyManager);

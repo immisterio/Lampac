@@ -25,14 +25,19 @@ namespace JinEnergy.Engine
 
 
         #region Get
+        public static ValueTask<string?> Get(string url, List<HeadersModel>? headers, int timeoutSeconds = 8)
+        {
+            return BaseGetAsync(url, encoding: default, timeoutSeconds: timeoutSeconds, addHeaders: headers);
+        }
+
         public static ValueTask<string?> Get(string url, Encoding? encoding = null, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null, bool androidHttpReq = true)
         {
-            return BaseGetAsync(url, encoding: encoding, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders);
+            return BaseGetAsync(url, encoding: encoding, timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, androidHttpReq: androidHttpReq);
         }
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T?> Get<T>(string url, Encoding? encoding = null, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null, bool androidHttpReq = true)
+        async public static ValueTask<T?> Get<T>(string url, List<HeadersModel>? addHeaders = null, int timeoutSeconds = 8, Encoding? encoding = null, bool androidHttpReq = true)
         {
             try
             {
@@ -101,6 +106,11 @@ namespace JinEnergy.Engine
 
 
         #region Post
+        public static ValueTask<string?> Post(string url, string data, List<HeadersModel>? headers, int timeoutSeconds = 8)
+        {
+            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), timeoutSeconds: timeoutSeconds, addHeaders: headers);
+        }
+
         public static ValueTask<string?> Post(string url, string data, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null)
         {
             return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), timeoutSeconds: timeoutSeconds, addHeaders: addHeaders);

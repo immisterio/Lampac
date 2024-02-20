@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
             var init = AppInit.conf.Voidboost;
 
-            var headers = new List<HeadersModel>();
+            var headers = httpHeaders(init);
 
             if (init.xrealip)
                 headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
@@ -32,8 +32,8 @@ namespace Lampac.Controllers.LITE
                 host,
                 init.corsHost(),
                 init.hls,
-                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
+                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "voidboost")
             );
         }

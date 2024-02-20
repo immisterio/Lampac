@@ -16,14 +16,14 @@ namespace JinEnergy.SISI
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: HeadersModel.Init(
+            refresh: string? html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, HeadersModel.Init(
                 ("dnt", "1"),
                 ("referer", init.host!),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-origin"),
                 ("x-requested-with", "XMLHttpRequest")
-            )));
+            ))));
 
             var playlist = BongaCamsTo.Playlist(html, pl =>
             {

@@ -1,21 +1,25 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Base;
 
 namespace JinEnergy.Online
 {
     public class VoidboostController : BaseController
     {
         #region VoidboostInvoke
-        static VoidboostInvoke oninvk = new VoidboostInvoke
-        (
-            null,
-            AppInit.Voidboost.corsHost(),
-            AppInit.Voidboost.hls,
-            ongettourl => JsHttpClient.Get(AppInit.Voidboost.cors(ongettourl)),
-            (url, data) => JsHttpClient.Post(AppInit.Voidboost.cors(url), data),
-            streamfile => HostStreamProxy(AppInit.Voidboost, streamfile)
-        );
+        static VoidboostInvoke voidboostInvoke(string args, BaseSettings init)
+        {
+            return new VoidboostInvoke
+            (
+                null,
+                AppInit.Voidboost.corsHost(),
+                AppInit.Voidboost.hls,
+                ongettourl => JsHttpClient.Get(AppInit.Voidboost.cors(ongettourl), httpHeaders(args, init)),
+                (url, data) => JsHttpClient.Post(AppInit.Voidboost.cors(url), data, httpHeaders(args, init)),
+                streamfile => HostStreamProxy(AppInit.Voidboost, streamfile)
+            );
+        }
         #endregion
 
         [JSInvokable("lite/voidboost")]
@@ -28,6 +32,8 @@ namespace JinEnergy.Online
 
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
                 return EmptyError("arg");
+
+            var oninvk = voidboostInvoke(args, init);
 
             string memkey = $"voidboost:{arg.kinopoisk_id}:{arg.imdb_id}:{t}";
             refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, t));
@@ -57,6 +63,8 @@ namespace JinEnergy.Online
             if (string.IsNullOrWhiteSpace(t))
                 return EmptyError("t");
 
+            var oninvk = voidboostInvoke(args, init);
+
             string memkey = $"voidboost:serial:{t}:{s}";
             refresh: string? html = await InvokeCache(0, memkey, () => oninvk.Serial(arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s, false));
             if (string.IsNullOrEmpty(html))
@@ -79,6 +87,8 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
             int s = int.Parse(parse_arg("s", args) ?? "0");
             int e = int.Parse(parse_arg("e", args) ?? "0");
+
+            var oninvk = voidboostInvoke(args, init);
 
             string memkey = $"rezka:stream:{t}:{s}:{e}";
             refresh: var md = await InvokeCache(0, memkey, () => oninvk.Movie(t, s, e));

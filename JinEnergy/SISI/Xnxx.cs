@@ -15,7 +15,7 @@ namespace JinEnergy.SISI
             string? search = parse_arg("search", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = XnxxTo.Playlist("xnx/vidosik", html, pl =>
             {
@@ -35,7 +35,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Xnxx.Clone();
 
-            refresh: var stream_links = await XnxxTo.StreamLinks("xnx/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), url => JsHttpClient.Get(init.cors(url)));
+            refresh: var stream_links = await XnxxTo.StreamLinks("xnx/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init, true))
                 goto refresh;

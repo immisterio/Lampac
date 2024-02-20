@@ -82,7 +82,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("megapeer", jackett.Megapeer);
 
-            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, addHeaders: HeadersModel.Init(
+            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, headers: HeadersModel.Init(
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("referer", $"{jackett.Megapeer.host}"),

@@ -34,7 +34,7 @@ namespace Lampac.Controllers.Xhamster
                 var proxyManager = new ProxyManager("xmr", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

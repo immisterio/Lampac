@@ -31,8 +31,8 @@ namespace Lampac.Controllers.LITE
                 init.apihost,
                 init.token,
                 init.hls,
-                (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy),
-                (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy),
+                (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik")
             );
         }
@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                 string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
+                string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 streams = new List<(string q, string url)>();
                 var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);

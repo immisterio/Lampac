@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -16,7 +15,7 @@ namespace Lampac.Controllers.PornHub
     public class ListController : BaseSisiController
     {
         #region httpheaders
-        public static List<HeadersModel> httpheaders(string cookie = null)
+        public static List<HeadersModel> defaultheaders(string cookie = null)
         {
             return HeadersModel.Init(
                 ("accept-language", "ru-RU,ru;q=0.9"),
@@ -54,7 +53,7 @@ namespace Lampac.Controllers.PornHub
                 var proxyManager = new ProxyManager("phub", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, addHeaders: httpheaders()));
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, defaultheaders())));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -86,7 +85,7 @@ namespace Lampac.Controllers.PornHub
                 var proxyManager = new ProxyManager("phubprem", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, addHeaders: httpheaders(init.cookie)));
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, defaultheaders(init.cookie))));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

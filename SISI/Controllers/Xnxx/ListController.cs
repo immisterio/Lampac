@@ -27,7 +27,7 @@ namespace Lampac.Controllers.Xnxx
                 var proxyManager = new ProxyManager("xnx", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

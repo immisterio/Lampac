@@ -33,14 +33,14 @@ namespace Lampac.Controllers.BongaCams
             {
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
-                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, addHeaders: HeadersModel.Init(
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                         ("dnt", "1"),
                         ("referer", init.host),
                         ("sec-fetch-dest", "empty"),
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
                         ("x-requested-with", "XMLHttpRequest")
-                    ));
+                    )));
                 });
 
                 if (html == null)

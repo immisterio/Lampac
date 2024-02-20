@@ -18,6 +18,11 @@
             return new List<HeadersModel>() { new HeadersModel(name, val)};
         }
 
+        public static List<HeadersModel> Init(List<HeadersModel>? headers)
+        {
+            return headers ?? new List<HeadersModel>();
+        }
+
         public static List<HeadersModel> Init(params (string name, string val)[] headers)
         {
             var h = new List<HeadersModel>(headers.Count());

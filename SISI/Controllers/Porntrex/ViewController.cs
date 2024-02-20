@@ -30,7 +30,7 @@ namespace Lampac.Controllers.Porntrex
             {
                 var proxy = proxyManager.Get();
 
-                links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (links == null || links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
@@ -56,14 +56,14 @@ namespace Lampac.Controllers.Porntrex
             string memKey = $"Porntrex:strem:{link}";
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
-                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, addHeaders: HeadersModel.Init(
+                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "none"),
                     ("sec-fetch-user", "?1"),
                     ("upgrade-insecure-requests", "1"),
                     ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
-                ));
+                )));
 
                 if (location == null || link == location)
                     return OnError("location");

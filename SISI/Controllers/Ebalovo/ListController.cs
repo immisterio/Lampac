@@ -27,7 +27,7 @@ namespace Lampac.Controllers.Ebalovo
                 var proxyManager = new ProxyManager("elo", init);
                 var proxy = proxyManager.Get();
 
-                string html = await EbalovoTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await EbalovoTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

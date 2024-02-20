@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animego:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s)> catalog))
                 {
-                    string search = await HttpClient.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get());
+                    string search = await HttpClient.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
                 if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
                     #region content
-                    var player = await HttpClient.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: HeadersModel.Init(
+                    var player = await HttpClient.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("pragma", "no-cache"),
@@ -96,7 +96,7 @@ namespace Lampac.Controllers.LITE
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
                         ("x-requested-with", "XMLHttpRequest")
-                    ));
+                    )));
 
                     string content = player?.Value<string>("content");
                     if (string.IsNullOrWhiteSpace(content))
@@ -186,7 +186,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: HeadersModel.Init(
+                string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("pragma", "no-cache"),
@@ -195,7 +195,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
                     ("x-requested-with", "XMLHttpRequest")
-                ));
+                )));
 
                 if (string.IsNullOrWhiteSpace(embed))
                     return OnError(proxyManager);

@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animebesst:search:{title}";
                 if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
-                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animebesst:playlist:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
-                    string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get());
+                    string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     string videoList = Regex.Match(news ?? "", "var videoList = ([^\n\r]+)").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(videoList))
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animebesst:video:{uri}";
             if (!memoryCache.TryGetValue(memKey, out string hls))
             {
-                string iframe = await HttpClient.Get(init.cors($"https://{uri}"), timeoutSeconds: 8, proxy: proxyManager.Get());
+                string iframe = await HttpClient.Get(init.cors($"https://{uri}"), timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                 hls = Regex.Match(iframe ?? "", "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(hls))

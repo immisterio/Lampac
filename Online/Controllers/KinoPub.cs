@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using Online;
 using Shared.Engine.CORE;
 using Shared.Engine.Online;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -57,12 +58,16 @@ namespace Lampac.Controllers.LITE
 
             var proxy = proxyManager.Get();
 
+            string token = init.token;
+            if (init.tokens != null && init.tokens.Length > 1)
+                token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
+
             var oninvk = new KinoPubInvoke
             (
                host,
                init.corsHost(),
-               init.token,
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy),
+               token,
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy)
             );
 

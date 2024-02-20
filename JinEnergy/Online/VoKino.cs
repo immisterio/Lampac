@@ -17,7 +17,7 @@ namespace JinEnergy.Online
                null,
                init.corsHost(),
                init.token!,
-               ongettourl => JsHttpClient.Get(init.cors(ongettourl)),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init)),
                streamfile => HostStreamProxy(init, streamfile)
             );
 

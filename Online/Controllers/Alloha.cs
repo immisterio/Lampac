@@ -143,7 +143,7 @@ namespace Lampac.Controllers.LITE
                     uri += $"&episode={e}";
                 #endregion
 
-                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("data"))
                     return OnError("json", proxyManager);
 
@@ -210,7 +210,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("data"))
                         return (true, 0, null);
 
@@ -236,7 +236,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("data"))
                         return (true, 0, null);
 

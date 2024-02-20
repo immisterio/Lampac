@@ -11,6 +11,8 @@ namespace Lampac.Models.LITE
 
         public string? token { get; set; }
 
+        public string[]? tokens { get; set; }
+
         public string? filetype { get; set; }
 
 

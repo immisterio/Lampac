@@ -17,7 +17,7 @@ namespace JinEnergy.SISI
             string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
-            refresh: string? html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = EpornerTo.Playlist("epr/vidosik", html, pl =>
             {
@@ -38,8 +38,8 @@ namespace JinEnergy.SISI
             var init = AppInit.Eporner.Clone();
 
             refresh: var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), parse_arg("uri", args), 
-                            url => JsHttpClient.Get(init.cors(url)), 
-                            jsonurl => JsHttpClient.Get(init.cors(jsonurl)));
+                            url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)), 
+                            jsonurl => JsHttpClient.Get(init.cors(jsonurl), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;

@@ -21,8 +21,8 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie),
-               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
+               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "remux")
             );
         }

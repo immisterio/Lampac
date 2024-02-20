@@ -18,7 +18,7 @@ namespace JinEnergy.SISI
             string? c = parse_arg("c", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await HQpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await HQpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = HQpornerTo.Playlist("hqr/vidosik", html, pl =>
             {
@@ -40,7 +40,7 @@ namespace JinEnergy.SISI
 
             var head = HeadersModel.Init("referer", init.host!);
 
-            refresh: var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)), iframeurl => JsHttpClient.Get(init.cors(iframeurl), addHeaders: head));
+            refresh: var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)), iframeurl => JsHttpClient.Get(init.cors(iframeurl), httpHeaders(args, init, head)));
 
             if (stream_links == null && IsRefresh(init, true))
                 goto refresh;

@@ -44,7 +44,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy);
+                        string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -84,13 +84,13 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:playlist:{newsuri}";
                     if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie);
+                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         string filetxt = Regex.Match(news ?? "", "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
 
                         if (string.IsNullOrWhiteSpace(filetxt))
                             return OnError(proxyManager);
 
-                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie);
+                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (root == null)
                             return OnError(proxyManager);
 
@@ -138,7 +138,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!memoryCache.TryGetValue(memKey, out string file))
                 {
-                    string embed = await HttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, cookie: cookie);
+                    string embed = await HttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                     file = Regex.Match(embed ?? "", "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
 
                     if (string.IsNullOrWhiteSpace(file))

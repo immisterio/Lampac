@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!memoryCache.TryGetValue(memKey, out string urim3u8))
             {
-                string json = await HttpClient.Post($"{init.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, addHeaders: HeadersModel.Init(
+                string json = await HttpClient.Post($"{init.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("DNT", "1"),
                     ("Origin", init.cdnhost),
                     ("P-REF", string.Empty),
@@ -94,7 +94,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\"")
-                ));
+                )));
 
                 urim3u8 = Regex.Match(json ?? "", "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
@@ -128,7 +128,7 @@ namespace Lampac.Controllers.LITE
                     uri = $"{init.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={init.token}";
 
                 var proxy = proxyManager.Get();
-                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null)
                     return (null, null, 0, null);
 
@@ -140,7 +140,7 @@ namespace Lampac.Controllers.LITE
                 res.path = item.Value<string>("path");
                 res.type = item.Value<string>("type");
 
-                res.content = await HttpClient.Get(res.path, timeoutSeconds: 8, proxy: proxy, addHeaders: HeadersModel.Init(
+                res.content = await HttpClient.Get(res.path, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("DNT", "1"),
                     ("Referer", $"{init.host}/"),
                     ("Sec-Fetch-Dest", "iframe"),
@@ -150,7 +150,7 @@ namespace Lampac.Controllers.LITE
                     ("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\"")
-                ));
+                )));
 
                 if (res.content == null)
                 {

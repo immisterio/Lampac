@@ -16,7 +16,7 @@ namespace JinEnergy.SISI
             string? sort = parse_arg("sort", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = SpankbangTo.Playlist("sbg/vidosik", html, pl =>
             {
@@ -36,7 +36,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Spankbang.Clone();
 
-            refresh: var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
+            refresh: var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;

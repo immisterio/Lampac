@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Xvideos
                 var proxyManager = new ProxyManager("xds", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

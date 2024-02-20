@@ -106,7 +106,7 @@ namespace Lampac.Engine.Middlewares
 
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 10, proxy: proxyManager.Get(), addHeaders: decryptLink?.headers);
+                var array = await HttpClient.Download(href, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: decryptLink?.headers);
                 if (array == null)
                 {
                     if (init.cache_img)

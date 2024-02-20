@@ -24,10 +24,10 @@ namespace JinEnergy.Online
             (
                null,
                init.corsHost(),
-               ongettourl => JsHttpClient.Get(init.cors(ongettourl), addHeaders: HeadersModel.Init(
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init, HeadersModel.Init(
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
-               )),
+               ))),
                streamfile => HostStreamProxy(init, streamfile)
             );
 

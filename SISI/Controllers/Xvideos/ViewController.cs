@@ -26,7 +26,7 @@ namespace Lampac.Controllers.Xvideos
             string memKey = $"xvideos:view:{uri}";
             if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await XvideosTo.StreamLinks($"{host}/xds/vidosik", init.corsHost(), uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy));
+                stream_links = await XvideosTo.StreamLinks($"{host}/xds/vidosik", init.corsHost(), uri, url => HttpClient.Get(url, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);

@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 using System.Web;
 using Online;
@@ -57,7 +56,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return OnError();
 
-                root = await HttpClient.Get<JArray>($"{init.corsHost()}/video_links/{postid}", addHeaders: HeadersModel.Init("X-FX-TOKEN", XFXTOKEN));
+                root = await HttpClient.Get<JArray>($"{init.corsHost()}/video_links/{postid}", headers: httpHeaders(init, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
 
                 if (root == null || root.Count == 0)
                     return OnError();
@@ -80,8 +79,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var movie in root)
                 {
-                    var streamquality = new StreamQualityTpl();
-                    List<(string link, string quality)> streams = new List<(string, string)>();
+                    var streams = new List<(string link, string quality)>();
 
                     foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                     {
@@ -89,10 +87,9 @@ namespace Lampac.Controllers.LITE
                         string l = HostStreamProxy(init, file.Value<string>("url"));
 
                         streams.Add((l, $"{q}p"));
-                        streamquality.Append(l, $"{q}p");
                     }
 
-                    mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: streamquality);
+                    mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
 
                 return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
@@ -191,7 +188,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return 0;
 
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.corsHost()}/film/by-kp/{kinopoisk_id}", timeoutSeconds: 8, addHeaders: HeadersModel.Init("X-FX-TOKEN", XFXTOKEN));
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.corsHost()}/film/by-kp/{kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(AppInit.conf.FilmixPartner, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
 
                 if (root == null || !root.ContainsKey("id"))
                     return 0;
@@ -216,7 +213,7 @@ namespace Lampac.Controllers.LITE
 
             string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";
 
-            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 8, proxy: proxy);
+            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(AppInit.conf.Filmix));
             if (json == null)
             {
                 proxyManager.Refresh();
@@ -264,9 +261,11 @@ namespace Lampac.Controllers.LITE
 
         async ValueTask<string> getXFXTOKEN()
         {
+            var init = AppInit.conf.FilmixPartner;
+
             if (serverip == null)
             {
-                var myip = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/my_ip");
+                var myip = await HttpClient.Get<JObject>($"{init.host}/my_ip", headers: httpHeaders(init));
                 if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
                     return null;
 
@@ -280,17 +279,17 @@ namespace Lampac.Controllers.LITE
             string XNICK = ReverseString(DateTime.Now.ToString("HHmm")) + DateTime.Now.ToString("yyyyMMdd");
             string XSAM = ReverseString(serverip.Replace(".", "")) + DateTime.Now.ToString("HHmm");
 
-            var salt = await HttpClient.Post<JObject>($"{AppInit.conf.FilmixPartner.host}/request-salt", $"key={AppInit.conf.FilmixPartner.APIKEY}", addHeaders: HeadersModel.Init(
+            var salt = await HttpClient.Post<JObject>($"{init.host}/request-salt", $"key={init.APIKEY}", headers: httpHeaders(init, HeadersModel.Init(
                 ("X-NICK", SHA1(XNICK)),
                 ("X-SAM", SHA1(XSAM))
-            ));
+            )));
 
             if (salt == null || string.IsNullOrWhiteSpace(salt.Value<string>("salt")))
                 return null;
 
-            string token = SHA1(AppInit.conf.FilmixPartner.APISECRET + AppInit.conf.FilmixPartner.APIKEY + CrypTo.md5(array_sum(serverip) + salt.Value<string>("salt")));
+            string token = SHA1(init.APISECRET + init.APIKEY + CrypTo.md5(array_sum(serverip) + salt.Value<string>("salt")));
 
-            var xtk = await HttpClient.Post<JObject>($"{AppInit.conf.FilmixPartner.host}/request-token", $"user_name={AppInit.conf.FilmixPartner.user_name}&user_passw={AppInit.conf.FilmixPartner.user_passw}&key={AppInit.conf.FilmixPartner.APIKEY}&token={token}", addHeaders: HeadersModel.Init("User-Id", userid.ToString()));
+            var xtk = await HttpClient.Post<JObject>($"{init.host}/request-token", $"user_name={init.user_name}&user_passw={init.user_passw}&key={init.APIKEY}&token={token}", headers: httpHeaders(init, HeadersModel.Init("User-Id", userid.ToString())));
 
             if (xtk != null && !string.IsNullOrWhiteSpace(xtk.Value<string>("token")))
                 return xtk.Value<string>("token");

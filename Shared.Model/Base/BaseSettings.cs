@@ -1,4 +1,6 @@
-﻿namespace Shared.Model.Base
+﻿using Shared.Model.Online;
+
+namespace Shared.Model.Base
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors
     {
@@ -13,6 +15,8 @@
         public string? host { get; set; }
 
         public string? apihost { get; set; }
+
+        public List<HeadersModel>? headers { get; set; }
 
 
         #region proxy

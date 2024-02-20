@@ -1,20 +1,24 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Base;
 
 namespace JinEnergy.Online
 {
     public class iRemux : BaseController
     {
         #region iRemuxInvoke
-        static iRemuxInvoke oninvk = new iRemuxInvoke
-        (
-            null,
-            AppInit.iRemux.corsHost(),
-            ongettourl => JsHttpClient.Get(AppInit.iRemux.cors(ongettourl)),
-            (url, data) => JsHttpClient.Post(AppInit.iRemux.cors(url), data),
-            streamfile => HostStreamProxy(AppInit.iRemux, streamfile)
-        );
+        static iRemuxInvoke remuxInvoke(string args, BaseSettings init)
+        {
+            return new iRemuxInvoke
+            (
+                null,
+                AppInit.iRemux.corsHost(),
+                ongettourl => JsHttpClient.Get(AppInit.iRemux.cors(ongettourl), httpHeaders(args, init)),
+                (url, data) => JsHttpClient.Post(AppInit.iRemux.cors(url), data, httpHeaders(args, init)),
+                streamfile => HostStreamProxy(AppInit.iRemux, streamfile)
+            );
+        }
         #endregion
 
         [JSInvokable("lite/remux")]
@@ -26,6 +30,8 @@ namespace JinEnergy.Online
 
             if (string.IsNullOrWhiteSpace(arg.title ?? arg.original_title) || arg.year == 0)
                 return EmptyError("title");
+
+            var oninvk = remuxInvoke(args, init);
 
             string? content = await InvokeCache(arg.id, $"remux:{arg.title}:{arg.original_title}:{arg.year}", () => oninvk.Embed(arg.title, arg.original_title, arg.year));
             if (string.IsNullOrEmpty(content))
@@ -43,6 +49,8 @@ namespace JinEnergy.Online
 
             var arg = defaultArgs(args);
             string? linkid = parse_arg("linkid", args);
+
+            var oninvk = remuxInvoke(args, AppInit.iRemux);
 
             string? weblink = await InvokeCache(0, $"remux:view:{linkid}", () => oninvk.Weblink(linkid));
             if (weblink == null)

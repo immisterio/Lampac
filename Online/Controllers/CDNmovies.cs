@@ -27,10 +27,10 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: HeadersModel.Init(
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
-               )),
+               ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 

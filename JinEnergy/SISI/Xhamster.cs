@@ -27,7 +27,7 @@ namespace JinEnergy.SISI
             string? q = parse_arg("q", args);
             int pg = int.Parse(parse_arg("pg", args) ?? "1") + 1;
 
-            refresh: string? html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => JsHttpClient.Get(init.cors(url)));
+            refresh: string? html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             var playlist = XhamsterTo.Playlist("xmr/vidosik", html, pl =>
             {
@@ -47,7 +47,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Xhamster.Clone();
 
-            refresh: var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url)));
+            refresh: var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;

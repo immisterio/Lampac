@@ -30,7 +30,7 @@ namespace Lampac.Controllers.Chaturbate
                 var proxyManager = new ProxyManager("chu", init);
                 var proxy = proxyManager.Get();
 
-                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager);
 

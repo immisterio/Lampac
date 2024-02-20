@@ -27,8 +27,8 @@ namespace Lampac.Controllers.HQporner
             if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
                 stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri, 
-                               htmlurl => HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy), 
-                               iframeurl => HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, referer: init.host));
+                               htmlurl => HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
+                               iframeurl => HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, referer: init.host, headers: httpHeaders(init)));
 
                 if (stream_links == null || stream_links.Count == 0)
                     return OnError("stream_links", proxyManager);

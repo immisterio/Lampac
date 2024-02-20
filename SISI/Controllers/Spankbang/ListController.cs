@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -43,7 +42,7 @@ namespace Lampac.Controllers.Spankbang
                 var proxyManager = new ProxyManager("sbg", init);
                 var proxy = proxyManager.Get();
 
-                string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, addHeaders: headers));
+                string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init, headers)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

@@ -43,7 +43,7 @@ namespace JinEnergy.SISI
             int c = int.Parse(parse_arg("c", args) ?? "0");
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
+            refresh: string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, headers)));
 
             var playlist = PornHubTo.Playlist("phub/vidosik", html, pl =>
             {
@@ -63,7 +63,7 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.PornHub.Clone();
 
-            refresh: var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), addHeaders: headers));
+            refresh: var stream_links = await PornHubTo.StreamLinks("phub/vidosik", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, headers)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;

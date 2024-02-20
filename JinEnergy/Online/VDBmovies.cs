@@ -43,10 +43,10 @@ namespace JinEnergy.Online
             #region embed
             EmbedModel? embed = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.imdb_id}:{arg.kinopoisk_id}", async () =>
             {
-                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", addHeaders: HeadersModel.Init(
+                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", httpHeaders(args, init, HeadersModel.Init(
                     ("Origin", "https://cdnmovies.net"),
                     ("Referer", "https://cdnmovies.net/")
-                ));
+                )));
 
                 string file = Regex.Match(html ?? "", "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))

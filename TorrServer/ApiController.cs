@@ -44,7 +44,7 @@ namespace Lampac.Controllers
             if (!pathRequest.Contains(".js") && await Start() == false)
                 return StatusCode(500);
 
-            string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, addHeaders: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
+            string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, headers: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
 
             if (html == null)
                 return StatusCode(500);

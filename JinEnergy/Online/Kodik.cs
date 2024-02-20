@@ -11,7 +11,7 @@ namespace JinEnergy.Online
         #region KodikInvoke
         static bool origstream;
 
-        static KodikInvoke kodikInvoke(KodikSettings init)
+        static KodikInvoke kodikInvoke(string args, KodikSettings init)
         {
             bool userapn = IsApnIncluded(init);
 
@@ -21,8 +21,8 @@ namespace JinEnergy.Online
                 init.apihost!,
                 init.token,
                 init.hls,
-                (uri, head) => JsHttpClient.Get(init.cors(uri), addHeaders: head),
-                (uri, data) => JsHttpClient.Post(init.cors(uri), data),
+                (uri, head) => JsHttpClient.Get(init.cors(uri), httpHeaders(args, init, head)),
+                (uri, data) => JsHttpClient.Post(init.cors(uri), data, httpHeaders(args, init)),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
                 //AppInit.log
             );
@@ -33,7 +33,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.Kodik;
-            var oninvk = kodikInvoke(init);
+            var oninvk = kodikInvoke(args, init);
 
             var arg = defaultArgs(args);
             string? kid = parse_arg("kid", args);
@@ -75,7 +75,7 @@ namespace JinEnergy.Online
         async public static ValueTask<string> VideoParse(string args)
         {
             var init = AppInit.Kodik.Clone();
-            var oninvk = kodikInvoke(init);
+            var oninvk = kodikInvoke(args, init);
 
             var arg = defaultArgs(args);
             int episode = int.Parse(parse_arg("episode", args) ?? "0");

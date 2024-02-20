@@ -28,7 +28,7 @@ namespace Lampac.Controllers.Porntrex
                 var proxyManager = new ProxyManager("ptx", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy));
+                string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

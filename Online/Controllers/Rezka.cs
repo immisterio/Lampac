@@ -7,28 +7,28 @@ using Shared.Engine.Online;
 using Shared.Model.Online.Rezka;
 using System;
 using Shared.Model.Online;
+using System.Collections.Generic;
+using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Rezka : BaseOnlineController
     {
         #region InitRezkaInvoke
-        static DateTimeOffset _ym = DateTimeOffset.UtcNow;
-
-        static string cookie_default = $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
-
-        public RezkaInvoke InitRezkaInvoke()
+        async public ValueTask<RezkaInvoke> InitRezkaInvoke()
         {
             var init = AppInit.conf.Rezka;
 
             var proxyManager = new ProxyManager("rezka", init);
             var proxy = proxyManager.Get();
 
-            var headers = HeadersModel.Init(
-                ("Cookie", string.IsNullOrEmpty(init.cookie) ? cookie_default : init.cookie),
+            string cookie = await getCookie(init);
+
+            var headers = httpHeaders(init, HeadersModel.Init(
+                ("Cookie", cookie),
                 ("Origin", init.host),
                 ("Referer", init.host + "/")
-            );
+            ));
 
             if (init.xapp)
                 headers.Add(new HeadersModel("X-App-Hdrezka-App", "1"));
@@ -43,8 +43,8 @@ namespace Lampac.Controllers.LITE
                 host,
                 init.corsHost(),
                 init.hls,
-                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
-                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, addHeaders: headers),
+                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
+                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka")
             );
         }
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
-            var oninvk = InitRezkaInvoke();
+            var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
             var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
-            var oninvk = InitRezkaInvoke();
+            var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
 
             Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t));
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
-            var oninvk = InitRezkaInvoke();
+            var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);
 
             string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
@@ -123,6 +123,78 @@ namespace Lampac.Controllers.LITE
                 return Redirect(result);
 
             return Content(result, "application/json; charset=utf-8");
+        }
+        #endregion
+
+
+        #region getCookie
+        static string authCookie = null;
+
+        async ValueTask<string> getCookie(RezkaSettings init)
+        {
+            if (authCookie != null)
+                return authCookie;
+
+            if (!string.IsNullOrEmpty(init.cookie))
+                return init.cookie;
+
+            if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
+            {
+                DateTimeOffset _ym = DateTimeOffset.UtcNow;
+                return $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
+            }
+
+            if (memoryCache.TryGetValue("rezka:login", out _))
+                return null;
+
+            memoryCache.Set("rezka:login", 0, TimeSpan.FromMinutes(2));
+
+            try
+            {
+                var clientHandler = new System.Net.Http.HttpClientHandler()
+                {
+                    AllowAutoRedirect = false
+                };
+
+                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(20);
+                    client.DefaultRequestHeaders.Add("user-agent", HttpClient.UserAgent);
+
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "login_name", init.login },
+                        { "login_password", init.passwd },
+                        { "login_not_save", "0" }
+                    };
+
+                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                    {
+                        using (var response = await client.PostAsync($"{init.host}/ajax/login/", postContent))
+                        {
+                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            {
+                                string cookie = string.Empty;
+
+                                foreach (string line in cook)
+                                {
+                                    if (!string.IsNullOrEmpty(line) && line.Contains("dle_"))
+                                        continue;
+
+                                    cookie += $"{line.Split(";")[0]}; ";
+                                }
+
+                                if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
+                                    authCookie = cookie.Trim();
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return null;
         }
         #endregion
     }
