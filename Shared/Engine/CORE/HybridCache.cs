@@ -30,10 +30,13 @@ namespace Shared.Engine.CORE
             {
                 try
                 {
-                    foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(File.ReadAllText(conditionPath)))
+                    foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
                     {
                         if (item.Value > DateTime.Now)
+                        {
                             memoryCache.Set(item.Key, (byte)0, item.Value);
+                            condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                        }
                     }
                 }
                 catch { }
@@ -64,7 +67,7 @@ namespace Shared.Engine.CORE
                         foreach (var item in condition.Where(i => DateTime.Now > i.Value))
                             condition.TryRemove(item);
 
-                        File.WriteAllText(conditionPath, JsonConvert.SerializeObject(condition));
+                        File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(condition)));
                     }
                     catch { }
                 }
@@ -192,7 +195,7 @@ namespace Shared.Engine.CORE
                 File.WriteAllBytes($"{folderCache}/{md5key}", array);
 
                 if (absoluteExpiration != default)
-                    memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpirationRelativeToNow);
+                    memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpiration);
                 else
                 {
                     memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpirationRelativeToNow);
