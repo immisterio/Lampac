@@ -52,7 +52,7 @@ namespace Shared.Model
 
         public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("https://base.ashdi.vip");
 
-        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv");
+        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://kinoukr.com");
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinovibe.co", streamproxy: true);
 
