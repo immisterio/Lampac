@@ -59,7 +59,9 @@ namespace Shared.Engine
                     Timeout = 15_000
                 };
 
-                if (AppInit.conf.isarm) // apt install chromium-browser -y
+                if (!string.IsNullOrEmpty(AppInit.conf.puppeteer_ExecutablePath))
+                    option.ExecutablePath = AppInit.conf.puppeteer_ExecutablePath;
+                else if (AppInit.conf.isarm)
                     option.ExecutablePath = "/usr/bin/chromium-browser";
 
                 return Puppeteer.LaunchAsync(option);

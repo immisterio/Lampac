@@ -162,6 +162,8 @@ namespace Lampac
 
         public bool puppeteer_keepopen = false;
 
+        public string puppeteer_ExecutablePath;
+
         public string apikey = null;
 
         public bool litejac = true;
