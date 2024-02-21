@@ -144,10 +144,10 @@ namespace Lampac.Controllers.LITE
                 return $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
             }
 
-            if (memoryCache.TryGetValue("rezka:login", out _))
+            if (hybridCache.TryGetValue("rezka:login", out _))
                 return null;
 
-            memoryCache.Set("rezka:login", 0, TimeSpan.FromMinutes(2));
+            hybridCache.Set("rezka:login", 0, TimeSpan.FromMinutes(2));
 
             try
             {
@@ -179,7 +179,10 @@ namespace Lampac.Controllers.LITE
 
                                 foreach (string line in cook)
                                 {
-                                    if (!string.IsNullOrEmpty(line) && line.Contains("dle_"))
+                                    if (string.IsNullOrEmpty(line) || !line.Contains("dle_"))
+                                        continue;
+
+                                    if (line.Contains("=deleted;"))
                                         continue;
 
                                     cookie += $"{line.Split(";")[0]}; ";
@@ -194,7 +197,7 @@ namespace Lampac.Controllers.LITE
             }
             catch { }
 
-            return null;
+            return authCookie;
         }
         #endregion
     }

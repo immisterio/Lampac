@@ -20,13 +20,13 @@ namespace Lampac.Controllers.PornHub
                 return OnError("disable");
 
             string memKey = $"phub:vidosik:{vkey}";
-            if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
+            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
             var proxyManager = new ProxyManager("phub", init);
             var proxy = proxyManager.Get();
 
-            if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
+            if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", init.corsHost(), vkey, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, ListController.defaultheaders())));
 
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.PornHub
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, init, proxy, plugin: "phub");
@@ -51,13 +51,13 @@ namespace Lampac.Controllers.PornHub
                 return OnError("disable");
 
             string memKey = $"phubprem:vidosik:{vkey}";
-            if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
+            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
             var proxyManager = new ProxyManager("phubprem", init);
             var proxy = proxyManager.Get();
 
-            if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
+            if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", init.corsHost(), vkey, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, ListController.defaultheaders(init.cookie))));
 
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.PornHub
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, init, proxy, plugin: "phubprem");

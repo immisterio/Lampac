@@ -8,7 +8,7 @@ RUN apt update && apt install -y wget unzip nano htop && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant torrserver widgets wwwroot && \
 	touch isdocker
 
-RUN echo '{"typecache":"file","pirate_store":false,"LampaWeb":{"autoupdate":false},"serverproxy":{"cache_img":false,"verifyip":false},"dlna":{"enable":false},"online":{"findkp":"vsdn","checkOnlineSearch":false}}' > /home/init.conf
+RUN echo '{"mikrotik":true,"pirate_store":false,"LampaWeb":{"autoupdate":false},"serverproxy":{"cache_img":false,"verifyip":false},"dlna":{"enable":false},"online":{"findkp":"vsdn","checkOnlineSearch":false}}' > /home/init.conf
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"}]' > /home/module/manifest.json
 

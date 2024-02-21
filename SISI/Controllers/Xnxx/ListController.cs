@@ -22,7 +22,7 @@ namespace Lampac.Controllers.Xnxx
                 return OnError("disable");
 
             string memKey = $"xnx:list:{search}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("xnx", init);
                 var proxy = proxyManager.Get();
@@ -37,7 +37,7 @@ namespace Lampac.Controllers.Xnxx
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null);

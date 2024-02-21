@@ -104,7 +104,7 @@ namespace Lampac.Controllers.LITE
                 return 0;
 
             string memKey = $"seasonvar:search:{title}:{year}";
-            if (!memoryCache.TryGetValue(memKey, out JArray root))
+            if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 root = await HttpClient.Post<JArray>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=search&query={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || root.Count == 0)
@@ -113,7 +113,7 @@ namespace Lampac.Controllers.LITE
                     return 0;
                 }
 
-                memoryCache.Set(memKey, root, cacheTime(40));
+                hybridCache.Set(memKey, root, cacheTime(40));
             }
 
             int reservedid = 0;
@@ -142,7 +142,7 @@ namespace Lampac.Controllers.LITE
         async ValueTask<JObject> seasonObject(int season_id)
         {
             string memKey = $"seasonvar:season:{season_id}";
-            if (!memoryCache.TryGetValue(memKey, out JObject root))
+            if (!hybridCache.TryGetValue(memKey, out JObject root))
             {
                 root = await HttpClient.Post<JObject>(AppInit.conf.Seasonvar.apihost, $"key={AppInit.conf.Seasonvar.token}&command=getSeason&season_id={season_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null)
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                memoryCache.Set(memKey, root, cacheTime(40));
+                hybridCache.Set(memKey, root, cacheTime(40));
             }
 
             return root;

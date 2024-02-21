@@ -12,9 +12,9 @@ namespace Shared.Model
 
         public string? corsehost { get; set; }
 
-        public SisiConf sisi { get; set; } = new SisiConf() { heightPicture = 200 };
+        public SisiConf sisi { get; set; } = new SisiConf() { heightPicture = 240 };
 
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("https://rus.bongacams.com");
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("https://ru2.bongacams.com");
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("https://chaturbate.com");
 
@@ -68,7 +68,7 @@ namespace Shared.Model
 
         public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online");
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://serial.stoopfilm.net");
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site");
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 

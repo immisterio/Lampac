@@ -84,22 +84,25 @@ namespace Shared.Engine.CORE
 
         public bool TryGetValue<TItem>(string key, out TItem value)
         {
-            int extend = 2;
-
-            if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
+            if (!AppInit.conf.mikrotik)
             {
-                if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddMinutes(extend))
-                    memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+                int extend = 2;
 
-                return true;
-            }
+                if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
+                {
+                    if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddMinutes(extend))
+                        memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
 
-            if (ReadCache(key, out value))
-            {
-                if (AppInit.conf.typecache == "hybrid")
-                    memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+                    return true;
+                }
 
-                return true;
+                if (ReadCache(key, out value))
+                {
+                    if (AppInit.conf.typecache == "hybrid")
+                        memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+
+                    return true;
+                }
             }
 
             return memoryCache.TryGetValue(key, out value);
@@ -149,7 +152,7 @@ namespace Shared.Engine.CORE
         #region Set
         public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration)
         {
-            if (WriteCache(key, value, absoluteExpiration, default))
+            if (!AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
                 return value;
 
             return memoryCache.Set(key, value, absoluteExpiration);
@@ -157,7 +160,7 @@ namespace Shared.Engine.CORE
 
         public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow)
         {
-            if (WriteCache(key, value, default, absoluteExpirationRelativeToNow))
+            if (!AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
                 return value;
 
             return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);

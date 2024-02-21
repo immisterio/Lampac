@@ -143,18 +143,18 @@ namespace JacRed.Controllers
             if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
             {
                 string memkey = $"api/v1.0/torrents:{search}";
-                if (!memoryCache.TryGetValue(memkey, out (string original_name, string name) cache))
+                if (!hybridCache.TryGetValue(memkey, out (string original_name, string name) cache))
                 {
                     search = search.Trim();
                     string uri = $"&imdb={search}";
                     if (search.StartsWith("kp"))
                         uri = $"&kp={search.Remove(0, 2)}";
 
-                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 7);
+                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 10);
                     cache.original_name = root?.Value<JObject>("data")?.Value<string>("original_name");
                     cache.name = root?.Value<JObject>("data")?.Value<string>("name");
 
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddDays(1));
+                    hybridCache.Set(memkey, cache, DateTime.Now.AddDays(1));
                 }
 
                 if (!string.IsNullOrWhiteSpace(cache.name) && !string.IsNullOrWhiteSpace(cache.original_name))

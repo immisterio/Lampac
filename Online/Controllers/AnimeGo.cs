@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"animego:search:{title}";
-                if (!memoryCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s)> catalog))
                 {
                     string search = await HttpClient.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager);
 
                     proxyManager.Success();
-                    memoryCache.Set(memkey, catalog, cacheTime(40));
+                    hybridCache.Set(memkey, catalog, cacheTime(40));
                 }
 
                 if (catalog.Count == 1)
@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
                 string html = "<div class=\"videos__line\">";
 
                 string memKey = $"animego:playlist:{pid}";
-                if (!memoryCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
+                if (!hybridCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
                     #region content
                     var player = await HttpClient.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
@@ -141,7 +141,7 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     proxyManager.Success();
-                    memoryCache.Set(memKey, cache, cacheTime(30));
+                    hybridCache.Set(memKey, cache, cacheTime(30));
                 }
 
                 #region Перевод
@@ -184,7 +184,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             string memKey = $"animego:video:{token}:{t}:{e}";
-            if (!memoryCache.TryGetValue(memKey, out string hls))
+            if (!hybridCache.TryGetValue(memKey, out string hls))
             {
                 string embed = await HttpClient.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
@@ -209,7 +209,7 @@ namespace Lampac.Controllers.LITE
                 hls = "https:" + hls;
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, hls, cacheTime(30));
+                hybridCache.Set(memKey, hls, cacheTime(30));
             }
 
             return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: HeadersModel.Init(

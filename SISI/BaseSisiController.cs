@@ -35,7 +35,7 @@ namespace SISI
                 {
                     pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin),
-                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture),
+                    picture = (plugin is "bgs" or "chu") ? pl.picture : HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture),
                     pl.preview,
                     pl.time,
                     pl.json,
@@ -46,7 +46,7 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null)
+        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, string plugin = null)
         {
             return new JsonResult(new
             {
@@ -55,7 +55,7 @@ namespace SISI
                 {
                     pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture, headers: headers),
+                    picture = (plugin is "bgs" or "chu") ? pl.picture : HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture, headers: headers),
                     pl.preview,
                     pl.time,
                     pl.json,

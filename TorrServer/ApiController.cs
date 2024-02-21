@@ -13,6 +13,7 @@ using System.Net.Http.Headers;
 using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers
 {

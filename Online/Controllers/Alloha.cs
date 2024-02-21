@@ -129,7 +129,7 @@ namespace Lampac.Controllers.LITE
             }
 
             string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}";
-            if (!memoryCache.TryGetValue(memKey, out (string m3u8, string subtitle) _cache))
+            if (!hybridCache.TryGetValue(memKey, out (string m3u8, string subtitle) _cache))
             {
                 #region url запроса
                 string uri = $"{init.linkhost}/link_file.php?secret_token={init.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
@@ -182,7 +182,7 @@ namespace Lampac.Controllers.LITE
                     _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, _cache, cacheTime(10));
+                hybridCache.Set(memKey, _cache, cacheTime(10));
             }
 
             string m3u8 = HostStreamProxy(init, _cache.m3u8, proxy: proxyManager.Get(), plugin: "alloha");
@@ -203,7 +203,7 @@ namespace Lampac.Controllers.LITE
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";
 
-            if (!memoryCache.TryGetValue(memKey, out (int category_id, JToken data) res))
+            if (!hybridCache.TryGetValue(memKey, out (int category_id, JToken data) res))
             {
                 if (memKey.Contains(":viewsearch:"))
                 {
@@ -245,7 +245,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, res, cacheTime(40));
+                hybridCache.Set(memKey, res, cacheTime(40));
             }
 
             return (false, res.category_id, res.data);

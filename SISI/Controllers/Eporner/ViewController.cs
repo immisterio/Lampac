@@ -24,7 +24,7 @@ namespace Lampac.Controllers.Eporner
             var proxy = proxyManager.Get();
 
             string memKey = $"eporner:view:{uri}";
-            if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
+            if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await EpornerTo.StreamLinks($"{host}/epr/vidosik", init.corsHost(), uri, 
                                htmlurl => HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.Eporner
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, init, proxy);

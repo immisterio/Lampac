@@ -109,7 +109,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memKey = $"kodik:view:stream:{link}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string q, string url)> streams))
+            if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                 string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
@@ -133,7 +133,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, streams, cacheTime(20));
+                hybridCache.Set(memKey, streams, cacheTime(20));
             }
 
             string streansquality = string.Empty;

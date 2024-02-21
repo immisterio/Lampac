@@ -120,7 +120,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:video:{iframe}";
-            if (!memoryCache.TryGetValue(memKey, out string urim3u8))
+            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
             {
                 string html = await HttpClient.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
@@ -168,7 +168,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, urim3u8, cacheTime(20));
+                hybridCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy, plugin: "hdvb");
@@ -194,7 +194,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
-            if (!memoryCache.TryGetValue(memKey, out string urim3u8))
+            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
             {
                 string html = await HttpClient.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
@@ -242,7 +242,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, urim3u8, cacheTime(20));
+                hybridCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             if (play)
@@ -257,14 +257,14 @@ namespace Lampac.Controllers.LITE
         {
             string memKey = $"hdvb:view:{kinopoisk_id}";
 
-            if (!memoryCache.TryGetValue(memKey, out JArray root))
+            if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 root = await HttpClient.Get<JArray>($"{AppInit.conf.HDVB.host}/api/videos.json?token={AppInit.conf.HDVB.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(AppInit.conf.HDVB));
                 if (root == null || root.Count == 0)
                     return null;
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, root, cacheTime(40));
+                hybridCache.Set(memKey, root, cacheTime(40));
             }
 
             return root;

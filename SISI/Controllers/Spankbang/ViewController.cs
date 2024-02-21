@@ -21,13 +21,13 @@ namespace Lampac.Controllers.Spankbang
                 return OnError("disable");
 
             string memKey = $"spankbang:view:{uri}";
-            if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
+            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
             var proxyManager = new ProxyManager("sbg", init);
             var proxy = proxyManager.Get();
 
-            if (!memoryCache.TryGetValue(memKey, out StreamItem stream_links))
+            if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await SpankbangTo.StreamLinks($"{host}/sbg/vidosik", init.corsHost(), uri, 
                                url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init, ListController.headers)));
@@ -36,7 +36,7 @@ namespace Lampac.Controllers.Spankbang
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, init, proxy);

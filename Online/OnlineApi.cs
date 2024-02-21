@@ -15,6 +15,7 @@ using Shared.Engine.CORE;
 using System.IO;
 using Shared.Model.Online;
 using Shared.Model.Base;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers
 {
@@ -69,7 +70,13 @@ namespace Lampac.Controllers
                 return Json(new { });
 
             if (IO.File.Exists("cache/externalids/master.json"))
-                externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
+            {
+                try
+                {
+                    externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
+                }
+                catch { externalids = new Dictionary<string, string>(); }
+            }
 
             #region getAlloha / getVSDN / getTabus
             async Task<string> getAlloha(string imdb)
@@ -290,6 +297,9 @@ namespace Lampac.Controllers
             send("Alloha", conf.Alloha);
             send("Rezka", conf.Rezka);
 
+            if (kinopoisk_id > 0)
+                send("VideoDB", conf.VideoDB);
+
             send("VideoCDN", conf.VCDN, "vcdn");
 
             send("Kinobase", conf.Kinobase);
@@ -302,12 +312,7 @@ namespace Lampac.Controllers
             send("Eneyida (UKR)", conf.Eneyida, "eneyida");
 
             if (kinopoisk_id > 0)
-            {
                 send("Zetflix", conf.Zetflix);
-
-                if (!isanime)
-                    send("VideoDB", conf.VideoDB);
-            }
 
             if (serial == -1 || serial == 1)
                 send("Seasonvar", conf.Seasonvar);
@@ -446,13 +451,13 @@ namespace Lampac.Controllers
                         case "rezka":
                         case "alloha":
                         case "remux":
+                        case "ashdi":
                             quality = " ~ 2160p";
                             break;
                         case "videodb":
                         case "kinobase":
                         case "zetflix":
                         case "vcdn":
-                        case "ashdi":
                         case "eneyida":
                         case "hdvb":
                         case "anilibria":

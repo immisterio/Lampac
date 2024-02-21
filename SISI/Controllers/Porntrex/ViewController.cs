@@ -26,7 +26,7 @@ namespace Lampac.Controllers.Porntrex
                 return OnError("disable");
 
             string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
-            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> links))
+            if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> links))
             {
                 var proxy = proxyManager.Get();
 
@@ -35,7 +35,7 @@ namespace Lampac.Controllers.Porntrex
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, links, cacheTime(20));
+                hybridCache.Set(memKey, links, cacheTime(20));
             }
 
             return Json(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
@@ -54,7 +54,7 @@ namespace Lampac.Controllers.Porntrex
             var proxy = proxyManager.Get();
 
             string memKey = $"Porntrex:strem:{link}";
-            if (!memoryCache.TryGetValue(memKey, out string location))
+            if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("sec-fetch-dest", "document"),
@@ -69,7 +69,7 @@ namespace Lampac.Controllers.Porntrex
                     return OnError("location");
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, location, cacheTime(40));
+                hybridCache.Set(memKey, location, cacheTime(40));
             }
 
             return Redirect(HostStreamProxy(init, location, proxy: proxy));

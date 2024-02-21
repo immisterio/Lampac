@@ -162,7 +162,7 @@ namespace JinEnergy.Online
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
                 if (arg.kinopoisk_id > 0)
-                    send("Ashdi (UKR) - 1080p", "ashdi", AppInit.Ashdi);
+                    send("Ashdi (UKR) - 4K", "ashdi", AppInit.Ashdi);
 
                 send("Eneyida (UKR) - 1080p", "eneyida", AppInit.Eneyida);
             }

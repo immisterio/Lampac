@@ -20,14 +20,12 @@ namespace Shared.Engine
 
         static List<string> tabs = new List<string>();
 
-        async public static Task LaunchKeepOpen()
+        public static void LaunchKeepOpen()
         {
-            try
-            {
-                browser_keepopen = await Launch();
-                browser_keepopen.Closed += Browser_keepopen_Closed; // Никогда не сдавайся!
-            }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            browser_keepopen = Launch()?.Result;
+
+            if (browser_keepopen != null)
+                browser_keepopen.Closed += Browser_keepopen_Closed;
         }
 
         async private static void Browser_keepopen_Closed(object sender, EventArgs e)
@@ -35,7 +33,9 @@ namespace Shared.Engine
             browser_keepopen.Closed -= Browser_keepopen_Closed;
             await Task.Delay(10_000);
             browser_keepopen = await Launch();
-            browser_keepopen.Closed += Browser_keepopen_Closed;
+
+            if (browser_keepopen != null)
+                browser_keepopen.Closed += Browser_keepopen_Closed;
         }
 
         async public static ValueTask<PuppeteerTo> Browser()
@@ -48,14 +48,27 @@ namespace Shared.Engine
 
         static Task<IBrowser> Launch()
         {
-            return Puppeteer.LaunchAsync(new LaunchOptions()
+            try
             {
-                Headless = !isdev, /*false*/
-                Devtools = isdev,
-                IgnoreHTTPSErrors = true,
-                Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
-                Timeout = 15_000
-            });
+                var option = new LaunchOptions()
+                {
+                    Headless = !isdev, /*false*/
+                    Devtools = isdev,
+                    IgnoreHTTPSErrors = true,
+                    Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
+                    Timeout = 15_000
+                };
+
+                if (AppInit.conf.isarm) // apt install chromium-browser -y
+                    option.ExecutablePath = "/usr/bin/chromium-browser";
+
+                return Puppeteer.LaunchAsync(option);
+            }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine(ex.ToString()); 
+                return null; 
+            }
         }
         #endregion
 
@@ -75,32 +88,39 @@ namespace Shared.Engine
 
         async public ValueTask<IPage> Page(string plugin, CookieParam[] cookies, Dictionary<string, string> headers = null)
         {
-            if (IsKeepOpen)
+            try
             {
-                if (!tabs.Contains(plugin))
+                if (browser == null)
+                    return null;
+
+                if (IsKeepOpen)
                 {
-                    tabs.Add(plugin);
-                    await browser.NewPageAsync();
+                    if (!tabs.Contains(plugin))
+                    {
+                        tabs.Add(plugin);
+                        await browser.NewPageAsync();
+                    }
+
+                    tabIndex = tabs.IndexOf(plugin);
                 }
 
-                tabIndex = tabs.IndexOf(plugin);
+                var page = (await browser.PagesAsync())[tabIndex];
+
+                if (headers != null && headers.Count > 0)
+                    await page.SetExtraHttpHeadersAsync(headers);
+
+                await page.SetCacheEnabledAsync(IsKeepOpen);
+                await page.DeleteCookieAsync();
+
+                if (cookies != null)
+                    await page.SetCookieAsync(cookies);
+
+                await page.SetRequestInterceptionAsync(true);
+                page.Request += Page_Request;
+
+                return page;
             }
-
-            var page = (await browser.PagesAsync())[tabIndex];
-
-            if (headers != null && headers.Count > 0)
-                await page.SetExtraHttpHeadersAsync(headers);
-
-            await page.SetCacheEnabledAsync(IsKeepOpen);
-            await page.DeleteCookieAsync();
-
-            if (cookies != null)
-                await page.SetCookieAsync(cookies);
-
-            await page.SetRequestInterceptionAsync(true);
-            page.Request += Page_Request;
-
-            return page;
+            catch { return null; }
         }
 
         private void Page_Request(object sender, RequestEventArgs e)
@@ -116,19 +136,26 @@ namespace Shared.Engine
 
         public void Dispose()
         {
-            if (!IsKeepOpen)
-                browser.Dispose();
-            else
+            if (browser == null)
+                return;
+
+            try
             {
-                var pages = browser.PagesAsync().Result;
+                if (!IsKeepOpen)
+                    browser?.Dispose();
+                else
+                {
+                    var pages = browser.PagesAsync().Result;
 
-                foreach (var pg in pages.Skip(tabs.Count))
-                    pg.CloseAsync();
+                    foreach (var pg in pages.Skip(tabs.Count))
+                        pg.CloseAsync();
 
-                var page = pages[tabIndex];
-                page.GoToAsync("about:blank");
-                page.Request -= Page_Request;
+                    var page = pages[tabIndex];
+                    page.GoToAsync("about:blank");
+                    page.Request -= Page_Request;
+                }
             }
+            catch { }
         }
     }
 }

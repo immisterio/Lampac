@@ -20,13 +20,13 @@ namespace Lampac.Controllers.Tizam
                 return OnError("disable");
 
             string memKey = $"tizam:view:{uri}";
-            if (memoryCache.TryGetValue($"error:{memKey}", out string errormsg))
+            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
 
             var proxyManager = new ProxyManager("tizam", init);
             var proxy = proxyManager.Get();
 
-            if (!memoryCache.TryGetValue(memKey, out string location))
+            if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 string html = await HttpClient.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
@@ -46,7 +46,7 @@ namespace Lampac.Controllers.Tizam
                 location = HttpUtility.UrlDecode(location);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, location, cacheTime(360));
+                hybridCache.Set(memKey, location, cacheTime(360));
             }
 
             return Redirect(HostStreamProxy(init, location, proxy: proxy));

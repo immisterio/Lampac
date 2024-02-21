@@ -80,7 +80,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
-            if (!memoryCache.TryGetValue(memKey, out string urim3u8))
+            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
             {
                 string json = await HttpClient.Post($"{init.cdnhost}/loadvideo", $"token={token}&type={type}&season=&episode=&mobile=false&id={cid}&qt=480", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("DNT", "1"),
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(urim3u8))
                     return OnError(proxyManager);
 
-                memoryCache.Set(memKey, urim3u8, cacheTime(20));
+                hybridCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             string url = HostStreamProxy(init, urim3u8, proxy: proxy);
@@ -121,7 +121,7 @@ namespace Lampac.Controllers.LITE
 
             string memKey = $"iframevideo:view:{imdb_id}:{kinopoisk_id}";
 
-            if (!memoryCache.TryGetValue(memKey, out (string content, string type, int cid, string path) res))
+            if (!hybridCache.TryGetValue(memKey, out (string content, string type, int cid, string path) res))
             {
                 string uri = $"{init.apihost}/api/v2/search?imdb={imdb_id}&kp={kinopoisk_id}";
                 if (!string.IsNullOrWhiteSpace(init.token))
@@ -158,7 +158,7 @@ namespace Lampac.Controllers.LITE
                     return (null, null, 0, null);
                 }
 
-                memoryCache.Set(memKey, res, cacheTime(20));
+                hybridCache.Set(memKey, res, cacheTime(20));
             }
 
             return res;

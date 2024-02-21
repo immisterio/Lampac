@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
+using Shared;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
@@ -21,30 +23,32 @@ namespace Lampac.Engine
 
         public static string appversion => "103";
 
-        public HybridCache memoryCache { get; private set; }
+        public HybridCache hybridCache { get; private set; }
+
+        public IMemoryCache memoryCache { get; private set; }
 
         public string host => AppInit.Host(HttpContext);
 
         public BaseController()
         {
-            memoryCache = new HybridCache();
+            hybridCache = new HybridCache();
 
-            //serviceScope = Startup.ApplicationServices.CreateScope();
-            //var scopeServiceProvider = serviceScope.ServiceProvider;
-            //memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
+            serviceScope = Startup.ApplicationServices.CreateScope();
+            var scopeServiceProvider = serviceScope.ServiceProvider;
+            memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
         }
 
         async public ValueTask<string> mylocalip()
         {
             string key = "BaseController:mylocalip";
-            if (!memoryCache.TryGetValue(key, out string userIp))
+            if (!hybridCache.TryGetValue(key, out string userIp))
             {
                 var myip = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/my_ip");
                 if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
                     return null;
 
                 userIp = myip.Value<string>("ip");
-                memoryCache.Set(key, userIp, DateTime.Now.AddMinutes(20));
+                hybridCache.Set(key, userIp, DateTime.Now.AddMinutes(20));
             }
 
             return userIp;
@@ -162,7 +166,7 @@ namespace Lampac.Engine
         #region cache
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
         {
-            if (memoryCache.TryGetValue(key, out T _val))
+            if (hybridCache.TryGetValue(key, out T _val))
                 return new CacheResult<T>() { IsSuccess = true, Value = _val };
 
             var cache = await onget.Invoke(new CacheResult<T>());
@@ -170,13 +174,13 @@ namespace Lampac.Engine
                 return cache;
 
             proxyManager?.Success();
-            memoryCache.Set(key, cache.Value, time);
+            hybridCache.Set(key, cache.Value, time);
             return cache;
         }
 
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
         {
-            if (memoryCache.TryGetValue(key, out T val))
+            if (hybridCache.TryGetValue(key, out T val))
                 return val;
 
             val = await onget.Invoke();
@@ -184,7 +188,7 @@ namespace Lampac.Engine
                 return default;
 
             proxyManager?.Success();
-            memoryCache.Set(key, val, time);
+            hybridCache.Set(key, val, time);
             return val;
         }
 

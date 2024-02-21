@@ -51,31 +51,31 @@ namespace Lampac.Controllers.LITE
 
             using (var browser = await PuppeteerTo.Browser())
             {
-                var page = await browser.Page("videodb", cookies, new Dictionary<string, string>()
+                var page = cookies != null ? await browser.Page("videodb", cookies) : await browser.Page("videodb", new Dictionary<string, string>()
                 {
-                    ["Referer"] = "https://www.google.com/"
+                    ["cookie"] = "invite=a246a3f46c82fe439a45c3dbbbb24ad5;"
                 });
 
-                string uri = $"{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}";
-
-                var response = await page.GoToAsync($"view-source:{uri}");
-                string html = await response.TextAsync();
-
-                if (html.StartsWith("<script>(function(){"))
-                {
-                    cookies = null;
-                    await page.DeleteCookieAsync();
-                    await page.GoToAsync(uri);
-
-                    response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
-                }
-
-                if (!html.Contains("new Playerjs"))
+                if (page == null)
                     return null;
 
                 if (cookies == null)
-                    excookies = DateTime.Now.AddMinutes(15);
+                    await page.GoToAsync($"{AppInit.conf.VideoDB.host}/invite.php");
+
+                var response = await page.GoToAsync($"view-source:{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}", new NavigationOptions() 
+                { 
+                    Referer = AppInit.conf.VideoDB.host
+                });
+
+                string html = await response.TextAsync();
+                if (!html.Contains("new Playerjs"))
+                {
+                    cookies = null;
+                    return null;
+                }
+
+                if (cookies == null)
+                    excookies = DateTime.Now.AddMinutes(20);
 
                 cookies = await page.GetCookiesAsync();
 

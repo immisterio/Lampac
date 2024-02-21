@@ -30,16 +30,15 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                if (kinopoisk_id > 0)
-                    postid = await search(kinopoisk_id);
-                else
-                {
-                    var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40), () => Search(title, original_title, year));
-                    if (res.id == 0)
-                        return Content(res.similars);
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40), () => Search(title, original_title, year));
+                if (res.id == 0)
+                    return Content(res.similars);
 
-                    postid = res.id;
-                }
+                postid = res.id;
+
+                // платный поиск
+                if (!checksearch && postid == 0 && kinopoisk_id > 0)
+                    postid = await search(kinopoisk_id);
             }
 
             if (postid == 0)
@@ -50,7 +49,7 @@ namespace Lampac.Controllers.LITE
 
             #region video_links
             string memKey = $"fxapi:{postid}:{HttpContext.Connection.RemoteIpAddress}";
-            if (!memoryCache.TryGetValue(memKey, out JArray root))
+            if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 string XFXTOKEN = await getXFXTOKEN();
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
@@ -65,7 +64,7 @@ namespace Lampac.Controllers.LITE
                 if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
                     return OnError();
 
-                memoryCache.Set(memKey, root, DateTime.Now.AddMinutes(20));
+                hybridCache.Set(memKey, root, DateTime.Now.AddMinutes(20));
             }
             #endregion
 
@@ -182,7 +181,7 @@ namespace Lampac.Controllers.LITE
                 return 0;
 
             string memKey = $"fxapi:search:{kinopoisk_id}";
-            if (!memoryCache.TryGetValue(memKey, out int postid))
+            if (!hybridCache.TryGetValue(memKey, out int postid))
             {
                 string XFXTOKEN = await getXFXTOKEN();
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
@@ -196,7 +195,7 @@ namespace Lampac.Controllers.LITE
                 postid = root.Value<int>("id"); 
 
                 if (postid > 0)
-                    memoryCache.Set(memKey, postid, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 40 : 10));
+                    hybridCache.Set(memKey, postid, DateTime.Now.AddDays(1));
             }
 
             return postid;

@@ -24,7 +24,7 @@ namespace Lampac.Controllers.HQporner
             var proxy = proxyManager.Get();
 
             string memKey = $"HQporner:view:{uri}";
-            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
+            if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
                 stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri, 
                                htmlurl => HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.HQporner
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
 
             return OnResult(stream_links, init, proxy);

@@ -150,6 +150,8 @@ namespace Lampac
 
         public string localhost = "127.0.0.1";
 
+        public bool isarm = false;
+
         public bool multiaccess = false;
 
         public bool mikrotik = false;

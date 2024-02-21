@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Models.SISI;
 using Lampac.Engine.CORE;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
@@ -25,7 +24,7 @@ namespace Lampac.Controllers.Chaturbate
                 return OnError("no search");
 
             string memKey = $"Chaturbate:list:{sort}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("chu", init);
                 var proxy = proxyManager.Get();
@@ -40,10 +39,10 @@ namespace Lampac.Controllers.Chaturbate
                     return OnError("playlists", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(5));
+                hybridCache.Set(memKey, playlists, cacheTime(5));
             }
 
-            return OnResult(playlists, ChaturbateTo.Menu(host, sort));
+            return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: "chu");
         }
     }
 }

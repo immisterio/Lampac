@@ -81,11 +81,17 @@ namespace Lampac
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
-            new BrowserFetcher().DownloadAsync().Wait();
             HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
 
-            if (PuppeteerTo.IsKeepOpen)
-                PuppeteerTo.LaunchKeepOpen().Wait();
+            try
+            {
+                if (!AppInit.conf.isarm)
+                    new BrowserFetcher().DownloadAsync()?.Wait();
+
+                if (PuppeteerTo.IsKeepOpen)
+                    PuppeteerTo.LaunchKeepOpen();
+            }
+            catch { }
 
             Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
             {

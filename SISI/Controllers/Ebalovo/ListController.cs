@@ -22,7 +22,7 @@ namespace Lampac.Controllers.Ebalovo
                 return OnError("disable");
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("elo", init);
                 var proxy = proxyManager.Get();
@@ -37,7 +37,7 @@ namespace Lampac.Controllers.Ebalovo
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null);

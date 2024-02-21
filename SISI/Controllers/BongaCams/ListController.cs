@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
 using Shared.Model.Online;
@@ -29,7 +28,7 @@ namespace Lampac.Controllers.BongaCams
             var proxy = proxyManager.Get();
 
             string memKey = $"BongaCams:list:{sort}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
@@ -52,10 +51,10 @@ namespace Lampac.Controllers.BongaCams
                     return OnError("playlists", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(5));
+                hybridCache.Set(memKey, playlists, cacheTime(5));
             }
 
-            return OnResult(playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy);
+            return OnResult(playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy, plugin: "bgs");
         }
     }
 }

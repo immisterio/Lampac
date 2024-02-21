@@ -27,7 +27,7 @@ namespace Lampac.Controllers.Tizam
                 return OnError("no search");
 
             string memKey = $"tizam:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("tizam", init);
                 var proxy = proxyManager.Get();
@@ -48,7 +48,7 @@ namespace Lampac.Controllers.Tizam
                     return OnError("playlists", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(60));
+                hybridCache.Set(memKey, playlists, cacheTime(60));
             }
 
             return OnResult(playlists, null);

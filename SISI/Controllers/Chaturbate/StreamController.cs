@@ -23,14 +23,14 @@ namespace Lampac.Controllers.Chaturbate
             var proxy = proxyManager.Get();
 
             string memKey = $"chaturbate:stream:{baba}";
-            if (!memoryCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
+            if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
                 stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (stream_links == null || stream_links.Count == 0)
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, stream_links, cacheTime(10));
+                hybridCache.Set(memKey, stream_links, cacheTime(10));
             }
 
             return OnResult(stream_links, init, proxy);

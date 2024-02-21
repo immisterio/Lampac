@@ -81,7 +81,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memKey = $"lostfilmhd:view:{iframe}:{s}:{e}"; // :{v}
-            if (!memoryCache.TryGetValue(memKey, out string urim3u8))
+            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
             {
                 string html = await HttpClient.Get($"{iframe}?season={s}&episode={e}"/* + $"&voice={v}"*/, referer: init.host, proxy: proxy, timeoutSeconds: 10);
                 if (html == null)
@@ -92,7 +92,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(proxyManager);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, urim3u8, cacheTime(40));
+                hybridCache.Set(memKey, urim3u8, cacheTime(40));
             }
 
             if (play)
@@ -108,7 +108,7 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.Lostfilmhd;
             string memKey = $"lostfilmhd:view:{title}:{year}";
 
-            if (!memoryCache.TryGetValue(memKey, out (Dictionary<string, object> seasons, string iframe_src) cache))
+            if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, object> seasons, string iframe_src) cache))
             {
                 var proxy = proxyManager.Get();
 
@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
                 cache.seasons = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, cache, cacheTime(40));
+                hybridCache.Set(memKey, cache, cacheTime(40));
             }
 
             return cache;

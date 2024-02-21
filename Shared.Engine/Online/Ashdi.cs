@@ -67,6 +67,8 @@ namespace Shared.Engine.Online
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
 
+            string fixStream(string _l) => _l.Replace("0yql3tj", "oyql3tj");
+
             if (md.content != null)
             {
                 #region Фильм
@@ -85,13 +87,13 @@ namespace Shared.Engine.Online
                     var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
                     while (match.Success)
                     {
-                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
+                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
                         match = match.NextMatch();
                     }
                 }
                 #endregion
 
-                return mtpl.ToHtml("По умолчанию", onstreamfile.Invoke(hls), subtitles: subtitles);
+                return mtpl.ToHtml("По умолчанию", onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
                 #endregion
             }
             else
@@ -154,13 +156,13 @@ namespace Shared.Engine.Online
                                 var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
                                 while (match.Success)
                                 {
-                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
+                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
                                     match = match.NextMatch();
                                 }
                             }
                             #endregion
 
-                            string file = onstreamfile.Invoke(episode.file);
+                            string file = onstreamfile.Invoke(fixStream(episode.file));
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles.ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
                             firstjson = false;
                         }

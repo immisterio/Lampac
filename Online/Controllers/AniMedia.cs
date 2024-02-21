@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"animedia:search:{title}";
-                if (!memoryCache.TryGetValue(memkey, out List<(string title, string code)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string code)> catalog))
                 {
                     string search = await HttpClient.Get($"{init.corsHost()}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager);
 
                     proxyManager.Success();
-                    memoryCache.Set(memkey, catalog, cacheTime(40));
+                    hybridCache.Set(memkey, catalog, cacheTime(40));
                 }
 
                 if (catalog.Count == 1)
@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
                 {
                     #region Сезоны
                     string memKey = $"animedia:seasons:{code}";
-                    if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
+                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
                         string news = await HttpClient.Get($"{init.corsHost()}/anime/{code}/1/1", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                         string entryid = Regex.Match(news ?? "", "name=\"entry_id\" value=\"([0-9]+)\"").Groups[1].Value;
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                             return OnError(proxyManager);
 
                         proxyManager.Success();
-                        memoryCache.Set(memKey, links, cacheTime(30));
+                        hybridCache.Set(memKey, links, cacheTime(30));
                     }
 
                     foreach (var l in links)
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
                     var proxy = proxyManager.Get();
 
                     string memKey = $"animedia:playlist:{entry_id}:{s}";
-                    if (!memoryCache.TryGetValue(memKey, out List<(string name, string uri)> links))
+                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
                         var playlist = await HttpClient.Get<JArray>($"{init.corsHost()}/embeds/playlist-j.txt/{entry_id}/{s}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (playlist == null || playlist.Count == 0)
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
                             return OnError(proxyManager);
 
                         proxyManager.Success();
-                        memoryCache.Set(memKey, links, cacheTime(30));
+                        hybridCache.Set(memKey, links, cacheTime(30));
                     }
 
                     foreach (var l in links)

@@ -69,6 +69,9 @@ namespace Lampac.Controllers.LITE
                     ["Referer"] = "https://www.google.com/"
                 });
 
+                if (page == null)
+                    return null;
+
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
 
                 var response = await page.GoToAsync($"view-source:{uri}");

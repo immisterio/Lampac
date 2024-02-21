@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
             string localhost = $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}";
 
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
-            if (!memoryCache.TryGetValue(memkey, out JArray results) || quality == -1)
+            if (!hybridCache.TryGetValue(memkey, out JArray results) || quality == -1)
             {
                 var root = await HttpClient.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11);
                 if (root == null)
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                 if (results == null || results.Count == 0)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
-                memoryCache.Set(memkey, results, DateTime.Now.AddMinutes(5));
+                hybridCache.Set(memkey, results, DateTime.Now.AddMinutes(5));
             }
             #endregion
 

@@ -29,7 +29,7 @@ namespace Lampac.Controllers.Xhamster
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
             string memKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("xmr", init);
                 var proxy = proxyManager.Get();
@@ -44,7 +44,7 @@ namespace Lampac.Controllers.Xhamster
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null);

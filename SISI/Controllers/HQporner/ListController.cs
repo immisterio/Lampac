@@ -23,7 +23,7 @@ namespace Lampac.Controllers.HQporner
                 return OnError("disable");
 
             string memKey = $"hqr:{search}:{sort}:{c}:{pg}";
-            if (!memoryCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
                 var proxyManager = new ProxyManager("hqr", init);
                 var proxy = proxyManager.Get();
@@ -38,7 +38,7 @@ namespace Lampac.Controllers.HQporner
                     return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                memoryCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? HQpornerTo.Menu(host, sort, c) : null);
