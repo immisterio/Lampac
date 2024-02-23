@@ -298,7 +298,7 @@ namespace Lampac.Controllers
             send("Rezka", conf.Rezka);
 
             if (kinopoisk_id > 0)
-                send("VideoDB", conf.VideoDB);
+                send("Zetflix", conf.Zetflix);
 
             send("VideoCDN", conf.VCDN, "vcdn");
 
@@ -312,7 +312,7 @@ namespace Lampac.Controllers
             send("Eneyida (UKR)", conf.Eneyida, "eneyida");
 
             if (kinopoisk_id > 0)
-                send("Zetflix", conf.Zetflix);
+                send("VideoDB", conf.VideoDB);
 
             if (serial == -1 || serial == 1)
                 send("Seasonvar", conf.Seasonvar);

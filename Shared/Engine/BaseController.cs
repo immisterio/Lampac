@@ -178,9 +178,11 @@ namespace Lampac.Engine
             return cache;
         }
 
-        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null)
+        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool inmemory = false)
         {
-            if (hybridCache.TryGetValue(key, out T val))
+            var cache = inmemory ? memoryCache : hybridCache;
+
+            if (cache.TryGetValue(key, out T val))
                 return val;
 
             val = await onget.Invoke();
@@ -188,7 +190,7 @@ namespace Lampac.Engine
                 return default;
 
             proxyManager?.Success();
-            hybridCache.Set(key, val, time);
+            cache.Set(key, val, time);
             return val;
         }
 

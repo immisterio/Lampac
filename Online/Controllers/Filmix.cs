@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
                 postid = res.id;
             }
 
-            var player_links = await InvokeCache($"filmix:post:{postid}", cacheTime(20), () => oninvk.Post(postid), proxyManager);
+            var player_links = await InvokeCache($"filmix:post:{postid}", cacheTime(20), () => oninvk.Post(postid), proxyManager, inmemory: true);
             if (player_links == null)
                 return OnError(proxyManager);
 

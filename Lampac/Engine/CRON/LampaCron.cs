@@ -56,6 +56,8 @@ namespace Lampac.Engine.CRON
                             html = html.Replace("</body>", "<script src=\"/lampainit.js\"></script></body>");
 
                             await File.WriteAllTextAsync("wwwroot/lampa-main/index.html", html);
+
+                            File.CreateText("wwwroot/lampa-main/personal.lampa");
                         }
                     }
                 }

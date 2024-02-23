@@ -87,7 +87,7 @@ namespace Shared.Model
 
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
 
-        public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.alloha.tv", "https://torso-as.newplayjj.com:9443", "", "", true);
+        public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.alloha.tv", "https://torso-as.newplayjj.com:9443", "", "", true, true);
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.biz", "71d163b40d50397a86ca54c366f33b72", "", true);
 

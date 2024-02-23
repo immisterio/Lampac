@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Shared.Engine.CORE
 {
-    public class HybridCache
+    public class HybridCache : IMemoryCache
     {
         #region HybridCache
         static IMemoryCache memoryCache;
@@ -214,5 +214,24 @@ namespace Shared.Engine.CORE
             return false;
         }
         #endregion
+
+
+
+        public ICacheEntry CreateEntry(object key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Remove(object key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TryGetValue(object key, out object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose() { }
     }
 }
