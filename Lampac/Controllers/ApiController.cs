@@ -54,7 +54,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region Version / Headers / myip / testaccsdb
+        #region Version / Headers / myip / testaccsdb / personal.lampa
         [Route("/version")]
         public ActionResult Version() => Content(appversion, contentType: "text/plain; charset=utf-8");
 
@@ -66,6 +66,11 @@ namespace Lampac.Controllers
 
         [Route("/testaccsdb")]
         public ActionResult TestAccsdb() => StatusCode(200);
+
+        [Route("/personal.lampa")]
+        [Route("/lampa-main/personal.lampa")]
+        [Route("/{myfolder}/personal.lampa")]
+        public ActionResult PersonalLampa(string myfolder) => StatusCode(200);
         #endregion
 
 
