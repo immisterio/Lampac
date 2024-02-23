@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Shared.Engine.CORE
 {
-    public class HybridCache : IMemoryCache
+    public class HybridCache
     {
         #region HybridCache
         static IMemoryCache memoryCache;
@@ -82,9 +82,9 @@ namespace Shared.Engine.CORE
             return memoryCache.TryGetValue(key, out value);
         }
 
-        public bool TryGetValue<TItem>(string key, out TItem value)
+        public bool TryGetValue<TItem>(string key, out TItem value, bool inmemory = false)
         {
-            if (!AppInit.conf.mikrotik)
+            if (!inmemory && !AppInit.conf.mikrotik)
             {
                 int extend = 2;
 
@@ -150,17 +150,17 @@ namespace Shared.Engine.CORE
 
 
         #region Set
-        public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration)
+        public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool inmemory = false)
         {
-            if (!AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
+            if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
                 return value;
 
             return memoryCache.Set(key, value, absoluteExpiration);
         }
 
-        public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow)
+        public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool inmemory = false)
         {
-            if (!AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
+            if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
                 return value;
 
             return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);
@@ -214,24 +214,5 @@ namespace Shared.Engine.CORE
             return false;
         }
         #endregion
-
-
-
-        public ICacheEntry CreateEntry(object key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Remove(object key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool TryGetValue(object key, out object value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose() { }
     }
 }

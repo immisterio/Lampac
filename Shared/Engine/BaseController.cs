@@ -21,7 +21,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "104";
+        public static string appversion => "105";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -180,9 +180,7 @@ namespace Lampac.Engine
 
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool inmemory = false)
         {
-            var cache = inmemory ? memoryCache : hybridCache;
-
-            if (cache.TryGetValue(key, out T val))
+            if (hybridCache.TryGetValue(key, out T val, inmemory))
                 return val;
 
             val = await onget.Invoke();
@@ -190,7 +188,7 @@ namespace Lampac.Engine
                 return default;
 
             proxyManager?.Success();
-            cache.Set(key, val, time);
+            hybridCache.Set(key, val, time, inmemory);
             return val;
         }
 
