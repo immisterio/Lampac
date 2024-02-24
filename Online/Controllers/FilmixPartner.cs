@@ -175,7 +175,7 @@ namespace Lampac.Controllers.LITE
 
 
         [HttpGet]
-        [Route("lite/fxapi/lowlevel/{uri}")]
+        [Route("lite/fxapi/lowlevel/{*uri}")]
         async public Task<ActionResult> LowlevelApi(string uri)
         {
             var init = AppInit.conf.FilmixPartner;
