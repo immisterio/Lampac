@@ -31,14 +31,14 @@ namespace Lampac.Controllers.LITE
             if (postid == 0)
             {
                 var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40), () => Search(title, original_title, year));
-                if (res.id == 0)
-                    return Content(res.similars);
-
                 postid = res.id;
 
                 // платный поиск
                 if (!checksearch && postid == 0 && kinopoisk_id > 0)
                     postid = await search(kinopoisk_id);
+
+                if (postid == 0 && res.similars != null)
+                    return Content(res.similars);
             }
 
             if (postid == 0)
@@ -64,7 +64,7 @@ namespace Lampac.Controllers.LITE
                 if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
                     return OnError();
 
-                hybridCache.Set(memKey, root, DateTime.Now.AddMinutes(20));
+                hybridCache.Set(memKey, root, DateTime.Now.AddHours(1));
             }
             #endregion
 
@@ -174,6 +174,28 @@ namespace Lampac.Controllers.LITE
         }
 
 
+        [HttpGet]
+        [Route("lite/fxapi/lowlevel/{uri}")]
+        async public Task<ActionResult> LowlevelApi(string uri)
+        {
+            var init = AppInit.conf.FilmixPartner;
+
+            if (!init.enable)
+                return OnError("disable");
+
+            if (!HttpContext.Request.Headers.TryGetValue("low_passw", out var low_passw) || low_passw != init.lowlevel_api_passw)
+                return OnError("lowlevel_api");
+
+            string XFXTOKEN = await getXFXTOKEN();
+            if (string.IsNullOrWhiteSpace(XFXTOKEN))
+                return OnError("XFXTOKEN");
+
+            string json = await HttpClient.Get($"{init.corsHost()}/{uri}", headers: httpHeaders(init, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
+
+            return Content(json, "application/json; charset=utf-8");
+        }
+
+
         #region search
         async ValueTask<int> search(long kinopoisk_id)
         {
@@ -195,7 +217,9 @@ namespace Lampac.Controllers.LITE
                 postid = root.Value<int>("id"); 
 
                 if (postid > 0)
-                    hybridCache.Set(memKey, postid, DateTime.Now.AddDays(1));
+                    hybridCache.Set(memKey, postid, DateTime.Now.AddDays(20));
+                else
+                    hybridCache.Set(memKey, postid, DateTime.Now.AddHours(1));
             }
 
             return postid;

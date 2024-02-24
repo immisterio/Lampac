@@ -28,6 +28,8 @@ namespace Lampac.Models.LITE
 
         public string? user_passw { get; set; }
 
+        public string? lowlevel_api_passw { get; set; }
+
 
         public FilmixSettings Clone()
         {
