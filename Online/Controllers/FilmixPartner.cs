@@ -183,7 +183,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError("disable");
 
-            if (!HttpContext.Request.Headers.TryGetValue("low_passw", out var low_passw) || low_passw != init.lowlevel_api_passw)
+            if (!HttpContext.Request.Headers.TryGetValue("low_passw", out var low_passw) || low_passw.ToString() != init.lowlevel_api_passw)
                 return OnError("lowlevel_api");
 
             string XFXTOKEN = await getXFXTOKEN();
