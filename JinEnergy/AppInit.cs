@@ -157,7 +157,12 @@ namespace JinEnergy
 
         public static KodikSettings Kodik => conf.Kodik;
 
-
         public static OnlinesSettings AnilibriaOnline => conf.AnilibriaOnline;
+
+        public static OnlinesSettings Animevost => conf.Animevost;
+
+        public static OnlinesSettings AniMedia => conf.AniMedia;
+
+        public static OnlinesSettings HDVB => conf.HDVB;
     }
 }

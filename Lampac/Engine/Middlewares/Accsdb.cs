@@ -78,7 +78,7 @@ namespace Lampac.Engine.Middlewares
                                      AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
-                        return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}");
+                        return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}", httpContext.RequestAborted);
                     }
                 }
             }

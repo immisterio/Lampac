@@ -48,7 +48,7 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Set([FromQuery]long profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
-                return Content(string.Empty);
+                return Content("{\"secuses\", false}");
 
             string path = getFilePath(card_id, profile, true);
             var db = await getData(path);
@@ -63,7 +63,7 @@ namespace Lampac.Controllers
             }
 
             await IO.File.WriteAllBytesAsync(path, BrotliTo.Compress(JsonConvert.SerializeObject(db)));
-            return Content(string.Empty);
+            return Content("{\"secuses\", true}");
         }
 
 

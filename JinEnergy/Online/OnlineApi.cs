@@ -139,8 +139,8 @@ namespace JinEnergy.Online
             if (isanime)
             {
                 send("Anilibria - 1080p", "anilibria", AppInit.AnilibriaOnline);
-                online.Append("{\"name\":\"Animevost - 720p\",\"url\":\"https://bwa-cloud.apn.monster/lite/animevost\"},");
-                online.Append("{\"name\":\"AniMedia - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/animedia\"},");
+                send("Animevost - 720p", "animevost", AppInit.Animevost);
+                send("AniMedia - 1080p", "animedia", AppInit.AniMedia);
             }
 
             if (AppInit.Filmix.pro)
@@ -182,12 +182,10 @@ namespace JinEnergy.Online
                     send("Kinotochka - 720p", "kinotochka", AppInit.Kinotochka);
             }
 
-            // send("", "", AppInit.);
-
             if (!titleSearch)
                 send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
 
-            online.Append("{\"name\":\"HDVB - 1080p\",\"url\":\"https://bwa-cloud.apn.monster/lite/hdvb\"},");
+            send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
             if (arg.kinopoisk_id > 0)
                 send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);

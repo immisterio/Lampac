@@ -2,7 +2,7 @@
 {
     public class RedConf
     {
-        public string syncapi = "http://85.17.54.98:9117";
+        public string syncapi = "http://62.112.8.193:9117";
 
         public int syntime = 60;
 

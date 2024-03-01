@@ -9,7 +9,7 @@ namespace Lampac.Controllers.LITE
         [Route("merchant/user")]
         public ActionResult Index(string account_email)
         {
-            return Json(AppInit.conf.accsdb.accounts[account_email]);
+            return Json(AppInit.conf.accsdb.accounts[account_email.ToLower().Trim()]);
         }
     }
 }

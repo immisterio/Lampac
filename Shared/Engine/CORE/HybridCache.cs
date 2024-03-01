@@ -116,7 +116,7 @@ namespace Shared.Engine.CORE
             if (AppInit.conf.typecache == "mem")
                 return false;
 
-            if (!memoryCache.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out _))
+            if (!memoryCache.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out _)) // тут byte, не TItem!
                 return false;
 
             var type = typeof(TItem);
