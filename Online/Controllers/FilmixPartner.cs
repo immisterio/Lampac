@@ -209,7 +209,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return 0;
 
-                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.corsHost()}/film/by-kp/{kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(AppInit.conf.FilmixPartner, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
+                var root = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.corsHost()}/film/by-kp/{kinopoisk_id}", headers: httpHeaders(AppInit.conf.FilmixPartner, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
 
                 if (root == null || !root.ContainsKey("id"))
                     return 0;
