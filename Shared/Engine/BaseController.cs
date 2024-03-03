@@ -123,7 +123,7 @@ namespace Lampac.Engine
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
-        public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null)
+        public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
@@ -141,11 +141,16 @@ namespace Lampac.Engine
 
             if (streamproxy)
             {
-                if (!string.IsNullOrEmpty(conf.apn) && conf.apn.StartsWith("http"))
-                    return $"{conf.apn}/{uri}";
+                bool deny_apn = sisi && Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.conf.apn) && uri.Contains(".m3u");
 
-                if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf.apn) && AppInit.conf.apn.StartsWith("http"))
-                    return $"{AppInit.conf.apn}/{uri}";
+                if (!deny_apn)
+                {
+                    if (!string.IsNullOrEmpty(conf.apn) && conf.apn.StartsWith("http"))
+                        return $"{conf.apn}/{uri}";
+
+                    if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf.apn) && AppInit.conf.apn.StartsWith("http"))
+                        return $"{AppInit.conf.apn}/{uri}";
+                }
 
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 

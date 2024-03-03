@@ -34,7 +34,7 @@ namespace SISI
                 list = playlists.Select(pl => new
                 {
                     pl.name,
-                    video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin),
+                    video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin, sisi: true),
                     picture = (plugin is "bgs" or "chu") ? pl.picture : HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.picture),
                     pl.preview,
                     pl.time,
@@ -71,11 +71,11 @@ namespace SISI
             Dictionary<string, string> qualitys_proxy = null;
 
             if (!proxyconf.streamproxy && proxyconf.qualitys_proxy)
-                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(new BaseSettings() { streamproxy = true }, v.Value, proxy: proxy, plugin: plugin));
+                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy, plugin: plugin, sisi: true));
 
             return new JsonResult(new
             {
-                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy)),
+                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy, sisi: true)),
                 qualitys_proxy,
                 recomends = stream_links?.recomends?.Select(pl => new
                 {

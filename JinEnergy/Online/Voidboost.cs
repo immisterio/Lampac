@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Base;
@@ -8,16 +9,16 @@ namespace JinEnergy.Online
     public class VoidboostController : BaseController
     {
         #region VoidboostInvoke
-        static VoidboostInvoke voidboostInvoke(string args, BaseSettings init)
+        static VoidboostInvoke voidboostInvoke(string args, RezkaSettings init)
         {
             return new VoidboostInvoke
             (
                 null,
-                AppInit.Voidboost.corsHost(),
-                AppInit.Voidboost.hls,
-                ongettourl => JsHttpClient.Get(AppInit.Voidboost.cors(ongettourl), httpHeaders(args, init)),
-                (url, data) => JsHttpClient.Post(AppInit.Voidboost.cors(url), data, httpHeaders(args, init)),
-                streamfile => HostStreamProxy(AppInit.Voidboost, streamfile)
+                init.corsHost(),
+                init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.apn),
+                ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init)),
+                (url, data) => JsHttpClient.Post(init.cors(url), data, httpHeaders(args, init)),
+                streamfile => HostStreamProxy(init, streamfile)
             );
         }
         #endregion

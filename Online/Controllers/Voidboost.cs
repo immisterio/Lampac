@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
-using System.Collections.Generic;
 using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
@@ -31,7 +30,7 @@ namespace Lampac.Controllers.LITE
             (
                 host,
                 init.corsHost(),
-                init.hls,
+                init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.conf.apn),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "voidboost")

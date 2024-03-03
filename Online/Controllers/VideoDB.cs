@@ -25,7 +25,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               init.hls,
+               init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.conf.apn),
                (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, referer: "https://www.google.com/", headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, plugin: "videodb")
             );
