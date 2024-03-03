@@ -30,7 +30,7 @@ namespace JinEnergy
 
             await LoadOrUpdateConfig(urlconf);
 
-            var timer = new System.Timers.Timer(TimeSpan.FromMinutes(5));
+            var timer = new System.Timers.Timer(TimeSpan.FromMinutes(20));
 
             timer.Elapsed += async (s, e) => await LoadOrUpdateConfig(urlconf);
 
@@ -44,7 +44,7 @@ namespace JinEnergy
         {
             try
             {
-                string? geo = await JsHttpClient.Get("https://apn.monster/country");
+                string? geo = await JsHttpClient.Get("https://geo.cub.red");
                 if (geo != null)
                     Country = geo;
 

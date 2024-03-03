@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.SISI;
 using Lampac.Models.LITE;
 using Lampac.Models.AppConf;
+using System.Text.RegularExpressions;
 
 namespace Shared.Model
 {
@@ -9,6 +10,8 @@ namespace Shared.Model
         public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
         public string? apn { get; set; } = "https://apn.watch";
+
+        public static bool IsDefaultApnOrCors(string? apn) => apn != null && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
 
         public string? corsehost { get; set; }
 

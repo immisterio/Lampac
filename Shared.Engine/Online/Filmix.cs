@@ -42,7 +42,7 @@ namespace Shared.Engine.Online
 
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
             onlog?.Invoke(uri);
-
+            
             string? json = await onget.Invoke(uri);
             if (json == null)
                 return await Search2(title, original_title, clarification, year);
@@ -55,7 +55,7 @@ namespace Shared.Engine.Online
             }
             catch { }
 
-            if (root == null || root.Count == 0)
+            if (root == null)
                 return await Search2(title, original_title, clarification, year);
 
             var ids = new List<int>();
@@ -159,11 +159,9 @@ namespace Shared.Engine.Online
             if (json == null)
                 return null;
 
-            json = json.Replace("\"playlist\":[],", "\"playlist\":null,");
-
             try
             {
-                var root = JsonSerializer.Deserialize<RootObject>(json);
+                var root = JsonSerializer.Deserialize<RootObject>(json.Replace("\"playlist\":[],", "\"playlist\":null,"));
 
                 if (root?.player_links == null)
                     return null;

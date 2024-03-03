@@ -132,7 +132,9 @@ namespace JinEnergy.Engine
                 }
             }
 
-            if (IsApnIncluded(conf))
+            bool isDefaultApn = conf != null && Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.apn);
+
+            if (IsApnIncluded(conf) && !isDefaultApn)
             {
                 return new ResultModel()
                 {
@@ -145,7 +147,7 @@ namespace JinEnergy.Engine
             {
                 qualitys = stream_links.qualitys,
                 recomends = recomends,
-                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => $"{AppInit.apn}/{v.Value}")
+                qualitys_proxy = (isDefaultApn && stream_links.qualitys.First().Value.Contains(".m3u")) ? null : stream_links.qualitys.ToDictionary(k => k.Key, v => $"{AppInit.apn}/{v.Value}")
             };
         }
 
@@ -196,7 +198,7 @@ namespace JinEnergy.Engine
             return uri;
         }
 
-        public static bool IsApnIncluded(Istreamproxy conf)
+        public static bool IsApnIncluded(Istreamproxy? conf)
         {
             string? apn = conf?.apn ?? AppInit.apn;
             if (conf == null || string.IsNullOrEmpty(apn))
@@ -215,8 +217,7 @@ namespace JinEnergy.Engine
         {
             if (NotUseDefaultApn)
             {
-                string? apn = conf.apn ?? AppInit.apn;
-                if ((apn != null && apn.Contains("apn.watch")) || (Shared.Model.AppInit.corseuhost != null && Shared.Model.AppInit.corseuhost.Contains("apn.monster")))
+                if (Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.apn) || Shared.Model.AppInit.IsDefaultApnOrCors(Shared.Model.AppInit.corseuhost))
                     return false;
             }
 

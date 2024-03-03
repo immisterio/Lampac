@@ -37,18 +37,18 @@ namespace JinEnergy.Online
             
                 var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
 
-                if (res == null || res.id == 0)
+                if (res == null)
                 {
-                    if (string.IsNullOrEmpty(res?.similars))
-                    {
-                        IMemoryCache.Remove(memkey);
+                    IMemoryCache.Remove(memkey);
 
-                        if (IsRefresh(init))
-                            goto refresh_similars;
-                    }
-
-                    return res?.similars ?? string.Empty;
+                    if (IsRefresh(init))
+                        goto refresh_similars;
+                    else
+                        return string.Empty;
                 }
+
+                if (res.id == 0)
+                    return res?.similars ?? string.Empty;
 
                 postid = res.id;
             }
