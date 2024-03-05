@@ -121,11 +121,11 @@ namespace JinEnergy.Online
             bool titleSearch = string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0;
             string argTitle_vpn = AppInit.Country == "UA" ? " / vpn" : "";
 
-            void send(string name, string plugin, BaseSettings init, string? arg_title = null, string? arg_url = null)
+            void send(string name, string plugin, BaseSettings init, string? arg_title = null, string? arg_url = null, string? overridehost = null)
             {
                 if (init.enable && !init.rip)
                 {
-                    string? url = init.overridehost;
+                    string? url = overridehost ?? init.overridehost;
                     if (string.IsNullOrEmpty(url))
                         url = "lite/" + plugin + arg_url;
 
@@ -156,7 +156,11 @@ namespace JinEnergy.Online
             if (serial == 0 && !isanime && arg.kinopoisk_id > 0)
                 send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
-            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
+            if (AppInit.Country == "UA")
+                send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, overridehost: "http://bwa-cloud.cfhttp.top/lite/vcdn");
+            else
+                send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
+
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
