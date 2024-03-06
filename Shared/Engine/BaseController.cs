@@ -143,7 +143,7 @@ namespace Lampac.Engine
             {
                 bool deny_apn = sisi && Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.conf.apn) && uri.Contains(".m3u");
 
-                if (!deny_apn)
+                //if (!deny_apn)
                 {
                     if (!string.IsNullOrEmpty(conf.apn) && conf.apn.StartsWith("http"))
                         return $"{conf.apn}/{uri}";

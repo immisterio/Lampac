@@ -135,7 +135,7 @@ namespace JinEnergy.Engine
             string? apn = conf.apn ?? AppInit.apn;
             bool isDefaultApn = conf != null && Shared.Model.AppInit.IsDefaultApnOrCors(apn);
 
-            if (IsApnIncluded(conf) && (!isDefaultApn || !stream_links.qualitys.First().Value.Contains(".m3u")))
+            if (IsApnIncluded(conf)/* && (!isDefaultApn || !stream_links.qualitys.First().Value.Contains(".m3u"))*/)
             {
                 return new ResultModel()
                 {
@@ -148,7 +148,7 @@ namespace JinEnergy.Engine
             {
                 qualitys = stream_links.qualitys,
                 recomends = recomends,
-                qualitys_proxy = (isDefaultApn && stream_links.qualitys.First().Value.Contains(".m3u")) ? null : stream_links.qualitys.ToDictionary(k => k.Key, v => $"{apn}/{v.Value}")
+                qualitys_proxy = /*(isDefaultApn && stream_links.qualitys.First().Value.Contains(".m3u")) ? null :*/ stream_links.qualitys.ToDictionary(k => k.Key, v => $"{apn}/{v.Value}")
             };
         }
 
