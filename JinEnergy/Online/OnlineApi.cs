@@ -156,11 +156,7 @@ namespace JinEnergy.Online
             if (serial == 0 && !isanime && arg.kinopoisk_id > 0)
                 send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
-            if (AppInit.Country == "UA")
-                send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, overridehost: "http://bwa-cloud.cfhttp.top/lite/vcdn");
-            else
-                send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
-
+            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
