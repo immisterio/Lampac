@@ -11,6 +11,7 @@ using Lampac.Models.Merchant;
 using System.Collections.Concurrent;
 using Shared.Model.Base;
 using System.Text.RegularExpressions;
+using Shared.Models.AppConf;
 
 namespace Lampac
 {
@@ -150,8 +151,6 @@ namespace Lampac
 
         public string localhost = "127.0.0.1";
 
-        public bool isarm = false;
-
         public bool multiaccess = false;
 
         public bool mikrotik = false;
@@ -160,9 +159,7 @@ namespace Lampac
 
         public bool pirate_store = true;
 
-        public bool puppeteer_keepopen = false;
-
-        public string puppeteer_ExecutablePath;
+        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true };
 
         public string apikey = null;
 

@@ -85,7 +85,7 @@ namespace Lampac.Engine.Middlewares
                 bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
 
                 string md5key = CORE.CrypTo.md5(ists ? fixuri(decryptLink) : decryptLink.uri);
-                bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && AppInit.conf.serverproxy.encrypt && AppInit.conf.serverproxy.cache_hls;
+                bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && AppInit.conf.serverproxy.encrypt && AppInit.conf.serverproxy.cache.hls;
 
                 string foldercache = cache_stream ? $"cache/hls/{md5key.Substring(0, 3)}" : string.Empty;
                 string cachefile = cache_stream ? ($"{foldercache}/{md5key.Substring(3)}" + Path.GetExtension(md5file)) : string.Empty;
@@ -444,7 +444,7 @@ namespace Lampac.Engine.Middlewares
                     return $"{decryptLink.plugin}:{uts}";
             }
 
-            if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.cache_hls_pattern) && Regex.IsMatch(uri, AppInit.conf.serverproxy.cache_hls_pattern, RegexOptions.IgnoreCase))
+            if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.cache.hls_pattern) && Regex.IsMatch(uri, AppInit.conf.serverproxy.cache.hls_pattern, RegexOptions.IgnoreCase))
                 return $"{decryptLink.plugin}:{Regex.Replace(uri, "^https?://[^/]+", "")}";
 
             return null;
@@ -560,7 +560,7 @@ namespace Lampac.Engine.Middlewares
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(32000);
 
             try
             {

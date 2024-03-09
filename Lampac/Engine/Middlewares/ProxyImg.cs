@@ -86,7 +86,7 @@ namespace Lampac.Engine.Middlewares
 
                 string outFile = getFolder($"{href}:{width}:{height}");
 
-                if (init.cache_img && File.Exists(outFile))
+                if (init.cache.img && File.Exists(outFile))
                 {
                     httpContext.Response.ContentType = "image/jpeg";
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
@@ -109,7 +109,7 @@ namespace Lampac.Engine.Middlewares
                 var array = await HttpClient.Download(href, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: decryptLink?.headers);
                 if (array == null)
                 {
-                    if (init.cache_img)
+                    if (init.cache.img)
                         memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(2));
 
                     proxyManager.Refresh();
@@ -129,7 +129,7 @@ namespace Lampac.Engine.Middlewares
                     }
                 }
 
-                if (init.cache_img && !File.Exists(outFile))
+                if (init.cache.img && !File.Exists(outFile))
                 {
                     try
                     {
@@ -139,7 +139,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 httpContext.Response.ContentType = "image/jpeg";
-                httpContext.Response.Headers.Add("X-Cache-Status", init.cache_img ? "MISS" : "bypass");
+                httpContext.Response.Headers.Add("X-Cache-Status", init.cache.img ? "MISS" : "bypass");
 
                 await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted);
             }

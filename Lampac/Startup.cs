@@ -85,18 +85,14 @@ namespace Lampac
 
             try
             {
-                if (AppInit.conf.isarm || !string.IsNullOrEmpty(AppInit.conf.puppeteer_ExecutablePath))
+                if (AppInit.conf.puppeteer.enable)
                 {
-                    Console.WriteLine("Don't forget to install chromium-browser");
-                    Console.WriteLine("apt install -y chromium-browser\n");
-                }
-                else
-                {
-                    new BrowserFetcher().DownloadAsync()?.Wait();
-                }
+                    if (string.IsNullOrWhiteSpace(AppInit.conf.puppeteer.executablePath))
+                        new BrowserFetcher().DownloadAsync()?.Wait();
 
-                if (PuppeteerTo.IsKeepOpen)
-                    PuppeteerTo.LaunchKeepOpen();
+                    if (PuppeteerTo.IsKeepOpen)
+                        PuppeteerTo.LaunchKeepOpen();
+                }
             }
             catch { }
 

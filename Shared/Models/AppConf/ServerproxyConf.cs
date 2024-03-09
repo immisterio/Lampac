@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Base;
+using Shared.Models.AppConf;
 
 namespace Lampac.Models.AppConf
 {
@@ -12,13 +13,9 @@ namespace Lampac.Models.AppConf
 
         public bool allow_tmdb { get; set; }
 
-        public bool cache_img { get; set; }
-
-        public bool cache_hls { get; set; }
-
-        public string cache_hls_pattern { get; set; }
-
         public bool showOrigUri { get; set; }
+
+        public ServerproxyCacheConf cache { get; set; } = new ServerproxyCacheConf();
 
 
         public bool useproxy { get; set; }

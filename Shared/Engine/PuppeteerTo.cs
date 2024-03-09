@@ -16,7 +16,7 @@ namespace Shared.Engine
 
         static bool isdev = File.Exists(@"C:\ProgramData\lampac\disablesync");
 
-        public static bool IsKeepOpen => AppInit.conf.multiaccess || AppInit.conf.puppeteer_keepopen;
+        public static bool IsKeepOpen => AppInit.conf.multiaccess || AppInit.conf.puppeteer.keepopen;
 
         static List<string> tabs = new List<string>();
 
@@ -59,10 +59,8 @@ namespace Shared.Engine
                     Timeout = 15_000
                 };
 
-                if (!string.IsNullOrEmpty(AppInit.conf.puppeteer_ExecutablePath))
-                    option.ExecutablePath = AppInit.conf.puppeteer_ExecutablePath;
-                else if (AppInit.conf.isarm)
-                    option.ExecutablePath = "/usr/bin/chromium-browser";
+                if (!string.IsNullOrEmpty(AppInit.conf.puppeteer.executablePath))
+                    option.ExecutablePath = AppInit.conf.puppeteer.executablePath;
 
                 return Puppeteer.LaunchAsync(option);
             }

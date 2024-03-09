@@ -11,7 +11,7 @@ namespace Shared.Model
 
         public string? apn { get; set; } = "https://apn.watch";
 
-        public static bool IsDefaultApnOrCors(string? apn) => apn != null && !apn.Contains("upn.cfhttp.top") && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
+        public static bool IsDefaultApnOrCors(string? apn) => apn != null && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
 
         public string? corsehost { get; set; }
 
