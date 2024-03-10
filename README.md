@@ -125,24 +125,39 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 ```
 {
   "listenport": 9120, // изменили порт
-  "jac": {
-    "cachetype": "mem", // изменили место хранения кеша
-    "apikey": "1"       // запретили доступ без ключа авторизации
-  },
   "dlna": {
     "downloadSpeed": 25000000 // ограничили скорость загрузки до 200 Mbit/s
   },
-  "sisi": {
-    "xdb": true // вывели доп. источники с sisi.am
-  },
   "Rezka": {
     "streamproxy": true // отправили видеопоток через "http://IP:9118/proxy/{uri}" 
+  },
+  "Zetflix": {
+    "displayname": "Zetflix - 1080p", // изменили название
+    "geostreamproxy": ["UA"], // поток для UA будет идти через "http://IP:9118/proxy/{uri}" 
+    "apn": "http://apn.cfhttp.top", // заменяем прокси "http://IP:9118/proxy/{uri}" на "http://apn.cfhttp.top/{uri}"
+  },
+  "Kodik": {
+    "useproxy": true, // использовать прокси
+    "proxy": {        // использовать 91.1.1.1 и 92.2.2.2
+      "list": [
+        "socks5://91.1.1.1:5481", // socks5
+        "91.2.2.2:5481" // http
+      ]
+    }
+  },
+  "Ashdi": {
+    "useproxy": true // использовать прокси 93.3.3.3
   },
   "Filmix": {
     "token": "protoken" // добавили токен от PRO аккаунта
   },
   "PornHub": {
     "enable": false // отключили PornHub
+  },
+  "proxy": {
+    "list": [
+      "93.3.3.3:5481"
+	]
   },
   "globalproxy": [
     {
