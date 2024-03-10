@@ -21,9 +21,12 @@ namespace Lampac.Engine.Middlewares
         #region ProxyAPI
         private readonly RequestDelegate _next;
 
-        public ProxyAPI(RequestDelegate next)
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public ProxyAPI(RequestDelegate next, IHttpClientFactory httpClientFactory)
         {
             _next = next;
+            _httpClientFactory = httpClientFactory;
         }
 
         static ProxyAPI()
@@ -96,11 +99,11 @@ namespace Lampac.Engine.Middlewares
 
                     if (md5file.EndsWith(".m3u8"))
                     {
-                        string hls = editm3u(await File.ReadAllTextAsync(cachefile), httpContext, account_email, decryptLink);
+                        string hls = editm3u(File.ReadAllText(cachefile), httpContext, account_email, decryptLink);
 
                         httpContext.Response.ContentType = "application/vnd.apple.mpegurl";
                         httpContext.Response.ContentLength = hls.Length;
-                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
+                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                     }
                     else
                     {
@@ -108,7 +111,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             httpContext.Response.ContentType = ists ? (md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t") : "text/plain";
                             httpContext.Response.ContentLength = fileStream.Length;
-                            await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
+                            await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
                         }
                     }
 
@@ -116,6 +119,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
+                #region handler
                 HttpClientHandler handler = new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
@@ -124,14 +128,15 @@ namespace Lampac.Engine.Middlewares
 
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
-                using (var client = new HttpClient(handler))
+                if (decryptLink.proxy != null)
                 {
-                    if (decryptLink.proxy != null)
-                    {
-                        handler.UseProxy = true;
-                        handler.Proxy = decryptLink.proxy;
-                    }
+                    handler.UseProxy = true;
+                    handler.Proxy = decryptLink.proxy;
+                }
+                #endregion
 
+                using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient("proxy"))
+                {
                     var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), httpContext.Request.Path.Value.Contains(".m3u") || httpContext.Request.Path.Value.Contains(".ts"));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
@@ -157,28 +162,27 @@ namespace Lampac.Engine.Middlewares
                                 }
 
                                 string m3u8 = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
+                                string hls = editm3u(m3u8, httpContext, account_email, decryptLink);
 
                                 if (cache_stream && !File.Exists(cachefile))
                                 {
                                     try
                                     {
                                         Directory.CreateDirectory(foldercache);
-                                        await File.WriteAllTextAsync(cachefile, m3u8);
+                                        File.WriteAllText(cachefile, m3u8);
                                     }
                                     catch { try { File.Delete(cachefile); } catch { } }
                                 }
 
-                                string hls = editm3u(m3u8, httpContext, account_email, decryptLink);
-
                                 httpContext.Response.Headers.Add("PX-Cache", cache_stream ? "MISS" : "BYPASS");
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                 httpContext.Response.ContentLength = hls.Length;
-                                await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
+                                await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                             }
                             else
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
-                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted);
+                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
                             }
                         }
                         #endregion
@@ -190,7 +194,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             if (response.StatusCode == HttpStatusCode.OK)
                             {
-                                if (response.Content.Headers.ContentLength > 20000000)
+                                if (response.Content.Headers.ContentLength > 10_000000)
                                 {
                                     httpContext.Response.ContentType = "text/plain";
                                     await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted);
@@ -201,23 +205,27 @@ namespace Lampac.Engine.Middlewares
 
                                 if (!File.Exists(cachefile))
                                 {
-                                    try
+                                    _ = Task.Factory.StartNew(() =>
                                     {
-                                        Directory.CreateDirectory(foldercache);
-                                        await File.WriteAllBytesAsync(cachefile, buffer);
-                                    }
-                                    catch { try { File.Delete(cachefile); } catch { } }
+                                        try
+                                        {
+                                            Directory.CreateDirectory(foldercache);
+                                            File.WriteAllBytes(cachefile, buffer);
+                                        }
+                                        catch { try { File.Delete(cachefile); } catch { } }
+
+                                    }, httpContext.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                                 }
 
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
                                 httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 httpContext.Response.ContentLength = buffer.Length;
-                                await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted);
+                                await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
                             }
                             else
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
-                                await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted);
+                                await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted).ConfigureAwait(false);
                             }
                         }
                         #endregion
@@ -225,7 +233,7 @@ namespace Lampac.Engine.Middlewares
                     else
                     {
                         httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
-                        await CopyProxyHttpResponse(httpContext, response);
+                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                     }
                 }
             }
@@ -499,7 +507,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CopyProxyHttpResponse
-        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage)
+        async ValueTask CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage)
         {
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;
@@ -534,7 +542,7 @@ namespace Lampac.Engine.Middlewares
 
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
             {
-                await CopyToAsyncInternal(response.Body, responseStream, context.RequestAborted);
+                await CopyToAsyncInternal(response.Body, responseStream, context.RequestAborted).ConfigureAwait(false);
                 //await responseStream.CopyToAsync(response.Body, context.RequestAborted);
             }
         }
@@ -542,7 +550,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CopyToAsyncInternal
-        async Task CopyToAsyncInternal(Stream destination, Stream responseStream, CancellationToken cancellationToken)
+        async ValueTask CopyToAsyncInternal(Stream destination, Stream responseStream, CancellationToken cancellationToken)
         {
             if (destination == null)
                 throw new ArgumentNullException("destination");
@@ -560,20 +568,109 @@ namespace Lampac.Engine.Middlewares
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(32000);
-
-            try
+            if (AppInit.conf.serverproxy?.buffering?.enable == true)
             {
-                int bytesRead;
-                while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
-                    await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+                byte[] array = ArrayPool<byte>.Shared.Rent(Math.Max(AppInit.conf.serverproxy.buffering.rent, 4096));
 
-            //await responseStream.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    bool readFinished = false;
+                    var writeFinished = new TaskCompletionSource<bool>();
+                    var locker = new AsyncManualResetEvent();
+
+                    int bufferLength = 0;
+                    Queue<byte[]> byteQueue = new Queue<byte[]>();
+
+                    #region read task
+                    _ = Task.Factory.StartNew(async () =>
+                    {
+                        try
+                        {
+                            int bytesRead;
+                            while (!cancellationToken.IsCancellationRequested && (bytesRead = await responseStream.ReadAsync(new Memory<byte>(array), cancellationToken).ConfigureAwait(false)) != 0)
+                            {
+                                bufferLength += bytesRead;
+                                byte[] byteCopy = new byte[bytesRead];
+                                Array.Copy(array, byteCopy, bytesRead);
+
+                                byteQueue.Enqueue(byteCopy);
+                                locker.Set();
+
+                                if (cancellationToken.IsCancellationRequested)
+                                    break;
+
+                                while (bufferLength > Math.Max(AppInit.conf.serverproxy.buffering.length, 1_000000) && !cancellationToken.IsCancellationRequested)
+                                    await locker.WaitAsync(100, cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+                        finally 
+                        { 
+                            readFinished = true; 
+                            locker.Set(); 
+                        }
+
+                    }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    #endregion
+
+                    #region write task
+                    _ = Task.Factory.StartNew(async () =>
+                    {
+                        try
+                        {
+                            while (true)
+                            {
+                                if (cancellationToken.IsCancellationRequested)
+                                    break;
+
+                                if (byteQueue.Count > 0)
+                                {
+                                    byte[] bytesToSend = byteQueue.Dequeue();
+                                    bufferLength -= bytesToSend.Length;
+                                    locker.Set();
+
+                                    await destination.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), cancellationToken).ConfigureAwait(false);
+                                }
+                                else if (readFinished)
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    await locker.WaitAsync(100, cancellationToken).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        finally 
+                        {
+                            locker.Set();
+                            writeFinished.SetResult(true); 
+                        }
+
+                    }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    #endregion
+
+                    await writeFinished.Task.ConfigureAwait(false);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(array);
+                }
+            }
+            else
+            {
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                try
+                {
+                    int bytesRead;
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
+                        await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
         }
         #endregion
     }

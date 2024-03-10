@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using Shared.Model.Base;
 using System.Text.RegularExpressions;
 using Shared.Models.AppConf;
+using Shared.Models.ServerProxy;
 
 namespace Lampac
 {
@@ -174,12 +175,19 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public ServerproxyConf serverproxy = new ServerproxyConf() { enable = true, encrypt = true, verifyip = true, allow_tmdb = true };
+        public ServerproxyConf serverproxy = new ServerproxyConf()
+        {
+            enable = true, encrypt = true, verifyip = true, allow_tmdb = true,
+            buffering = new ServerproxyBufferingConf()
+            {
+                enable = true, rent = 16000, length = 3000000
+            }
+        };
 
-        public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 60, updateTrackers = 120 };
+        public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 20, updateTrackers = 120 };
 
 
-        public FileCacheConf fileCacheInactiveHour = new FileCacheConf() { html = 5, img = 8, torrent = 36, hls = 24 };
+        public FileCacheConf fileCacheInactiveHour = new FileCacheConf() { html = 1, img = 1, torrent = 8, hls = 2 };
 
         public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, path = "dlna" };
 
