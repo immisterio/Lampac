@@ -101,7 +101,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
 * corseu - Использовать прокси cors.bwa.workers.dev
 
-# При использовании на порталах от 1к пользователей
+# При использовании на порталах
 В init.conf добавьте 
 ```
 "multiaccess": true,
