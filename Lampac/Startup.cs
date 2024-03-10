@@ -17,6 +17,8 @@ using PuppeteerSharp;
 using Shared.Engine;
 using Shared.Engine.CORE;
 using Newtonsoft.Json;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 
 namespace Lampac
 {
@@ -36,6 +38,34 @@ namespace Lampac
         #region ConfigureServices
         public void ConfigureServices(IServiceCollection services)
         {
+            #region IHttpClientFactory
+            services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var handler = new System.Net.Http.HttpClientHandler()
+                {
+                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AllowAutoRedirect = false
+                };
+
+                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                return handler;
+            });
+
+            services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var handler = new System.Net.Http.HttpClientHandler()
+                {
+                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AllowAutoRedirect = true
+                };
+
+                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                return handler;
+            });
+
+            services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
+            #endregion
+
             services.Configure<CookiePolicyOptions>(options =>
             {
                 options.CheckConsentNeeded = context => true;
@@ -76,12 +106,13 @@ namespace Lampac
         #endregion
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, System.Net.Http.IHttpClientFactory httpClientFactory)
         {
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
             HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
+            HttpClient.httpClientFactory = httpClientFactory;
 
             try
             {

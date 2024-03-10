@@ -16,8 +16,10 @@ namespace Lampac.Engine.CORE
     {
         public static string UserAgent => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
 
+        public static IHttpClientFactory httpClientFactory;
+
         #region Handler
-        static HttpClientHandler Handler(string url, WebProxy proxy)
+        public static HttpClientHandler Handler(string url, WebProxy proxy)
         {
             var handler = new HttpClientHandler()
             {
@@ -58,13 +60,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region DefaultRequestHeaders
-        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers)
+        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers)
         {
             string loglines = string.Empty;
             DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines);
         }
 
-        static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines)
+        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines)
         {
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
@@ -117,10 +119,10 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                HttpClientHandler handler = Handler(url, proxy);
+                var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = allowAutoRedirect;
 
-                using (var client = new System.Net.Http.HttpClient(handler))
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, referer, headers);
 
@@ -181,7 +183,9 @@ namespace Lampac.Engine.CORE
 
             try
             {
-                using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
+                var handler = Handler(url, proxy);
+
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines);
 
@@ -256,7 +260,9 @@ namespace Lampac.Engine.CORE
 
             try
             {
-                using (var client = new System.Net.Http.HttpClient(Handler(url, proxy)))
+                var handler = Handler(url, proxy);
+
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, headers, ref loglines);
 
@@ -349,7 +355,7 @@ namespace Lampac.Engine.CORE
                 var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
-                using (var client = new System.Net.Http.HttpClient(handler))
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers);
 
@@ -384,7 +390,7 @@ namespace Lampac.Engine.CORE
                 var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
-                using (var client = new System.Net.Http.HttpClient(handler))
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, -1, null, null, headers);
 

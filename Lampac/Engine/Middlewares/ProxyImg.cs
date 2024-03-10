@@ -7,6 +7,10 @@ using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Net.Http;
+using Shared.Model.Online;
+using System.Collections.Generic;
+using System.Net;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -15,18 +19,17 @@ namespace Lampac.Engine.Middlewares
         #region ProxyImg
         private readonly RequestDelegate _next;
 
-        public ProxyImg(RequestDelegate next)
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public ProxyImg(RequestDelegate next, IHttpClientFactory httpClientFactory)
         {
             _next = next;
+            _httpClientFactory = httpClientFactory;
         }
-        #endregion
 
-        #region getFolder
-        static string getFolder(string href)
+        static ProxyImg()
         {
-            string md5key = CrypTo.md5(href);
-            Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
-            return $"cache/img/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+            Directory.CreateDirectory("cache/img");
         }
         #endregion
 
@@ -35,6 +38,7 @@ namespace Lampac.Engine.Middlewares
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
                 var init = AppInit.conf.serverproxy;
+                bool cacheimg = init.cache.img;
 
                 #region Проверки
                 Shared.Models.ProxyLinkModel decryptLink = null;
@@ -78,21 +82,25 @@ namespace Lampac.Engine.Middlewares
 
                 if (httpContext.Request.Path.Value.StartsWith("/proxyimg:"))
                 {
+                    if (!cacheimg)
+                        cacheimg = init.cache.img_rsize;
+
                     var gimg = Regex.Match(httpContext.Request.Path.Value, "/proxyimg:([0-9]+):([0-9]+)").Groups;
                     width = int.Parse(gimg[1].Value);
                     height = int.Parse(gimg[2].Value);
                 }
                 #endregion
 
-                string outFile = getFolder($"{href}:{width}:{height}");
+                string md5key = CrypTo.md5($"{href}:{width}:{height}");
+                string outFile = $"cache/img/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
 
-                if (init.cache.img && File.Exists(outFile))
+                if (cacheimg && File.Exists(outFile))
                 {
                     httpContext.Response.ContentType = "image/jpeg";
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
 
                     using (var fs = new FileStream(outFile, FileMode.Open, FileAccess.Read))
-                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
+                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
 
                     return;
                 }
@@ -106,46 +114,88 @@ namespace Lampac.Engine.Middlewares
 
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
 
-                var array = await HttpClient.Download(href, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: decryptLink?.headers);
+                var array = await Download(href, proxy: proxyManager.Get(), headers: decryptLink?.headers);
                 if (array == null)
                 {
-                    if (init.cache.img)
-                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(2));
+                    if (cacheimg)
+                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(1));
 
                     proxyManager.Refresh();
                     httpContext.Response.Redirect(href);
                     return;
                 }
 
-                if (width > 0 || height > 0)
+                if (array.Length > 1000)
                 {
-                    using (var image = Image.NewFromBuffer(array))
+                    if (width > 0 || height > 0)
                     {
-                        if (image.Width > width || image.Height > height)
+                        using (var image = Image.NewFromBuffer(array))
                         {
-                            using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
-                                array = res.JpegsaveBuffer();
+                            if (image.Width > width || image.Height > height)
+                            {
+                                using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
+                                    array = res.JpegsaveBuffer();
+                            }
                         }
                     }
-                }
 
-                if (init.cache.img && !File.Exists(outFile))
-                {
-                    try
+                    if (array != null && cacheimg && !File.Exists(outFile))
                     {
-                        await File.WriteAllBytesAsync(outFile, array);
+                        _ = Task.Factory.StartNew(() =>
+                        {
+                            try
+                            {
+                                Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+                                File.WriteAllBytes(outFile, array);
+                            }
+                            catch { try { File.Delete(outFile); } catch { } }
+
+                        }, httpContext.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     }
-                    catch { try { File.Delete(outFile); } catch { } }
+
+                    httpContext.Response.ContentType = "image/jpeg";
+                    httpContext.Response.Headers.Add("X-Cache-Status", cacheimg ? "MISS" : "bypass");
                 }
 
-                httpContext.Response.ContentType = "image/jpeg";
-                httpContext.Response.Headers.Add("X-Cache-Status", init.cache.img ? "MISS" : "bypass");
-
-                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted);
+                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
             }
             else
             {
                 await _next(httpContext);
+            }
+        }
+
+
+        async public ValueTask<byte[]> Download(string url, List<HeadersModel> headers = null, WebProxy proxy = null)
+        {
+            try
+            {
+                var handler = CORE.HttpClient.Handler(url, proxy);
+                handler.AllowAutoRedirect = true;
+
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
+                {
+                    CORE.HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+
+                    using (HttpResponseMessage response = await client.GetAsync(url))
+                    {
+                        if (response.StatusCode != HttpStatusCode.OK)
+                            return null;
+
+                        using (HttpContent content = response.Content)
+                        {
+                            byte[] res = await content.ReadAsByteArrayAsync();
+                            if (res == null || res.Length == 0)
+                                return null;
+
+                            return res;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return null;
             }
         }
     }

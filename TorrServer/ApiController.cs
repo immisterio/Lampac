@@ -22,11 +22,11 @@ namespace Lampac.Controllers
         #region ts.js
         [HttpGet]
         [Route("ts.js")]
-        async public Task<ActionResult> Plugin()
+        public ActionResult Plugin()
         {
             if (!memoryCache.TryGetValue("ApiController:ts.js", out string file))
             {
-                file = await IO.File.ReadAllTextAsync("plugins/ts.js");
+                file = IO.File.ReadAllText("plugins/ts.js");
                 memoryCache.Set("ApiController:ts.js", file, DateTime.Now.AddMinutes(5));
             }
 
@@ -154,7 +154,7 @@ namespace Lampac.Controllers
                 await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted);
                 string requestJson = Encoding.UTF8.GetString(mem.ToArray());
 
-                using (HttpClient client = new HttpClient())
+                using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                 {
                     client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
 
@@ -162,14 +162,15 @@ namespace Lampac.Controllers
                     {
                         client.Timeout = TimeSpan.FromSeconds(5);
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
-                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
                         return;
                     }
                     else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
-                        client.Timeout = TimeSpan.FromSeconds(10);
-                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
                         IO.File.WriteAllText("torrserver/settings.json", requestJson);
+
+                        client.Timeout = TimeSpan.FromSeconds(10);
+                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted).ConfigureAwait(false);
                         return;
                     }
                 }
@@ -183,12 +184,12 @@ namespace Lampac.Controllers
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
-            using (var client = new HttpClient())
+            using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
             {
                 var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
                 var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted);
 
-                await CopyProxyHttpResponse(HttpContext, response);
+                await CopyProxyHttpResponse(HttpContext, response).ConfigureAwait(false);
             }
             #endregion
         }
@@ -237,7 +238,7 @@ namespace Lampac.Controllers
                 {
                     if (IO.File.Exists("torrserver/settings.json"))
                     {
-                        using (HttpClient client = new HttpClient())
+                        using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                         {
                             client.Timeout = TimeSpan.FromSeconds(10);
                             client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
@@ -254,7 +255,7 @@ namespace Lampac.Controllers
                                     if (!requestJson.Contains("\"action\""))
                                         requestJson = "{\"action\":\"set\",\"sets\":" + Regex.Replace(requestJson, "[\n\r\t ]+", "") + "}";
 
-                                    await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
+                                    await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
                                 }
                             }
                         }
@@ -287,7 +288,7 @@ namespace Lampac.Controllers
 
                     try
                     {
-                        using (var client = new HttpClient())
+                        using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                         {
                             client.Timeout = TimeSpan.FromSeconds(i == 0 ? 4 : 3);
 
@@ -376,7 +377,7 @@ namespace Lampac.Controllers
 
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
             {
-                await CopyToAsyncInternal(response.Body, responseStream, context.RequestAborted);
+                await CopyToAsyncInternal(response.Body, responseStream, context.RequestAborted).ConfigureAwait(false);
                 //await responseStream.CopyToAsync(response.Body, context.RequestAborted);
             }
         }
@@ -400,7 +401,7 @@ namespace Lampac.Controllers
             if (!destination.CanWrite)
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096*2);
 
             try
             {
