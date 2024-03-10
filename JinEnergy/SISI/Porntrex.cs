@@ -19,11 +19,7 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
-            var playlist = PorntrexTo.Playlist("ptx/vidosik", html, pl =>
-            {
-                pl.picture = rsizehost(pl.picture);
-                return pl;
-            });
+            var playlist = PorntrexTo.Playlist("ptx/vidosik", html);
 
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;

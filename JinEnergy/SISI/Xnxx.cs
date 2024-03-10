@@ -17,11 +17,7 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
-            var playlist = XnxxTo.Playlist("xnx/vidosik", html, pl =>
-            {
-                pl.picture = rsizehost(pl.picture);
-                return pl;
-            });
+            var playlist = XnxxTo.Playlist("xnx/vidosik", html);
 
             if (playlist.Count == 0 && IsRefresh(init, true))
                 goto refresh;

@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
             (
                 host,
                 init.corsHost(),
-                init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.conf.apn),
+                MaybeInHls(init.hls, init),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka")

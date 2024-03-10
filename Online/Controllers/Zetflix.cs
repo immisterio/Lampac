@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.conf.apn),
+               MaybeInHls(init.hls, init),
                (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix")
                //AppInit.log

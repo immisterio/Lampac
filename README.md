@@ -157,7 +157,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
   "proxy": {
     "list": [
       "93.3.3.3:5481"
-	]
+    ]
   },
   "globalproxy": [
     {

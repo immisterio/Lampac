@@ -28,11 +28,7 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
-            var playlist = XvideosTo.Playlist("xds/vidosik", html, pl =>
-            {
-                pl.picture = rsizehost(pl.picture);
-                return pl;
-            });
+            var playlist = XvideosTo.Playlist("xds/vidosik", html);
 
             if (playlist.Count == 0 && IsRefresh(init, true))
                 goto refresh;

@@ -578,7 +578,6 @@ namespace Lampac.Engine.Middlewares
                     var writeFinished = new TaskCompletionSource<bool>();
                     var locker = new AsyncManualResetEvent();
 
-                    int bufferLength = 0;
                     Queue<byte[]> byteQueue = new Queue<byte[]>();
 
                     #region read task
@@ -589,7 +588,6 @@ namespace Lampac.Engine.Middlewares
                             int bytesRead;
                             while (!cancellationToken.IsCancellationRequested && (bytesRead = await responseStream.ReadAsync(new Memory<byte>(array), cancellationToken).ConfigureAwait(false)) != 0)
                             {
-                                bufferLength += bytesRead;
                                 byte[] byteCopy = new byte[bytesRead];
                                 Array.Copy(array, byteCopy, bytesRead);
 
@@ -599,7 +597,7 @@ namespace Lampac.Engine.Middlewares
                                 if (cancellationToken.IsCancellationRequested)
                                     break;
 
-                                while (bufferLength > Math.Max(AppInit.conf.serverproxy.buffering.length, 1_000000) && !cancellationToken.IsCancellationRequested)
+                                while (byteQueue.Count > AppInit.conf.serverproxy.buffering.length && !cancellationToken.IsCancellationRequested)
                                     await locker.WaitAsync(100, cancellationToken).ConfigureAwait(false);
                             }
                         }
@@ -625,7 +623,6 @@ namespace Lampac.Engine.Middlewares
                                 if (byteQueue.Count > 0)
                                 {
                                     byte[] bytesToSend = byteQueue.Dequeue();
-                                    bufferLength -= bytesToSend.Length;
                                     locker.Set();
 
                                     await destination.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), cancellationToken).ConfigureAwait(false);

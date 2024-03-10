@@ -21,7 +21,7 @@ namespace JinEnergy.Online
             (
                null,
                init.corsHost(),
-               init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.apn),
+               MaybeInHls(init.hls, init),
                (url, head) => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, head)),
                streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile)
                //AppInit.log

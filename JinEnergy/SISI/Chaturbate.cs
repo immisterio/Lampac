@@ -17,11 +17,7 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
-            var playlist = ChaturbateTo.Playlist("chu/potok", html, pl =>
-            {
-                pl.picture = rsizehost(pl.picture);
-                return pl;
-            });
+            var playlist = ChaturbateTo.Playlist("chu/potok", html);
 
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;

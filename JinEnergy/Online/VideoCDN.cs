@@ -22,7 +22,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                init.cors(init.apihost!),
                init.token!,
-               init.hls && !Shared.Model.AppInit.IsDefaultApnOrCors(init.apn ?? AppInit.apn),
+               MaybeInHls(init.hls, init),
                (url, referer) => JsHttpClient.Get(init.cors(url), androidHttpReq: false, addHeaders: httpHeaders(args, init)),
                streamfile => HostStreamProxy(init, streamfile)
                //AppInit.log

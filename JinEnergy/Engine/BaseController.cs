@@ -161,6 +161,17 @@ namespace JinEnergy.Engine
         }
 
 
+        public static bool MaybeInHls(bool hls, BaseSettings init)
+        {
+            if (!string.IsNullOrEmpty(init.apn) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn))
+                return false;
+
+            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.apn))
+                return false;
+
+            return hls;
+        }
+
         async public static ValueTask<bool> IsOrigStream(string? uri)
         {
             if (string.IsNullOrWhiteSpace(uri) || AppInit.Country != "UA")

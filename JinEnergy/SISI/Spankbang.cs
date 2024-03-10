@@ -18,11 +18,7 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
-            var playlist = SpankbangTo.Playlist("sbg/vidosik", html, pl =>
-            {
-                pl.picture = rsizehost(pl.picture);
-                return pl;
-            });
+            var playlist = SpankbangTo.Playlist("sbg/vidosik", html);
 
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;

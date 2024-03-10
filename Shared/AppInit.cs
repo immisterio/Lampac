@@ -180,7 +180,7 @@ namespace Lampac
             enable = true, encrypt = true, verifyip = true, allow_tmdb = true,
             buffering = new ServerproxyBufferingConf()
             {
-                enable = true, rent = 16000, length = 3000000
+                enable = true, rent = 16000, length = 200
             }
         };
 
