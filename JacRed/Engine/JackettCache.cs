@@ -19,7 +19,7 @@ namespace Lampac.Engine.CORE
         #region Invoke
         async public static Task<bool> Invoke(string cachekey, ConcurrentBag<TorrentDetails> torrents, Func<ValueTask<List<TorrentDetails>>> parse)
         {
-            var cread = await Read(cachekey);
+            var cread = Read(cachekey);
 
             if (cread.emptycache)
                 return false;
@@ -29,7 +29,7 @@ namespace Lampac.Engine.CORE
             if (!cread.cache)
             {
                 result = await parse();
-                await Write(cachekey, result);
+                Write(cachekey, result);
             }
             else { result = cread.torrents; }
 
@@ -46,7 +46,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Read
-        async public static ValueTask<(bool cache, bool emptycache, List<TorrentDetails> torrents)> Read(string key)
+        public static (bool cache, bool emptycache, List<TorrentDetails> torrents) Read(string key)
         {
             if (!jac.cache)
                 return default;
@@ -65,7 +65,7 @@ namespace Lampac.Engine.CORE
                 bool cache = Startup.memoryCache.TryGetValue(key, out _);
 
                 if (File.Exists(pathfile))
-                    return (cache, false, JsonConvert.DeserializeObject<List<TorrentDetails>>(BrotliTo.Decompress(await File.ReadAllBytesAsync(pathfile))));
+                    return (cache, false, JsonConvert.DeserializeObject<List<TorrentDetails>>(BrotliTo.Decompress(File.ReadAllBytes(pathfile))));
                 else
                     return (false, cache, null);
             }
@@ -76,7 +76,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Write
-        async public static ValueTask Write(string key, List<TorrentDetails> torrents)
+        public static void Write(string key, List<TorrentDetails> torrents)
         {
             if (!jac.cache)
                 return;
@@ -97,7 +97,7 @@ namespace Lampac.Engine.CORE
                     }
                     else
                     {
-                        await File.WriteAllBytesAsync(getFolder(key), BrotliTo.Compress(JsonConvert.SerializeObject(torrents)));
+                        File.WriteAllBytes(getFolder(key), BrotliTo.Compress(JsonConvert.SerializeObject(torrents)));
                         Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(jac.cacheToMinutes));
                     }
                 }

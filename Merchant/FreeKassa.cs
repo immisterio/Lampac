@@ -14,14 +14,14 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("freekassa/new")]
-        async public Task<ActionResult> Index(string email)
+        public ActionResult Index(string email)
         {
             if (!AppInit.conf.Merchant.FreeKassa.enable || string.IsNullOrWhiteSpace(email))
                 return Content(string.Empty);
 
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
 
-            await System.IO.File.WriteAllTextAsync($"merchant/invoice/freekassa/{transid}", email.ToLower().Trim());
+            System.IO.File.WriteAllText($"merchant/invoice/freekassa/{transid}", email.ToLower().Trim());
 
             string hash = CrypTo.md5($"{AppInit.conf.Merchant.FreeKassa.shop_id}:{AppInit.conf.Merchant.accessCost}:{AppInit.conf.Merchant.FreeKassa.secret}:USD:{transid}");
             return Redirect("https://pay.freekassa.ru/" + $"?m={AppInit.conf.Merchant.FreeKassa.shop_id}&oa={AppInit.conf.Merchant.accessCost}&o={transid}&s={hash}&currency=USD");
@@ -30,20 +30,20 @@ namespace Lampac.Controllers.LITE
 
         [HttpPost]
         [Route("freekassa/callback")]
-        async public Task<ActionResult> Callback(string AMOUNT, long MERCHANT_ORDER_ID, string SIGN)
+        public ActionResult Callback(string AMOUNT, long MERCHANT_ORDER_ID, string SIGN)
         {
             if (!AppInit.conf.Merchant.FreeKassa.enable || !System.IO.File.Exists($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}"))
                 return StatusCode(403);
 
-            await System.IO.File.AppendAllTextAsync("merchant/log/freekassa.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
+            System.IO.File.AppendAllText("merchant/log/freekassa.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
 
             if (CrypTo.md5($"{AppInit.conf.Merchant.FreeKassa.shop_id}:{AMOUNT}:{AppInit.conf.Merchant.FreeKassa.secret}:{MERCHANT_ORDER_ID}") == SIGN)
             {
-                string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");
+                string users = System.IO.File.ReadAllText("merchant/users.txt");
 
                 if (!users.Contains($",freekassa,{MERCHANT_ORDER_ID}"))
                 {
-                    string email = await System.IO.File.ReadAllTextAsync($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}");
+                    string email = System.IO.File.ReadAllText($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}");
 
                     if (AppInit.conf.accsdb.accounts.TryGetValue(email, out DateTime ex))
                     {
@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
                         AppInit.conf.accsdb.accounts.TryAdd(email, ex);
                     }
 
-                    await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email.ToLower()},{ex.ToFileTimeUtc()},freekassa,{MERCHANT_ORDER_ID}\n"); 
+                    System.IO.File.AppendAllText("merchant/users.txt", $"{email.ToLower()},{ex.ToFileTimeUtc()},freekassa,{MERCHANT_ORDER_ID}\n"); 
                 }
 
                 return Content("YES");

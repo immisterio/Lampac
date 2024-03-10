@@ -20,14 +20,14 @@ namespace SISI
         }
 
         [Route("sisi/bookmarks")]
-        async public Task<ActionResult> List(string box_mac, string account_email, int pg = 1, int pageSize = 36)
+        public ActionResult List(string box_mac, string account_email, int pg = 1, int pageSize = 36)
         {
             string md5user = getuser(box_mac, account_email);
             if (md5user == null)
                 return OnError("access denied");
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
-            var bookmarks = await bookmarkCache.Read();
+            var bookmarks = bookmarkCache.Read();
 
             string getvideLink(PlaylistItem pl)
             {
@@ -66,7 +66,7 @@ namespace SISI
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
 
-            var bookmarks = await bookmarkCache.Read();
+            var bookmarks = bookmarkCache.Read();
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
             if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
@@ -80,11 +80,11 @@ namespace SISI
                 }
                 else
                 {
-                    var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 5);
+                    var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 7);
                     if (image != null)
                     {
                         Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                        await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
+                        System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
                         data.bookmark.image = pimg;
                     }
                 }
@@ -114,7 +114,7 @@ namespace SISI
 
                 data.bookmark.uid = uid;
                 bookmarks.Insert(0, data);
-                await bookmarkCache.Write(bookmarks);
+                bookmarkCache.Write(bookmarks);
             }
 
             return Json(new
@@ -125,7 +125,7 @@ namespace SISI
 
 
         [Route("sisi/bookmark/remove")]
-        async public Task<ActionResult> Remove(string box_mac, string account_email, string uid)
+        public ActionResult Remove(string box_mac, string account_email, string uid)
         {
             string md5user = getuser(box_mac, account_email);
             if (md5user == null || string.IsNullOrEmpty(uid))
@@ -133,12 +133,12 @@ namespace SISI
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
 
-            var bookmarks = await bookmarkCache.Read();
+            var bookmarks = bookmarkCache.Read();
 
             if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) is PlaylistItem item)
             {
                 bookmarks.Remove(item);
-                await bookmarkCache.Write(bookmarks);
+                bookmarkCache.Write(bookmarks);
             }
 
             return Json(new

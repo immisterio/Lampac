@@ -40,7 +40,7 @@ namespace Lampac.Controllers.JAC
             {
                 if (jackett.cache)
                 {
-                    await TorrentCache.Write(key, _t);
+                    TorrentCache.Write(key, _t);
                     Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 

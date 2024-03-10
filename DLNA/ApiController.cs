@@ -116,14 +116,14 @@ namespace Lampac.Controllers
         #region dlna.js
         [HttpGet]
         [Route("dlna.js")]
-        async public Task<ActionResult> Plugin()
+        public ActionResult Plugin()
         {
             if (!AppInit.conf.dlna.enable)
                 return Content(string.Empty);
 
             if (!memoryCache.TryGetValue("ApiController:dlna.js", out string file))
             {
-                file = await IO.File.ReadAllTextAsync("plugins/dlna.js");
+                file = IO.File.ReadAllText("plugins/dlna.js");
                 memoryCache.Set("ApiController:dlna.js", file, DateTime.Now.AddMinutes(5));
             }
 
@@ -431,7 +431,7 @@ namespace Lampac.Controllers
                 }
 
                 Directory.CreateDirectory("cache/torrent");
-                await IO.File.WriteAllBytesAsync($"cache/torrent/{hash}", data);
+                IO.File.WriteAllBytes($"cache/torrent/{hash}", data);
                 await removeClientEngine();
 
                 return Json(Torrent.Load(data).Files);
@@ -580,7 +580,7 @@ namespace Lampac.Controllers
                 else
                 {
                     Directory.CreateDirectory("cache/metadata/");
-                    await IO.File.WriteAllTextAsync($"cache/metadata/{manager.InfoHash.ToHex()}.json", JsonConvert.SerializeObject(indexs));
+                    IO.File.WriteAllText($"cache/metadata/{manager.InfoHash.ToHex()}.json", JsonConvert.SerializeObject(indexs));
 
                     for (int i = 0; i < manager.Files.Count; i++)
                     {
@@ -611,7 +611,7 @@ namespace Lampac.Controllers
                         if (array != null)
                         {
                             Directory.CreateDirectory($"{dlna_path}/thumbs");
-                            await IO.File.WriteAllBytesAsync($"{dlna_path}/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", array);
+                            IO.File.WriteAllBytes($"{dlna_path}/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", array);
                         }
                     }
                     catch { }

@@ -101,13 +101,21 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
 * corseu - Использовать прокси cors.bwa.workers.dev
 
-# Настройки при совместном использовании
-* multiaccess - true
-
-В Lampac.runtimeconfig.json убрать или увеличить лимит потребления памяти 
+# При использовании на порталах от 1к пользователей
+В init.conf добавьте 
 ```
-"System.GC.HeapCount": 30,
-"System.GC.HeapHardLimit": 309715200, // ~300mb
+"multiaccess": true,
+"typecache": "hybrid"
+```
+
+В Lampac.runtimeconfig.json замените лимит потребления памяти 
+```
+"System.GC.HeapHardLimit": 800000000, 
+```
+на 
+```
+"System.Threading.ThreadPool.MinThreads": 100,
+"System.Threading.ThreadPool.MaxThreads": 2000,
 ```
 
 # Пример init.conf

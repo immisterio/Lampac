@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(invoiceurl))
                 return Content("invoiceurl == null");
 
-            await System.IO.File.WriteAllTextAsync($"merchant/invoice/b2pay/{payment["order_number"]}", JsonConvert.SerializeObject(payment));
+            System.IO.File.WriteAllText($"merchant/invoice/b2pay/{payment["order_number"]}", JsonConvert.SerializeObject(payment));
 
             return Redirect(invoiceurl);
         }
@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
             await HttpContext.Request.Body.ReadAsync(buffer, 0, buffer.Length);
 
             var requestContent = Encoding.UTF8.GetString(buffer);
-            await System.IO.File.AppendAllTextAsync("merchant/log/b2pay.txt", requestContent + "\n\n\n");
+            System.IO.File.AppendAllText("merchant/log/b2pay.txt", requestContent + "\n\n\n");
 
             JObject result = JsonConvert.DeserializeObject<JObject>(requestContent);
             string signature = CrypTo.Base64(CrypTo.md5binary($"{result.Value<string>("amount")}:{result.Value<string>("currency")}:{result.Value<string>("gatewayAmount")}:{result.Value<string>("gatewayCurrency")}:{result.Value<string>("gatewayRate")}:{result.Value<string>("orderNumber")}:{result.Value<string>("pay_id")}:{result.Value<string>("sanitizedMask")}:{result.Value<string>("status")}:{result.Value<string>("token")}:pay:{AppInit.conf.Merchant.B2PAY.encryption_password}"));
@@ -78,11 +78,11 @@ namespace Lampac.Controllers.LITE
             if (result.Value<string>("status") != "approved" || string.IsNullOrWhiteSpace(orderNumber) || !System.IO.File.Exists($"merchant/invoice/b2pay/{orderNumber}"))
                 return StatusCode(403);
 
-            string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");
+            string users = System.IO.File.ReadAllText("merchant/users.txt");
 
             if (!users.Contains($",b2pay,{orderNumber}"))
             {
-                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/b2pay/{orderNumber}"));
+                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(System.IO.File.ReadAllText($"merchant/invoice/b2pay/{orderNumber}"));
 
                 if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["custom_field"], out DateTime ex))
                 {
@@ -95,7 +95,7 @@ namespace Lampac.Controllers.LITE
                     AppInit.conf.accsdb.accounts.TryAdd(invoice["custom_field"], ex);
                 }
 
-                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["custom_field"]},{ex.ToFileTimeUtc()},b2pay,{orderNumber}\n");
+                System.IO.File.AppendAllText("merchant/users.txt", $"{invoice["custom_field"]},{ex.ToFileTimeUtc()},b2pay,{orderNumber}\n");
             }
 
             return Content("ok");

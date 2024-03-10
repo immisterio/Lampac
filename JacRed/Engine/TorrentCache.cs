@@ -21,7 +21,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Read
-        async public static ValueTask<(bool cache, byte[] torrent)> Read(string key)
+        public static (bool cache, byte[] torrent) Read(string key)
         {
             if (!jac.cache)
                 return default;
@@ -30,14 +30,14 @@ namespace Lampac.Engine.CORE
             {
                 string pathfile = getFolder(key);
                 if (File.Exists(pathfile))
-                    return (true, await File.ReadAllBytesAsync(pathfile));
+                    return (true, File.ReadAllBytes(pathfile));
             }
             catch { }
 
             return default;
         }
 
-        async public static ValueTask<(bool cache, string torrent)> ReadMagnet(string key)
+        public static (bool cache, string torrent) ReadMagnet(string key)
         {
             if (!jac.cache)
                 return default;
@@ -46,7 +46,7 @@ namespace Lampac.Engine.CORE
             {
                 string pathfile = getFolder($"{key}:magnet");
                 if (File.Exists(pathfile))
-                    return (true, await File.ReadAllTextAsync(pathfile));
+                    return (true, File.ReadAllText(pathfile));
             }
             catch { }
 
@@ -55,7 +55,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Write
-        async public static ValueTask Write(string key, byte[] torrent)
+        public static void Write(string key, byte[] torrent)
         {
             if (!jac.cache)
                 return;
@@ -63,12 +63,12 @@ namespace Lampac.Engine.CORE
             try
             {
                 if (jac.torrentCacheToMinutes > 0)
-                    await File.WriteAllBytesAsync(getFolder(key), torrent);
+                    File.WriteAllBytes(getFolder(key), torrent);
             }
             catch { }
         }
 
-        async public static ValueTask Write(string key, string torrent)
+        public static void Write(string key, string torrent)
         {
             if (!jac.cache)
                 return;
@@ -76,7 +76,7 @@ namespace Lampac.Engine.CORE
             try
             {
                 if (jac.torrentCacheToMinutes > 0)
-                    await File.WriteAllTextAsync(getFolder($"{key}:magnet"), torrent);
+                    File.WriteAllText(getFolder($"{key}:magnet"), torrent);
             }
             catch { }
         }

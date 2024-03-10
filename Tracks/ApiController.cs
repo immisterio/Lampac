@@ -65,7 +65,7 @@ namespace Lampac.Controllers
                 {
                     magnethash = Regex.Match(media, "link=([a-z0-9]+)").Groups[1].Value;
                     if (!string.IsNullOrWhiteSpace(magnethash) && System.IO.File.Exists(getFolder(magnethash)))
-                        outPut = BrotliTo.Decompress(await System.IO.File.ReadAllBytesAsync(getFolder(magnethash)));
+                        outPut = BrotliTo.Decompress(System.IO.File.ReadAllBytes(getFolder(magnethash)));
                 }
 
                 if (string.IsNullOrWhiteSpace(outPut))
@@ -89,7 +89,7 @@ namespace Lampac.Controllers
 
                     if (!string.IsNullOrWhiteSpace(outPut) && !string.IsNullOrWhiteSpace(magnethash))
                     {
-                        await System.IO.File.WriteAllBytesAsync(getFolder(magnethash), BrotliTo.Compress(outPut));
+                        System.IO.File.WriteAllBytes(getFolder(magnethash), BrotliTo.Compress(outPut));
                     }
                     else
                     {
@@ -104,14 +104,14 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("tracks.js")]
-        async public Task<ActionResult> Tracks()
+        public ActionResult Tracks()
         {
             if (!AppInit.conf.ffprobe.enable)
                 return Content(string.Empty);
 
             if (!memoryCache.TryGetValue("ApiController:tracks.js", out string file))
             {
-                file = await System.IO.File.ReadAllTextAsync("plugins/tracks.js");
+                file = System.IO.File.ReadAllText("plugins/tracks.js");
                 memoryCache.Set("ApiController:tracks.js", file, DateTime.Now.AddMinutes(5));
             }
 

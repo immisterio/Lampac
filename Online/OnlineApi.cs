@@ -47,11 +47,11 @@ namespace Lampac.Controllers
         #region lite.js
         [HttpGet]
         [Route("lite.js")]
-        async public Task<ActionResult> Lite()
+        public ActionResult Lite()
         {
             if (!memoryCache.TryGetValue("ApiController:lite.js", out string file))
             {
-                file = await IO.File.ReadAllTextAsync("plugins/lite.js");
+                file = IO.File.ReadAllText("plugins/lite.js");
                 memoryCache.Set("ApiController:lite.js", file, DateTime.Now.AddMinutes(5));
             }
 

@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
                                 AppInit.conf.accsdb.accounts.TryAdd(email, ex);
                             }
 
-                            await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{email},{ex.ToFileTimeUtc()},litecoin\n");
+                            System.IO.File.AppendAllText("merchant/users.txt", $"{email},{ex.ToFileTimeUtc()},litecoin\n");
                         }
                         catch { }
                     }

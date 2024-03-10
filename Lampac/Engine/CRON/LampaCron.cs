@@ -32,7 +32,7 @@ namespace Lampac.Engine.CRON
 
                         if (currentapp == null)
                         {
-                            currentapp = await File.ReadAllTextAsync("wwwroot/lampa-main/app.min.js");
+                            currentapp = File.ReadAllText("wwwroot/lampa-main/app.min.js");
                             currentapp = CrypTo.md5(currentapp);
                         }
 
@@ -52,10 +52,10 @@ namespace Lampac.Engine.CRON
                             await File.WriteAllBytesAsync("wwwroot/lampa-main.zip", array);
                             ZipFile.ExtractToDirectory("wwwroot/lampa-main.zip", "wwwroot/", overwriteFiles: true);
 
-                            string html = await File.ReadAllTextAsync("wwwroot/lampa-main/index.html");
+                            string html = File.ReadAllText("wwwroot/lampa-main/index.html");
                             html = html.Replace("</body>", "<script src=\"/lampainit.js\"></script></body>");
 
-                            await File.WriteAllTextAsync("wwwroot/lampa-main/index.html", html);
+                            File.WriteAllText("wwwroot/lampa-main/index.html", html);
 
                             File.CreateText("wwwroot/lampa-main/personal.lampa");
                         }

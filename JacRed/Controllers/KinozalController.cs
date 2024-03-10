@@ -107,10 +107,10 @@ namespace Lampac.Controllers.JAC
             string keyerror = $"kinozal:parseMagnet:{id}:error";
             if (Startup.memoryCache.TryGetValue(keyerror, out _))
             {
-                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                if (TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
 
-                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                if (TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
 
                 return Content("error");
@@ -125,7 +125,7 @@ namespace Lampac.Controllers.JAC
                 {
                     if (jackett.cache)
                     {
-                        await TorrentCache.Write(keydownload, _t);
+                        TorrentCache.Write(keydownload, _t);
                         Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                     }
 
@@ -147,7 +147,7 @@ namespace Lampac.Controllers.JAC
 
                     if (jackett.cache)
                     {
-                        await TorrentCache.Write(keymagnet, magnet);
+                        TorrentCache.Write(keymagnet, magnet);
                         Startup.memoryCache.Set(keymagnet, magnet, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                     }
 
@@ -161,10 +161,10 @@ namespace Lampac.Controllers.JAC
 
             if (jackett.cache)
             {
-                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                if (TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
 
-                if (await TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
+                if (TorrentCache.ReadMagnet(keymagnet) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
             }
 

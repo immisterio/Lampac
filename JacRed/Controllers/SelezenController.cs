@@ -103,10 +103,10 @@ namespace Lampac.Controllers.JAC
             string keyerror = $"selezen:parseMagnet:{url}:error";
             if (Startup.memoryCache.TryGetValue(keyerror, out _))
             {
-                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                if (TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
 
-                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                if (TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
 
                 return Content("error");
@@ -118,10 +118,10 @@ namespace Lampac.Controllers.JAC
             {
                 if (await TakeLogin() == false)
                 {
-                    if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                    if (TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                         return File(tcache.torrent, "application/x-bittorrent");
 
-                    if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                    if (TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                         Redirect(mcache.torrent);
 
                     return Content("TakeLogin == false");
@@ -138,10 +138,10 @@ namespace Lampac.Controllers.JAC
                 if (jackett.emptycache && jackett.cache)
                     Startup.memoryCache.Set(keyerror, 0, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
 
-                if (await TorrentCache.Read(keydownload) is var tcache && tcache.cache)
+                if (TorrentCache.Read(keydownload) is var tcache && tcache.cache)
                     return File(tcache.torrent, "application/x-bittorrent");
 
-                if (await TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
+                if (TorrentCache.ReadMagnet(key) is var mcache && mcache.cache)
                     Redirect(mcache.torrent);
 
                 return Content("error");
@@ -159,7 +159,7 @@ namespace Lampac.Controllers.JAC
                     {
                         if (jackett.cache)
                         {
-                            await TorrentCache.Write(keydownload, _t);
+                            TorrentCache.Write(keydownload, _t);
                             Startup.memoryCache.Set(keydownload, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                         }
 
@@ -171,7 +171,7 @@ namespace Lampac.Controllers.JAC
 
             if (jackett.cache)
             {
-                await TorrentCache.Write(key, magnet);
+                TorrentCache.Write(key, magnet);
                 Startup.memoryCache.Set(key, magnet, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
             }
 

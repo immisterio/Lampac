@@ -99,7 +99,7 @@ namespace Lampac.Controllers.JAC
 
             if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
             {
-                if (await TorrentCache.Read(key) is var tc && tc.cache)
+                if (TorrentCache.Read(key) is var tc && tc.cache)
                     return File(tc.torrent, "application/x-bittorrent");
 
                 return Content("error");
@@ -110,7 +110,7 @@ namespace Lampac.Controllers.JAC
             {
                 if (jackett.cache)
                 {
-                    await TorrentCache.Write(key, _t);
+                    TorrentCache.Write(key, _t);
                     Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
                 }
 
@@ -119,7 +119,7 @@ namespace Lampac.Controllers.JAC
             else if (jackett.emptycache && jackett.cache)
                 Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
 
-            if (await TorrentCache.Read(key) is var tcache && tcache.cache)
+            if (TorrentCache.Read(key) is var tcache && tcache.cache)
                 return File(tcache.torrent, "application/x-bittorrent");
 
             return Content("error");

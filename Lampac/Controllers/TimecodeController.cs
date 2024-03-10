@@ -21,11 +21,11 @@ namespace Lampac.Controllers
         #region timecode.js
         [HttpGet]
         [Route("timecode.js")]
-        async public Task<ActionResult> timecode()
+        public ActionResult timecode()
         {
             if (!memoryCache.TryGetValue("ApiController:timecode.js", out string file))
             {
-                file = await IO.File.ReadAllTextAsync("plugins/timecode.js");
+                file = IO.File.ReadAllText("plugins/timecode.js");
                 memoryCache.Set("ApiController:timecode.js", file, DateTime.Now.AddMinutes(5));
             }
 
@@ -34,24 +34,24 @@ namespace Lampac.Controllers
         #endregion
 
         [Route("/timecode/all")]
-        async public Task<ActionResult> Get(string card_id, long profile)
+        public ActionResult Get(string card_id, long profile)
         {
             string path = getFilePath(card_id, profile, false);
             if (!IO.File.Exists(path))
                 return Json(new { });
 
-            return Json(await getData(path));
+            return Json(getData(path));
         }
 
         [HttpPost]
         [Route("/timecode/add")]
-        async public Task<ActionResult> Set([FromQuery]long profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
+        public ActionResult Set([FromQuery]long profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
                 return Content("{\"secuses\", false}");
 
             string path = getFilePath(card_id, profile, true);
-            var db = await getData(path);
+            var db = getData(path);
 
             if (db.ContainsKey(id))
             {
@@ -62,7 +62,7 @@ namespace Lampac.Controllers
                 db.TryAdd(id, data);
             }
 
-            await IO.File.WriteAllBytesAsync(path, BrotliTo.Compress(JsonConvert.SerializeObject(db)));
+            IO.File.WriteAllBytes(path, BrotliTo.Compress(JsonConvert.SerializeObject(db)));
             return Content("{\"secuses\", true}");
         }
 
@@ -80,11 +80,11 @@ namespace Lampac.Controllers
         #endregion
 
         #region getData
-        async ValueTask<Dictionary<string, string>> getData(string path)
+        Dictionary<string, string> getData(string path)
         {
             if (!memoryCache.TryGetValue($"TimecodeController:{path}", out Dictionary<string, string> data))
             {
-                data = IO.File.Exists(path) ? JsonConvert.DeserializeObject<Dictionary<string, string>>(BrotliTo.Decompress(await IO.File.ReadAllBytesAsync(path))) : new Dictionary<string, string>();
+                data = IO.File.Exists(path) ? JsonConvert.DeserializeObject<Dictionary<string, string>>(BrotliTo.Decompress(IO.File.ReadAllBytes(path))) : new Dictionary<string, string>();
                 memoryCache.Set($"TimecodeController:{path}", data, DateTime.Now.AddMinutes(10));
             }
 

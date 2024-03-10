@@ -64,11 +64,11 @@ namespace TorrServer
                         }
                         else
                         {
-                            string sh = await File.ReadAllTextAsync($"{homedir}/installTorrServerLinux.sh");
+                            string sh = File.ReadAllText($"{homedir}/installTorrServerLinux.sh");
                             if (sh.Contains("dirInstall=\"\""))
                             {
                                 sh = Regex.Replace(sh, "dirInstall=\"\"", $"dirInstall=\"{homedir}\"");
-                                await File.WriteAllTextAsync($"{homedir}/installTorrServerLinux.sh", sh);
+                                File.WriteAllText($"{homedir}/installTorrServerLinux.sh", sh);
                             }
 
                             var process = new System.Diagnostics.Process();

@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(pay_url))
                 return Content("pay_url == null");
 
-            await System.IO.File.WriteAllTextAsync($"merchant/invoice/cryptocloud/{root.Value<string>("invoice_id")}", JsonConvert.SerializeObject(postParams));
+            System.IO.File.WriteAllText($"merchant/invoice/cryptocloud/{root.Value<string>("invoice_id")}", JsonConvert.SerializeObject(postParams));
 
             return Redirect(pay_url);
         }
@@ -52,17 +52,17 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Merchant.CryptoCloud.enable || !System.IO.File.Exists($"merchant/invoice/cryptocloud/{invoice_id}"))
                 return StatusCode(403);
 
-            await System.IO.File.AppendAllTextAsync("merchant/log/cryptocloud.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
+            System.IO.File.AppendAllText("merchant/log/cryptocloud.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
 
             var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || root.Value<string>("status") != "success" || root.Value<string>("status_invoice") != "paid")
                 return StatusCode(403);
 
-            string users = await System.IO.File.ReadAllTextAsync("merchant/users.txt");
+            string users = System.IO.File.ReadAllText("merchant/users.txt");
 
             if (!users.Contains($",cryptocloud,{invoice_id}"))
             {
-                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(await System.IO.File.ReadAllTextAsync($"merchant/invoice/cryptocloud/{invoice_id}"));
+                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(System.IO.File.ReadAllText($"merchant/invoice/cryptocloud/{invoice_id}"));
 
                 if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["email"], out DateTime ex))
                 {
@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                     AppInit.conf.accsdb.accounts.TryAdd(invoice["email"], ex);
                 }
 
-                await System.IO.File.AppendAllTextAsync("merchant/users.txt", $"{invoice["email"]},{ex.ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
+                System.IO.File.AppendAllText("merchant/users.txt", $"{invoice["email"]},{ex.ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
             }
 
             return StatusCode(200);

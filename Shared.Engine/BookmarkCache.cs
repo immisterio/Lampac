@@ -20,7 +20,7 @@ namespace Shared.Engine.CORE
         #endregion
 
         #region Read
-        async public ValueTask<List<T>> Read()
+        public List<T> Read()
         {
             try
             {
@@ -31,7 +31,7 @@ namespace Shared.Engine.CORE
 
                 if (File.Exists(pathfile))
                 {
-                    val = JsonSerializer.Deserialize<List<T>>(await File.ReadAllTextAsync(pathfile));
+                    val = JsonSerializer.Deserialize<List<T>>(File.ReadAllText(pathfile));
                     if (val != null)
                     {
                         db.TryAdd(key, val);
@@ -46,13 +46,13 @@ namespace Shared.Engine.CORE
         #endregion
 
         #region Write
-        async public ValueTask Write(List<T> val)
+        public void Write(List<T> val)
         {
             try
             {
                 Directory.CreateDirectory($"cache/bookmarks/{path}");
                 Directory.CreateDirectory($"cache/bookmarks/{path}/{md5user.Substring(0, 2)}");
-                await File.WriteAllTextAsync(pathfile, JsonSerializer.Serialize(val));
+                File.WriteAllText(pathfile, JsonSerializer.Serialize(val));
             }
             catch { }
         }

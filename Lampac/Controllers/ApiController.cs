@@ -16,7 +16,7 @@ namespace Lampac.Controllers
     {
         #region Index
         [Route("/")]
-        async public Task<ActionResult> Index()
+        public ActionResult Index()
         {
             if (string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) || !IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
                 return Content("api work", contentType: "text/plain; charset=utf-8");
@@ -25,7 +25,7 @@ namespace Lampac.Controllers
             {
                 if (!memoryCache.TryGetValue($"LampaWeb.index:{AppInit.conf.LampaWeb.index}", out string html))
                 {
-                    html = await IO.File.ReadAllTextAsync($"wwwroot/{AppInit.conf.LampaWeb.index}");
+                    html = IO.File.ReadAllText($"wwwroot/{AppInit.conf.LampaWeb.index}");
                     html = html.Replace("<head>", $"<head><base href=\"/{Regex.Match(AppInit.conf.LampaWeb.index, "^([^/]+)/").Groups[1].Value}/\" />");
 
                     memoryCache.Set($"LampaWeb.index:{AppInit.conf.LampaWeb.index}", html, DateTime.Now.AddMinutes(5));
@@ -40,11 +40,11 @@ namespace Lampac.Controllers
 
         #region Extensions
         [Route("/extensions")]
-        async public Task<ActionResult> Extensions()
+        public ActionResult Extensions()
         {
             if (!memoryCache.TryGetValue("LampaWeb.extensions", out string json))
             {
-                json = await IO.File.ReadAllTextAsync("plugins/extensions.json");
+                json = IO.File.ReadAllText("plugins/extensions.json");
                 json = json.Replace("\n", "").Replace("\r", "");
 
                 memoryCache.Set("LampaWeb.extensions", json, DateTime.Now.AddMinutes(5));
@@ -173,11 +173,11 @@ namespace Lampac.Controllers
         #region tmdbproxy.js
         [HttpGet]
         [Route("tmdbproxy.js")]
-        async public Task<ActionResult> TmdbProxy()
+        public ActionResult TmdbProxy()
         {
             if (!memoryCache.TryGetValue("ApiController:tmdbproxy.js", out string file))
             {
-                file = await IO.File.ReadAllTextAsync("plugins/tmdbproxy.js");
+                file = IO.File.ReadAllText("plugins/tmdbproxy.js");
                 memoryCache.Set("ApiController:tmdbproxy.js", file, DateTime.Now.AddMinutes(5));
             }
 

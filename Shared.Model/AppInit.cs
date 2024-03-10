@@ -21,11 +21,11 @@ namespace Shared.Model
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("https://chaturbate.com");
 
-        public SisiSettings Ebalovo { get; set; } = new SisiSettings("https://www.ebalovo.pro", streamproxy: true);
+        public SisiSettings Ebalovo { get; set; } = new SisiSettings("https://www.ebalovo.pro"/*, streamproxy: true*/);
 
-        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com", streamproxy: true);
+        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com"/*, streamproxy: true*/);
 
-        public SisiSettings HQporner { get; set; } = new SisiSettings("https://m.hqporner.com");
+        public SisiSettings HQporner { get; set; } = new SisiSettings("https://m.hqporner.com", streamproxy: true);
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("https://www.porntrex.com");
 
@@ -35,13 +35,13 @@ namespace Shared.Model
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("https://www.xnxx.com");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("https://ww.tizam.pw", streamproxy: true);
+        public SisiSettings Tizam { get; set; } = new SisiSettings("https://ww.tizam.pw"/*, streamproxy: true*/);
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("https://www.xvideos.com");
 
-        public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com", streamproxy: true);
+        public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com"/*, streamproxy: true*/);
 
-        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("https://rt.pornhubpremium.com", enable: false, streamproxy: true);
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("https://rt.pornhubpremium.com", enable: false/*, streamproxy: true*/);
 
 
 
@@ -59,7 +59,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinovibe.co", streamproxy: true);
 
-        public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio", streamproxy: true);
+        public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://oblakofailov.ru", streamproxy: true) { corseu = true };
 
@@ -71,7 +71,7 @@ namespace Shared.Model
 
         public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online");
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site");
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false);
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 

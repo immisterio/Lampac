@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <!--<RuntimeHostConfigurationOption Include="System.GC.HeapCount" Value="50" />-->
-    <RuntimeHostConfigurationOption Include="System.GC.HeapHardLimit" Value="400000000" />
+    <RuntimeHostConfigurationOption Include="System.GC.HeapHardLimit" Value="800000000" />
   </ItemGroup>
   
    <PropertyGroup>

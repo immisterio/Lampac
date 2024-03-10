@@ -63,7 +63,7 @@ namespace Lampac.Engine.CRON
                         }
 
                         if (trackers.Count > 0)
-                            await File.WriteAllLinesAsync("cache/trackers.txt", trackers);
+                            File.WriteAllLines("cache/trackers.txt", trackers);
                     }
                 }
                 catch { }
