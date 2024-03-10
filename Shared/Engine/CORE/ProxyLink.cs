@@ -1,8 +1,10 @@
-﻿using Shared.Model.Online;
+﻿using Newtonsoft.Json;
+using Shared.Model.Online;
 using Shared.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -10,7 +12,21 @@ namespace Lampac.Engine.CORE
 {
     public static class ProxyLink
     {
+        static string conditionPath = "cache/proxylink.json";
+
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
+
+        static ProxyLink()
+        {
+            if (File.Exists(conditionPath))
+            {
+                try
+                {
+                    links = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ProxyLinkModel>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))) ?? new ConcurrentDictionary<string, ProxyLinkModel>();
+                }
+                catch { links = new ConcurrentDictionary<string, ProxyLinkModel>(); }
+            }
+        }
 
         public static string Encrypt(string uri, ProxyLinkModel p) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin);
 
@@ -23,8 +39,10 @@ namespace Lampac.Engine.CORE
             if (string.IsNullOrWhiteSpace(hash))
                 return string.Empty;
 
-            if (uri.Contains(".m3u"))
+            if (uri.Contains(".m3u8"))
                 hash += ".m3u8";
+            else if (uri.Contains(".m3u"))
+                hash += ".m3u";
             else if (uri.Contains(".ts"))
                 hash += ".ts";
             else if (uri.Contains(".m4s"))
@@ -33,6 +51,8 @@ namespace Lampac.Engine.CORE
                 hash += ".mp4";
             else if (uri.Contains(".mkv"))
                 hash += ".mkv";
+            else if (uri.Contains(".aac"))
+                hash += ".aac";
             else if (uri.Contains(".jpg") || uri.Contains(".jpeg") || uri.Contains(".png") || uri.Contains(".webp"))
                 hash += ".jpg";
 
@@ -70,9 +90,11 @@ namespace Lampac.Engine.CORE
                 {
                     foreach (var link in links)
                     {
-                        if (DateTime.Now > link.Value.upd.AddHours(link.Value.uri.EndsWith(".jpg") ? 1 : 8))
+                        if (DateTime.Now > link.Value.upd.AddHours(link.Value.uri.EndsWith(".jpg") ? 8 : 36))
                             links.TryRemove(link.Key, out _);
                     }
+
+                    File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(links)));
                 }
                 catch { }
 

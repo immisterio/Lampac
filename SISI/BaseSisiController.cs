@@ -70,8 +70,14 @@ namespace SISI
         {
             Dictionary<string, string> qualitys_proxy = null;
 
-            if (!proxyconf.streamproxy && proxyconf.qualitys_proxy)
-                qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy, plugin: plugin, sisi: true));
+            if (!proxyconf.streamproxy && (proxyconf.geostreamproxy == null || proxyconf.geostreamproxy.Count == 0))
+            {
+                if (proxyconf.qualitys_proxy)
+                {
+                    var bsc = new BaseSettings() { streamproxy = true, useproxystream = proxyconf.useproxystream, apn = proxyconf.apn, apnstream = proxyconf.apnstream };
+                    qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(bsc, v.Value, proxy: proxy, plugin: plugin, sisi: true));
+                }
+            }
 
             return new JsonResult(new
             {
