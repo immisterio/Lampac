@@ -7,5 +7,7 @@
         public int rent { get; set; }
 
         public int length { get; set; }
+
+        public int millisecondsTimeout { get; set; }
     }
 }

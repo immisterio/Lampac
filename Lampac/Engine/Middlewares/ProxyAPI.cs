@@ -542,7 +542,7 @@ namespace Lampac.Engine.Middlewares
 
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
             {
-                await CopyToAsyncInternal(response.Body, responseStream, context.RequestAborted).ConfigureAwait(false);
+                await CopyToAsyncInternal(response.Body, responseStream, context, responseMessage.Content.Headers.ContentLength).ConfigureAwait(false);
                 //await responseStream.CopyToAsync(response.Body, context.RequestAborted);
             }
         }
@@ -550,7 +550,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CopyToAsyncInternal
-        async ValueTask CopyToAsyncInternal(Stream destination, Stream responseStream, CancellationToken cancellationToken)
+        async ValueTask CopyToAsyncInternal(Stream destination, Stream responseStream, HttpContext context, long? contentLength)
         {
             if (destination == null)
                 throw new ArgumentNullException("destination");
@@ -568,9 +568,10 @@ namespace Lampac.Engine.Middlewares
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
 
-            if (AppInit.conf.serverproxy?.buffering?.enable == true)
+            if (AppInit.conf.serverproxy?.buffering?.enable == true && (context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || contentLength > 10_000000))
             {
-                byte[] array = ArrayPool<byte>.Shared.Rent(Math.Max(AppInit.conf.serverproxy.buffering.rent, 4096));
+                var bunit = AppInit.conf.serverproxy.buffering;
+                byte[] array = ArrayPool<byte>.Shared.Rent(Math.Max(bunit.rent, 4096));
 
                 try
                 {
@@ -586,7 +587,7 @@ namespace Lampac.Engine.Middlewares
                         try
                         {
                             int bytesRead;
-                            while (!cancellationToken.IsCancellationRequested && (bytesRead = await responseStream.ReadAsync(new Memory<byte>(array), cancellationToken).ConfigureAwait(false)) != 0)
+                            while (!context.RequestAborted.IsCancellationRequested && (bytesRead = await responseStream.ReadAsync(new Memory<byte>(array), context.RequestAborted).ConfigureAwait(false)) != 0)
                             {
                                 byte[] byteCopy = new byte[bytesRead];
                                 Array.Copy(array, byteCopy, bytesRead);
@@ -594,11 +595,11 @@ namespace Lampac.Engine.Middlewares
                                 byteQueue.Enqueue(byteCopy);
                                 locker.Set();
 
-                                if (cancellationToken.IsCancellationRequested)
+                                if (context.RequestAborted.IsCancellationRequested)
                                     break;
 
-                                while (byteQueue.Count > AppInit.conf.serverproxy.buffering.length && !cancellationToken.IsCancellationRequested)
-                                    await locker.WaitAsync(100, cancellationToken).ConfigureAwait(false);
+                                while (byteQueue.Count > bunit.length && !context.RequestAborted.IsCancellationRequested)
+                                    await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted).ConfigureAwait(false);
                             }
                         }
                         finally 
@@ -607,7 +608,7 @@ namespace Lampac.Engine.Middlewares
                             locker.Set(); 
                         }
 
-                    }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    }, context.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     #endregion
 
                     #region write task
@@ -617,7 +618,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             while (true)
                             {
-                                if (cancellationToken.IsCancellationRequested)
+                                if (context.RequestAborted.IsCancellationRequested)
                                     break;
 
                                 if (byteQueue.Count > 0)
@@ -625,7 +626,7 @@ namespace Lampac.Engine.Middlewares
                                     byte[] bytesToSend = byteQueue.Dequeue();
                                     locker.Set();
 
-                                    await destination.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), cancellationToken).ConfigureAwait(false);
+                                    await destination.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), context.RequestAborted).ConfigureAwait(false);
                                 }
                                 else if (readFinished)
                                 {
@@ -633,7 +634,7 @@ namespace Lampac.Engine.Middlewares
                                 }
                                 else
                                 {
-                                    await locker.WaitAsync(100, cancellationToken).ConfigureAwait(false);
+                                    await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted).ConfigureAwait(false);
                                 }
                             }
                         }
@@ -643,7 +644,7 @@ namespace Lampac.Engine.Middlewares
                             writeFinished.SetResult(true); 
                         }
 
-                    }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    }, context.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     #endregion
 
                     await writeFinished.Task.ConfigureAwait(false);
@@ -660,8 +661,8 @@ namespace Lampac.Engine.Middlewares
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
-                        await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
                 }
                 finally
                 {
