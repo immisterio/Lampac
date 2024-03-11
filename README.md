@@ -13,7 +13,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 ```
 
 # Установка на Windows
-1. Установить ".NET Core 6" https://learn.microsoft.com/ru-ru/dotnet/core/install/
+1. Установить ".NET Core 6" https://dotnet.microsoft.com/en-us/download/dotnet/6.0
 2. Загрузить и распаковать релиз https://github.com/immisterio/lampac/releases
 3. Запустить Lampac.exe
 
