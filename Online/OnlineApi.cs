@@ -308,8 +308,14 @@ namespace Lampac.Controllers
                 send("iRemux", conf.iRemux, "remux");
 
             send("Voidboost", conf.Voidboost);
-            send("Ashdi (UKR)", conf.Ashdi, "ashdi");
+
+            if (kinopoisk_id > 0)
+                send("Ashdi (UKR)", conf.Ashdi, "ashdi");
+
             send("Eneyida (UKR)", conf.Eneyida, "eneyida");
+
+            if (!isanime)
+                send("Kinoukr (UKR)", conf.Kinoukr, "kinoukr");
 
             if (kinopoisk_id > 0)
                 send("VideoDB", conf.VideoDB);
@@ -459,6 +465,7 @@ namespace Lampac.Controllers
                         case "zetflix":
                         case "vcdn":
                         case "eneyida":
+                        case "kinoukr":
                         case "hdvb":
                         case "anilibria":
                         case "animedia":

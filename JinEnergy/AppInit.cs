@@ -130,6 +130,8 @@ namespace JinEnergy
 
         public static OnlinesSettings Eneyida => conf.Eneyida;
 
+        public static OnlinesSettings Kinoukr => conf.Kinoukr;
+
         public static OnlinesSettings Kinotochka => conf.Kinotochka;
 
         public static OnlinesSettings Redheadsound => conf.Redheadsound;

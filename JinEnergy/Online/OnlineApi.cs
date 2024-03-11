@@ -168,6 +168,9 @@ namespace JinEnergy.Online
                     send("Ashdi (UKR) - 4K", "ashdi", AppInit.Ashdi);
 
                 send("Eneyida (UKR) - 1080p", "eneyida", AppInit.Eneyida);
+
+                if (!isanime)
+                    send("Kinoukr (UKR) - 1080p", "kinoukr", AppInit.Kinoukr);
             }
 
             if (!titleSearch)
