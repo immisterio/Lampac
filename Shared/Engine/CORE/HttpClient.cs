@@ -122,7 +122,7 @@ namespace Lampac.Engine.CORE
                 var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = allowAutoRedirect;
 
-                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
+                using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, referer, headers);
 

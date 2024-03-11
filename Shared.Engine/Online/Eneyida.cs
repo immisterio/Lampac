@@ -40,13 +40,13 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(link))
             {
                 onlog?.Invoke("search start");
-                string? search = await onget.Invoke($"{apihost}/index.php?do=search&story={HttpUtility.UrlEncode(original_title)}");
+                string? search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
                     return null;
 
                 onlog?.Invoke("search ok");
 
-                foreach (string row in search.Split("\"short clearfix with-mask\"").Skip(1))
+                foreach (string row in search.Split("<article ").Skip(1))
                 {
                     if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
                         continue;
@@ -55,19 +55,29 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrWhiteSpace(newslink))
                         continue;
 
-                    string name = Regex.Match(row, "class=\"short-title\" [^>]+>([^<]+)<").Groups[1].Value;
+                    var g = Regex.Match(row, "class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>").Groups;
+
+                    string name = g[3].Value.Replace("&bull;", "").ToLower().Trim();
                     if (result.similars == null)
                         result.similars = new List<Similar>();
 
-                    result.similars.Add(new Similar() 
+                    result.similars.Add(new Similar()
                     {
                         title = name,
+                        year = g[2].Value,
                         href = newslink
                     });
-                }
 
-                if (result.similars != null && result.similars.Count == 1)
-                    link = result.similars[0].href;
+                    if (name == original_title?.ToLower())
+                    {
+                        if (g[2].Value == year.ToString())
+                        {
+                            reservedlink = newslink;
+                            link = reservedlink;
+                            break;
+                        }
+                    }
+                }
 
                 if (string.IsNullOrWhiteSpace(link))
                 {
@@ -83,15 +93,12 @@ namespace Shared.Engine.Online
             if (news == null)
                 return null;
 
-            result.quel = Regex.Match(news, "class=\"m-meta m-qual\">([^<]+)<").Groups[1].Value;
+            if (news.Contains("full_content fx_row"))
+                result.quel = Regex.Match(news.Split("full_content fx_row")[1].Split("full__favourite")[0], " (1080p|720p|480p)</div>").Groups[1].Value;
 
-            string iframeUri = Regex.Match(news, "<iframe width=\"560\" height=\"400\" src=\"(https?://tortuga.wtf/[^\"]+/[0-9]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(iframeUri))
-            {
-                iframeUri = Regex.Match(news, "<iframe width=\"560\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(iframeUri))
-                    return null;
-            }
+            string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(iframeUri))
+                return null;
 
             onlog?.Invoke("iframeUri: " + iframeUri);
             string? content = await onget.Invoke(iframeUri);
@@ -149,8 +156,6 @@ namespace Shared.Engine.Online
             }
             #endregion
 
-            string fixStream(string _l) => _l.Replace("0yql3tj", "oyql3tj");
-
             if (result.content != null)
             {
                 #region Фильм
@@ -169,13 +174,13 @@ namespace Shared.Engine.Online
                     var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
                     while (match.Success)
                     {
-                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
+                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
                         match = match.NextMatch();
                     }
                 }
                 #endregion
 
-                return mtpl.ToHtml((string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel), onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+                return mtpl.ToHtml((string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel), onstreamfile.Invoke(hls), subtitles: subtitles);
                 #endregion
             }
             else
@@ -199,7 +204,7 @@ namespace Shared.Engine.Online
 
                                 hashseason.Add(season.title);
                                 string numberseason = Regex.Match(season.title, "([0-9]+)$").Groups[1].Value;
-                                if (string.IsNullOrEmpty(numberseason)) 
+                                if (string.IsNullOrEmpty(numberseason))
                                     continue;
 
                                 string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
@@ -239,13 +244,13 @@ namespace Shared.Engine.Online
                                 var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
                                 while (match.Success)
                                 {
-                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
+                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
                                     match = match.NextMatch();
                                 }
                             }
                             #endregion
 
-                            string file = onstreamfile.Invoke(fixStream(episode.file));
+                            string file = onstreamfile.Invoke(episode.file);
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles.ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
                             firstjson = false;
                         }

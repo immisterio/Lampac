@@ -534,7 +534,7 @@ namespace Shared.Engine.Online
             #endregion
 
             #region Максимально доступное
-            foreach (string q in new List<string> { "2160p", "1440p", "1080p", "720p", "480p", "360p" })
+            foreach (string q in new List<string> { "2160p", "1440p", "1080p Ultra", "1080p", "720p", "480p", "360p" })
             {
                 string? link = null;
 
@@ -545,9 +545,6 @@ namespace Shared.Engine.Online
                         break;
                     case "1440p":
                         link = getLink("2K") ?? getLink(q);
-                        break;
-                    case "1080p":
-                        link = getLink("1080p Ultra") ?? getLink(q);
                         break;
                     default:
                         link = getLink(q);
