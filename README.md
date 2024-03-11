@@ -3,7 +3,8 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 
 # Запуск в Docker
 ```
-docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
+mkdir -p /home/lampac && touch /home/lampac/init.conf
+docker run -d -p 9118:9118 -v /home/lampac/init.conf:/home/init.conf --restart always --name lampac immisterio/lampac
 ```
 
 # Установка на linux
