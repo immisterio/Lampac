@@ -3,4 +3,4 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm32v7
 EXPOSE 9118
 WORKDIR /home
 
-ENTRYPOINT ["/bin/bash", "-c", "test -f isdocker && dotnet Lampac.dll || curl -s https://raw.githubusercontent.com/immisterio/Lampac/main/Build/Docker/build.sh| bash"]
+ENTRYPOINT ["/bin/bash", "-c", "test -f isdocker && dotnet Lampac.dll || curl -s https://raw.githubusercontent.com/immisterio/Lampac/main/Build/Docker/build-arm.sh | bash"]
