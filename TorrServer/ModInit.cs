@@ -115,6 +115,8 @@ namespace TorrServer
         #region conf
         public bool updatets { get; set; } = true;
 
+        public bool rdb { get; set; } = true;
+
         public int disposeTime { get; set; } = -1;
 
         public string defaultPasswd { get; set; } = "ts";

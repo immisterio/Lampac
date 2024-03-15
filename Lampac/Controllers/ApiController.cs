@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System;
 using IO = System.IO;
@@ -65,7 +64,7 @@ namespace Lampac.Controllers
         public ActionResult MyIP() => Content(HttpContext.Connection.RemoteIpAddress.ToString());
 
         [Route("/testaccsdb")]
-        public ActionResult TestAccsdb() => StatusCode(200);
+        public ActionResult TestAccsdb() => Content("{\"accsdb\": false}");
 
         [Route("/personal.lampa")]
         [Route("/lampa-main/personal.lampa")]

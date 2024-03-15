@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using System.IO;
 using System;
-using System.Threading;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;

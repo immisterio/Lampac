@@ -165,7 +165,7 @@ namespace Lampac.Controllers
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
                         return;
                     }
-                    else if (HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
+                    else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
                         IO.File.WriteAllText("torrserver/settings.json", requestJson);
 
@@ -401,7 +401,7 @@ namespace Lampac.Controllers
             if (!destination.CanWrite)
                 throw new NotSupportedException("NotSupported_UnwritableStream");
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096*2);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
             try
             {

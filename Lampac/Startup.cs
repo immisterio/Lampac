@@ -19,6 +19,7 @@ using Shared.Engine.CORE;
 using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
+using System.Threading.Tasks;
 
 namespace Lampac
 {
@@ -118,11 +119,18 @@ namespace Lampac
             {
                 if (AppInit.conf.puppeteer.enable)
                 {
-                    if (string.IsNullOrWhiteSpace(AppInit.conf.puppeteer.executablePath))
-                        new BrowserFetcher().DownloadAsync()?.Wait();
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            if (string.IsNullOrWhiteSpace(AppInit.conf.puppeteer.executablePath))
+                                await new BrowserFetcher().DownloadAsync();
 
-                    if (PuppeteerTo.IsKeepOpen)
-                        PuppeteerTo.LaunchKeepOpen();
+                            if (PuppeteerTo.IsKeepOpen)
+                                PuppeteerTo.LaunchKeepOpen();
+                        }
+                        catch (Exception ex) { Console.WriteLine(ex); }
+                    });
                 }
             }
             catch { }

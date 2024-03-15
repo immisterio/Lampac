@@ -15,6 +15,12 @@ namespace Lampac.Engine.CRON
 
             while (true)
             {
+                if (!AppInit.conf.pirate_store)
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    continue;
+                }
+
                 try
                 {
                     async void update(string url, string checkcode = "Lampa.", string path = null)
