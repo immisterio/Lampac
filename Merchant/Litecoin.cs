@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,10 +9,12 @@ using Lampac.Models.Merchant.LtcWallet;
 using Shared;
 using System.Threading;
 using Shared.Model.Online;
+using Merchant;
+using IO = System.IO.File;
 
 namespace Lampac.Controllers.LITE
 {
-    public class Litecoin : BaseController
+    public class Litecoin : MerchantController
     {
         #region Litecoin
         static Litecoin()
@@ -51,11 +52,11 @@ namespace Lampac.Controllers.LITE
             string pathEmail = $"merchant/invoice/litecoin/{CrypTo.md5(email.ToLower().Trim())}.email";
             double buyprice = await LtcKurs();
 
-            if (System.IO.File.Exists(pathEmail))
+            if (IO.Exists(pathEmail))
             {
                 return Json(new
                 {
-                    payinaddress = System.IO.File.ReadAllText(pathEmail),
+                    payinaddress = IO.ReadAllText(pathEmail),
                     buyprice,
                     amount = AppInit.conf.Merchant.accessCost / buyprice
                 });
@@ -72,8 +73,8 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    System.IO.File.WriteAllText(pathEmail, payinAddress);
-                    System.IO.File.WriteAllText($"merchant/invoice/litecoin/{payinAddress}.ltc", email.ToLower().Trim());
+                    IO.WriteAllText(pathEmail, payinAddress);
+                    IO.WriteAllText($"merchant/invoice/litecoin/{payinAddress}.ltc", email.ToLower().Trim());
                 }
 
                 return Json(new
@@ -114,11 +115,11 @@ namespace Lampac.Controllers.LITE
 
                         try
                         {
-                            if (System.IO.File.Exists($"merchant/invoice/litecoin/{trans.txid}.txid"))
+                            if (IO.Exists($"merchant/invoice/litecoin/{trans.txid}.txid"))
                                 continue;
 
-                            string email = System.IO.File.ReadAllText($"merchant/invoice/litecoin/{trans.address}.ltc");
-                            System.IO.File.WriteAllText($"merchant/invoice/litecoin/{trans.txid}.txid", $"{email}\n{trans.address}");
+                            string email = IO.ReadAllText($"merchant/invoice/litecoin/{trans.address}.ltc");
+                            IO.WriteAllText($"merchant/invoice/litecoin/{trans.txid}.txid", $"{email}\n{trans.address}");
 
                             double cost = (double)AppInit.conf.Merchant.accessCost / (double)(AppInit.conf.Merchant.accessForMonths * 30);
                             int addday = (int)((trans.amount * kurs) / cost);
@@ -134,7 +135,7 @@ namespace Lampac.Controllers.LITE
                                 AppInit.conf.accsdb.accounts.TryAdd(email, ex);
                             }
 
-                            System.IO.File.AppendAllText("merchant/users.txt", $"{email},{ex.ToFileTimeUtc()},litecoin\n");
+                            IO.AppendAllText("merchant/users.txt", $"{email},{ex.ToFileTimeUtc()},litecoin,{trans.address} - {trans.txid}\n");
                         }
                         catch { }
                     }

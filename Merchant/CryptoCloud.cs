@@ -1,19 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
-using System;
 using Shared.Model.Online;
+using Merchant;
+using IO = System.IO.File;
 
 namespace Lampac.Controllers.LITE
 {
     /// <summary>
     /// https://app.cryptocloud.plus/integration/api
     /// </summary>
-    public class CryptoCloud : BaseController
+    public class CryptoCloud : MerchantController
     {
         [HttpGet]
         [Route("cryptocloud/invoice/create")]
@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(pay_url))
                 return Content("pay_url == null");
 
-            System.IO.File.WriteAllText($"merchant/invoice/cryptocloud/{root.Value<string>("invoice_id")}", JsonConvert.SerializeObject(postParams));
+            IO.WriteAllText($"merchant/invoice/cryptocloud/{root.Value<string>("invoice_id")}", JsonConvert.SerializeObject(postParams));
 
             return Redirect(pay_url);
         }
@@ -49,34 +49,17 @@ namespace Lampac.Controllers.LITE
         [Route("cryptocloud/callback")]
         async public Task<ActionResult> Callback(string invoice_id)
         {
-            if (!AppInit.conf.Merchant.CryptoCloud.enable || !System.IO.File.Exists($"merchant/invoice/cryptocloud/{invoice_id}"))
+            if (!AppInit.conf.Merchant.CryptoCloud.enable || !IO.Exists($"merchant/invoice/cryptocloud/{invoice_id}"))
                 return StatusCode(403);
 
-            System.IO.File.AppendAllText("merchant/log/cryptocloud.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
+            IO.AppendAllText("merchant/log/cryptocloud.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
 
             var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || root.Value<string>("status") != "success" || root.Value<string>("status_invoice") != "paid")
                 return StatusCode(403);
 
-            string users = System.IO.File.ReadAllText("merchant/users.txt");
-
-            if (!users.Contains($",cryptocloud,{invoice_id}"))
-            {
-                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(System.IO.File.ReadAllText($"merchant/invoice/cryptocloud/{invoice_id}"));
-
-                if (AppInit.conf.accsdb.accounts.TryGetValue(invoice["email"], out DateTime ex))
-                {
-                    ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                    AppInit.conf.accsdb.accounts[invoice["email"]] = ex;
-                }
-                else
-                {
-                    ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                    AppInit.conf.accsdb.accounts.TryAdd(invoice["email"], ex);
-                }
-
-                System.IO.File.AppendAllText("merchant/users.txt", $"{invoice["email"]},{ex.ToFileTimeUtc()},cryptocloud,{invoice_id}\n");
-            }
+            var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.ReadAllText($"merchant/invoice/cryptocloud/{invoice_id}"));
+            PayConfirm(invoice["email"], "cryptocloud", invoice_id);
 
             return StatusCode(200);
         }
