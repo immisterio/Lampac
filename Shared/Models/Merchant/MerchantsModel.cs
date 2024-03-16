@@ -16,6 +16,8 @@ namespace Lampac.Models.Merchant
 
         public FreekassaConf FreeKassa { get; set; } = new FreekassaConf();
 
+        public StreampayConf Streampay { get; set; } = new StreampayConf();
+
         public LtcWalletConf LtcWallet { get; set; } = new LtcWalletConf();
     }
 }
