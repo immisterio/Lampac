@@ -1,6 +1,7 @@
 ﻿using Lampac;
 using Lampac.Engine;
 using System;
+using System.Web;
 
 namespace Merchant
 {
@@ -50,6 +51,12 @@ namespace Merchant
                 System.IO.File.AppendAllText($"merchant/log/{merch}.txt", content + "\n\n\n");
             }
             catch { }
+        }
+
+
+        public static string decodeEmail(string email)
+        {
+            return HttpUtility.UrlDecode(email.ToLower().Trim());
         }
     }
 }

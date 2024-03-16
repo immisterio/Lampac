@@ -51,7 +51,8 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Merchant.LtcWallet.enable || string.IsNullOrWhiteSpace(email))
                 return Content(string.Empty);
 
-            string pathEmail = $"merchant/invoice/litecoin/{CrypTo.md5(email.ToLower().Trim())}.email";
+            email = decodeEmail(email);
+            string pathEmail = $"merchant/invoice/litecoin/{CrypTo.md5(email)}.email";
             double buyprice = await LtcKurs();
 
             if (IO.Exists(pathEmail))
@@ -76,7 +77,7 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     IO.WriteAllText(pathEmail, payinAddress);
-                    IO.WriteAllText($"merchant/invoice/litecoin/{payinAddress}.ltc", email.ToLower().Trim());
+                    IO.WriteAllText($"merchant/invoice/litecoin/{payinAddress}.ltc", email);
                 }
 
                 return Json(new

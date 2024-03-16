@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
                 ["shop_id"] = AppInit.conf.Merchant.CryptoCloud.SHOPID,
                 //["currency"] = "USD",
                 //["order_id"] = CrypTo.md5(DateTime.Now.ToBinary().ToString()),
-                ["email"] = email.ToLower().Trim()
+                ["email"] = decodeEmail(email)
             };
 
             var root = await HttpClient.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));

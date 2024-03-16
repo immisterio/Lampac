@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(email))
                 return Content(string.Empty);
 
-            email = email.ToLower().Trim();
+            email = decodeEmail(email);
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
             IO.WriteAllText($"merchant/invoice/streampay/{transid}", email);
 
@@ -97,11 +97,11 @@ namespace Lampac.Controllers.LITE
 
             for (int i = 0; i < 2; i++)
             {
-                var tm = now.ToString("yyyyMMdd:HHmm");
+                string tm = now.ToString("yyyyMMdd:HHmm");
                 var bufToSign = paramsBuf.Concat(Encoding.UTF8.GetBytes(tm)).ToArray();
 
                 bool verify = Verify(Request.Headers["Signature"], bufToSign, AppInit.conf.Merchant.Streampay.public_key);
-                log += $"\nverify: {verify} | {now:yyyyMMdd:HHmm} | signature: {Request.Headers["Signature"]}";
+                log += $"\nverify: {verify} | {tm} | signature: {Request.Headers["Signature"]}";
 
                 if (verify)
                 {

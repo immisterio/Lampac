@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
                 ["order_number"] = CrypTo.md5(DateTime.Now.ToBinary().ToString()),
                 ["type_payment"] = "merchant",
                 ["usr"] = "new",
-                ["custom_field"] = email.ToLower().Trim(),
+                ["custom_field"] = decodeEmail(email),
                 ["callback_url"] = CrypTo.Base64($"{AppInit.Host(HttpContext)}/b2pay/callback"),
                 ["success_url"] = CrypTo.Base64($"{AppInit.Host(HttpContext)}/buy/success.html"),
                 ["error_url"] = CrypTo.Base64($"{AppInit.Host(HttpContext)}/buy/error.html")

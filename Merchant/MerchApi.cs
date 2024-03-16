@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
+using Merchant;
 
 namespace Lampac.Controllers.LITE
 {
-    public class MerchApi : BaseController
+    public class MerchApi : MerchantController
     {
         [HttpGet]
         [Route("merchant/user")]
         public ActionResult Index(string account_email)
         {
-            return Json(AppInit.conf.accsdb.accounts[account_email.ToLower().Trim()]);
+            return Json(AppInit.conf.accsdb.accounts[decodeEmail(account_email)]);
         }
     }
 }

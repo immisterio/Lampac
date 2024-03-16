@@ -25,7 +25,7 @@ namespace Lampac.Controllers.LITE
 
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
 
-            IO.WriteAllText($"merchant/invoice/freekassa/{transid}", email.ToLower().Trim());
+            IO.WriteAllText($"merchant/invoice/freekassa/{transid}", decodeEmail(email));
 
             string hash = CrypTo.md5($"{AppInit.conf.Merchant.FreeKassa.shop_id}:{AppInit.conf.Merchant.accessCost}:{AppInit.conf.Merchant.FreeKassa.secret}:USD:{transid}");
             return Redirect("https://pay.freekassa.ru/" + $"?m={AppInit.conf.Merchant.FreeKassa.shop_id}&oa={AppInit.conf.Merchant.accessCost}&o={transid}&s={hash}&currency=USD");
