@@ -85,8 +85,8 @@ namespace Lampac.Controllers.LITE
         [Route("streampay/callback")]
         public ActionResult Callback()
         {
-            if (!AppInit.conf.Merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{Request.Query["external_id"]}"))
-                return StatusCode(403);
+            if (!AppInit.conf.Merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{Request.Query["external_id"]}") || Request.Query["status"] != "success")
+                return Ok();
 
             var now = DateTime.UtcNow;
             var queryParams = Request.Query.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}").ToList();
