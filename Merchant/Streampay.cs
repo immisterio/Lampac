@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
             {
                 init.store_id,
                 external_id = transid,
-                description = "Донат автору на развитие проекта",
+                description = $"Подписка на {AppInit.conf.Merchant.accessForMonths} {EndOfText("месяц", "месяца", "месяцев", AppInit.conf.Merchant.accessForMonths)}",
                 system_currency = "USDT",
                 payment_type = 2,
                 amount = AppInit.conf.Merchant.accessCost
@@ -93,24 +93,29 @@ namespace Lampac.Controllers.LITE
             string paramsStr = string.Join('&', queryParams);
             byte[] paramsBuf = Encoding.UTF8.GetBytes(paramsStr);
 
-            IO.AppendAllText("merchant/log/streampay.txt", paramsStr + "\n\n\n");
+            string log = $"{paramsStr}\n{JsonSerializer.Serialize(Request.Headers)}";
 
             for (int i = 0; i < 2; i++)
             {
                 var tm = now.ToString("yyyyMMdd:HHmm");
                 var bufToSign = paramsBuf.Concat(Encoding.UTF8.GetBytes(tm)).ToArray();
 
-                if (Verify(Request.Headers["signature"], bufToSign, AppInit.conf.Merchant.Streampay.public_key))
+                bool verify = Verify(Request.Headers["Signature"], bufToSign, AppInit.conf.Merchant.Streampay.public_key);
+                log += $"\nverify: {verify} | {now:yyyyMMdd:HHmm} | signature: {Request.Headers["Signature"]}";
+
+                if (verify)
                 {
                     string email = IO.ReadAllText($"merchant/invoice/streampay/{Request.Query["external_id"]}");
                     PayConfirm(email, "streampay", Request.Query["external_id"]);
 
+                    WriteLog("streampay", log + "\nOK");
                     return Ok();
                 }
 
                 now = now.AddMinutes(-1);
             }
 
+            WriteLog("streampay", log + "\nForbid");
             return Forbid();
         }
 
@@ -130,7 +135,11 @@ namespace Lampac.Controllers.LITE
 
         static bool Verify(string signature, byte[] message, string publicKey)
         {
-            return Ed25519.Verify(Encoding.UTF8.GetBytes(signature), message, HexToBytes(publicKey));
+            try
+            {
+                return Ed25519.Verify(HexToBytes(signature), message, HexToBytes(publicKey));
+            }
+            catch { return false; }
         }
 
         static byte[] HexToBytes(string key)
@@ -139,16 +148,35 @@ namespace Lampac.Controllers.LITE
                 return null;
 
             int byteCount = key.Length / 2;
-            byte[] privateKey = new byte[byteCount];
+            byte[] hexKey = new byte[byteCount];
 
             for (int i = 0; i < byteCount; i++)
             {
                 string byteString = key.Substring(i * 2, 2);
                 byte keyValue = Convert.ToByte(byteString, 16);
-                privateKey[i] = keyValue;
+                hexKey[i] = keyValue;
             }
 
-            return privateKey;
+            return hexKey;
+        }
+
+        static string EndOfText(string s1, string s2, string s3, int x)
+        {
+            int n = x % 100;
+            if ((n > 10) && (n < 20))
+                return s3;
+
+            switch (x % 10)
+            {
+                case 4: return s2;
+                case 0:
+                case 5:
+                case 6:
+                case 7:
+                case 8:
+                case 9: return s3;
+                default: return s1;
+            }
         }
     }
 }

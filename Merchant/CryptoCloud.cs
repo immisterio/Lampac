@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Shared.Model.Online;
 using Merchant;
 using IO = System.IO.File;
+using System.IO;
 
 namespace Lampac.Controllers.LITE
 {
@@ -15,6 +16,9 @@ namespace Lampac.Controllers.LITE
     /// </summary>
     public class CryptoCloud : MerchantController
     {
+        static CryptoCloud() { Directory.CreateDirectory("merchant/invoice/cryptocloud"); }
+
+
         [HttpGet]
         [Route("cryptocloud/invoice/create")]
         async public Task<ActionResult> Index(string email)
@@ -52,7 +56,7 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Merchant.CryptoCloud.enable || !IO.Exists($"merchant/invoice/cryptocloud/{invoice_id}"))
                 return StatusCode(403);
 
-            IO.AppendAllText("merchant/log/cryptocloud.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
+            WriteLog("cryptocloud", JsonConvert.SerializeObject(HttpContext.Request.Form));
 
             var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || root.Value<string>("status") != "success" || root.Value<string>("status_invoice") != "paid")

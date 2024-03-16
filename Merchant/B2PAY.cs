@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using System.Text;
 using Merchant;
 using IO = System.IO.File;
+using System.IO;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,6 +18,9 @@ namespace Lampac.Controllers.LITE
     /// </summary>
     public class B2PAY : MerchantController
     {
+        static B2PAY() { Directory.CreateDirectory("merchant/invoice/b2pay"); }
+
+
         [HttpGet]
         [Route("b2pay/new")]
         async public Task<ActionResult> Index(string email)
@@ -67,7 +71,7 @@ namespace Lampac.Controllers.LITE
             await HttpContext.Request.Body.ReadAsync(buffer, 0, buffer.Length);
 
             var requestContent = Encoding.UTF8.GetString(buffer);
-            IO.AppendAllText("merchant/log/b2pay.txt", requestContent + "\n\n\n");
+            WriteLog("b2pay", requestContent);
 
             JObject result = JsonConvert.DeserializeObject<JObject>(requestContent);
             string signature = CrypTo.Base64(CrypTo.md5binary($"{result.Value<string>("amount")}:{result.Value<string>("currency")}:{result.Value<string>("gatewayAmount")}:{result.Value<string>("gatewayCurrency")}:{result.Value<string>("gatewayRate")}:{result.Value<string>("orderNumber")}:{result.Value<string>("pay_id")}:{result.Value<string>("sanitizedMask")}:{result.Value<string>("status")}:{result.Value<string>("token")}:pay:{AppInit.conf.Merchant.B2PAY.encryption_password}"));

@@ -11,6 +11,7 @@ using System.Threading;
 using Shared.Model.Online;
 using Merchant;
 using IO = System.IO.File;
+using System.IO;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,6 +20,7 @@ namespace Lampac.Controllers.LITE
         #region Litecoin
         static Litecoin()
         {
+            Directory.CreateDirectory("merchant/invoice/litecoin");
             ThreadPool.QueueUserWorkItem(async _ => await ChekTransactions());
         }
         #endregion

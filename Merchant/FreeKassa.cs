@@ -4,6 +4,7 @@ using System;
 using Newtonsoft.Json;
 using Merchant;
 using IO = System.IO.File;
+using System.IO;
 
 namespace Lampac.Controllers.LITE
 {
@@ -12,6 +13,9 @@ namespace Lampac.Controllers.LITE
     /// </summary>
     public class FreeKassa : MerchantController
     {
+        static FreeKassa() { Directory.CreateDirectory("merchant/invoice/freekassa"); }
+
+
         [HttpGet]
         [Route("freekassa/new")]
         public ActionResult Index(string email)
@@ -35,7 +39,7 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Merchant.FreeKassa.enable || !IO.Exists($"merchant/invoice/freekassa/{MERCHANT_ORDER_ID}"))
                 return StatusCode(403);
 
-            IO.AppendAllText("merchant/log/freekassa.txt", JsonConvert.SerializeObject(HttpContext.Request.Form) + "\n\n\n");
+            WriteLog("freekassa", JsonConvert.SerializeObject(HttpContext.Request.Form));
 
             if (CrypTo.md5($"{AppInit.conf.Merchant.FreeKassa.shop_id}:{AMOUNT}:{AppInit.conf.Merchant.FreeKassa.secret}:{MERCHANT_ORDER_ID}") == SIGN)
             {

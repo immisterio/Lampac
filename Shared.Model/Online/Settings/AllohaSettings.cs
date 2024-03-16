@@ -4,14 +4,14 @@ namespace Lampac.Models.LITE
 {
     public class AllohaSettings : BaseSettings
     {
-        public AllohaSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool oiha)
+        public AllohaSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool m4s)
         {
             this.apihost = apihost;
             this.linkhost = linkhost;
             this.token = token;
             this.secret_token = secret_token;
             this.localip = localip;
-            this.oiha = oiha;
+            this.m4s = m4s;
         }
 
 
@@ -23,6 +23,6 @@ namespace Lampac.Models.LITE
 
         public bool localip { get; set; }
 
-        public bool oiha { get; set; }
+        public bool m4s { get; set; }
     }
 }

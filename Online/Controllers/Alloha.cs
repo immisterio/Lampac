@@ -157,7 +157,7 @@ namespace Lampac.Controllers.LITE
 
                     void setvideo() {
                         string oiha = h264.Replace("/oihs/", "/oiha/"); // как бы мы жили без костелей
-                        _cache.m3u8 = init.oiha && playlist_file.Contains(oiha) ? oiha : h264;
+                        _cache.m3u8 = init.m4s && playlist_file.Contains(oiha) ? oiha : h264;
                     }
 
                     if (string.IsNullOrEmpty(h264))
