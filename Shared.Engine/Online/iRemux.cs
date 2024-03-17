@@ -56,7 +56,7 @@ namespace Shared.Engine.Online
                             result.similars.Add(new Similar()
                             {
                                 title = name,
-                                year = g[2].Value,
+                                year = year.ToString(),
                                 href = g[1].Value
                             });
                         }
@@ -95,23 +95,25 @@ namespace Shared.Engine.Online
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region similar
-            if (result.similars != null && result.similars.Count > 0)
+            if (result.content == null)
             {
-                var stpl = new SimilarTpl(result.similars.Count);
-
-                foreach (var similar in result.similars)
+                if (result.similars != null && result.similars.Count > 0)
                 {
-                    string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+                    var stpl = new SimilarTpl(result.similars.Count);
 
-                    stpl.Append(similar.title, similar.year, string.Empty, link);
+                    foreach (var similar in result.similars)
+                    {
+                        string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+
+                        stpl.Append(similar.title, similar.year, string.Empty, link);
+                    }
+
+                    return stpl.ToHtml();
                 }
 
-                return stpl.ToHtml();
+                return string.Empty;
             }
             #endregion
-
-            if (result.content == null)
-                return string.Empty;
 
             var mtpl = new MovieTpl(title, original_title, 4);
 
