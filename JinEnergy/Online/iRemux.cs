@@ -38,7 +38,7 @@ namespace JinEnergy.Online
             if (content == null)
                 return EmptyError("content");
 
-            return oninvk.Html(content, arg.title, arg.original_title);
+            return oninvk.Html(content, arg.title, arg.original_title, arg.year);
         }
 
 

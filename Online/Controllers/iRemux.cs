@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(content, title, original_title), "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, title, original_title, year), "text/html; charset=utf-8");
         }
 
 

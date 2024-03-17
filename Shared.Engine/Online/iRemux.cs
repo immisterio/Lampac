@@ -86,7 +86,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? title, string? original_title)
+        public string Html(EmbedModel? result, string? title, string? original_title, int year)
         {
             if (result == null)
                 return string.Empty;
@@ -101,7 +101,7 @@ namespace Shared.Engine.Online
 
                 foreach (var similar in result.similars)
                 {
-                    string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}";
+                    string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
                     stpl.Append(similar.title, similar.year, string.Empty, link);
                 }
