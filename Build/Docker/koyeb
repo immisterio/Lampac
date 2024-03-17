@@ -12,7 +12,7 @@ RUN echo '{"listenport":8000,"listenscheme":"https","KnownProxies": [{"ip":"0.0.
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"initspace":"TorrServer.ModInit","dll":"TorrServer.dll"}]' > /home/module/manifest.json
 
-RUN echo '{"rdb": false}' > /home/module/TorrServer.conf
+RUN echo '{"CacheSize":33554432,"ReaderReadAHead":86,"PreloadCache":31,"UseDisk":false,"TorrentsSavePath":"","RemoveCacheOnDrop":false,"ForceEncrypt":false,"RetrackersMode":0,"TorrentDisconnectTimeout":20,"EnableDebug":false,"EnableDLNA":false,"FriendlyName":"","EnableRutorSearch":false,"EnableIPv6":false,"DisableTCP":false,"DisableUTP":false,"DisableUPNP":true,"DisableDHT":true,"DisablePEX":false,"DisableUpload":true,"DownloadRateLimit":0,"UploadRateLimit":0,"ConnectionsLimit":5,"PeersListenPort":0,"SslPort":0,"SslCert":"","SslKey":""}' > /home/torrserver/settings.json
 
 RUN echo '{"runtimeOptions":{"tfm":"net6.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"6.0.0"},{"name":"Microsoft.AspNetCore.App","version":"6.0.0"}],"configProperties":{"System.GC.HeapHardLimit": 120000000,"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > /home/Lampac.runtimeconfig.json
 
