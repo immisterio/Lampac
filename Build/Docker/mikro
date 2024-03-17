@@ -3,12 +3,12 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0
 EXPOSE 80
 WORKDIR /home
 
-RUN apt update && apt install -y wget unzip nano htop && \
+RUN apt update && apt install -y wget unzip && \
 	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
-	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant torrserver widgets wwwroot && \
+	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant torrserver && \
 	touch isdocker
 
-RUN echo '{"listenport":80,"mikrotik":true,"pirate_store":false,"LampaWeb":{"autoupdate":false},"serverproxy":{"verifyip":false},"dlna":{"enable":false},"online":{"findkp":"vsdn","checkOnlineSearch":false}}' > /home/init.conf
+RUN echo '{"listenport":80,"mikrotik":true,"typecache":"mem","serverproxy":{"verifyip":false},"dlna":{"enable":false}}' > /home/init.conf
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"}]' > /home/module/manifest.json
 
