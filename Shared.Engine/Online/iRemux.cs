@@ -1,4 +1,5 @@
 ﻿using Lampac.Engine.CORE;
+using Shared.Model.Online.iRemux;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -27,41 +28,48 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<string?> Embed(string? title, string? original_title, int year)
+        async public ValueTask<EmbedModel?> Embed(string? title, string? original_title, int year, string? link)
         {
-            string? search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
-            if (search == null)
-                return null;
-
-            string? link = null, reservedlink = null;
-            foreach (string row in search.Split("class=\"entry\"").Skip(1))
-            {
-                var g = Regex.Match(row, "class=\"entry__title [^\"]+\"><a href=\"(https?://[^\"]+)\">([^<]+)</a>").Groups;
-
-                string name = g[2].Value.ToLower();
-                if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
-                    continue;
-
-                if (name.Contains(title.ToLower()) || (!string.IsNullOrEmpty(original_title) && name.Contains(original_title.ToLower())))
-                {
-                    reservedlink = g[1].Value;
-                    if (string.IsNullOrEmpty(reservedlink))
-                        continue;
-
-                    if (name.Contains($"({year}/"))
-                    {
-                        link = reservedlink;
-                        break;
-                    }
-                }
-            }
+            var result = new EmbedModel();
 
             if (string.IsNullOrEmpty(link))
             {
-                if (string.IsNullOrEmpty(reservedlink))
+                string? search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
+                if (search == null)
                     return null;
 
-                link = reservedlink;
+                foreach (string row in search.Split("class=\"entry\"").Skip(1))
+                {
+                    var g = Regex.Match(row, "class=\"entry__title [^\"]+\"><a href=\"(https?://[^\"]+)\">([^<]+)</a>").Groups;
+
+                    string name = g[2].Value.ToLower();
+                    if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
+                        continue;
+
+                    if ((!string.IsNullOrEmpty(title) && name.Contains(title.ToLower())) || (!string.IsNullOrEmpty(original_title) && name.Contains(original_title.ToLower())))
+                    {
+                        if (string.IsNullOrEmpty(g[1].Value))
+                            continue;
+
+                        if (name.Contains($"({year}/"))
+                        {
+                            result.similars.Add(new Similar()
+                            {
+                                title = name,
+                                year = g[2].Value,
+                                href = g[1].Value
+                            });
+                        }
+                    }
+                }
+
+                if (result.similars.Count == 0)
+                    return null;
+
+                if (result.similars.Count > 1)
+                    return result;
+
+                link = result.similars[0].href;
             }
 
             string? news = await onget(link);
@@ -72,19 +80,42 @@ namespace Shared.Engine.Online
             if (!content.Contains("cloud.mail.ru/public/"))
                 return null;
 
-            return content.Replace("<!--colorend--></span><!--/colorend-->", "");
+            result.content = content.Replace("<!--colorend--></span><!--/colorend-->", "");
+            return result;
         }
         #endregion
 
         #region Html
-        public string Html(string? content, string? title, string? original_title)
+        public string Html(EmbedModel? result, string? title, string? original_title)
         {
-            if (content == null)
+            if (result == null)
+                return string.Empty;
+
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            #region similar
+            if (result.similars != null && result.similars.Count > 0)
+            {
+                var stpl = new SimilarTpl(result.similars.Count);
+
+                foreach (var similar in result.similars)
+                {
+                    string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}";
+
+                    stpl.Append(similar.title, similar.year, string.Empty, link);
+                }
+
+                return stpl.ToHtml();
+            }
+            #endregion
+
+            if (result.content == null)
                 return string.Empty;
 
             var mtpl = new MovieTpl(title, original_title, 4);
 
-            foreach (Match m in Regex.Matches(content, $">([^<]+)(<[^>]+>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\""))
+            foreach (Match m in Regex.Matches(result.content, $">([^<]+)(<[^>]+>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\""))
             {
                 string linkid = m.Groups[3].Value;
                 if (string.IsNullOrEmpty(linkid))
@@ -95,7 +126,7 @@ namespace Shared.Engine.Online
                     string _qs = q == "480p" ? "1400" : q;
                     if (m.Groups[1].Value.Contains(_qs))
                     {
-                        mtpl.Append(q, host + $"lite/remux/movie?linkid={linkid}&quality={q}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}", "call");
+                        mtpl.Append(q, host + $"lite/remux/movie?linkid={linkid}&quality={q}&title={enc_title}&original_title={enc_original_title}", "call");
                         break;
                     }
                 }

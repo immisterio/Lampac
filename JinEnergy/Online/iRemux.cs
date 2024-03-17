@@ -27,14 +27,15 @@ namespace JinEnergy.Online
             var init = AppInit.iRemux.Clone();
 
             var arg = defaultArgs(args);
+            string? href = parse_arg("href", args);
 
             if (string.IsNullOrWhiteSpace(arg.title ?? arg.original_title) || arg.year == 0)
                 return EmptyError("title");
 
             var oninvk = remuxInvoke(args, init);
 
-            string? content = await InvokeCache(arg.id, $"remux:{arg.title}:{arg.original_title}:{arg.year}", () => oninvk.Embed(arg.title, arg.original_title, arg.year));
-            if (string.IsNullOrEmpty(content))
+            var content = await InvokeCache(arg.id, $"remux:{arg.title}:{arg.original_title}:{arg.year}:{href}", () => oninvk.Embed(arg.title, arg.original_title, arg.year, href));
+            if (content == null)
                 return EmptyError("content");
 
             return oninvk.Html(content, arg.title, arg.original_title);

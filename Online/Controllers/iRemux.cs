@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/remux")]
-        async public Task<ActionResult> Index(string title, string original_title, int year)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string href)
         {
             var init = AppInit.conf.iRemux;
 
@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRemuxInvoke();
 
-            string content = await InvokeCache($"remux:{title}:{original_title}:{year}", cacheTime(180), () => oninvk.Embed(title, original_title, year), proxyManager);
+            var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", cacheTime(180), () => oninvk.Embed(title, original_title, year, href), proxyManager);
             if (content == null)
                 return OnError(proxyManager);
 
