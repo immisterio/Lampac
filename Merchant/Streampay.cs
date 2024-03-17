@@ -30,10 +30,19 @@ namespace Lampac.Controllers.LITE
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
             IO.WriteAllText($"merchant/invoice/streampay/{transid}", email);
 
+            int userid = 0;
+
+            foreach (var u in AppInit.conf.accsdb.accounts)
+            {
+                userid++;
+                if (u.Key == email)
+                    break;
+            }
+
             var body = new
             {
                 init.store_id,
-                external_id = transid,
+                external_id = $"{transid}_{userid}",
                 description = $"Подписка на {AppInit.conf.Merchant.accessForMonths} {EndOfText("месяц", "месяца", "месяцев", AppInit.conf.Merchant.accessForMonths)}",
                 system_currency = "USDT",
                 payment_type = 2,
@@ -85,7 +94,9 @@ namespace Lampac.Controllers.LITE
         [Route("streampay/callback")]
         public ActionResult Callback()
         {
-            if (!AppInit.conf.Merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{Request.Query["external_id"]}") || Request.Query["status"] != "success")
+            string external_id = Request.Query["external_id"].ToString().Split("_")[0];
+
+            if (!AppInit.conf.Merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{external_id}") || Request.Query["status"] != "success")
                 return Ok();
 
             var now = DateTime.UtcNow;
@@ -105,8 +116,8 @@ namespace Lampac.Controllers.LITE
 
                 if (verify)
                 {
-                    string email = IO.ReadAllText($"merchant/invoice/streampay/{Request.Query["external_id"]}");
-                    PayConfirm(email, "streampay", Request.Query["external_id"]);
+                    string email = IO.ReadAllText($"merchant/invoice/streampay/{external_id}");
+                    PayConfirm(email, "streampay", external_id);
 
                     WriteLog("streampay", log + "\nOK");
                     return Ok();
