@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Chaos.NaCl;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Globalization;
 
 namespace Lampac.Controllers.LITE
 {
@@ -96,7 +97,8 @@ namespace Lampac.Controllers.LITE
         {
             string external_id = Request.Query["external_id"].ToString().Split("_")[0];
 
-            if (!AppInit.conf.Merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{external_id}") || Request.Query["status"] != "success")
+            var merchant = AppInit.conf.Merchant;
+            if (!merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{external_id}") || Request.Query["status"] != "success")
                 return Ok();
 
             var now = DateTime.UtcNow;
@@ -111,13 +113,23 @@ namespace Lampac.Controllers.LITE
                 string tm = now.ToString("yyyyMMdd:HHmm");
                 var bufToSign = paramsBuf.Concat(Encoding.UTF8.GetBytes(tm)).ToArray();
 
-                bool verify = Verify(Request.Headers["Signature"], bufToSign, AppInit.conf.Merchant.Streampay.public_key);
+                bool verify = Verify(Request.Headers["Signature"], bufToSign, merchant.Streampay.public_key);
                 log += $"\nverify: {verify} | {tm} | signature: {Request.Headers["Signature"]}";
 
                 if (verify)
                 {
                     string email = IO.ReadAllText($"merchant/invoice/streampay/{external_id}");
-                    PayConfirm(email, "streampay", external_id);
+                    double.TryParse(Request.Query["amount"], NumberStyles.Float, CultureInfo.InvariantCulture, out double amount);
+
+                    if (amount > 0 && (merchant.accessCost > (amount + merchant.allowedDifference) || merchant.accessCost < (amount - merchant.allowedDifference)))
+                    {
+                        double cost = (double)merchant.accessCost / (double)(merchant.accessForMonths * 30);
+                        PayConfirm(email, "streampay", external_id, days: (int)(amount / cost));
+                    }
+                    else
+                    {
+                        PayConfirm(email, "streampay", external_id);
+                    }
 
                     WriteLog("streampay", log + "\nOK");
                     return Ok();

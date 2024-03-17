@@ -137,7 +137,7 @@ namespace Lampac
 
             Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
             {
-                DefaultValueHandling = DefaultValueHandling.Ignore,
+                //DefaultValueHandling = DefaultValueHandling.Ignore,
                 NullValueHandling = NullValueHandling.Ignore
             }));
 

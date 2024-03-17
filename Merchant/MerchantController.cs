@@ -11,7 +11,7 @@ namespace Merchant
 
         static string _users = null;
 
-        public static void PayConfirm(string email, string merch, string order)
+        public static void PayConfirm(string email, string merch, string order, int days = 0)
         {
             var lastWriteTimeUsers = System.IO.File.GetLastWriteTime("merchant/users.txt");
 
@@ -25,15 +25,33 @@ namespace Merchant
 
             if (!users.Contains($",{merch},{order}"))
             {
-                if (AppInit.conf.accsdb.accounts.TryGetValue(email, out DateTime ex))
+                DateTime ex = default;
+
+                if (days > 0)
                 {
-                    ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                    AppInit.conf.accsdb.accounts[email] = ex;
+                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out ex))
+                    {
+                        ex = ex > DateTime.UtcNow ? ex.AddDays(days) : DateTime.UtcNow.AddDays(days);
+                        AppInit.conf.accsdb.accounts[email] = ex;
+                    }
+                    else
+                    {
+                        ex = DateTime.UtcNow.AddDays(days);
+                        AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                    }
                 }
                 else
                 {
-                    ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                    AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out ex))
+                    {
+                        ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                        AppInit.conf.accsdb.accounts[email] = ex;
+                    }
+                    else
+                    {
+                        ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
+                        AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                    }
                 }
 
                 System.IO.File.AppendAllText("merchant/users.txt", $"{email.ToLower()},{ex.ToFileTimeUtc()},{merch},{order}\n");

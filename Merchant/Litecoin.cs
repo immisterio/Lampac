@@ -125,20 +125,7 @@ namespace Lampac.Controllers.LITE
                             IO.WriteAllText($"merchant/invoice/litecoin/{trans.txid}.txid", $"{email}\n{trans.address}");
 
                             double cost = (double)AppInit.conf.Merchant.accessCost / (double)(AppInit.conf.Merchant.accessForMonths * 30);
-                            int addday = (int)((trans.amount * kurs) / cost);
-
-                            if (AppInit.conf.accsdb.accounts.TryGetValue(email, out DateTime ex))
-                            {
-                                ex = ex > DateTime.UtcNow ? ex.AddDays(addday) : DateTime.UtcNow.AddDays(addday);
-                                AppInit.conf.accsdb.accounts[email] = ex;
-                            }
-                            else
-                            {
-                                ex = DateTime.UtcNow.AddDays(addday);
-                                AppInit.conf.accsdb.accounts.TryAdd(email, ex);
-                            }
-
-                            IO.AppendAllText("merchant/users.txt", $"{email},{ex.ToFileTimeUtc()},litecoin,{trans.address} - {trans.txid}\n");
+                            PayConfirm(email, "litecoin", $"{trans.address} - {trans.txid}", days: (int)((trans.amount * kurs) / cost));
                         }
                         catch { }
                     }
