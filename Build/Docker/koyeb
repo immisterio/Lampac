@@ -8,9 +8,7 @@ RUN apt update && apt install -y wget unzip && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant && \
 	touch isdocker
 
-RUN apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
-
-RUN echo '{"listenport":8000,"listenscheme":"https","KnownProxies": [{"ip":"0.0.0.0","prefixLength":0}],"typecache":"file","mikrotik":true,"serverproxy":{"verifyip":false},"dlna":{"enable":false},"puppeteer":{"enable":true},"Rezka":{"host":"https://hdrezka.me","corseu":true,"xrealip":true,"uacdn":"https://prx-ams.ukrtelcdn.net","hls":false},"Voidboost":{"corseu":true,"xrealip":true,"streamproxy":false},"iRemux":{"streamproxy":false,"geostreamproxy":["UA"],"apn": "http://apn.cfhttp.top"}},"VCDN":{"enable":false},"Zetflix":{"enable":true},"Kinobase":{"enable":false},"Ashdi":{"enable":false},"Eneyida":{"enable":false},"Kinoukr":{"enable":false},"AnilibriaOnline":{"enable":false},"AnimeGo":{"enable":false},"Ebalovo":{"enable":false},"Xvideos":{"enable":false},"Tizam":{"enable":false},"Chaturbate":{"enable":false}' > /home/init.conf
+RUN echo '{"listenport":8000,"listenscheme":"https","KnownProxies": [{"ip":"0.0.0.0","prefixLength":0}],"typecache":"file","mikrotik":true,"serverproxy":{"verifyip":false},"dlna":{"enable":false},"puppeteer":{"enable":false},"Rezka":{"host":"https://hdrezka.me","corseu":true,"xrealip":true,"uacdn":"https://prx-ams.ukrtelcdn.net","hls":false},"Voidboost":{"corseu":true,"xrealip":true,"streamproxy":false},"iRemux":{"streamproxy":false,"geostreamproxy":["UA"],"apn": "http://apn.cfhttp.top"},"VCDN":{"enable":false},"Zetflix":{"enable":false},"Kinobase":{"enable":false},"Ashdi":{"enable":true},"Eneyida":{"enable":false},"Kinoukr":{"enable":false},"AnilibriaOnline":{"enable":false},"AnimeGo":{"enable":false},"Ebalovo":{"enable":false},"Xvideos":{"enable":false},"Tizam":{"enable":false},"Chaturbate":{"enable":false}}' > /home/init.conf
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"initspace":"Jackett.ModInit","dll":"JacRed.dll"},{"enable":true,"initspace":"TorrServer.ModInit","dll":"TorrServer.dll"}]' > /home/module/manifest.json
 
