@@ -22,27 +22,30 @@ namespace Lampac.Engine.Middlewares
 
         public async Task InvokeAsync(HttpContext httpContext)
         {
-            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.initspace == "ModEvents") is RootModule mod)
+            if (AppInit.modules != null)
             {
-                try
+                foreach (RootModule mod in AppInit.modules.Where(i => i.middlewares != null))
                 {
-                    if (mod.assembly.GetType("ModEvents.Middlewares") is Type t)
+                    try
                     {
-                        if (t.GetMethod("Invoke") is MethodInfo m2)
+                        if (mod.assembly.GetType(mod.middlewares) is Type t)
                         {
-                            bool next = (bool)m2.Invoke(null, new object[] { httpContext, memoryCache });
-                            if (!next)
-                                return;
-                        }
-                        else if (t.GetMethod("InvokeAsync") is MethodInfo m)
-                        {
-                            bool next = await (Task<bool>)m.Invoke(null, new object[] { httpContext, memoryCache });
-                            if (!next)
-                                return;
+                            if (t.GetMethod("Invoke") is MethodInfo m2)
+                            {
+                                bool next = (bool)m2.Invoke(null, new object[] { httpContext, memoryCache });
+                                if (!next)
+                                    return;
+                            }
+                            else if (t.GetMethod("InvokeAsync") is MethodInfo m)
+                            {
+                                bool next = await (Task<bool>)m.Invoke(null, new object[] { httpContext, memoryCache });
+                                if (!next)
+                                    return;
+                            }
                         }
                     }
+                    catch { }
                 }
-                catch { }
             }
 
             await _next(httpContext);

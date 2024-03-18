@@ -245,21 +245,18 @@ namespace Lampac.Controllers
 
             if (AppInit.modules != null)
             {
-                foreach (var item in AppInit.modules)
+                foreach (var item in AppInit.modules.Where(i => i.online != null))
                 {
-                    if (item.online.enable)
+                    try
                     {
-                        try
+                        if (item.assembly.GetType(item.online) is Type t && t.GetMethod("Events") is MethodInfo m)
                         {
-                            if (item.assembly.GetType(item.online.@namespace) is Type t && t.GetMethod("Events") is MethodInfo m)
-                            {
-                                string result = (string)m.Invoke(null, new object[] { host, account_email, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial });
-                                if (!string.IsNullOrWhiteSpace(result))
-                                    online += result;
-                            }
+                            string result = (string)m.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
+                            if (!string.IsNullOrWhiteSpace(result))
+                                online += result;
                         }
-                        catch { }
                     }
+                    catch { }
                 }
             }
 
@@ -362,12 +359,12 @@ namespace Lampac.Controllers
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
-                    var match = Regex.Match(online, "\\{\"name\":\"([^\"]+)\",\"url\":\"(\\{localhost\\}|https?://[^/]+/lite)/([^\"]+)\"\\},");
+                    var match = Regex.Match(online, "\\{\"name\":\"([^\"]+)\",\"url\":\"(\\{localhost\\}|https?://[^/]+)/([^\"]+)\"\\},");
                     while (match.Success)
                     {
                         string _name = match.Groups[1].Value;
                         string _serv = match.Groups[2].Value;
-                        string _plugin = match.Groups[3].Value;
+                        string _plugin = Regex.Replace(match.Groups[3].Value, "^/lite/", "");
 
                         if (!string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_plugin))
                             tasks.Add(checkSearch(links, tasks, tasks.Count, _name, _plugin, _serv, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
