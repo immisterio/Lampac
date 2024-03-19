@@ -284,7 +284,7 @@ namespace Lampac.Controllers
                 send("AniMedia", conf.AniMedia);
             }
 
-            if ((serial == -1 || serial == 0) && kinopoisk_id > 0)
+            if (!isanime && kinopoisk_id > 0)
                 send("VoKino", conf.VoKino);
 
             send("Filmix", conf.Filmix, arg_url: (source == "filmix" ? $"?postid={id}" : ""));

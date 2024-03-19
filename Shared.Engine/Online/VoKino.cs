@@ -1,6 +1,8 @@
 ﻿using Shared.Model.Online.VoKino;
 using Shared.Model.Templates;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Engine.Online
 {
@@ -47,28 +49,58 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Сhannel>? channels, string? title, string? original_title)
+        public string Html(List<Сhannel>? channels, long kinopoisk_id, string? title, string? original_title, int s)
         {
             if (channels == null || channels.Count == 0)
                 return string.Empty;
 
-            var mtpl = new MovieTpl(title, original_title, channels.Count);
-
-            foreach (var ch in channels)
+            if (channels.First().playlist_url == "submenu")
             {
-                string name = ch.quality_full;
-                if (!string.IsNullOrWhiteSpace(name.Replace("2160p.", "")))
+                if (s == -1)
                 {
-                    name = name.Replace("2160p.", "4K ");
+                    var tpl = new SeasonTpl();
 
-                    if (ch.extra != null && ch.extra.TryGetValue("size", out string? size) && !string.IsNullOrEmpty(size))
-                        name += $" - {size}";
+                    foreach (var ch in channels)
+                    {
+                        string sname = Regex.Match(ch.title, "^([0-9]+)").Groups[1].Value;
+                        tpl.Append(ch.title, host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={sname}");
+                    }
+
+                    return tpl.ToHtml();
+                }
+                else
+                {
+                    var tpl = new EpisodeTpl();
+
+                    foreach (var e in channels.First(i => i.title.StartsWith($"{s} ")).submenu)
+                    {
+                        string ename = Regex.Match(e.title, "^([0-9]+)").Groups[1].Value;
+                        tpl.Append(e.title, $"{title ?? original_title} ({e.title})", s.ToString(), ename, onstreamfile(e.stream_url));
+                    }
+
+                    return tpl.ToHtml();
+                }
+            }
+            else
+            {
+                var mtpl = new MovieTpl(title, original_title, channels.Count);
+
+                foreach (var ch in channels)
+                {
+                    string name = ch.quality_full;
+                    if (!string.IsNullOrWhiteSpace(name.Replace("2160p.", "")))
+                    {
+                        name = name.Replace("2160p.", "4K ");
+
+                        if (ch.extra != null && ch.extra.TryGetValue("size", out string? size) && !string.IsNullOrEmpty(size))
+                            name += $" - {size}";
+                    }
+
+                    mtpl.Append(name, onstreamfile(ch.stream_url));
                 }
 
-                mtpl.Append(name, onstreamfile(ch.stream_url));
+                return mtpl.ToHtml();
             }
-
-            return mtpl.ToHtml();
         }
         #endregion
     }

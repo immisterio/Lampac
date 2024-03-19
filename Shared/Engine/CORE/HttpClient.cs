@@ -23,6 +23,7 @@ namespace Lampac.Engine.CORE
         {
             var handler = new HttpClientHandler()
             {
+                AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
 

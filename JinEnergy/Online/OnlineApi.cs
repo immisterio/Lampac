@@ -156,7 +156,7 @@ namespace JinEnergy.Online
 
             send("Rezka - 4K", "rezka", AppInit.Rezka);
 
-            if (serial == 0 && !isanime && arg.kinopoisk_id > 0)
+            if (!isanime && arg.kinopoisk_id > 0)
                 send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);

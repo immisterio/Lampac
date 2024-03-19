@@ -11,6 +11,7 @@ namespace JinEnergy.Online
         {
             var init = AppInit.VoKino.Clone();
             var arg = defaultArgs(args);
+            int s = int.Parse(parse_arg("s", args) ?? "-1");
 
             var oninvk = new VoKinoInvoke
             (
@@ -23,7 +24,7 @@ namespace JinEnergy.Online
 
             refresh: var content = await oninvk.Embed(arg.kinopoisk_id);
 
-            string html = oninvk.Html(content, arg.title, arg.original_title);
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, s);
             if (string.IsNullOrEmpty(html) && IsRefresh(init, true))
                 goto refresh;
 

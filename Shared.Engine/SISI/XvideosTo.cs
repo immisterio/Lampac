@@ -48,9 +48,10 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return playlists;
 
-            foreach (string row in html.Split("<div class=\"thumb-inside\">").Skip(1))
+            foreach (string row in html.Split("<div id=\"video_").Skip(1))
             {
-                var g = Regex.Match(row, "<a href=\"/(prof-video-click/[^\"]+|video[0-9]+/[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                // <a href="/video.ucmdacd450a/_" title="Горничная приходит на работу в коротком платье (лесбуха любит член)">
+                var g = Regex.Match(row, "<a href=\"/(video[^\"]+)\" title=\"([^\"]+)\"").Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {

@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1)
         {
             var init = AppInit.conf.VoKino;
 
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = new VoKinoInvoke
             (
-               null,
+               host,
                init.corsHost(),
                init.token,
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
@@ -62,7 +62,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(content, title, original_title), "text/html; charset=utf-8");
+            return Content(oninvk.Html(content, kinopoisk_id, title, original_title, s), "text/html; charset=utf-8");
         }
     }
 }

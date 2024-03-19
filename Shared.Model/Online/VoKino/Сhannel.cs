@@ -2,6 +2,13 @@
 {
     public class Сhannel
     {
+        public string title { get; set; }
+
+        public string playlist_url { get; set; }
+
+        public List<Сhannel> submenu { get; set; }
+
+
         public string stream_url { get; set; }
 
         public string quality_full { get; set; }
