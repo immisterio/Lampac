@@ -200,7 +200,7 @@ namespace JinEnergy.Online
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
 
-            return string.Join(",", online.OrderByDescending(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"));
+            return $"[{string.Join(",", online.OrderByDescending(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"))}]";
         }
         #endregion
     }
