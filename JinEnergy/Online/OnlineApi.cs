@@ -113,7 +113,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/events")]
         public static string Events(string args)
         {
-            var online = new StringBuilder();
+            var online = new List<(string name, string url, int index)>(20);
 
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
@@ -129,7 +129,7 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(url))
                         url = "lite/" + plugin + arg_url;
 
-                    online!.Append("{\"name\":\"" + $"{init.displayname ?? name}{arg_title}" + "\",\"url\":\"" + url + "\"},");
+                    online.Add(($"{init.displayname ?? name}{arg_title}", url, init.displayindex));
                 }
             }
 
@@ -200,7 +200,7 @@ namespace JinEnergy.Online
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
 
-            return $"[{Regex.Replace(online.ToString(), ",$", "")}]";
+            return string.Join(",", online.OrderByDescending(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"));
         }
         #endregion
     }
