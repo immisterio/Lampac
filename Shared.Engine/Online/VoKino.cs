@@ -58,7 +58,7 @@ namespace Shared.Engine.Online
             {
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl();
+                    var tpl = new SeasonTpl(quality: channels[0].quality_full?.Replace("2160p.", "4K "));
 
                     foreach (var ch in channels)
                     {

@@ -10,6 +10,8 @@ namespace Shared.Model.Base
 
         public string? displayname { get; set; }
 
+        public int displayindex { get; set; }
+
         public string? overridehost { get; set; }
 
         public string? host { get; set; }

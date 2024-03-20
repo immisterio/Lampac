@@ -226,8 +226,8 @@ namespace Lampac.Controllers
                     return error($"Не удалось найти онлайн для {(serial == 1 ? "сериала" : "фильма")}");
                 }
 
-                string online = res.online?.Replace("{localhost}", $"{host}/lite") ?? string.Empty;
-                json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{Regex.Replace(online, ",$", "")}]" + "}";
+                string online = res.online?.Replace("{localhost}", host) ?? string.Empty;
+                json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{online}]" + "}";
             }
 
             return Content(json ?? "{\"ready\":false,\"tasks\":0,\"online\":[]}", contentType: "application/javascript; charset=utf-8");
@@ -238,7 +238,7 @@ namespace Lampac.Controllers
         [Route("lite/events")]
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
         {
-            string online = string.Empty;
+            var online = new List<(string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
 
             var conf = AppInit.conf;
@@ -251,9 +251,9 @@ namespace Lampac.Controllers
                     {
                         if (item.assembly.GetType(item.online) is Type t && t.GetMethod("Events") is MethodInfo m)
                         {
-                            string result = (string)m.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
-                            if (!string.IsNullOrWhiteSpace(result))
-                                online += result;
+                            var result = (List<(string name, string url, string plugin, int index)>)m.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
+                            if (result != null && result.Count > 0)
+                                online.AddRange(result);
                         }
                     }
                     catch { }
@@ -266,9 +266,9 @@ namespace Lampac.Controllers
                 {
                     string url = init.overridehost;
                     if (string.IsNullOrEmpty(url))
-                        url = "{localhost}/" + (plugin ?? name.ToLower()) + arg_url;
+                        url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
 
-                    online += "{\"name\":\"" + $"{init.displayname ?? name}{arg_title}" + "\",\"url\":\"" + url + "\"},";
+                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
 
@@ -338,7 +338,7 @@ namespace Lampac.Controllers
                 send("IframeVideo", conf.IframeVideo);
 
             if (!life && conf.litejac)
-                online += "{\"name\":\"Jackett\",\"url\":\"{localhost}/jac\"},";
+                online.Add(("Jackett", "{localhost}/lite/jac", "jac", online.Count));
 
             #region checkOnlineSearch
             bool chos = conf.online.checkOnlineSearch && id > 0;
@@ -359,18 +359,8 @@ namespace Lampac.Controllers
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
-                    var match = Regex.Match(online, "\\{\"name\":\"([^\"]+)\",\"url\":\"(\\{localhost\\}|https?://[^/]+)/([^\"]+)\"\\},");
-                    while (match.Success)
-                    {
-                        string _name = match.Groups[1].Value;
-                        string _serv = match.Groups[2].Value;
-                        string _plugin = Regex.Replace(match.Groups[3].Value, "^/lite/", "");
-
-                        if (!string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_plugin))
-                            tasks.Add(checkSearch(links, tasks, tasks.Count, _name, _plugin, _serv, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
-
-                        match = match.NextMatch();
-                    }
+                    foreach (var o in online)
+                        tasks.Add(checkSearch(links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
 
                     if (life)
                         return Content("{\"life\":true}", contentType: "application/javascript; charset=utf-8");
@@ -379,7 +369,7 @@ namespace Lampac.Controllers
 
                     cache.ready = true;
                     cache.tasks = tasks.Count;
-                    cache.online = string.Join("", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
+                    cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
 
                     memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(10));
                 }
@@ -387,11 +377,12 @@ namespace Lampac.Controllers
                 if (life)
                     return Content("{\"life\":true}", contentType: "application/javascript; charset=utf-8");
 
-                online = cache.online;
+                return Content($"[{cache.online.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
             }
             #endregion
 
-            return Content($"[{Regex.Replace(online, ",$", "").Replace("{localhost}", $"{host}/lite")}]", contentType: "application/javascript; charset=utf-8");
+            string online_result = string.Join(",", online.OrderByDescending(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"));
+            return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -399,19 +390,18 @@ namespace Lampac.Controllers
         #region checkSearch
         static string checkOnlineSearchKey(long id, string source) => $"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}";
 
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string serv,
+        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
-            bool isLocalhost = serv == "{localhost}";
-            string srq = isLocalhost ? $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/lite" : serv;
-            var header = isLocalhost ? HeadersModel.Init("xhost", host) : null;
+            string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
+            var header = uri.Contains("{localhost}") ? HeadersModel.Init("xhost", host) : null;
 
-            string res = await HttpClient.Get($"{srq}/{uri}{(uri.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
+            string res = await HttpClient.Get($"{srq}/{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
 
             bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
 
             string quality = string.Empty;
-            string balanser = uri.Split("?")[0];
+            string balanser = plugin;
 
             #region определение качества
             if (work && life)
@@ -420,7 +410,12 @@ namespace Lampac.Controllers
                 {
                     foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
                     {
-                        if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
+                        if (res.Contains($"<!--quality:"))
+                        {
+                            quality = Regex.Match(res, "<!--q:([^>]+)-->").Groups[1].Value;
+                            break;
+                        }
+                        else if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
                         {
                             if (q == "2160")
                             {
@@ -500,9 +495,15 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            links.Add(("{" + $"\"name\":\"{name + quality}\",\"url\":\""+(isLocalhost ? "{localhost}" : serv) +$"/{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "},", index, work));
+            if (!name.Contains(" - ") && !string.IsNullOrEmpty(quality))
+            {
+                name = Regex.Replace(name, " ~ .*$", "");
+                name += quality;
+            }
 
-            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join("", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(10));
+            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "}", index, work));
+
+            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(10));
         }
         #endregion
     }

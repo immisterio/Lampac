@@ -4,9 +4,15 @@ namespace Shared.Model.Templates
 {
     public class SeasonTpl
     {
-        List<(string name, string link)> data = new List<(string, string)>();
+        #region SeasonTpl
+        string? quality = null;
 
         public SeasonTpl() { }
+
+        public SeasonTpl(string? quality) { this.quality = quality; }
+        #endregion
+
+        List<(string name, string link)> data = new List<(string, string)>();
 
         public SeasonTpl(int capacity) { data.Capacity = capacity; }
 
@@ -24,6 +30,9 @@ namespace Shared.Model.Templates
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
+
+            if (!string.IsNullOrEmpty(quality))
+                html.Append($"<!--q:{quality}-->");
 
             foreach (var i in data) 
             {
