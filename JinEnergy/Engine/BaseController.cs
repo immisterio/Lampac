@@ -131,7 +131,7 @@ namespace JinEnergy.Engine
                 }
             }
 
-            string? apn = conf.apn ?? AppInit.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn : conf?.apn;
             bool isDefaultApn = conf != null && Shared.Model.AppInit.IsDefaultApnOrCors(apn);
 
             if (IsApnIncluded(conf)/* && (!isDefaultApn || !stream_links.qualitys.First().Value.Contains(".m3u"))*/)
@@ -193,7 +193,7 @@ namespace JinEnergy.Engine
 
         public static string HostStreamProxy(Istreamproxy conf, string? uri)
         {
-            string? apn = conf?.apn ?? AppInit.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn : conf?.apn;
             if (conf == null || string.IsNullOrEmpty(uri) || string.IsNullOrEmpty(apn) || !apn.StartsWith("http"))
                 return uri;
 
@@ -211,7 +211,7 @@ namespace JinEnergy.Engine
 
         public static bool IsApnIncluded(Istreamproxy? conf)
         {
-            string? apn = conf?.apn ?? AppInit.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn : conf?.apn;
             if (conf == null || string.IsNullOrEmpty(apn))
                 return false;
 

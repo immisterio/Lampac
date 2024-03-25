@@ -119,7 +119,7 @@ namespace JinEnergy.Online
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             bool isanime = arg.original_language == "ja";
             bool titleSearch = string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0;
-            string argTitle_vpn = AppInit.Country == "UA" ? " / vpn" : "";
+            string argTitle_vpn = string.Empty; // AppInit.Country == "UA" ? " / vpn" : "";
 
             void send(string name, string plugin, BaseSettings init, string? arg_title = null, string? arg_url = null, string? overridehost = null)
             {
