@@ -199,7 +199,7 @@ namespace JinEnergy.Engine
                 if (string.IsNullOrEmpty(url))
                     return 0;
 
-                using (var client = new HttpClient(new HttpClientHandler() { /*AllowAutoRedirect = true*/ }))
+                using (var client = new HttpClient(new HttpClientHandler() { AllowAutoRedirect = false }))
                 {
                     client.Timeout = TimeSpan.FromMilliseconds(2000);
                     client.MaxResponseContentBufferSize = 1_000_000;
