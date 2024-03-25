@@ -205,14 +205,17 @@ namespace JinEnergy.Engine
                     client.MaxResponseContentBufferSize = 1_000_000;
 
                     using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+                    {
+                        AppInit.log("StatusCode: " + response.StatusCode.ToString());
                         return (int)response.StatusCode;
+                    }
                 }
             }
             catch (Exception ex)
-{
-    AppInit.log(ex.ToString());
-    return 0;
-}
+            {
+                AppInit.log(ex.ToString());
+                return 0;
+            }
         }
         #endregion
     }
