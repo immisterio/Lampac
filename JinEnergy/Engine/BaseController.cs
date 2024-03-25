@@ -174,10 +174,10 @@ namespace JinEnergy.Engine
 
         async public static ValueTask<bool> IsOrigStream(string? uri)
         {
-            if (string.IsNullOrWhiteSpace(uri) || AppInit.Country != "UA")
+            if (string.IsNullOrWhiteSpace(uri) || uri.Contains("ukrtelcdn.") || AppInit.Country != "UA")
                 return true;
 
-            return await JsHttpClient.StatusCode(uri) == 200;
+            return await JsHttpClient.StatusCode(uri) is 200 or 301 or 302;
         }
 
         public static string DefaultStreamProxy(string? uri, bool orig = false)

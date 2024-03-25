@@ -199,9 +199,9 @@ namespace JinEnergy.Engine
                 if (string.IsNullOrEmpty(url))
                     return 0;
 
-                using (var client = new HttpClient(new HttpClientHandler() { AllowAutoRedirect = true }))
+                using (var client = new HttpClient(new HttpClientHandler() { /*AllowAutoRedirect = true*/ }))
                 {
-                    client.Timeout = TimeSpan.FromMilliseconds(2300);
+                    client.Timeout = TimeSpan.FromMilliseconds(2000);
                     client.MaxResponseContentBufferSize = 1_000_000;
 
                     using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
