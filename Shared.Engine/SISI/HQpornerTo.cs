@@ -488,6 +488,35 @@ namespace Shared.Engine.SISI
                 match = match.NextMatch();
             }
 
+            if (stream_links.Count == 0)
+            {
+                string jw = Regex.Match(iframeHtml, "\\$\\(\"#jw\"\\)([^\n\r]+)").Groups[1].Value;
+                if (jw.Contains("replaceAll"))
+                {
+                    var grpal = Regex.Match(iframeHtml, "replaceAll\\(\"([^\"]+)\", ([^ ]+) \\+ \"pubs/\" \\+ ([^ ]+)").Groups;
+
+                    string cdn = Regex.Match(iframeHtml, grpal[2].Value + " = \"([^\"]+)\"").Groups[1].Value;
+                    string hash = Regex.Match(iframeHtml, grpal[3].Value + " = \"([^\"]+)\"").Groups[1].Value;
+
+                    if (!string.IsNullOrEmpty(cdn) && !string.IsNullOrEmpty(hash))
+                    {
+                        match = new Regex("src=\"([^\"]+[0-9]+\\.mp4)\" title=\"([^\"]+)\"").Match(iframeHtml.Replace("\\", ""));
+                        while (match.Success)
+                        {
+                            if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value) && !match.Groups[2].Value.Contains("Default"))
+                            {
+                                string hls = match.Groups[1].Value.Replace(grpal[1].Value, $"https:{cdn}pubs/{hash}/");
+
+                                if (hls.StartsWith("https:"))
+                                    stream_links.TryAdd(match.Groups[2].Value, hls);
+                            }
+
+                            match = match.NextMatch();
+                        }
+                    }
+                }
+            }
+
             return stream_links.Reverse().ToDictionary(k => k.Key, v => v.Value);
         }
     }
