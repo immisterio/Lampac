@@ -490,13 +490,13 @@ namespace Shared.Engine.SISI
 
             if (stream_links.Count == 0)
             {
-                string jw = Regex.Match(iframeHtml, "\\$\\(\"#jw\"\\)([^\n\r]+)").Groups[1].Value;
+                string jw = Regex.Match(iframeHtml, "\\$\\(\"#jw\"\\)([^;]+)").Groups[1].Value;
                 if (jw.Contains("replaceAll"))
                 {
-                    var grpal = Regex.Match(iframeHtml, "replaceAll\\(\"([^\"]+)\", ([^ ]+) \\+ \"pubs/\" \\+ ([^ ]+)").Groups;
+                    var grpal = Regex.Match(iframeHtml, "replaceAll\\(\"([^\"]+)\",([^\\+]+)\\+\"pubs/\"\\+([^\\+]+)").Groups;
 
-                    string cdn = Regex.Match(iframeHtml, grpal[2].Value + " = \"([^\"]+)\"").Groups[1].Value;
-                    string hash = Regex.Match(iframeHtml, grpal[3].Value + " = \"([^\"]+)\"").Groups[1].Value;
+                    string cdn = Regex.Match(iframeHtml, grpal[2].Value + "=\"([^\"]+)\"").Groups[1].Value;
+                    string hash = Regex.Match(iframeHtml, grpal[3].Value + "=\"([^\"]+)\"").Groups[1].Value;
 
                     if (!string.IsNullOrEmpty(cdn) && !string.IsNullOrEmpty(hash))
                     {
