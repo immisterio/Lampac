@@ -208,10 +208,11 @@ namespace JinEnergy.Engine
                         return (int)response.StatusCode;
                 }
             }
-            catch
-            {
-                return 0;
-            }
+            catch (Exception ex)
+{
+    AppInit.log(ex.ToString());
+    return 0;
+}
         }
         #endregion
     }
