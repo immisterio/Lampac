@@ -177,7 +177,7 @@ namespace JinEnergy.Engine
             if (string.IsNullOrWhiteSpace(uri) || uri.Contains("ukrtelcdn.") || AppInit.Country != "UA")
                 return true;
 
-            return await JsHttpClient.StatusCode(uri) is 200 or 301 or 302;
+            return await JsHttpClient.StatusCode(uri) is 200 or 301 or 302 or 0;
         }
 
         public static string DefaultStreamProxy(string? uri, bool orig = false)

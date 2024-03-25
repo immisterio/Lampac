@@ -197,7 +197,7 @@ namespace JinEnergy.Engine
             try
             {
                 if (string.IsNullOrEmpty(url))
-                    return 0;
+                    return -1;
 
                 using (var client = new HttpClient(new HttpClientHandler() { AllowAutoRedirect = false }))
                 {
@@ -205,16 +205,12 @@ namespace JinEnergy.Engine
                     client.MaxResponseContentBufferSize = 1_000_000;
 
                     using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
-                    {
-                        AppInit.log("StatusCode: " + response.StatusCode.ToString());
                         return (int)response.StatusCode;
-                    }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                AppInit.log(ex.ToString());
-                return 0;
+                return -1;
             }
         }
         #endregion
