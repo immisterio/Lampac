@@ -45,10 +45,10 @@ namespace Shared.Engine.SISI
 
             foreach (string row in html.Split("<div class=\"img-container\">").Skip(1))
             {
-                var g = Regex.Match(row, "href=\"/([^\"]+)\" class=\"atfib\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"").Groups;
+                var g = Regex.Match(row, "href=\"/([^\"]+)\" class=\"atfi[^\"]+\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"").Groups;
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string duration = new Regex("class=\"fa fa-clock-o\" [^>]+></i>([^<]+)").Match(Regex.Replace(row, "[\n\r\t]+", "")).Groups[1].Value.Trim();
+                    string duration = new Regex("class=\"fa fa-clock-o\" [^>]+></i>([\n\r\t ]+)?([^<]+)<").Match(row).Groups[2].Value.Trim();
 
                     var pl = new PlaylistItem()
                     {

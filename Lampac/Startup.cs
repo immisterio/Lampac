@@ -20,6 +20,7 @@ using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Lampac
 {
@@ -140,6 +141,12 @@ namespace Lampac
                 //DefaultValueHandling = DefaultValueHandling.Ignore,
                 NullValueHandling = NullValueHandling.Ignore
             }));
+
+            if (AppInit.conf.multiaccess)
+            {
+                ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+                ThreadPool.SetMinThreads(Math.Max(400, workerThreads), Math.Max(100, completionPortThreads));
+            }
 
             app.UseDeveloperExceptionPage();
 
