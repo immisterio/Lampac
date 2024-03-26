@@ -381,7 +381,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            string online_result = string.Join(",", online.OrderByDescending(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"));
+            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"));
             return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
