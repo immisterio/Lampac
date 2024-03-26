@@ -139,7 +139,7 @@ namespace Lampac.Engine.Middlewares
                     var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), httpContext.Request.Path.Value.Contains(".m3u") || httpContext.Request.Path.Value.Contains(".ts"));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
-                    if ((int)response.StatusCode is 301 or 302 or 303 || response.Headers.Location != null)
+                    if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                     {
                         httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", account_email));
                         return;

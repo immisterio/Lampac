@@ -16,9 +16,20 @@ namespace Lampac.Controllers.LITE
         public VoidboostInvoke InitVoidboostInvoke()
         {
             var proxy = proxyManager.Get();
-            var init = AppInit.conf.Voidboost;
+            var init = AppInit.conf.Voidboost.Clone();
 
             var headers = httpHeaders(init);
+
+            if (init.geostreamproxy != null && init.geostreamproxy.Count > 0)
+            {
+                string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+                if (country != null && init.geostreamproxy.Contains(country))
+                {
+                    init.streamproxy = true;
+                    init.corseu = false;
+                    init.xrealip = false;
+                }
+            }
 
             if (init.xrealip)
                 headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
@@ -88,7 +99,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
+            string realip = (!init.streamproxy && init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
 
             var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
             if (md == null)

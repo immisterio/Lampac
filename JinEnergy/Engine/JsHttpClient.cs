@@ -201,7 +201,7 @@ namespace JinEnergy.Engine
 
                 using (var client = new HttpClient(new HttpClientHandler() { AllowAutoRedirect = false }))
                 {
-                    client.Timeout = TimeSpan.FromMilliseconds(2000);
+                    client.Timeout = TimeSpan.FromMilliseconds(1500);
                     client.MaxResponseContentBufferSize = 1_000_000;
 
                     using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
