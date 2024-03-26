@@ -109,7 +109,7 @@ namespace Lampac.Engine
         public string HostImgProxy(int width, int height, string uri, List<HeadersModel> headers = null)
         {
             if (string.IsNullOrWhiteSpace(uri) || (width == 0 && height == 0)) 
-                return null;
+                return uri;
 
             uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
 
