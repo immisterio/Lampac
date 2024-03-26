@@ -5,6 +5,7 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online;
+using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -12,13 +13,10 @@ namespace Lampac.Controllers.LITE
     {
         ProxyManager proxyManager = new ProxyManager("voidboost", AppInit.conf.Voidboost);
 
-        #region InitVoidboostInvoke
-        public VoidboostInvoke InitVoidboostInvoke()
+        #region getInit
+        public RezkaSettings getInit()
         {
-            var proxy = proxyManager.Get();
             var init = AppInit.conf.Voidboost.Clone();
-
-            var headers = httpHeaders(init);
 
             if (init.geostreamproxy != null && init.geostreamproxy.Count > 0)
             {
@@ -30,6 +28,18 @@ namespace Lampac.Controllers.LITE
                     init.xrealip = false;
                 }
             }
+
+            return init;
+        }
+        #endregion
+
+        #region InitVoidboostInvoke
+        public VoidboostInvoke InitVoidboostInvoke()
+        {
+            var proxy = proxyManager.Get();
+            var init = getInit();
+
+            var headers = httpHeaders(init);
 
             if (init.xrealip)
                 headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
@@ -93,13 +103,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/voidboost/episode")]
         async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e, bool play)
         {
-            var init = AppInit.conf.Voidboost;
+            var init = getInit();
             if (!init.enable)
                 return OnError();
 
             var oninvk = InitVoidboostInvoke();
 
-            string realip = (!init.streamproxy && init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
+            string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
 
             var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
             if (md == null)
