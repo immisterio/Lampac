@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO.Compression;
 
 namespace Shared.Engine.CORE
 {
@@ -30,12 +31,15 @@ namespace Shared.Engine.CORE
             {
                 try
                 {
-                    foreach (var item in JsonSerializer.Deserialize<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
+                    using (var bstream = new BrotliStream(File.OpenRead(conditionPath), CompressionMode.Decompress))
                     {
-                        if (item.Value > DateTimeOffset.Now)
+                        foreach (var item in JsonSerializer.Deserialize<ConcurrentDictionary<string, DateTimeOffset>>(bstream))
                         {
-                            memoryCache.Set(item.Key, (byte)0, item.Value);
-                            condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                            if (item.Value > DateTimeOffset.Now)
+                            {
+                                memoryCache.Set(item.Key, (byte)0, item.Value);
+                                condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                            }
                         }
                     }
                 }
@@ -133,12 +137,10 @@ namespace Shared.Engine.CORE
 
             try
             {
-                string content = BrotliTo.Decompress(File.ReadAllBytes(path));
-
                 if (isConstructor || isValueType)
-                    value = JsonSerializer.Deserialize<TItem>(content);
+                    value = JsonSerializer.Deserialize<TItem>(new BrotliStream(File.OpenRead(path), CompressionMode.Decompress));
                 else
-                    value = (TItem)Convert.ChangeType(content, type);
+                    value = (TItem)Convert.ChangeType(BrotliTo.Decompress(File.ReadAllBytes(path)), type);
 
                 return true;
             }
