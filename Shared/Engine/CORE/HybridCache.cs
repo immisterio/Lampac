@@ -1,7 +1,7 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -30,7 +30,7 @@ namespace Shared.Engine.CORE
             {
                 try
                 {
-                    foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
+                    foreach (var item in JsonSerializer.Deserialize<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
                     {
                         if (item.Value > DateTimeOffset.Now)
                         {
@@ -67,7 +67,7 @@ namespace Shared.Engine.CORE
                         foreach (var item in condition.Where(i => DateTimeOffset.Now > i.Value))
                             condition.TryRemove(item);
 
-                        File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(condition)));
+                        File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonSerializer.Serialize(condition)));
                     }
                     catch { }
                 }
@@ -136,7 +136,7 @@ namespace Shared.Engine.CORE
                 string content = BrotliTo.Decompress(File.ReadAllBytes(path));
 
                 if (isConstructor || isValueType)
-                    value = JsonConvert.DeserializeObject<TItem>(content);
+                    value = JsonSerializer.Deserialize<TItem>(content);
                 else
                     value = (TItem)Convert.ChangeType(content, type);
 
@@ -187,7 +187,7 @@ namespace Shared.Engine.CORE
 
                 if (isConstructor || isValueType)
                 {
-                    array = BrotliTo.Compress(JsonConvert.SerializeObject(value));
+                    array = BrotliTo.Compress(JsonSerializer.Serialize(value));
                 }
                 else
                 {
