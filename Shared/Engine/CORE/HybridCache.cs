@@ -1,14 +1,13 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.Json;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO.Compression;
 
 namespace Shared.Engine.CORE
 {
@@ -31,15 +30,12 @@ namespace Shared.Engine.CORE
             {
                 try
                 {
-                    using (var bstream = new BrotliStream(File.OpenRead(conditionPath), CompressionMode.Decompress))
+                    foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
                     {
-                        foreach (var item in JsonSerializer.Deserialize<ConcurrentDictionary<string, DateTimeOffset>>(bstream))
+                        if (item.Value > DateTimeOffset.Now)
                         {
-                            if (item.Value > DateTimeOffset.Now)
-                            {
-                                memoryCache.Set(item.Key, (byte)0, item.Value);
-                                condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
-                            }
+                            memoryCache.Set(item.Key, (byte)0, item.Value);
+                            condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
                         }
                     }
                 }
@@ -71,7 +67,7 @@ namespace Shared.Engine.CORE
                         foreach (var item in condition.Where(i => DateTimeOffset.Now > i.Value))
                             condition.TryRemove(item);
 
-                        File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonSerializer.Serialize(condition)));
+                        File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(condition)));
                     }
                     catch { }
                 }
@@ -137,10 +133,12 @@ namespace Shared.Engine.CORE
 
             try
             {
+                string content = BrotliTo.Decompress(File.ReadAllBytes(path));
+
                 if (isConstructor || isValueType)
-                    value = JsonSerializer.Deserialize<TItem>(new BrotliStream(File.OpenRead(path), CompressionMode.Decompress));
+                    value = JsonConvert.DeserializeObject<TItem>(content);
                 else
-                    value = (TItem)Convert.ChangeType(BrotliTo.Decompress(File.ReadAllBytes(path)), type);
+                    value = (TItem)Convert.ChangeType(content, type);
 
                 return true;
             }
@@ -189,7 +187,7 @@ namespace Shared.Engine.CORE
 
                 if (isConstructor || isValueType)
                 {
-                    array = BrotliTo.Compress(JsonSerializer.Serialize(value));
+                    array = BrotliTo.Compress(JsonConvert.SerializeObject(value));
                 }
                 else
                 {
