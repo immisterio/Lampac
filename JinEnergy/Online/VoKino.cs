@@ -22,11 +22,16 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            refresh: var content = await oninvk.Embed(arg.kinopoisk_id);
+            string memkey = $"vokino:{arg.kinopoisk_id}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id));
 
             string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, s);
-            if (string.IsNullOrEmpty(html) && IsRefresh(init, true))
-                goto refresh;
+            if (string.IsNullOrEmpty(html))
+            {
+                IMemoryCache.Remove(memkey);
+                if (IsRefresh(init))
+                    goto refresh;
+            }
 
             return html;
         }
