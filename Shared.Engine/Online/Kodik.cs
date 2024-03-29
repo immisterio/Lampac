@@ -216,14 +216,17 @@ namespace Shared.Engine.Online
         #region VideoParse
         async public ValueTask<List<StreamModel>?> VideoParse(string linkhost, string link)
         {
-            string? iframe = await onget($"http:{link}", HeadersModel.Init("referer", "https://animego.org/"));
+            string? iframe = await onget($"http:{link}", null);
             if (iframe == null)
                 return null;
 
             string? uri = null;
             string _frame = Regex.Replace(iframe, "[\n\r\t ]+", "");
+            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
             string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
+            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
             string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
+            string ref_domain = Regex.Match(_frame, "\"ref\":\"([^\"]+)\"").Groups[1].Value;
             string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
             string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
             string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
@@ -247,7 +250,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(uri))
                 return null;
 
-            string? json = await onpost($"{linkhost + uri}", $"d=animego.org&d_sign={d_sign}&pd=kodik.info&pd_sign={pd_sign}&ref=https%3A%2F%2Fanimego.org%2F&ref_sign={ref_sign}&bad_user=false&type={type}&hash={hash}&id={id}&info=%7B%22advImps%22%3A%7B%7D%7D");
+            string? json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&type={type}&hash={hash}&id={id}&info=%7B%7D");
             if (json == null || !json.Contains("\"src\":\""))
                 return null;
 

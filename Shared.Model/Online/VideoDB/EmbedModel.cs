@@ -7,5 +7,7 @@
         public bool movie { get; set; }
 
         public bool obfuscation { get; set; }
+
+        public string quality { get; set; }
     }
 }

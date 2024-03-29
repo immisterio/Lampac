@@ -1,0 +1,180 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Lampac.Engine;
+using IO = System.IO;
+using Newtonsoft.Json;
+
+namespace Lampac.Controllers
+{
+    public class AdminController : BaseController
+    {
+        [Route("admin/auth")]
+        public ActionResult Authorization(string parol)
+        {
+			if (!string.IsNullOrEmpty(parol) && IO.File.ReadAllText("passwd") == parol.Trim())
+			{
+				HttpContext.Response.Cookies.Append("passwd", parol.Trim());
+				return Redirect("/admin/init");
+			}
+
+            string html = @"
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Authorization</title>
+</head>
+<body>
+
+<style type=""text/css"">
+	* {
+	    box-sizing: border-box;
+	    outline: none;
+	}
+	body{
+		padding: 40px;
+		font-family: sans-serif;
+	}
+	label{
+		display: block;
+		font-weight: 700;
+		margin-bottom: 8px;
+	}
+	input,
+	textarea,
+	select{
+		width: 340px;
+		padding: 8px;
+	}
+	button{
+		padding: 10px;
+	}
+	form > * + *{
+		margin-top: 20px;
+	}
+</style>
+
+<form method=""post"" action=""/admin/auth"" id=""form"">
+	<div>
+		<input type=""text"" name=""parol"" placeholder=""пароль из /home/lampa/passwd""></input>
+	</div>
+	
+	<button type=""submit"">войти</button>
+	
+</form>
+
+</body>
+</html>
+";
+
+            return Content(html, contentType: "text/html; charset=utf-8");
+        }
+
+
+        [Route("admin/init")]
+        public ActionResult Inithtml()
+        {
+            string html = @"
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Редактор init.conf</title>
+</head>
+<body>
+
+<style type=""text/css"">
+	* {
+	    box-sizing: border-box;
+	    outline: none;
+	}
+	body{
+		padding: 40px;
+		font-family: sans-serif;
+	}
+	label{
+		display: block;
+		font-weight: 700;
+		margin-bottom: 8px;
+	}
+	input,
+	textarea,
+	select{
+		width: 100%;
+		padding: 10px;
+	}
+	button{
+		padding: 10px;
+	}
+	form > * + *{
+		margin-top: 30px;
+	}
+</style>
+
+<form method=""post"" action="""" id=""form"">
+	<div>
+		<label>Ваш init.conf - <a href=""/admin/init/current"" target=""_blank"" style=""text-decoration: inherit; color: cornflowerblue;"">системный</a></label>
+		<textarea id=""value"" name=""value"" rows=""30""></textarea>
+	</div>
+	
+	<button type=""submit"">Сохранить</button>
+	
+</form>
+
+<script type=""text/javascript"">
+	document.getElementById('form').addEventListener(""submit"", (e) => {
+		let json = document.getElementById('value').value
+
+		e.preventDefault()
+
+		try{
+			JSON.parse(json)
+
+			let formData = new FormData()
+				formData.append('json', json)
+
+			fetch('/admin/init/save',{
+			    method: ""POST"",
+			    body: formData
+			})
+			.then((response)=>{
+				if(response.ok) return response.text();  
+
+				throw new Error('Не удалось сохранить настройки');
+			 })  
+			.then(()=>{
+				alert('Сохранено')
+			})
+			.catch((e)=>{
+				alert(e.message)
+			})
+		}
+		catch(e){
+			alert('Ошибка: ' + e.message)
+		}
+	})
+</script>
+
+</body>
+</html>
+";
+
+            return Content(html, contentType: "text/html; charset=utf-8");
+        }
+
+
+        [Route("admin/init/save")]
+        public ActionResult InitSave([FromForm]string json)
+        {
+            IO.File.WriteAllText("init.conf", json);
+            return Content(json, contentType: "application/json; charset=utf-8");
+        }
+
+
+        [Route("admin/init/current")]
+        public ActionResult InitCurrent()
+        {
+            return Content(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            }), contentType: "application/json; charset=utf-8");
+        }
+    }
+}

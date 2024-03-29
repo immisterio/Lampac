@@ -406,44 +406,35 @@ namespace Lampac.Controllers
             #region определение качества
             if (work && life)
             {
-                if (serial == -1 || serial == 0)
+                foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
                 {
-                    foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
+                    if (res.Contains("<!--q:"))
                     {
-                        if (res.Contains($"<!--quality:"))
-                        {
-                            quality = Regex.Match(res, "<!--q:([^>]+)-->").Groups[1].Value;
-                            break;
-                        }
-                        else if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
-                        {
-                            if (q == "2160")
-                            {
-                                if (balanser == "kinopub")
-                                    quality = " - 4K HDR";
-                                else
-                                {
-                                    quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
-                                }
-                            }
-                            else
-                            {
-                                quality = $" - {q}p";
-                            }
-
-                            break;
-                        }
+                        quality = " - " + Regex.Match(res, "<!--q:([^>]+)-->").Groups[1].Value;
+                        break;
+                    }
+                    else if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
+                    {
+                        quality = $" - {q}p";
+                        break;
                     }
                 }
 
-                if (quality == string.Empty && balanser == "vokino")
-                    quality = res.Contains("4K HDR") ? " - 4K HDR" : res.Contains("4K ") ? " - 4K" : string.Empty;
+                if (quality == "2160")
+                    quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
+
+                if (balanser == "filmix")
+                    quality = AppInit.conf.Filmix.pro ? quality : " - 480p";
+
+                if (balanser == "collaps")
+                    quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
 
                 if (quality == string.Empty)
                 {
                     switch (balanser)
                     {
                         case "fxapi":
+                        case "filmix":
                         case "kinopub":
                         case "vokino":
                         case "rezka":
@@ -486,11 +477,8 @@ namespace Lampac.Controllers
                             break;
                     }
 
-                    if (balanser == "filmix")
-                        quality = AppInit.conf.Filmix.pro ? " ~ 2160p" : " - 480p";
-
-                    if (balanser == "collaps")
-                        quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
+                    if (balanser == "vokino")
+                        quality = res.Contains("4K HDR") ? " - 4K HDR" : res.Contains("4K ") ? " - 4K" : quality;
                 }
             }
             #endregion

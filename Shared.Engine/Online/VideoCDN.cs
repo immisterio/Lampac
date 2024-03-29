@@ -112,6 +112,7 @@ namespace Shared.Engine.Online
             }
 
             string files = Regex.Match(content, "id=\"(fs|files)\" value='([^\n\r]+)'>").Groups[2].Value;
+            result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
             if (result.type is "movie" or "anime")
             {
@@ -227,13 +228,15 @@ namespace Shared.Engine.Online
                                 seasons.Add(season.id);
                         }
 
+                        var tpl = new SeasonTpl(result.quality);
+
                         foreach (int id in seasons.OrderBy(s => s))
                         {
                             string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={id}";
-
-                            html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{id} сезон" + "</div></div></div>");
-                            firstjson = false;
+                            tpl.Append($"{id} сезон", link);
                         }
+
+                        return tpl.ToHtml();
                     }
                     else
                     {

@@ -95,7 +95,7 @@ namespace Shared.Engine.Online
                 if (res == null || res.Count == 0)
                     return null;
 
-                return new EmbedModel() { serial = res };
+                return new EmbedModel() { serial = res, quality = content.Contains("1080p") ? "1080p" : content.Contains("720p") ? "720p" : content.Contains("480p") ? "480p" : "360p" };
             }
             catch { return null; }
         }
@@ -200,6 +200,8 @@ namespace Shared.Engine.Online
 
                 if (s == -1)
                 {
+                    html.Append($"<!--q:{md.quality}-->");
+
                     for (int i = 0; i < md.serial.Count; i++)
                     {
                         var season = md.serial[i];

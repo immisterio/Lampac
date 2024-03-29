@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
 using System.Threading.Tasks;
 using System.Threading;
+using System.IO;
 
 namespace Lampac
 {
@@ -115,6 +116,9 @@ namespace Lampac
             HybridCache.Configure(memory);
             HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
             HttpClient.httpClientFactory = httpClientFactory;
+
+            if (!File.Exists("passwd"))
+                File.WriteAllText("passwd", Guid.NewGuid().ToString());
 
             try
             {

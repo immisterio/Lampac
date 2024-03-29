@@ -193,6 +193,9 @@ namespace Shared.Engine.Online
             }
             else
             {
+                if (root?.item?.seasons == null || root.item.seasons.Count == 0)
+                    return string.Empty;
+
                 #region Сериал
                 string? enc_title = HttpUtility.UrlEncode(title);
                 string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -200,13 +203,15 @@ namespace Shared.Engine.Online
                 if (s == -1)
                 {
                     #region Сезоны
+                    var tpl = new SeasonTpl(root.item.quality > 0 ? $"{root.item.quality}p" : null);
+
                     foreach (var season in root.item.seasons)
                     {
                         string link = host + $"lite/kinopub?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.number}";
-
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.number} сезон" + "</div></div></div>");
-                        firstjson = false;
+                        tpl.Append($"{season.number} сезон", link);
                     }
+
+                    return tpl.ToHtml();
                     #endregion
                 }
                 else

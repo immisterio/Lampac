@@ -7,5 +7,7 @@ namespace Shared.Model.Online.Kinobase
         public string? content { get; set; }
 
         public List<Season>? serial { get; set; }
+
+        public string quality { get; set; }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 using System.Web;
 using Newtonsoft.Json.Linq;

@@ -11,5 +11,7 @@
         public Dictionary<string, List<Season>>? serial { get; set; }
 
         public Dictionary<string, string>? movie { get; set; }
+
+        public string quality { get; set; }
     }
 }

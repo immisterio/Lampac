@@ -58,13 +58,12 @@ namespace Shared.Engine.Online
             file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
                         .Replace("},]", "}]");
 
-            onlog?.Invoke("file: " + file);
             var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
             if (pl == null || pl.Count == 0) 
                 return null;
 
-            onlog?.Invoke("pl " + pl.Count);
-            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":") };
+            string quality = file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
+            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":"), quality = quality };
         }
         #endregion
 
@@ -146,7 +145,9 @@ namespace Shared.Engine.Online
 
                 if (s == -1)
                 {
-                    for (int i = 0; i < root.pl.Count; i++)
+                    var tpl = new SeasonTpl(root.quality);
+
+                    for(int i = 0; i < root.pl.Count; i++)
                     {
                         string? name = root.pl?[i].title;
                         if (name == null)
@@ -156,11 +157,10 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        string link = host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}";
-
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + name + "</div></div></div>");
-                        firstjson = false;
+                        tpl.Append(name, host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
                     }
+
+                    return tpl.ToHtml();
                 }
                 else
                 {

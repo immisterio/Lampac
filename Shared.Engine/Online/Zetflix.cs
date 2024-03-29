@@ -49,12 +49,14 @@ namespace Shared.Engine.Online
             if (html == null)
                 return null;
 
+            string quality = html.Contains("1080p") ? "1080p" : html.Contains("720p") ? "720p" : "480p";
+
             string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\]),").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
             {
                 file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(file))
-                    return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true };
+                    return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true, quality = quality };
 
                 return null;
             }
@@ -62,13 +64,11 @@ namespace Shared.Engine.Online
             file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
                         .Replace("},]", "}]");
 
-            onlog?.Invoke("file: " + file);
             var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
             if (pl == null || pl.Count == 0)
                 return null;
 
-            onlog?.Invoke("pl " + pl.Count);
-            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":") };
+            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":"), quality = quality };
         }
         #endregion
 
@@ -153,13 +153,15 @@ namespace Shared.Engine.Online
 
                 if (s == -1)
                 {
+                    var tpl = new SeasonTpl(root.quality);
+
                     for (int i = 1; i <= number_of_seasons; i++)
                     {
                         string link = host + $"lite/zetflix?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={i}";
-
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{i} сезон" + "</div></div></div>");
-                        firstjson = false;
+                        tpl.Append($"{i} сезон", link);
                     }
+
+                    return tpl.ToHtml();
                 }
                 else
                 {
