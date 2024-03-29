@@ -216,23 +216,12 @@ namespace Shared.Engine.Online
         #region VideoParse
         async public ValueTask<List<StreamModel>?> VideoParse(string linkhost, string link)
         {
-            string? iframe = await onget($"http:{link}", null);
+            string? iframe = await onget($"https:{link}", null);
             if (iframe == null)
                 return null;
 
             string? uri = null;
-            string _frame = Regex.Replace(iframe, "[\n\r\t ]+", "");
-            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
-            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
-            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
-            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
-            string ref_domain = Regex.Match(_frame, "\"ref\":\"([^\"]+)\"").Groups[1].Value;
-            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
-            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
-            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
-            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
-
-            string player_single = Regex.Match(_frame, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
+            string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
             if (!string.IsNullOrEmpty(player_single))
             {
                 if (!psingles.TryGetValue(player_single, out uri))
@@ -249,6 +238,17 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(uri))
                 return null;
+
+            string _frame = Regex.Replace(iframe.Split("advertDebug")[1].Split("preview-icons")[0], "[\n\r\t ]+", "");
+            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
+            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
+            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
+            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
+            string ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
+            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
+            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
+            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
+            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
 
             string? json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&type={type}&hash={hash}&id={id}&info=%7B%7D");
             if (json == null || !json.Contains("\"src\":\""))
