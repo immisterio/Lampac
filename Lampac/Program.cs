@@ -11,6 +11,10 @@ namespace Lampac
 {
     public class Program
     {
+        static bool _reload = true;
+
+        static IHost _host;
+
         public static void Main(string[] args)
         {
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
@@ -22,7 +26,20 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
 
-            CreateHostBuilder(args).Build().Run();
+            while (_reload)
+            {
+                _reload = false;
+                _host = CreateHostBuilder(args).Build();
+                _host.Run();
+            }
+        }
+
+        public static void Reload()
+        {
+            _reload = true;
+
+            AppInit.LoadModules();
+            _host.StopAsync().ConfigureAwait(false);
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>

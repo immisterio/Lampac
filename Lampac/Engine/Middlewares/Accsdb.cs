@@ -22,6 +22,15 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            if (!File.Exists("module/manifest.json"))
+            {
+                if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
+                    return _next(httpContext);
+
+                httpContext.Response.Redirect("/admin/manifest/install");
+                return Task.CompletedTask;
+            }
+
             if (httpContext.Request.Path.Value.StartsWith("/admin/"))
             {
                 if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))

@@ -18,6 +18,8 @@ namespace Lampac
 {
     public class AppInit : Shared.Model.AppInit
     {
+        static AppInit() { LoadModules(); }
+
         #region conf
         static (AppInit, DateTime) cacheconf = default;
 
@@ -98,11 +100,11 @@ namespace Lampac
         #endregion
 
         #region modules
-        public static List<RootModule> modules;
+        public static List<RootModule> modules = null;
 
-        static AppInit()
+        public static void LoadModules()
         {
-            if (File.Exists("module/manifest.json"))
+            if (File.Exists("module/manifest.json") && modules == null)
             {
                 var jss = new JsonSerializerSettings { Error = (se, ev) => 
                 { 
