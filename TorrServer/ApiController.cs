@@ -189,7 +189,7 @@ namespace Lampac.Controllers
                 var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
                 var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted);
 
-                await CopyProxyHttpResponse(HttpContext, response).ConfigureAwait(false);
+                await CopyProxyHttpResponse(HttpContext, response);
             }
             #endregion
         }
@@ -209,6 +209,7 @@ namespace Lampac.Controllers
                         ModInit.tsprocess = new System.Diagnostics.Process();
                         ModInit.tsprocess.StartInfo.UseShellExecute = false;
                         ModInit.tsprocess.StartInfo.RedirectStandardOutput = true;
+                        ModInit.tsprocess.StartInfo.RedirectStandardError = true;
                         ModInit.tsprocess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
                         ModInit.tsprocess.StartInfo.FileName = ModInit.tspath;
                         ModInit.tsprocess.StartInfo.Arguments = $"--httpauth -p {ModInit.tsport} -d {ModInit.homedir}";
@@ -255,7 +256,7 @@ namespace Lampac.Controllers
                                     if (!requestJson.Contains("\"action\""))
                                         requestJson = "{\"action\":\"set\",\"sets\":" + Regex.Replace(requestJson, "[\n\r\t ]+", "") + "}";
 
-                                    await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+                                    await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                                 }
                             }
                         }
@@ -339,6 +340,7 @@ namespace Lampac.Controllers
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
 
+            requestMessage.Headers.ConnectionClose = false;
             requestMessage.Headers.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
             requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listenhost) ? context.Request.Host.Value : AppInit.conf.listenhost;
             requestMessage.RequestUri = uri;
@@ -377,53 +379,37 @@ namespace Lampac.Controllers
 
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
             {
-                await CopyToAsyncInternal(response.Body, responseStream, context.RequestAborted).ConfigureAwait(false);
-                //await responseStream.CopyToAsync(response.Body, context.RequestAborted);
-            }
-        }
-        #endregion
+                if (response.Body == null)
+                    throw new ArgumentNullException("destination");
 
-        #region CopyToAsyncInternal
-        async Task CopyToAsyncInternal(Stream destination, Stream responseStream, CancellationToken cancellationToken)
-        {
-            if (destination == null)
-                throw new ArgumentNullException("destination");
+                if (!responseStream.CanRead && !responseStream.CanWrite)
+                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
 
-            if (!responseStream.CanRead && !responseStream.CanWrite)
-                throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+                if (!response.Body.CanRead && !response.Body.CanWrite)
+                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
 
-            if (!destination.CanRead && !destination.CanWrite)
-                throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+                if (!responseStream.CanRead)
+                    throw new NotSupportedException("NotSupported_UnreadableStream");
 
-            if (!responseStream.CanRead)
-                throw new NotSupportedException("NotSupported_UnreadableStream");
+                if (!response.Body.CanWrite)
+                    throw new NotSupportedException("NotSupported_UnwritableStream");
 
-            if (!destination.CanWrite)
-                throw new NotSupportedException("NotSupported_UnwritableStream");
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-            try
-            {
-                int bytesRead;
-                while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
+                try
                 {
-                    ModInit.lastActve = DateTime.Now;
-                    await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+                    int bytesRead;
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                    {
+                        ModInit.lastActve = DateTime.Now;
+                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-
-            //byte[] buffer = new byte[81920];
-            //int bytesRead;
-            //while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
-            //{
-            //    await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-            //    ModInit.lastActve = DateTime.Now;
-            //}
         }
         #endregion
     }

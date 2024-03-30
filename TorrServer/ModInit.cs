@@ -1,5 +1,6 @@
 ﻿using Lampac.Engine.CORE;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,45 +55,69 @@ namespace TorrServer
 
             ThreadPool.QueueUserWorkItem(async _ => 
             {
-                if (!File.Exists(tspath))
+                while (true)
                 {
+                    #region update/install TorrServer
                     try
                     {
-                        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                        if (conf.updatets)
                         {
-                            await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-windows-amd64.exe", tspath);
-                        }
-                        else
-                        {
-                            string sh = File.ReadAllText($"{homedir}/installTorrServerLinux.sh");
-                            if (sh.Contains("dirInstall=\"\""))
+                            if (File.Exists($"{homedir}/tagname"))
                             {
-                                sh = Regex.Replace(sh, "dirInstall=\"\"", $"dirInstall=\"{homedir}\"");
-                                File.WriteAllText($"{homedir}/installTorrServerLinux.sh", sh);
-                            }
+                                var root = await HttpClient.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
+                                if (root != null && root.ContainsKey("tag_name"))
+                                {
+                                    string tagname = root.Value<string>("tag_name");
+                                    if (tagname != File.ReadAllText($"{homedir}/tagname"))
+                                    {
+                                        if (File.Exists(tspath))
+                                            File.Delete(tspath);
 
-                            var process = new System.Diagnostics.Process();
-                            process.StartInfo.UseShellExecute = false;
-                            process.StartInfo.RedirectStandardOutput = true;
-                            process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                            process.StartInfo.FileName = "bash";
-                            process.StartInfo.Arguments = $"{homedir}/installTorrServerLinux.sh";
-                            process.Start();
-                            await process.WaitForExitAsync();
+                                        File.WriteAllText($"{homedir}/tagname", tagname);
+                                    }
+                                }
+                            }
+                            else if (File.Exists(tspath))
+                                File.Delete(tspath);
+                        }
+
+                        if (!File.Exists(tspath))
+                        {
+                            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                            {
+                                await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-windows-amd64.exe", tspath);
+                            }
+                            else
+                            {
+                                string sh = File.ReadAllText($"{homedir}/installTorrServerLinux.sh");
+                                if (sh.Contains("dirInstall=\"\""))
+                                {
+                                    sh = Regex.Replace(sh, "dirInstall=\"\"", $"dirInstall=\"{homedir}\"");
+                                    File.WriteAllText($"{homedir}/installTorrServerLinux.sh", sh);
+                                }
+
+                                var process = new System.Diagnostics.Process();
+                                process.StartInfo.UseShellExecute = false;
+                                process.StartInfo.RedirectStandardOutput = true;
+                                process.StartInfo.RedirectStandardError = true;
+                                process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+                                process.StartInfo.FileName = "bash";
+                                process.StartInfo.Arguments = $"{homedir}/installTorrServerLinux.sh";
+                                process.Start();
+                                await process.WaitForExitAsync();
+                            }
                         }
                     }
                     catch { }
-                }
+                    #endregion
 
-                while (true)
-                {
                     await Task.Delay(TimeSpan.FromMinutes(2));
                     if (lastActve == default || conf.disposeTime == -1)
                         continue;
 
                     try
                     {
-                        if (lastActve > DateTime.Now.AddMinutes(-conf.disposeTime))
+                        if (DateTime.Now.AddMinutes(-conf.disposeTime) > lastActve)
                             continue;
 
                         tsprocess?.Dispose();
@@ -117,7 +142,7 @@ namespace TorrServer
 
         public bool rdb { get; set; } = true;
 
-        public int disposeTime { get; set; } = -1;
+        public int disposeTime { get; set; } = 40;
 
         public string defaultPasswd { get; set; } = "ts";
 
