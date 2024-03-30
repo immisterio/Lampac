@@ -149,7 +149,7 @@ namespace Lampac
             if (AppInit.conf.multiaccess)
             {
                 ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-                ThreadPool.SetMinThreads(Math.Max(400, workerThreads), Math.Max(100, completionPortThreads));
+                ThreadPool.SetMinThreads(Math.Max(100, workerThreads), Math.Max(20, completionPortThreads));
             }
 
             app.UseDeveloperExceptionPage();
