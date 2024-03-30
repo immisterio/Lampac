@@ -19,7 +19,7 @@ namespace JinEnergy.Engine
                     hed += $"'{h.name}':'{h.val}',";
             }
 
-            return "headers:{" + Regex.Replace(hed, ",$", "") + "}";
+            return Regex.Replace(hed, ",$", "");
         }
         #endregion
 
@@ -60,15 +60,12 @@ namespace JinEnergy.Engine
             try
             {
                 if (androidHttpReq && AppInit.IsAndrod && AppInit.JSRuntime != null)
-                {
-                    string h = $"dataType: 'text', timeout: {timeoutSeconds * 1000}, {headers(addHeaders)}";
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('"+url+"',false,{"+h+"})");
-                }
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, false, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = headers(addHeaders) });
 
                 using (var client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 10_000_000; // 10MB
+                    client.MaxResponseContentBufferSize = 3_000_000; // 3MB
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {
@@ -120,18 +117,13 @@ namespace JinEnergy.Engine
         {
             try
             {
-                if (AppInit.IsAndrod)
-                {
-                    if (AppInit.JSRuntime == null)
-                        return default;
-
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("eval", "httpReq('" + url + "','" + data.ReadAsStringAsync().Result + "',{dataType: 'text', "+ headers(addHeaders) + "})");
-                }
+                if (AppInit.IsAndrod && AppInit.JSRuntime != null)
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, data.ReadAsStringAsync().Result, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = headers(addHeaders) });
 
                 using (var client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 4_000_000; // 4MB
+                    client.MaxResponseContentBufferSize = 3_000_000; // 3MB
 
                     using (HttpResponseMessage response = await client.PostAsync(url, data))
                     {
