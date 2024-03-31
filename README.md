@@ -40,7 +40,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 2. Настройки Jackett в module/JacRed.conf (пример JacRed.example.conf)
 
 # Источники 
-* Filmix, Kinobase, Rezka, Voidboost, VideoCDN, VideoDB, Collaps, HDVB, Zetflix (VideoDB), Kodik, Ashdi (UKR), Eneyida (UKR), Kinotochka, Kinoprofi, LostfilmHD, IframeVideo, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Alloha, Seasonvar, KinoPub, VoKino
+* Filmix, Kinobase, Rezka, Voidboost, VideoCDN, VDBmovies, Collaps, HDVB, Zetflix, Kodik, Ashdi (UKR), Eneyida (UKR), KinoUKR (UKR), Kinotochka, Kinoprofi, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Alloha, KinoPub, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (UKR), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 

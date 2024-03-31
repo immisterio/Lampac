@@ -66,7 +66,7 @@ namespace Lampac.Engine.Middlewares
                     return _next(httpContext);
 
                 if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, jacpattern) && 
-                    !Regex.IsMatch(httpContext.Request.Path.Value, "^/admin/|((ts|ws|headers|myip|version)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                    !Regex.IsMatch(httpContext.Request.Path.Value, "^/((ts|ws|headers|myip|version)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
                     HashSet<string> ips = null;
