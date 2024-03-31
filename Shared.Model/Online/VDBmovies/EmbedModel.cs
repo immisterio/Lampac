@@ -5,5 +5,7 @@
         public List<Episode> movies { get; set; }
 
         public List<Lampac.Models.LITE.CDNmovies.Voice> serial { get; set; }
+
+        public string quality { get; set; }
     }
 }

@@ -295,10 +295,12 @@ namespace Lampac.Controllers
             send("Rezka", conf.Rezka);
 
             if (kinopoisk_id > 0)
+            {
                 send("Zetflix", conf.Zetflix);
+                send("VDBmovies", conf.VDBmovies, "vdbmovies");
+            }
 
             send("VideoCDN", conf.VCDN, "vcdn");
-
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
@@ -456,6 +458,7 @@ namespace Lampac.Controllers
                         case "iframevideo":
                         case "animego":
                         case "lostfilmhd":
+                        case "vdbmovies":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":
