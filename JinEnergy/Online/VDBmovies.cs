@@ -1,5 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
+using Shared.Model.Online;
 using Shared.Model.Online.VDBmovies;
 using Shared.Model.Templates;
 using System.Text;
@@ -26,7 +27,7 @@ namespace JinEnergy.Online
             #region embed
             EmbedModel? embed = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.kinopoisk_id}", async () =>
             {
-                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe");
+                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", HeadersModel.Init("Referer", "https://cdnmovies.net/"));
 
                 string file = Regex.Match(html ?? "", "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
