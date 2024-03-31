@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
 
             using (var browser = await PuppeteerTo.Browser())
             {
-                var page = cookies != null ? await browser.Page("videodb", cookies) : await browser.Page("videodb", new Dictionary<string, string>()
+                var page = cookies != null ? await browser.Page(cookies) : await browser.Page(new Dictionary<string, string>()
                 {
                     ["cookie"] = "invite=a246a3f46c82fe439a45c3dbbbb24ad5;"
                 });

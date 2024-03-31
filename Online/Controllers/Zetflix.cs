@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using PuppeteerSharp;
 using Shared.Engine;
 using System;
+using System.Threading;
 
 namespace Lampac.Controllers.LITE
 {
@@ -31,7 +32,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                MaybeInHls(init.hls, init),
                (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix")
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix", proxy : proxy)
                //AppInit.log
             );
 
@@ -64,7 +65,7 @@ namespace Lampac.Controllers.LITE
 
             using (var browser = await PuppeteerTo.Browser())
             {
-                var page = await browser.Page("zetflix", cookies, new Dictionary<string, string>()
+                var page = await browser.Page(cookies, new Dictionary<string, string>()
                 {
                     ["Referer"] = "https://www.google.com/"
                 });
@@ -72,30 +73,42 @@ namespace Lampac.Controllers.LITE
                 if (page == null)
                     return null;
 
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
 
-                var response = await page.GoToAsync($"view-source:{uri}");
-                string html = await response.TextAsync();
+                try
+                {
+                    return await Task.Run(async () =>
+                    {
+                        var response = await page.GoToAsync($"view-source:{uri}");
+                        string html = await response.TextAsync();
 
-                if (html.StartsWith("<script>(function(){"))
+                        if (html.StartsWith("<script>(function(){"))
+                        {
+                            cookies = null;
+                            await page.DeleteCookieAsync();
+                            await page.GoToAsync(uri);
+
+                            response = await page.GoToAsync($"view-source:{uri}");
+                            html = await response.TextAsync();
+                        }
+
+                        if (!html.Contains("new Playerjs"))
+                            return null;
+
+                        if (cookies == null)
+                            excookies = DateTime.Now.AddMinutes(10);
+
+                        cookies = await page.GetCookiesAsync();
+                        return html;
+
+                    }, cts.Token);
+                }
+                catch 
                 {
                     cookies = null;
-                    await page.DeleteCookieAsync();
-                    await page.GoToAsync(uri);
-
-                    response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
-                }
-
-                if (!html.Contains("new Playerjs"))
                     return null;
-
-                if (cookies == null)
-                    excookies = DateTime.Now.AddMinutes(15);
-
-                cookies = await page.GetCookiesAsync();
-
-                return html;
+                }
             }
         }
     }

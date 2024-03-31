@@ -100,11 +100,13 @@ namespace Lampac
         #endregion
 
         #region modules
-        public static List<RootModule> modules = null;
+        public static List<RootModule> modules;
 
         public static void LoadModules()
         {
-            if (File.Exists("module/manifest.json") && modules == null)
+            modules = null;
+
+            if (File.Exists("module/manifest.json"))
             {
                 var jss = new JsonSerializerSettings { Error = (se, ev) => 
                 { 
@@ -162,7 +164,7 @@ namespace Lampac
 
         public bool pirate_store = true;
 
-        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true };
+        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
 
         public string apikey = null;
 

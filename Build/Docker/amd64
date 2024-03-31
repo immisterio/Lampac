@@ -9,6 +9,6 @@ RUN apt update && apt install -y wget unzip ffmpeg nano && \
 	touch isdocker
 
 RUN apt-get install -y chromium
-RUN echo '{"puppeteer": {"executablePath": "/usr/bin/chromium"}}' > /home/init.conf
+RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}}' > /home/init.conf
 
 ENTRYPOINT ["dotnet", "Lampac.dll"]

@@ -111,7 +111,14 @@ namespace Lampac.Controllers.LITE
 
             string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
 
-            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
+            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), async () => 
+            {
+                var res = await oninvk.Movie(t, s, e);
+                await Task.Delay(1200); // ссылка не сразу доступна
+                return res;
+
+            }, proxyManager);
+
             if (md == null)
                 return OnError(proxyManager);
 

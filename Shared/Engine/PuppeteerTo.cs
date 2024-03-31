@@ -3,8 +3,8 @@ using PuppeteerSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Shared.Engine
@@ -14,18 +14,42 @@ namespace Shared.Engine
         #region static
         static IBrowser browser_keepopen = null;
 
+        static DateTime exLifetime = default;
+
         static bool isdev = File.Exists(@"C:\ProgramData\lampac\disablesync");
 
         public static bool IsKeepOpen => AppInit.conf.multiaccess || AppInit.conf.puppeteer.keepopen;
 
-        static List<string> tabs = new List<string>();
+        static PuppeteerTo()
+        {
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(5));
+
+                    try
+                    {
+                        if (!IsKeepOpen || exLifetime == default || browser_keepopen == null)
+                            continue;
+
+                        if (DateTime.Now > exLifetime)
+                            await browser_keepopen.CloseAsync();
+                    }
+                    catch { }
+                }
+            });
+        }
 
         public static void LaunchKeepOpen()
         {
             browser_keepopen = Launch()?.Result;
 
             if (browser_keepopen != null)
+            {
+                exLifetime = DateTime.Now.AddMinutes(20);
                 browser_keepopen.Closed += Browser_keepopen_Closed;
+            }
         }
 
         async private static void Browser_keepopen_Closed(object sender, EventArgs e)
@@ -35,7 +59,10 @@ namespace Shared.Engine
             browser_keepopen = await Launch();
 
             if (browser_keepopen != null)
+            {
+                exLifetime = DateTime.Now.AddMinutes(20);
                 browser_keepopen.Closed += Browser_keepopen_Closed;
+            }
         }
 
         async public static ValueTask<PuppeteerTo> Browser()
@@ -72,45 +99,35 @@ namespace Shared.Engine
         }
         #endregion
 
+
         IBrowser browser;
 
-        int tabIndex = 0;
+        IPage page;
 
         public PuppeteerTo(IBrowser browser)
         {
             this.browser = browser; 
         }
 
-        public ValueTask<IPage> Page(string plugin, Dictionary<string, string> headers = null)
+        public ValueTask<IPage> Page(Dictionary<string, string> headers = null)
         {
-            return Page(plugin, null, headers);
+            return Page(null, headers);
         }
 
-        async public ValueTask<IPage> Page(string plugin, CookieParam[] cookies, Dictionary<string, string> headers = null)
+        async public ValueTask<IPage> Page(CookieParam[] cookies, Dictionary<string, string> headers = null)
         {
             try
             {
                 if (browser == null)
                     return null;
 
-                if (IsKeepOpen)
-                {
-                    if (!tabs.Contains(plugin))
-                    {
-                        tabs.Add(plugin);
-                        await browser.NewPageAsync();
-                    }
-
-                    tabIndex = tabs.IndexOf(plugin);
-                }
-
-                var page = (await browser.PagesAsync())[tabIndex];
-
-                if (headers != null && headers.Count > 0)
-                    await page.SetExtraHttpHeadersAsync(headers);
+                page = IsKeepOpen ? await browser.NewPageAsync() : (await browser.PagesAsync())[0];
 
                 await page.SetCacheEnabledAsync(IsKeepOpen);
                 await page.DeleteCookieAsync();
+
+                if (headers != null && headers.Count > 0)
+                    await page.SetExtraHttpHeadersAsync(headers);
 
                 if (cookies != null)
                     await page.SetCookieAsync(cookies);
@@ -142,17 +159,14 @@ namespace Shared.Engine
             try
             {
                 if (!IsKeepOpen)
-                    browser?.Dispose();
+                {
+                    browser.CloseAsync().Wait();
+                    browser.Dispose();
+                }
                 else
                 {
-                    var pages = browser.PagesAsync().Result;
-
-                    foreach (var pg in pages.Skip(tabs.Count))
-                        pg.CloseAsync();
-
-                    var page = pages[tabIndex];
-                    page.GoToAsync("about:blank");
                     page.Request -= Page_Request;
+                    page.CloseAsync();
                 }
             }
             catch { }

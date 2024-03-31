@@ -17,6 +17,6 @@ unzip -o publish.zip && rm -f publish.zip
 
 touch isdocker
 
-echo '{"puppeteer": {"executablePath": "/usr/bin/chromium"}, "isarm": true, "mikrotik":true, "serverproxy": {"verifyip":false}}' > /home/init.conf
+echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}, "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
 
 dotnet Lampac.dll
