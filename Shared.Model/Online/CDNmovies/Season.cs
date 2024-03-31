@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.CDNmovies
+﻿namespace Lampac.Models.LITE.CDNmovies
 {
     public class Season
     {

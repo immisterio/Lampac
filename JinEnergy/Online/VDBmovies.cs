@@ -29,11 +29,11 @@ namespace JinEnergy.Online
             {
                 AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
 
-                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", HeadersModel.Init(
+                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", androidHttpReq: false/*, HeadersModel.Init(
                     ("Origin", "https://cdnmovies.net"),
                     ("Referer", "https://cdnmovies.net/"),
                     ("User-Agent", "Mozilla/5.0 (Linux; Android 10; K; client) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.178 Mobile Safari/537.36")
-                ));
+                )*/);
 
                 AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
 

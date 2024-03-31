@@ -1,7 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -152,15 +151,14 @@ namespace JinEnergy.Online
                 send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
             send("Rezka - 4K", "rezka", AppInit.Rezka);
-            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
 
             if (arg.kinopoisk_id > 0)
             {
-                //send("VideoDB - 1080p", "videodb", AppInit.VideoDB);
+                send("VideoDB - 1080p", "videodb", AppInit.VideoDB);
                 send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
-                send("VDBmovies - 720p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
             }
 
+            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
@@ -191,6 +189,9 @@ namespace JinEnergy.Online
 
             if (!titleSearch)
                 send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
+
+            if (arg.kinopoisk_id > 0)
+                send("VDBmovies - 720p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
