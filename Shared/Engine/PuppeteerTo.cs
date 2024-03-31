@@ -167,6 +167,7 @@ namespace Shared.Engine
                 {
                     page.Request -= Page_Request;
                     page.CloseAsync();
+                    page.Dispose();
                 }
             }
             catch { }
