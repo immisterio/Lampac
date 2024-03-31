@@ -1,6 +1,5 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
-using Shared.Model.Online;
 using Shared.Model.Online.VDBmovies;
 using Shared.Model.Templates;
 using System.Text;
@@ -18,35 +17,16 @@ namespace JinEnergy.Online
             var init = AppInit.VDBmovies.Clone();
 
             var arg = defaultArgs(args);
-            int serial = int.Parse(parse_arg("serial", args) ?? "-1");
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             int sid = int.Parse(parse_arg("sid", args) ?? "-1");
 
-            if (serial == -1 || (string.IsNullOrEmpty(arg.imdb_id) && arg.kinopoisk_id == 0))
+            if (arg.kinopoisk_id == 0)
                 return EmptyError("arg");
 
-            #region iframe_src
-            //string? iframe_src = await InvokeCache(arg.id, $"cdnmoviesdb:iframe_src:{arg.imdb_id}:{arg.kinopoisk_id}", async () => 
-            //{
-            //    string uri = $"{AppInit.VDBmovies.corsHost()}/api/short?token={AppInit.VDBmovies.token}&kinopoisk_id={arg.kinopoisk_id}&imdb_id={arg.imdb_id}";
-            //    var root = await JsHttpClient.Get<RootObject>(uri);
-            //    if (root?.data == null || root.data.Count == 0)
-            //        return null;
-
-            //    return root.data.First().Value?.iframe_src;
-            //});
-
-            //if (string.IsNullOrEmpty(iframe_src))
-            //    return OnError("iframe_src");
-            #endregion
-
             #region embed
-            EmbedModel? embed = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.imdb_id}:{arg.kinopoisk_id}", async () =>
+            EmbedModel? embed = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.kinopoisk_id}", async () =>
             {
-                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", httpHeaders(args, init, HeadersModel.Init(
-                    ("Origin", "https://cdnmovies.net"),
-                    ("Referer", "https://cdnmovies.net/")
-                )));
+                string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe");
 
                 string file = Regex.Match(html ?? "", "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
@@ -86,21 +66,21 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(json))
                         return null;
 
-                    if (serial == 0)
-                    {
-                        var movies = JsonSerializer.Deserialize<List<Episode>>(json);
-                        if (movies == null || movies.Count == 0)
-                            return null;
-
-                        return new EmbedModel() { movies = movies };
-                    }
-                    else
+                    if (json.Contains("\"folder\""))
                     {
                         var serial = JsonSerializer.Deserialize<List<Lampac.Models.LITE.CDNmovies.Voice>>(json);
                         if (serial == null || serial.Count == 0)
                             return null;
 
                         return new EmbedModel() { serial = serial };
+                    }
+                    else
+                    {
+                        var movies = JsonSerializer.Deserialize<List<Episode>>(json);
+                        if (movies == null || movies.Count == 0)
+                            return null;
+
+                        return new EmbedModel() { movies = movies };
                     }
                 }
                 catch
@@ -141,9 +121,9 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(m.file))
                         continue;
 
-                    string file = Regex.Matches(m.file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
-                    file = file.Replace("sundb.coldcdn.xyz", "sundb.nl");
-                    //file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
+                    string file = Regex.Matches(m.file, "\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
+                    //file = file.Replace("sundb.coldcdn.xyz", "sundb.nl");
+                    file = file.Replace(":hls:manifest.m3u8", "");
 
                     if (string.IsNullOrEmpty(file))
                         continue;
@@ -183,9 +163,9 @@ namespace JinEnergy.Online
                     {
                         string episode = Regex.Match(item.title, "^([0-9]+)").Groups[1].Value;
 
-                        string file = Regex.Matches(item.folder[0].file, "(https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
-                        file = file.Replace("sundb.coldcdn.xyz", "sundb.nl");
-                        //file = Regex.Replace(file, "/[^/]+$", "/hls.m3u8");
+                        string file = Regex.Matches(item.folder[0].file, "\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Reverse().First().Groups[1].Value;
+                        //file = file.Replace("sundb.coldcdn.xyz", "sundb.nl");
+                        file = file.Replace(":hls:manifest.m3u8", "");
 
                         html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{arg.title ?? arg.original_title} ({episode} cерия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} cерия" + "</div></div>");
                         firstjson = false;
