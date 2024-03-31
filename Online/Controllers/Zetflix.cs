@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using PuppeteerSharp;
 using Shared.Engine;
 using System;
-using System.Threading;
 
 namespace Lampac.Controllers.LITE
 {
@@ -73,42 +72,29 @@ namespace Lampac.Controllers.LITE
                 if (page == null)
                     return null;
 
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
 
-                try
-                {
-                    return await Task.Run(async () =>
-                    {
-                        var response = await page.GoToAsync($"view-source:{uri}");
-                        string html = await response.TextAsync();
+                var response = await page.GoToAsync($"view-source:{uri}");
+                string html = await response.TextAsync();
 
-                        if (html.StartsWith("<script>(function(){"))
-                        {
-                            cookies = null;
-                            await page.DeleteCookieAsync();
-                            await page.GoToAsync(uri);
-
-                            response = await page.GoToAsync($"view-source:{uri}");
-                            html = await response.TextAsync();
-                        }
-
-                        if (!html.Contains("new Playerjs"))
-                            return null;
-
-                        if (cookies == null)
-                            excookies = DateTime.Now.AddMinutes(10);
-
-                        cookies = await page.GetCookiesAsync();
-                        return html;
-
-                    }, cts.Token);
-                }
-                catch 
+                if (html.StartsWith("<script>(function(){"))
                 {
                     cookies = null;
-                    return null;
+                    await page.DeleteCookieAsync();
+                    await page.GoToAsync(uri);
+
+                    response = await page.GoToAsync($"view-source:{uri}");
+                    html = await response.TextAsync();
                 }
+
+                if (!html.Contains("new Playerjs"))
+                    return null;
+
+                if (cookies == null)
+                    excookies = DateTime.Now.AddMinutes(10);
+
+                cookies = await page.GetCookiesAsync();
+                return html;
             }
         }
     }
