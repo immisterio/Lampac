@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using PuppeteerSharp;
 using Shared.Engine;
 using System;
+using System.Linq;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -37,7 +39,50 @@ namespace Lampac.Controllers.LITE
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(120), () => black_magic(kinopoisk_id, rs));
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(40), async () => 
+            {
+                if (!AppInit.conf.multiaccess)
+                    return await black_magic(kinopoisk_id, rs);
+
+                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+
+                string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                if (html != null && !html.StartsWith("<script>(function"))
+                {
+                    if (!html.Contains("new Playerjs"))
+                        return null;
+
+                    return html;
+                }
+
+                using (var browser = await PuppeteerTo.Browser())
+                {
+                    var page = await browser.Page(cookies, new Dictionary<string, string>()
+                    {
+                        ["Referer"] = "https://www.google.com/"
+                    });
+
+                    if (page == null)
+                        return null;
+
+                    await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+
+                    var response = await page.GoToAsync($"view-source:{uri}");
+                    html = await response.TextAsync();
+
+                    if (html.StartsWith("<script>(function"))
+                        return null;
+
+                    var cook = await page.GetCookiesAsync();
+                    PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+
+                    if (!html.Contains("new Playerjs"))
+                        return null;
+
+                    return html;
+                }
+            });
+
             if (html == null)
                 return OnError();
 
@@ -47,11 +92,13 @@ namespace Lampac.Controllers.LITE
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)
-                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(60), () => oninvk.number_of_seasons(id));
+                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(120), () => oninvk.number_of_seasons(id));
 
             return Content(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }
 
+
+        static string PHPSESSID = null;
 
         static CookieParam[] cookies = null;
 
@@ -81,19 +128,23 @@ namespace Lampac.Controllers.LITE
                 {
                     cookies = null;
                     await page.DeleteCookieAsync();
-                    await page.GoToAsync(uri);
+                    await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
 
                     response = await page.GoToAsync($"view-source:{uri}");
                     html = await response.TextAsync();
                 }
 
-                if (!html.Contains("new Playerjs"))
+                if (html.StartsWith("<script>(function"))
                     return null;
 
                 if (cookies == null)
                     excookies = DateTime.Now.AddMinutes(10);
 
                 cookies = await page.GetCookiesAsync();
+
+                if (!html.Contains("new Playerjs"))
+                    return null;
+
                 return html;
             }
         }

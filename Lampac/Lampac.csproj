@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <!--<RuntimeHostConfigurationOption Include="System.GC.HeapCount" Value="50" />-->
-    <RuntimeHostConfigurationOption Include="System.GC.HeapHardLimit" Value="800000000" />
+    <!--<RuntimeHostConfigurationOption Include="System.GC.HeapHardLimit" Value="800000000" />-->
   </ItemGroup>
   
    <PropertyGroup>

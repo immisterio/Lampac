@@ -180,6 +180,12 @@ namespace Lampac.Controllers
                 NullValueHandling = NullValueHandling.Ignore
             }), contentType: "application/json; charset=utf-8");
         }
+
+        [Route("admin/init/example")]
+        public ActionResult InitExample()
+        {
+            return Content(IO.File.Exists("example.conf") ? IO.File.ReadAllText("example.conf") : string.Empty);
+        }
         #endregion
 
         #region manifest

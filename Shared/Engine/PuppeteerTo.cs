@@ -26,7 +26,7 @@ namespace Shared.Engine
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(5));
+                    await Task.Delay(TimeSpan.FromMinutes(1));
 
                     try
                     {
@@ -34,7 +34,7 @@ namespace Shared.Engine
                             continue;
 
                         if (DateTime.Now > exLifetime)
-                            await browser_keepopen.CloseAsync();
+                            await browser_keepopen.DisposeAsync();
                     }
                     catch { }
                 }
@@ -47,7 +47,7 @@ namespace Shared.Engine
 
             if (browser_keepopen != null)
             {
-                exLifetime = DateTime.Now.AddMinutes(20);
+                exLifetime = DateTime.Now.AddMinutes(15);
                 browser_keepopen.Closed += Browser_keepopen_Closed;
             }
         }
@@ -55,12 +55,12 @@ namespace Shared.Engine
         async private static void Browser_keepopen_Closed(object sender, EventArgs e)
         {
             browser_keepopen.Closed -= Browser_keepopen_Closed;
-            await Task.Delay(10_000);
+            await Task.Delay(2_000);
             browser_keepopen = await Launch();
 
             if (browser_keepopen != null)
             {
-                exLifetime = DateTime.Now.AddMinutes(20);
+                exLifetime = DateTime.Now.AddMinutes(15);
                 browser_keepopen.Closed += Browser_keepopen_Closed;
             }
         }
@@ -83,7 +83,7 @@ namespace Shared.Engine
                     Devtools = isdev,
                     IgnoreHTTPSErrors = true,
                     Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
-                    Timeout = 15_000
+                    Timeout = 12_000
                 };
 
                 if (!string.IsNullOrEmpty(AppInit.conf.puppeteer.executablePath))

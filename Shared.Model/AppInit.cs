@@ -77,7 +77,7 @@ namespace Shared.Model
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online", streamproxy: true/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
 
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", streamproxy: true);
