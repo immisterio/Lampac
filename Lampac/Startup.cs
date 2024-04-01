@@ -114,15 +114,18 @@ namespace Lampac
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
-            HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
             HttpClient.httpClientFactory = httpClientFactory;
+            bool manifestload = File.Exists("module/manifest.json");
+
+            if (manifestload)
+                HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
 
             if (!File.Exists("passwd"))
                 File.WriteAllText("passwd", Guid.NewGuid().ToString());
 
             try
             {
-                if (AppInit.conf.puppeteer.enable)
+                if (manifestload && AppInit.conf.puppeteer.enable)
                 {
                     _ = Task.Run(async () =>
                     {
@@ -140,16 +143,19 @@ namespace Lampac
             }
             catch { }
 
-            Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+            if (manifestload)
             {
-                //DefaultValueHandling = DefaultValueHandling.Ignore,
-                NullValueHandling = NullValueHandling.Ignore
-            }));
+                Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+                {
+                    //DefaultValueHandling = DefaultValueHandling.Ignore,
+                    NullValueHandling = NullValueHandling.Ignore
+                }));
 
-            if (AppInit.conf.multiaccess)
-            {
-                ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-                ThreadPool.SetMinThreads(Math.Max(100, workerThreads), Math.Max(20, completionPortThreads));
+                if (AppInit.conf.multiaccess)
+                {
+                    ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+                    ThreadPool.SetMinThreads(Math.Max(100, workerThreads), Math.Max(20, completionPortThreads));
+                }
             }
 
             app.UseDeveloperExceptionPage();

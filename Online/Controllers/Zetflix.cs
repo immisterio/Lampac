@@ -41,10 +41,10 @@ namespace Lampac.Controllers.LITE
 
             string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(40), async () => 
             {
-                if (!AppInit.conf.multiaccess)
-                    return await black_magic(kinopoisk_id, rs);
-
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+
+                if (!AppInit.conf.multiaccess)
+                    return await black_magic(uri);
 
                 string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
                 if (html != null && !html.StartsWith("<script>(function"))
@@ -104,7 +104,7 @@ namespace Lampac.Controllers.LITE
 
         static DateTime excookies = default;
 
-        async ValueTask<string> black_magic(long kinopoisk_id, int s)
+        async ValueTask<string> black_magic(string uri)
         {
             if (cookies != null && DateTime.Now > excookies)
                 cookies = null;
@@ -118,8 +118,6 @@ namespace Lampac.Controllers.LITE
 
                 if (page == null)
                     return null;
-
-                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
 
                 var response = await page.GoToAsync($"view-source:{uri}");
                 string html = await response.TextAsync();
