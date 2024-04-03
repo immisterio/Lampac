@@ -11,6 +11,7 @@ using Chaos.NaCl;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Globalization;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -28,22 +29,20 @@ namespace Lampac.Controllers.LITE
                 return Content(string.Empty);
 
             email = decodeEmail(email);
+
+            if (memoryCache.TryGetValue($"streampay:{email}", out (string pay_url, string transid) cacheinvoce))
+            {
+                if (IO.Exists($"merchant/invoice/streampay/{cacheinvoce.transid}"))
+                    return Redirect(cacheinvoce.pay_url);
+            }
+
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
             IO.WriteAllText($"merchant/invoice/streampay/{transid}", email);
-
-            int userid = 0;
-
-            foreach (var u in AppInit.conf.accsdb.accounts)
-            {
-                userid++;
-                if (u.Key == email)
-                    break;
-            }
 
             var body = new
             {
                 init.store_id,
-                external_id = $"{transid}_{userid}",
+                external_id = $"{email}_{transid}",
                 description = $"Подписка на {AppInit.conf.Merchant.accessForMonths} {EndOfText("месяц", "месяца", "месяцев", AppInit.conf.Merchant.accessForMonths)}",
                 system_currency = "USDT",
                 payment_type = 2,
@@ -69,7 +68,10 @@ namespace Lampac.Controllers.LITE
                     string pay_url = Regex.Match(respData, "\"pay_url\":\"([^\"]+)\"").Groups[1].Value;
 
                     if (!string.IsNullOrEmpty(pay_url))
+                    {
+                        memoryCache.Set($"streampay:{email}", (pay_url, transid), DateTime.Now.AddHours(5));
                         return Redirect(pay_url);
+                    }
 
                     return Content(respData);
                 }
@@ -95,7 +97,7 @@ namespace Lampac.Controllers.LITE
         [Route("streampay/callback")]
         public ActionResult Callback()
         {
-            string external_id = Request.Query["external_id"].ToString().Split("_")[0];
+            string external_id = Request.Query["external_id"].ToString().Split("_")[1];
 
             var merchant = AppInit.conf.Merchant;
             if (!merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{external_id}") || Request.Query["status"] != "success")

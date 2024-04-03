@@ -18,6 +18,9 @@ namespace Lampac.Controllers.LITE
         {
             var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=");
 
+            if (token_request == null)
+                return Content($"нет доступа к {AppInit.conf.Filmix.corsHost()}", "text/html; charset=utf-8");
+
             string html = "1. Откройте <a href='https://filmix.biz/consoles'>https://filmix.biz/consoles</a> <br>";
             html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";
             html += $"<br><br>В init.conf<br>";
