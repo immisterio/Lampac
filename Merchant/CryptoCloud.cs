@@ -8,6 +8,8 @@ using Shared.Model.Online;
 using Merchant;
 using IO = System.IO.File;
 using System.IO;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -26,22 +28,29 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Merchant.CryptoCloud.enable || string.IsNullOrWhiteSpace(email))
                 return Content(string.Empty);
 
+            email = decodeEmail(email);
+
             Dictionary<string, string> postParams = new Dictionary<string, string>()
             {
                 ["amount"] = AppInit.conf.Merchant.accessCost.ToString(),
                 ["shop_id"] = AppInit.conf.Merchant.CryptoCloud.SHOPID,
                 //["currency"] = "USD",
                 //["order_id"] = CrypTo.md5(DateTime.Now.ToBinary().ToString()),
-                ["email"] = decodeEmail(email)
+                ["email"] = email
             };
+
+            if (memoryCache.TryGetValue($"cryptocloud:{email}", out string pay_url))
+                return Redirect(pay_url);
 
             var root = await HttpClient.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || !root.ContainsKey("pay_url"))
                 return Content("root == null");
 
-            string pay_url = root.Value<string>("pay_url");
+            pay_url = root.Value<string>("pay_url");
             if (string.IsNullOrWhiteSpace(pay_url))
                 return Content("pay_url == null");
+
+            memoryCache.Set($"cryptocloud:{email}", pay_url, DateTime.Now.AddHours(2));
 
             IO.WriteAllText($"merchant/invoice/cryptocloud/{root.Value<string>("invoice_id")}", JsonConvert.SerializeObject(postParams));
 

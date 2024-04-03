@@ -30,11 +30,8 @@ namespace Lampac.Controllers.LITE
 
             email = decodeEmail(email);
 
-            if (memoryCache.TryGetValue($"streampay:{email}", out (string pay_url, string transid) cacheinvoce))
-            {
-                if (IO.Exists($"merchant/invoice/streampay/{cacheinvoce.transid}"))
-                    return Redirect(cacheinvoce.pay_url);
-            }
+            if (memoryCache.TryGetValue($"streampay:{email}", out string pay_link))
+                return Redirect(pay_link);
 
             string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
             IO.WriteAllText($"merchant/invoice/streampay/{transid}", email);
@@ -69,7 +66,7 @@ namespace Lampac.Controllers.LITE
 
                     if (!string.IsNullOrEmpty(pay_url))
                     {
-                        memoryCache.Set($"streampay:{email}", (pay_url, transid), DateTime.Now.AddHours(5));
+                        memoryCache.Set($"streampay:{email}", pay_url, DateTime.Now.AddHours(2));
                         return Redirect(pay_url);
                     }
 
