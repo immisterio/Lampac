@@ -167,7 +167,7 @@ namespace Lampac.Controllers
                     }
                     else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
-                        IO.File.WriteAllText("torrserver/settings.json", requestJson);
+                        IO.File.WriteAllText("torrserver/settings.json", requestJson.Replace("action\":\"set\",\"sets", "BitTorr"));
 
                         client.Timeout = TimeSpan.FromSeconds(10);
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted).ConfigureAwait(false);
@@ -232,37 +232,6 @@ namespace Lampac.Controllers
                     ModInit.tsprocess = null;
                     return false;
                 }
-                #endregion
-
-                #region Обновляем настройки по умолчанию
-                try
-                {
-                    if (IO.File.Exists("torrserver/settings.json"))
-                    {
-                        using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
-                        {
-                            client.Timeout = TimeSpan.FromSeconds(10);
-                            client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
-
-                            var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
-                            string settingsJson = await response.Content.ReadAsStringAsync();
-
-                            if (!string.IsNullOrWhiteSpace(settingsJson))
-                            {
-                                string requestJson = IO.File.ReadAllText("torrserver/settings.json");
-
-                                if (requestJson != settingsJson)
-                                {
-                                    if (!requestJson.Contains("\"action\""))
-                                        requestJson = "{\"action\":\"set\",\"sets\":" + Regex.Replace(requestJson, "[\n\r\t ]+", "") + "}";
-
-                                    await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
-                                }
-                            }
-                        }
-                    }
-                }
-                catch { }
                 #endregion
             }
 

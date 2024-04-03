@@ -85,10 +85,10 @@ namespace Shared.Engine.Online
 
             result.quel = Regex.Match(news, "class=\"m-meta m-qual\">([^<]+)<").Groups[1].Value;
 
-            string iframeUri = Regex.Match(news, "<iframe width=\"560\" height=\"400\" src=\"(https?://tortuga.wtf/[^\"]+/[0-9]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.wtf/[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(iframeUri))
             {
-                iframeUri = Regex.Match(news, "<iframe width=\"560\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
+                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(iframeUri))
                     return null;
             }
@@ -137,7 +137,7 @@ namespace Shared.Engine.Online
 
                     foreach (var similar in result.similars)
                     {
-                        string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+                        string link = host + $"lite/kinoukr?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
                         stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
@@ -202,7 +202,7 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(numberseason)) 
                                     continue;
 
-                                string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
+                                string link = host + $"lite/kinoukr?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
 
                                 html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>");
                                 firstjson = false;
@@ -221,7 +221,7 @@ namespace Shared.Engine.Online
                             if (t == -1)
                                 t = i;
 
-                            string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
+                            string link = host + $"lite/kinoukr?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
 
                             html.Append("<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + result.serial[i].title + "</div>");
                         }

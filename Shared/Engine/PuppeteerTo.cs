@@ -26,7 +26,7 @@ namespace Shared.Engine
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromMinutes(2));
 
                     try
                     {
@@ -67,7 +67,10 @@ namespace Shared.Engine
 
         async public static ValueTask<PuppeteerTo> Browser()
         {
-            if (IsKeepOpen || browser_keepopen != null)
+            if (IsKeepOpen && browser_keepopen == null)
+                LaunchKeepOpen();
+
+            if (browser_keepopen != null)
                 return new PuppeteerTo(browser_keepopen);
 
             return new PuppeteerTo(await Launch());
@@ -140,6 +143,18 @@ namespace Shared.Engine
             catch { return null; }
         }
 
+        async public ValueTask<IPage> MainPage()
+        {
+            try
+            {
+                if (browser == null)
+                    return null;
+
+                return (await browser.PagesAsync())[0];
+            }
+            catch { return null; }
+        }
+
         private void Page_Request(object sender, RequestEventArgs e)
         {
             if (Regex.IsMatch(e.Request.Url, "\\.(ico|png|jpe?g|WEBP|svg|css|EOT|TTF|WOFF2?|OTF)", RegexOptions.IgnoreCase) || e.Request.Url.StartsWith("data:image"))
@@ -163,7 +178,7 @@ namespace Shared.Engine
                     browser.CloseAsync().Wait();
                     browser.Dispose();
                 }
-                else
+                else if (page != null)
                 {
                     page.Request -= Page_Request;
                     page.CloseAsync();

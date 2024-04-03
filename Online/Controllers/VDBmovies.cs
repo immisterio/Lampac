@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = await PuppeteerTo.Browser())
                     {
-                        var page = await browser.Page();
+                        var page = await browser.MainPage();
 
                         if (page == null)
                             return null;

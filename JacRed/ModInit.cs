@@ -34,6 +34,7 @@ namespace Jackett
                     }};
 
                     string json = File.ReadAllText("module/JacRed.conf");
+                    json = json.Replace("85.17.54.98", "62.112.8.193");
 
                     if (json.Contains("\"version\""))
                     {
