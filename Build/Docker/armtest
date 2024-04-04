@@ -3,8 +3,10 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm64v8
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt update && apt install -y wget unzip && \
-	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
+RUN apt-get update
+RUN apt-get install -y wget unzip
+
+RUN wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant && \
 	touch isdocker
 
