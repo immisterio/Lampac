@@ -10,9 +10,6 @@ jobs:
     runs-on: debian:stable-slim
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
