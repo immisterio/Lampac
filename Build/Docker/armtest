@@ -1,15 +1,15 @@
-FROM arm64v8/ubuntu:latest
+FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim-arm64v8
 
-RUN apt-get update && apt-get install -y \
-    nginx \
-    curl
+EXPOSE 9118
+WORKDIR /home
 
-COPY nginx.conf /etc/nginx/nginx.conf
+RUN apt update && apt install -y wget unzip && \
+	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
+	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant && \
+	touch isdocker
 
-WORKDIR /var/www/html
+RUN apt-get install -y chromium
 
-COPY index.html .
+RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}, "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
 
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["dotnet", "Lampac.dll"]
