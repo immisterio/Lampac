@@ -1,4 +1,4 @@
-FROM arm64v8/debian:stable-slim
+FROM arm64v8/ubuntu:24.04
 
 EXPOSE 9118
 WORKDIR /home
