@@ -1,10 +1,9 @@
-FROM arm64v8/debian:latest
+FROM arm64v8/debian:stable-slim
 
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update
-RUN apt-get install -y curl wget unzip
+RUN apt-get update && apt-get install -y --no-install-recommends curl wget unzip chromium
 
 RUN curl -fSL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/6.0.420/dotnet-sdk-6.0.420-linux-arm64.tar.gz \
     && mkdir -p /usr/share/dotnet \
@@ -16,8 +15,6 @@ RUN curl -fSL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/
 RUN wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
 	unzip -o publish.zip && rm -f publish.zip && rm -rf merchant && \
 	touch isdocker
-
-RUN apt-get install -y chromium
 
 RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}, "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
 
