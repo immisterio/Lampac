@@ -1,0 +1,23 @@
+name: Docker Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-publish:
+    runs-on: debian:stable-slim
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Build and publish arm64 image
+        run: docker build -t immisterio/lampac:armtest -f Build/Docker/arm64 .
+      
+      - name: Push arm64 image to Docker Hub
+        run: docker push immisterio/lampac:armtest
