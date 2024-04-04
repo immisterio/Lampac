@@ -94,7 +94,11 @@ namespace Lampac.Controllers.LITE
         [Route("streampay/callback")]
         public ActionResult Callback()
         {
-            string external_id = Request.Query["external_id"].ToString().Split("_")[1];
+            string[] externals = Request.Query["external_id"].ToString().Split("_");
+            string external_id = externals[1];
+
+            if (Request.Query["status"] != "awaiting_payment")
+                memoryCache.Remove($"streampay:{externals[0]}");
 
             var merchant = AppInit.conf.Merchant;
             if (!merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{external_id}") || Request.Query["status"] != "success")

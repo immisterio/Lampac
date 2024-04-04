@@ -14,6 +14,7 @@ using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
 using Microsoft.Extensions.Caching.Memory;
+using System.Diagnostics;
 
 namespace Lampac.Controllers
 {
@@ -202,11 +203,11 @@ namespace Lampac.Controllers
             if (ModInit.tsprocess == null)
             {
                 #region Запускаем TorrServer
-                var thread = new Thread(() =>
+                var thread = new Thread(async () =>
                 {
                     try
                     {
-                        ModInit.tsprocess = new System.Diagnostics.Process();
+                        ModInit.tsprocess = new Process();
                         ModInit.tsprocess.StartInfo.UseShellExecute = false;
                         ModInit.tsprocess.StartInfo.RedirectStandardOutput = true;
                         ModInit.tsprocess.StartInfo.RedirectStandardError = true;
@@ -214,7 +215,8 @@ namespace Lampac.Controllers
                         ModInit.tsprocess.StartInfo.FileName = ModInit.tspath;
                         ModInit.tsprocess.StartInfo.Arguments = $"--httpauth -p {ModInit.tsport} -d {ModInit.homedir}";
                         ModInit.tsprocess.Start();
-                        ModInit.tsprocess.WaitForExit();
+                        await ModInit.tsprocess.StandardOutput.ReadToEndAsync();
+                        await ModInit.tsprocess.WaitForExitAsync();
                     }
                     catch { }
 
@@ -368,10 +370,10 @@ namespace Lampac.Controllers
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted)) != 0)
                     {
                         ModInit.lastActve = DateTime.Now;
-                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted);
                     }
                 }
                 finally
