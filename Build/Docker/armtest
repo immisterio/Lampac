@@ -1,9 +1,10 @@
-FROM arm64v8/ubuntu:24.04
+FROM arm64v8/ubuntu:latest
 
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl wget unzip chromium
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends curl wget unzip chromium
 
 RUN curl -fSL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/6.0.420/dotnet-sdk-6.0.420-linux-arm64.tar.gz \
     && mkdir -p /usr/share/dotnet \
