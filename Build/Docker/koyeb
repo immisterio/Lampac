@@ -1,19 +1,25 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0
+FROM debian:12.5-slim
 
 EXPOSE 8000
 WORKDIR /home
 
-RUN apt update && apt install -y wget unzip && \
-	wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip && \
-	unzip -o publish.zip && rm -f publish.zip && rm -rf dlna merchant && \
-	touch isdocker
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip chromium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y chromium
+RUN curl -fSL -k -o dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/aspnetcore/Runtime/6.0.28/aspnetcore-runtime-6.0.28-linux-x64.tar.gz \
+    && mkdir -p /usr/share/dotnet \
+    && tar -oxzf dotnet.tar.gz -C /usr/share/dotnet \
+    && rm dotnet.tar.gz
+
+RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/latest/download/publish.zip \
+    && unzip -o publish.zip && rm -f publish.zip && rm -rf merchant \
+    && rm -rf runtimes/os* && rm -rf runtimes/win* && rm -rf runtimes/linux-arm runtimes/linux-arm64 runtimes/linux-musl-arm64 runtimes/linux-musl-x64 \
+    && touch isdocker
 
 RUN echo '{"listenport":8000,"listenscheme":"https","KnownProxies":[{"ip":"0.0.0.0","prefixLength":0}],"typecache":"mem","mikrotik":true,"weblog":true,"serverproxy":{"verifyip":false,"showOrigUri":true,"buffering":{"enable":false}},"pirate_store": false,"dlna":{"enable":false},"puppeteer":{"executablePath":"/usr/bin/chromium"},"LampaWeb":{"autoupdate":false},"online":{"checkOnlineSearch":false},"Rezka":{"host":"https://hdrezka.me","corseu":true,"xrealip":true,"uacdn":"https://prx-ams.ukrtelcdn.net","hls":false},"Voidboost":{"streamproxy":true},"VDBmovies":{"streamproxy":true},"iRemux":{"streamproxy":false,"geostreamproxy":["UA"],"apn": "http://apn.cfhttp.top"},"Kodik":{"geostreamproxy":["UA"]},"VCDN":{"enable":false},"Kinobase":{"enable":false},"Eneyida":{"enable":false},"Kinoukr":{"enable":false},"AnilibriaOnline":{"enable":false},"AnimeGo":{"enable":false},"Ebalovo":{"enable":false},"Chaturbate":{"enable":false}}' > /home/init.conf
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"initspace":"TorrServer.ModInit","dll":"TorrServer.dll"}]' > /home/module/manifest.json
 
-RUN echo '{"runtimeOptions":{"tfm":"net6.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"6.0.0"},{"name":"Microsoft.AspNetCore.App","version":"6.0.0"}],"configProperties":{"System.GC.HeapHardLimit": 200000000,"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > /home/Lampac.runtimeconfig.json
+RUN echo '{"runtimeOptions":{"tfm":"net6.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"6.0.0"},{"name":"Microsoft.AspNetCore.App","version":"6.0.0"}],"configProperties":{"System.GC.HeapHardLimit": 140000000,"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > /home/Lampac.runtimeconfig.json
 
-ENTRYPOINT ["dotnet", "Lampac.dll"]
+ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]
