@@ -10,7 +10,7 @@ apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
 # Install .NET
 wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh 
 chmod 755 dotnet-install.sh
-./dotnet-install.sh --channel 6.0.1xx --runtime aspnetcore
+./dotnet-install.sh --channel 6.0 --runtime aspnetcore
 #echo "export DOTNET_ROOT=\$HOME/.dotnet" >> ~/.bashrc
 #echo "export PATH=\$PATH:\$HOME/.dotnet:\$HOME/.dotnet/tools" >> ~/.bashrc
 #source ~/.bashrc
