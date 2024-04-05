@@ -197,7 +197,11 @@ namespace Lampac
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, basetag = true, index = "lampa-main/index.html" };
 
-        public OnlineConf online = new OnlineConf() { findkp = "all", checkOnlineSearch = true };
+        public OnlineConf online = new OnlineConf() 
+        { 
+            findkp = "all", checkOnlineSearch = true,
+            component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", version = true
+        };
 
         public AccsConf accsdb = new AccsConf() { authMesage = "Войдите в аккаунт cub.red", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", maxiptohour = 15 };
 

@@ -47,7 +47,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", streamproxy: true);
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx.ukrtelcdn.net" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx-ams.ukrtelcdn.net" };
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true);
 
@@ -63,7 +63,7 @@ namespace Shared.Model
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
-        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://oblakofailov.ru", streamproxy: true) { corseu = true };
+        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://oblakofailov.ru", streamproxy: true) { corseu = true, geostreamproxy = new List<string>() { "UA" } };
 
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
 
@@ -71,9 +71,9 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
 
-        public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online");
+        public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "UA" } };
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false);
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false) { geostreamproxy = new List<string>() { "UA" } };
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
@@ -94,7 +94,7 @@ namespace Shared.Model
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.apbugall.org", "https://torso-as.newplayjj.com:9443", "", "", true, true);
 
-        public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.info", "71d163b40d50397a86ca54c366f33b72", "", true);
+        public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.info", "71d163b40d50397a86ca54c366f33b72", "", true) { geostreamproxy = new List<string>() { "UA" } };
 
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");

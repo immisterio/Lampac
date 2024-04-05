@@ -3,7 +3,7 @@ FROM debian:12.5-slim
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl unzip chromium \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip chromium \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L -k -o ffprobe.zip https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-linux-64.zip \
@@ -21,5 +21,6 @@ RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/late
     && touch isdocker
 
 RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}}' > /home/init.conf
+RUN echo '{"rdb": false, "updatets": false}' > /home/module/TorrServer.conf
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]

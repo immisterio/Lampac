@@ -37,8 +37,24 @@ namespace Lampac.Controllers
                 memoryCache.Set("ApiController:online.js", file, DateTime.Now.AddMinutes(5));
             }
 
-            file = file.Replace("http://127.0.0.1:9118", host);
+            var init = AppInit.conf.online;
             file = file.Replace("{localhost}", host);
+
+            if (init.component != "lampac")
+            {
+                file = file.Replace("component: 'lampac'", $"component: '{init.component}'");
+                file = file.Replace("'lampac', component", $"'{init.component}', component");
+                file = file.Replace("window.lampac_plugin", $"window.{init.component}_plugin");
+            }
+
+            if (!init.version)
+            {
+                file = Regex.Replace(file, "version: \\'[^\\']+\\'", "version: ''");
+                file = file.Replace("manifst.name, \" v\"", "manifst.name, \" \"");
+            }
+
+            file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
+            file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
