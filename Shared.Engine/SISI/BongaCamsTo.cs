@@ -45,7 +45,7 @@ namespace Shared.Engine.SISI
                     name = title,
                     quality = Regex.Match(row, "\"vq\":\"([^\"]+)\"").Groups[1].Value,
                     video = $"https://{esid}.bcvcdn.com/hls/stream_{baba}/public-aac/stream_{baba}/chunks.m3u8",
-                    picture = $"https:{img.Replace("{ext}", "jpg")}"
+                    picture = $"https:{img.Replace("\\", "").Replace("{ext}", "jpg")}"
                 };
 
                 if (onplaylist != null)

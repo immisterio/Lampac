@@ -78,6 +78,9 @@ namespace Shared.Engine
 
         static Task<IBrowser> Launch()
         {
+            if (!AppInit.conf.puppeteer.enable)
+                return null;
+
             try
             {
                 var option = new LaunchOptions()

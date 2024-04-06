@@ -203,7 +203,7 @@ namespace Lampac.Controllers
             if (ModInit.tsprocess == null)
             {
                 #region Запускаем TorrServer
-                var thread = new Thread(async () =>
+                var thread = new Thread(() =>
                 {
                     try
                     {
@@ -215,8 +215,8 @@ namespace Lampac.Controllers
                         ModInit.tsprocess.StartInfo.FileName = ModInit.tspath;
                         ModInit.tsprocess.StartInfo.Arguments = $"--httpauth -p {ModInit.tsport} -d {ModInit.homedir}";
                         ModInit.tsprocess.Start();
-                        await ModInit.tsprocess.StandardOutput.ReadToEndAsync();
-                        await ModInit.tsprocess.WaitForExitAsync();
+                        ModInit.tsprocess.StandardOutput.ReadToEnd();
+                        ModInit.tsprocess.WaitForExit();
                     }
                     catch { }
 
@@ -254,7 +254,7 @@ namespace Lampac.Controllers
             {
                 bool servIsWork = false;
 
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 5; i++)
                 {
                     await Task.Delay(200);
 
@@ -262,7 +262,7 @@ namespace Lampac.Controllers
                     {
                         using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                         {
-                            client.Timeout = TimeSpan.FromSeconds(i == 0 ? 4 : 3);
+                            client.Timeout = TimeSpan.FromSeconds(i == 0 ? 4 : 2);
 
                             var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo", httpContext.RequestAborted);
                             if (response.StatusCode == System.Net.HttpStatusCode.OK)
