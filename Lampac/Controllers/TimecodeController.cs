@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
-using System.Threading.Tasks;
 using System;
 using IO = System.IO;
 using Lampac.Engine.CORE;
@@ -8,6 +7,7 @@ using System.IO;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -23,13 +23,7 @@ namespace Lampac.Controllers
         [Route("timecode.js")]
         public ActionResult timecode()
         {
-            if (!memoryCache.TryGetValue("ApiController:timecode.js", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/timecode.js");
-                memoryCache.Set("ApiController:timecode.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/timecode.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

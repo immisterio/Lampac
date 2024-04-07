@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.IO.Compression;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -158,14 +159,7 @@ namespace Lampac.Controllers
         [Route("msx/start.json")]
         public ActionResult MSX()
         {
-            if (!memoryCache.TryGetValue("ApiController:msx.json", out string file))
-            {
-                file = IO.File.ReadAllText("msx.json");
-                memoryCache.Set("ApiController:msx.json", file, DateTime.Now.AddMinutes(5));
-            }
-
-            file = file.Replace("{localhost}", host);
-            return Content(file, contentType: "application/json; charset=utf-8");
+            return Content(FileCache.ReadAllText("msx.json").Replace("{localhost}", host), contentType: "application/json; charset=utf-8");
         }
         #endregion
 
@@ -174,13 +168,7 @@ namespace Lampac.Controllers
         [Route("tmdbproxy.js")]
         public ActionResult TmdbProxy()
         {
-            if (!memoryCache.TryGetValue("ApiController:tmdbproxy.js", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/tmdbproxy.js");
-                memoryCache.Set("ApiController:tmdbproxy.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/tmdbproxy.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -231,26 +219,10 @@ namespace Lampac.Controllers
                         initiale += "{\"url\": \"{localhost}/ts.js\",\"status\": 1,\"name\": \"TorrServer\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.accsdb.enable)
-                    {
-                        if (!memoryCache.TryGetValue($"ApiController:deny.js", out string denyfile))
-                        {
-                            denyfile = IO.File.ReadAllText("plugins/deny.js");
-                            memoryCache.Set($"ApiController:deny.js", denyfile, DateTime.Now.AddMinutes(5));
-                        }
+                        file = file.Replace("{deny}", FileCache.ReadAllText("plugins/deny.js").Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
 
-                        file = file.Replace("{deny}", denyfile.Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
-                    }
-
-                    if (AppInit.conf.pirate_store)
-                    {
-                        if (!memoryCache.TryGetValue("ApiController:pirate_store.js", out string store))
-                        {
-                            store = IO.File.ReadAllText("plugins/pirate_store.js");
-                            memoryCache.Set($"ApiController:pirate_store.js", store, DateTime.Now.AddMinutes(5));
-                        }
-
-                        file = file.Replace("{pirate_store}", store);
-                    }
+                    if (AppInit.conf.pirate_store) 
+                        file = file.Replace("{pirate_store}", FileCache.ReadAllText("plugins/pirate_store.js"));
                 }
             }
 

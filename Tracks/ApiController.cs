@@ -9,6 +9,7 @@ using System.Web;
 using System.Linq;
 using Lampac.Engine.CORE;
 using System.IO;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -109,13 +110,7 @@ namespace Lampac.Controllers
             if (!AppInit.conf.ffprobe.enable)
                 return Content(string.Empty);
 
-            if (!memoryCache.TryGetValue("ApiController:tracks.js", out string file))
-            {
-                file = System.IO.File.ReadAllText("plugins/tracks.js");
-                memoryCache.Set("ApiController:tracks.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
     }
 }

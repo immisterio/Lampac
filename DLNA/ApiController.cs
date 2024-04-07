@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Lampac.Engine.CORE;
 using System.Threading;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -125,13 +126,7 @@ namespace Lampac.Controllers
             if (!AppInit.conf.dlna.enable)
                 return Content(string.Empty);
 
-            if (!memoryCache.TryGetValue("ApiController:dlna.js", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/dlna.js");
-                memoryCache.Set("ApiController:dlna.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/dlna.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

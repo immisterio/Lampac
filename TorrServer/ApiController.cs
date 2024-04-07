@@ -13,8 +13,8 @@ using System.Net.Http.Headers;
 using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
-using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -25,13 +25,7 @@ namespace Lampac.Controllers
         [Route("ts.js")]
         public ActionResult Plugin()
         {
-            if (!memoryCache.TryGetValue("ApiController:ts.js", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/ts.js");
-                memoryCache.Set("ApiController:ts.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", Regex.Replace(host, "^https?://", "")), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/ts.js").Replace("{localhost}", Regex.Replace(host, "^https?://", "")), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

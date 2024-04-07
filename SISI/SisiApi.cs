@@ -12,6 +12,7 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
+using Shared.Engine;
 using IO = System.IO;
 
 namespace SISI
@@ -23,14 +24,7 @@ namespace SISI
         [Route("sisi.js")]
         public ActionResult Sisi(bool lite)
         {
-            if (!memoryCache.TryGetValue($"ApiController:sisi.js:{lite}", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/" + (lite ? "sisi.lite.js" : "sisi.js"));
-                memoryCache.Set($"ApiController:sisi.js:{lite}", file, DateTime.Now.AddMinutes(5));
-            }
-
-            file = file.Replace("{localhost}", $"{host}/sisi");
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/" + (lite ? "sisi.lite.js" : "sisi.js")).Replace("{localhost}", $"{host}/sisi"), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -39,11 +33,7 @@ namespace SISI
         [Route("sisi/plugins/modification.js")]
         public ActionResult SisiModification()
         {
-            if (!memoryCache.TryGetValue("ApiController:sisimodification.js", out string file))
-            {
-                file = IO.File.ReadAllText("wwwroot/sisi/plugins/modification.js");
-                memoryCache.Set("ApiController:sisimodification.js", file, DateTime.Now.AddMinutes(5));
-            }
+            string file = FileCache.ReadAllText("wwwroot/sisi/plugins/modification.js");
 
             if (!AppInit.conf.sisi.xdb)
                 file = file.Replace("addId();", "");
