@@ -220,9 +220,22 @@ namespace Lampac.Controllers
                 if (merch == "on")
                     modules.Add("{\"enable\":false,\"dll\":\"Merchant.dll\"}");
 
-				if (localua == "on")
-				{
-					IO.File.WriteAllText("init.conf", @"{
+                IO.File.WriteAllText("module/manifest.json", $"[{string.Join(",", modules)}]");
+
+                #region localua
+                if (localua == "on")
+                {
+					if (IO.File.Exists("init.conf"))
+					{
+						string initconf = IO.File.ReadAllText("init.conf");
+						if (initconf != null && initconf.StartsWith("{")) 
+							IO.File.WriteAllText("init.conf", "{\"Kodik\":{\"streamproxy\":true,\"apnstream\":true},\"iRemux\":{\"streamproxy\":true,\"apnstream\":true},\"Zetflix\":{\"streamproxy\":true,\"apnstream\":true,\"hls\":false}," + initconf.Remove(0, 1));
+                    }
+					else
+					{
+						IO.File.WriteAllText("init.conf", @"{
+  ""mikrotik"": true,
+  ""typecache"": ""mem"",
   ""serverproxy"": {
     ""allow_tmdb"": true,
     ""verifyip"": false
@@ -242,11 +255,11 @@ namespace Lampac.Controllers
   }
 }
 ");
+					}
                 }
+                #endregion
 
-                IO.File.WriteAllText("module/manifest.json", $"[{string.Join(",", modules)}]");
-
-				Program.Reload();
+                Program.Reload();
 
                 return Redirect("/");
             }

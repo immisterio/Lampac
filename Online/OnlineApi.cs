@@ -16,6 +16,7 @@ using System.IO;
 using Shared.Model.Online;
 using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -31,13 +32,9 @@ namespace Lampac.Controllers
         [Route("online.js")]
         public ActionResult Online()
         {
-            if (!memoryCache.TryGetValue("ApiController:online.js", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/online.js");
-                memoryCache.Set("ApiController:online.js", file, DateTime.Now.AddMinutes(5));
-            }
-
             var init = AppInit.conf.online;
+
+            string file = FileCache.ReadAllText("plugins/online.js");
             file = file.Replace("{localhost}", host);
 
             if (init.component != "lampac")
@@ -65,13 +62,7 @@ namespace Lampac.Controllers
         [Route("lite.js")]
         public ActionResult Lite()
         {
-            if (!memoryCache.TryGetValue("ApiController:lite.js", out string file))
-            {
-                file = IO.File.ReadAllText("plugins/lite.js");
-                memoryCache.Set("ApiController:lite.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(file.Replace("{localhost}", $"{host}/lite"), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite"), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -372,7 +363,7 @@ namespace Lampac.Controllers
                 string memkey = checkOnlineSearchKey(id, source);
                 if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
                 {
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(15));
+                    memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
 
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
@@ -389,7 +380,7 @@ namespace Lampac.Controllers
                     cache.tasks = tasks.Count;
                     cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
 
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(10));
+                    memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (life)
@@ -416,7 +407,8 @@ namespace Lampac.Controllers
 
             string res = await HttpClient.Get($"{srq}/{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
 
-            bool work = !string.IsNullOrWhiteSpace(res) && res.Contains("data-json=");
+            bool rch = res.Contains("\"rch\":true");
+            bool work = !string.IsNullOrWhiteSpace(res) && (res.Contains("data-json=") || rch);
 
             string quality = string.Empty;
             string balanser = plugin;
@@ -508,9 +500,9 @@ namespace Lampac.Controllers
                 name += quality;
             }
 
-            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\"" + "}", index, work));
+            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
 
-            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(10));
+            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
         }
         #endregion
     }

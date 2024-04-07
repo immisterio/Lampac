@@ -125,10 +125,7 @@ namespace Lampac.Engine
 
         public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
         {
-            if (string.IsNullOrWhiteSpace(uri))
-                return null;
-
-            if (conf == null)
+            if (string.IsNullOrEmpty(uri) || conf == null || conf.rhub)
                 return uri;
 
             bool streamproxy = conf.streamproxy || conf.useproxystream;
@@ -169,6 +166,8 @@ namespace Lampac.Engine
         #endregion
 
         #region cache
+        public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) => InvokeCache(key, time, null, onget);
+
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
         {
             if (hybridCache.TryGetValue(key, out T _val))

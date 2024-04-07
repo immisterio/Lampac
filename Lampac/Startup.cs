@@ -22,6 +22,7 @@ using Microsoft.Extensions.Http;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Lampac
 {
@@ -118,7 +119,10 @@ namespace Lampac
             bool manifestload = File.Exists("module/manifest.json");
 
             if (manifestload)
-                HttpClient.onlog += (e, log) => { _ = soks.Send(log, "http"); };
+            {
+                HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
+                RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data)?.ConfigureAwait(false);
+            }
 
             if (!File.Exists("passwd"))
                 File.WriteAllText("passwd", Guid.NewGuid().ToString());

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Shared.Model.Online.VideoCDN;
 using System.Text;
 using Shared.Model.Templates;
+using Lampac.Models.LITE;
 
 namespace Shared.Engine.Online
 {
@@ -13,22 +14,30 @@ namespace Shared.Engine.Online
         string? host;
         string iframeapihost;
         string apihost;
-        string token;
+        string? token;
         bool usehls;
         Func<string, string, ValueTask<string?>> onget;
-        Func<string, string> onstreamfile;
+        Func<string, string>? onstreamfile;
         Func<string, string>? onlog;
 
-        public VideoCDNInvoke(string? host, string iframeapihost, string apihost, string token, bool hls, Func<string, string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public string onstream(string stream)
+        {
+            if (onstreamfile == null)
+                return stream;
+
+            return onstreamfile.Invoke(stream);
+        }
+
+        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
-            this.iframeapihost = iframeapihost;
-            this.apihost = apihost;
-            this.token = token;
+            this.iframeapihost = init.corsHost();
+            this.apihost = init.cors(init.apihost);
+            this.token = init!.token;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
-            usehls = hls;
+            usehls = init.hls;
         }
         #endregion
 
@@ -195,7 +204,7 @@ namespace Shared.Engine.Online
                         else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (onstream($"https:{link}"), $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
@@ -281,7 +290,7 @@ namespace Shared.Engine.Online
                                 else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                streams.Insert(0, (onstreamfile.Invoke($"https:{link}"), $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (onstream($"https:{link}"), $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)

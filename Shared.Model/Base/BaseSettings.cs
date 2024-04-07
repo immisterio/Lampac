@@ -6,6 +6,8 @@ namespace Shared.Model.Base
     {
         public bool enable { get; set; }
 
+        public bool rhub { get; set; }
+
         public bool rip { get; set; }
 
         public string? displayname { get; set; }

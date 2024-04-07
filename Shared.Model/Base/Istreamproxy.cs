@@ -2,6 +2,8 @@
 {
     public interface Istreamproxy
     {
+        public bool rhub { get; set; }
+
         public bool useproxystream { get; set; }
 
         public bool streamproxy { get; set; }

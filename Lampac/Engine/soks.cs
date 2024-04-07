@@ -1,30 +1,58 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.SignalR;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine
 {
     public class soks : Hub
     {
-        public static IClientProxy clients = null;
+        #region WebLog
+        static Dictionary<string, byte> weblog_clients = new Dictionary<string, byte>();
 
-        async public static Task Send(string message, string plugin)
+        public static void SendLog(string message, string plugin)
         {
-            if (!AppInit.conf.weblog || clients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 700_000)
+            if (!AppInit.conf.weblog || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 700_000)
                 return;
 
-            await clients.SendAsync("Receive", message, plugin);
+            hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin).ConfigureAwait(false);
+        }
+        #endregion
+
+        public static IHubCallerClients hubClients = null;
+
+        public void Registry(string type)
+        {
+            if (string.IsNullOrEmpty(type))
+                return;
+
+            switch (type)
+            {
+                case "log":
+                    if (AppInit.conf.weblog)
+                        weblog_clients.TryAdd(Context.ConnectionId, 0);
+                    break;
+
+                case "rch":
+                    if (AppInit.conf.rch.enable)
+                        RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId);
+                    break;
+            }
         }
 
         public override Task OnConnectedAsync()
         {
-            clients = Clients.All;
+            hubClients = Clients;
             return base.OnConnectedAsync();
         }
 
         public override Task OnDisconnectedAsync(Exception exception)
         {
-            clients = Clients.All;
+            weblog_clients.Remove(Context.ConnectionId);
+            RchClient.OnDisconnected(Context.ConnectionId);
+
+            hubClients = Clients;
             return base.OnDisconnectedAsync(exception);
         }
     }

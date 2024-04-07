@@ -13,6 +13,15 @@ namespace Shared.Models
             return tcs.Task;
         }
 
+        async public ValueTask WaitAsync(int millisecondsTimeout)
+        {
+            try
+            {
+                await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(millisecondsTimeout));
+            }
+            catch { }
+        }
+
         async public ValueTask WaitAsync(int millisecondsTimeout, CancellationToken cancellationToken)
         {
             try

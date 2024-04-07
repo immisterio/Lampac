@@ -22,6 +22,7 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            #region manifest / admin
             if (!File.Exists("module/manifest.json"))
             {
                 if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
@@ -42,6 +43,10 @@ namespace Lampac.Engine.Middlewares
                 httpContext.Response.Redirect("/admin/auth");
                 return Task.CompletedTask;
             }
+            #endregion
+
+            if (!AppInit.conf.weblog && !AppInit.conf.rch.enable && httpContext.Request.Path.Value.StartsWith("/ws"))
+                return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
 
             if (httpContext.Connection.RemoteIpAddress.ToString() == AppInit.conf.localhost)
                 return _next(httpContext);

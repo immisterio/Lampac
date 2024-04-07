@@ -174,6 +174,8 @@ namespace Lampac
 
         public bool weblog = false;
 
+        public RchConf rch = new RchConf() { enable = false, keepalive = 45 };
+
         public string anticaptchakey;
 
 
