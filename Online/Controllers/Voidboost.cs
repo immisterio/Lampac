@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
             var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), async () => 
             {
                 var res = await oninvk.Movie(t, s, e);
-                await Task.Delay(1200); // ссылка не сразу доступна
+                await Task.Delay(2000); // ссылка не сразу доступна
                 return res;
 
             }, proxyManager);

@@ -1,10 +1,11 @@
-﻿using Lampac.Engine.CORE;
+﻿using Lampac.Controllers;
+using Lampac.Engine.CORE;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,6 +42,7 @@ namespace TorrServer
                 homedir = string.Empty;
 
             homedir = Regex.Replace(homedir, "/$", "") + "/torrserver";
+            Directory.CreateDirectory(homedir);
             #endregion
 
             #region tspath
@@ -58,24 +60,23 @@ namespace TorrServer
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromHours(1));
-                    if (!conf.updatets)
-                        continue;
-
                     try
                     {
-                        var root = await HttpClient.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
-                        if (root != null && root.ContainsKey("tag_name"))
+                        if (conf.updatets)
                         {
-                            string tagname = root.Value<string>("tag_name");
-                            if (!string.IsNullOrEmpty(tagname))
+                            var root = await HttpClient.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
+                            if (root != null && root.ContainsKey("tag_name"))
                             {
-                                if (!File.Exists($"{homedir}/tagname") || tagname != File.ReadAllText($"{homedir}/tagname"))
+                                string tagname = root.Value<string>("tag_name");
+                                if (!string.IsNullOrEmpty(tagname))
                                 {
-                                    if (File.Exists(tspath))
-                                        File.Delete(tspath);
+                                    if (!File.Exists($"{homedir}/tagname") || tagname != File.ReadAllText($"{homedir}/tagname"))
+                                    {
+                                        if (File.Exists(tspath))
+                                            File.Delete(tspath);
 
-                                    File.WriteAllText($"{homedir}/tagname", tagname);
+                                        File.WriteAllText($"{homedir}/tagname", tagname);
+                                    }
                                 }
                             }
                         }
@@ -88,29 +89,24 @@ namespace TorrServer
                             }
                             else
                             {
-                                string sh = File.ReadAllText($"{homedir}/installTorrServerLinux.sh");
-                                if (sh.Contains("dirInstall=\"\""))
-                                {
-                                    sh = Regex.Replace(sh, "dirInstall=\"\"", $"dirInstall=\"{homedir}\"");
-                                    File.WriteAllText($"{homedir}/installTorrServerLinux.sh", sh);
-                                }
+                                string uname = await Bash.Run("uname -m");
+                                string arch = uname.Contains("i386") || uname.Contains("i686") ? "386" : uname.Contains("x86_64") ? "amd64" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : null;
 
-                                var process = new System.Diagnostics.Process();
-                                process.StartInfo.UseShellExecute = false;
-                                process.StartInfo.RedirectStandardOutput = true;
-                                process.StartInfo.RedirectStandardError = true;
-                                process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                                process.StartInfo.FileName = "bash";
-                                process.StartInfo.Arguments = $"{homedir}/installTorrServerLinux.sh";
-                                process.Start();
-                                await process.WaitForExitAsync();
+                                await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch, tspath);
+
+                                await Bash.Run($"chmod +x {tspath}");
                             }
                         }
                     }
                     catch { }
+
+                    await Task.Delay(TimeSpan.FromHours(1));
                 }
             });
             #endregion
+
+            if (conf.disposeTime == -1)
+                _ = TorrServerController.Start(null);
 
             #region disposeTime
             ThreadPool.QueueUserWorkItem(async _ => 

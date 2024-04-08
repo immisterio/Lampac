@@ -155,11 +155,12 @@ namespace Lampac
                     NullValueHandling = NullValueHandling.Ignore
                 }));
 
+                ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+
                 if (AppInit.conf.multiaccess)
-                {
-                    ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
                     ThreadPool.SetMinThreads(Math.Max(100, workerThreads), Math.Max(20, completionPortThreads));
-                }
+                else
+                    ThreadPool.SetMinThreads(Math.Max(30, workerThreads), Math.Max(10, completionPortThreads));
             }
 
             app.UseDeveloperExceptionPage();

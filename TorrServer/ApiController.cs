@@ -37,7 +37,7 @@ namespace Lampac.Controllers
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
-            if (!pathRequest.Contains(".js") && await Start() == false)
+            if (!pathRequest.Contains(".js") && await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
                 return StatusCode(500);
 
             string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, headers: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
@@ -132,7 +132,7 @@ namespace Lampac.Controllers
 
         async public Task TorAPI()
         {
-            if (await Start() == false)
+            if (await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
                 return;
 
             #region settings
@@ -192,7 +192,7 @@ namespace Lampac.Controllers
 
 
         #region Start
-        async public ValueTask<bool> Start()
+        async static public ValueTask<bool> Start(string clientip)
         {
             if (ModInit.tsprocess == null)
             {
@@ -222,7 +222,7 @@ namespace Lampac.Controllers
                 #endregion
 
                 #region Проверяем доступность сервера
-                if (await CheckPort(ModInit.tsport, HttpContext) == false)
+                if (await CheckPort(ModInit.tsport) == false)
                 {
                     ModInit.tsprocess?.Dispose();
                     ModInit.tsprocess = null;
@@ -235,30 +235,33 @@ namespace Lampac.Controllers
                 return false;
 
             ModInit.lastActve = DateTime.Now;
-            ModInit.clientIps.Add(HttpContext.Connection.RemoteIpAddress.ToString());
+
+            if (!string.IsNullOrEmpty(clientip))
+                ModInit.clientIps.Add(clientip);
 
             return true;
         }
         #endregion
 
         #region CheckPort
-        async public ValueTask<bool> CheckPort(int port, HttpContext httpContext)
+        async static public ValueTask<bool> CheckPort(int port)
         {
             try
             {
                 bool servIsWork = false;
+                DateTime excheck = DateTime.Now.AddSeconds(8);
 
-                for (int i = 0; i < 5; i++)
+                while (excheck > DateTime.Now)
                 {
-                    await Task.Delay(200);
+                    await Task.Delay(50);
 
                     try
                     {
                         using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                         {
-                            client.Timeout = TimeSpan.FromSeconds(i == 0 ? 4 : 2);
+                            client.Timeout = TimeSpan.FromSeconds(1);
 
-                            var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo", httpContext.RequestAborted);
+                            var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo");
                             if (response.StatusCode == System.Net.HttpStatusCode.OK)
                             {
                                 string echo = await response.Content.ReadAsStringAsync();

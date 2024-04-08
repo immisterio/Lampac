@@ -20,7 +20,7 @@ RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/late
     && rm -rf runtimes/os* && rm -rf runtimes/win* && rm -rf runtimes/linux-arm runtimes/linux-musl-arm64 runtimes/linux-musl-x64 runtimes/linux-x64 \
     && touch isdocker
 
-RUN curl -L -k -o torrserver/TorrServer-linux https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-arm64 \
+RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-arm64 \
     && chmod +x torrserver/TorrServer-linux
 
 RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}, "typecache":"mem", "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
