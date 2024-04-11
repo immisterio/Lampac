@@ -16,6 +16,6 @@
 
         public ProxySettings? proxy { get; set; }
 
-        public string? apn { get; set; }
+        public ApnConf? apn { get; set; }
     }
 }

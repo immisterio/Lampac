@@ -131,7 +131,7 @@ namespace JinEnergy.Engine
                 }
             }
 
-            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn?.host : conf?.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn?.host) ? AppInit.apn?.host : conf?.apn?.host;
             bool isDefaultApn = conf != null && Shared.Model.AppInit.IsDefaultApnOrCors(apn);
 
             if (IsApnIncluded(conf)/* && (!isDefaultApn || !stream_links.qualitys.First().Value.Contains(".m3u"))*/)
@@ -163,7 +163,7 @@ namespace JinEnergy.Engine
 
         public static bool MaybeInHls(bool hls, BaseSettings init)
         {
-            if (!string.IsNullOrEmpty(init.apn) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn))
+            if (!string.IsNullOrEmpty(init.apn?.host) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn?.host))
                 return false;
 
             if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.apn?.host))
@@ -193,7 +193,7 @@ namespace JinEnergy.Engine
 
         public static string HostStreamProxy(Istreamproxy conf, string? uri)
         {
-            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn?.host : conf?.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn?.host) ? AppInit.apn?.host : conf?.apn?.host;
             if (conf == null || string.IsNullOrEmpty(uri) || string.IsNullOrEmpty(apn) || !apn.StartsWith("http"))
                 return uri;
 
@@ -211,7 +211,7 @@ namespace JinEnergy.Engine
 
         public static bool IsApnIncluded(Istreamproxy? conf)
         {
-            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn?.host : conf?.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn?.host) ? AppInit.apn?.host : conf?.apn?.host;
             if (conf == null || string.IsNullOrEmpty(apn))
                 return false;
 
@@ -228,7 +228,7 @@ namespace JinEnergy.Engine
         {
             if (NotUseDefaultApn)
             {
-                if (Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.apn?.host) || Shared.Model.AppInit.IsDefaultApnOrCors(Shared.Model.AppInit.corseuhost))
+                if (Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn?.host ?? AppInit.apn?.host) || Shared.Model.AppInit.IsDefaultApnOrCors(Shared.Model.AppInit.corseuhost))
                     return false;
             }
 

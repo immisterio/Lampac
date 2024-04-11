@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
@@ -138,16 +140,29 @@ namespace Lampac.Engine
 
             if (streamproxy)
             {
-                bool deny_apn = sisi && Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.conf?.apn.host) && uri.Contains(".m3u");
-
-                //if (!deny_apn)
+                #region apnstream
+                string apnlink(ApnConf apn)
                 {
-                    if (!string.IsNullOrEmpty(conf.apn) && conf.apn.StartsWith("http"))
-                        return $"{conf.apn}/{uri}";
+                    if (apn.secure == "nginx")
+                    {
+                        using (MD5 md5 = MD5.Create())
+                        {
+                            long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
+                            string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{HttpContext.Connection.RemoteIpAddress} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
 
-                    if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf?.apn.host) && AppInit.conf.apn.host.StartsWith("http"))
-                        return $"{AppInit.conf.apn.host}/{uri}";
+                            return $"{apn.host}/{hash}:{ex}/{uri}";
+                        }
+                    }
+
+                    return $"{apn.host}/{uri}";
                 }
+
+                if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
+                    return apnlink(conf.apn);;
+
+                if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
+                    return apnlink(AppInit.conf.apn);
+                #endregion
 
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 

@@ -38,7 +38,7 @@ namespace Shared.Model.Base
 
         public List<string>? geostreamproxy { get; set; }
 
-        public string? apn { get; set; }
+        public ApnConf? apn { get; set; }
 
         public bool qualitys_proxy { get; set; } = true;
         #endregion
