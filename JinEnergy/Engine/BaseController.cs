@@ -131,7 +131,7 @@ namespace JinEnergy.Engine
                 }
             }
 
-            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn : conf?.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn?.host : conf?.apn;
             bool isDefaultApn = conf != null && Shared.Model.AppInit.IsDefaultApnOrCors(apn);
 
             if (IsApnIncluded(conf)/* && (!isDefaultApn || !stream_links.qualitys.First().Value.Contains(".m3u"))*/)
@@ -166,7 +166,7 @@ namespace JinEnergy.Engine
             if (!string.IsNullOrEmpty(init.apn) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn))
                 return false;
 
-            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.apn))
+            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.apn?.host))
                 return false;
 
             return hls;
@@ -185,15 +185,15 @@ namespace JinEnergy.Engine
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
 
-            if (string.IsNullOrEmpty(AppInit.apn) || AppInit.Country != "UA" || orig || uri.Contains("ukrtelcdn."))
+            if (string.IsNullOrEmpty(AppInit.apn?.host) || AppInit.Country != "UA" || orig || uri.Contains("ukrtelcdn."))
                 return uri;
 
-            return $"{AppInit.apn}/{uri}";
+            return $"{AppInit.apn.host}/{uri}";
         }
 
         public static string HostStreamProxy(Istreamproxy conf, string? uri)
         {
-            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn : conf?.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn?.host : conf?.apn;
             if (conf == null || string.IsNullOrEmpty(uri) || string.IsNullOrEmpty(apn) || !apn.StartsWith("http"))
                 return uri;
 
@@ -211,7 +211,7 @@ namespace JinEnergy.Engine
 
         public static bool IsApnIncluded(Istreamproxy? conf)
         {
-            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn : conf?.apn;
+            string? apn = string.IsNullOrEmpty(conf?.apn) ? AppInit.apn?.host : conf?.apn;
             if (conf == null || string.IsNullOrEmpty(apn))
                 return false;
 
@@ -228,7 +228,7 @@ namespace JinEnergy.Engine
         {
             if (NotUseDefaultApn)
             {
-                if (Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.apn) || Shared.Model.AppInit.IsDefaultApnOrCors(Shared.Model.AppInit.corseuhost))
+                if (Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.apn?.host) || Shared.Model.AppInit.IsDefaultApnOrCors(Shared.Model.AppInit.corseuhost))
                     return false;
             }
 

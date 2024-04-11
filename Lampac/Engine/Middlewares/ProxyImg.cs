@@ -100,7 +100,7 @@ namespace Lampac.Engine.Middlewares
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
 
                     using (var fs = new FileStream(outFile, FileMode.Open, FileAccess.Read))
-                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
 
                     return;
                 }
@@ -141,23 +141,19 @@ namespace Lampac.Engine.Middlewares
 
                     if (array != null && cacheimg && !File.Exists(outFile))
                     {
-                        _ = Task.Factory.StartNew(() =>
+                        try
                         {
-                            try
-                            {
-                                Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
-                                File.WriteAllBytes(outFile, array);
-                            }
-                            catch { try { File.Delete(outFile); } catch { } }
-
-                        }, httpContext.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                            Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+                            File.WriteAllBytes(outFile, array);
+                        }
+                        catch { try { File.Delete(outFile); } catch { } }
                     }
 
                     httpContext.Response.ContentType = "image/jpeg";
                     httpContext.Response.Headers.Add("X-Cache-Status", cacheimg ? "MISS" : "bypass");
                 }
 
-                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
+                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted);
             }
             else
             {
@@ -176,6 +172,7 @@ namespace Lampac.Engine.Middlewares
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
                 {
                     CORE.HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+                    client.DefaultRequestHeaders.ConnectionClose = false;
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {

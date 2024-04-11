@@ -16,7 +16,7 @@ namespace Lampac.Engine
             if (!AppInit.conf.weblog || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 700_000)
                 return;
 
-            hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin).ConfigureAwait(false);
+            hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin);
         }
         #endregion
 

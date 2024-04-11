@@ -16,7 +16,7 @@ namespace Online
             if (!string.IsNullOrEmpty(init.apn) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn))
                 return false;
 
-            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.conf.apn))
+            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.conf.apn?.host))
                 return false;
 
             return hls;

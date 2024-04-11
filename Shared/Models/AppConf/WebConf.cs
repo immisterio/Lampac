@@ -9,5 +9,5 @@
         public bool basetag { get; set; }
 
         public InitPlugins initPlugins { get; set; } = new InitPlugins();
-}
+    }
 }

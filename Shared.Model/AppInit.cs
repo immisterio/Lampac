@@ -2,6 +2,7 @@
 using Lampac.Models.LITE;
 using Lampac.Models.AppConf;
 using System.Text.RegularExpressions;
+using Shared.Model.Base;
 
 namespace Shared.Model
 {
@@ -9,7 +10,7 @@ namespace Shared.Model
     {
         public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
-        public string? apn { get; set; } = "https://apn.watch";
+        public ApnConf apn { get; set; } = new ApnConf() { host = "https://apn.watch", secure = "none" };
 
         public static bool IsDefaultApnOrCors(string? apn) => apn != null && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
 

@@ -121,7 +121,7 @@ namespace Lampac
             if (manifestload)
             {
                 HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
-                RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data)?.ConfigureAwait(false);
+                RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data);
             }
 
             if (!File.Exists("passwd"))
@@ -131,7 +131,7 @@ namespace Lampac
             {
                 if (manifestload && AppInit.conf.puppeteer.enable)
                 {
-                    _ = Task.Run(async () =>
+                    ThreadPool.QueueUserWorkItem(async _ =>
                     {
                         try
                         {
@@ -142,7 +142,7 @@ namespace Lampac
                                 PuppeteerTo.LaunchKeepOpen();
                         }
                         catch (Exception ex) { Console.WriteLine(ex); }
-                    }).ConfigureAwait(false);
+                    });
                 }
             }
             catch { }
@@ -158,9 +158,9 @@ namespace Lampac
                 ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
 
                 if (AppInit.conf.multiaccess)
-                    ThreadPool.SetMinThreads(Math.Max(100, workerThreads), Math.Max(20, completionPortThreads));
+                    ThreadPool.SetMinThreads(Math.Max(400, workerThreads), Math.Max(200, completionPortThreads));
                 else
-                    ThreadPool.SetMinThreads(Math.Max(30, workerThreads), Math.Max(10, completionPortThreads));
+                    ThreadPool.SetMinThreads(Math.Max(50, workerThreads), Math.Max(20, completionPortThreads));
             }
 
             app.UseDeveloperExceptionPage();

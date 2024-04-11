@@ -97,6 +97,9 @@ namespace TorrServer
                                 await Bash.Run($"chmod +x {tspath}");
                             }
                         }
+
+                        if (conf.disposeTime == -1 && tsprocess == null)
+                            await TorrServerController.Start(null);
                     }
                     catch { }
 
@@ -105,16 +108,13 @@ namespace TorrServer
             });
             #endregion
 
-            if (conf.disposeTime == -1)
-                _ = TorrServerController.Start(null);
-
             #region disposeTime
             ThreadPool.QueueUserWorkItem(async _ => 
             {
                 while (true)
                 {
                     await Task.Delay(TimeSpan.FromMinutes(1));
-                    if (lastActve == default || conf.disposeTime == -1)
+                    if (lastActve == default || tsprocess == null || conf.disposeTime == -1)
                         continue;
 
                     try

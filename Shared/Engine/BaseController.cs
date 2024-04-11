@@ -21,7 +21,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "111";
+        public static string appversion => "112";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -138,15 +138,15 @@ namespace Lampac.Engine
 
             if (streamproxy)
             {
-                bool deny_apn = sisi && Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.conf.apn) && uri.Contains(".m3u");
+                bool deny_apn = sisi && Shared.Model.AppInit.IsDefaultApnOrCors(conf.apn ?? AppInit.conf?.apn.host) && uri.Contains(".m3u");
 
                 //if (!deny_apn)
                 {
                     if (!string.IsNullOrEmpty(conf.apn) && conf.apn.StartsWith("http"))
                         return $"{conf.apn}/{uri}";
 
-                    if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf.apn) && AppInit.conf.apn.StartsWith("http"))
-                        return $"{AppInit.conf.apn}/{uri}";
+                    if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf?.apn.host) && AppInit.conf.apn.host.StartsWith("http"))
+                        return $"{AppInit.conf.apn.host}/{uri}";
                 }
 
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);

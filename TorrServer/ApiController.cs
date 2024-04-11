@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using System.IO;
-using IO = System.IO;
 using System.Threading.Tasks;
 using System;
 using System.Text.RegularExpressions;
@@ -157,15 +156,13 @@ namespace Lampac.Controllers
                     {
                         client.Timeout = TimeSpan.FromSeconds(5);
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
-                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                         return;
                     }
                     else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
-                        IO.File.WriteAllText("torrserver/settings.json", requestJson.Replace("action\":\"set\",\"sets", "BitTorr"));
-
                         client.Timeout = TimeSpan.FromSeconds(10);
-                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted).ConfigureAwait(false);
+                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
                         return;
                     }
                 }

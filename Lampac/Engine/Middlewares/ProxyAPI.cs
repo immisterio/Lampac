@@ -102,7 +102,7 @@ namespace Lampac.Engine.Middlewares
 
                         httpContext.Response.ContentType = "application/vnd.apple.mpegurl";
                         httpContext.Response.ContentLength = hls.Length;
-                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
+                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
                     }
                     else
                     {
@@ -110,7 +110,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             httpContext.Response.ContentType = ists ? (md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t") : "text/plain";
                             httpContext.Response.ContentLength = fileStream.Length;
-                            await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                            await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
                         }
                     }
 
@@ -176,12 +176,12 @@ namespace Lampac.Engine.Middlewares
                                 httpContext.Response.Headers.Add("PX-Cache", cache_stream ? "MISS" : "BYPASS");
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                 httpContext.Response.ContentLength = hls.Length;
-                                await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
+                                await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
                             }
                             else
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
-                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted);
                             }
                         }
                         #endregion
@@ -219,12 +219,12 @@ namespace Lampac.Engine.Middlewares
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
                                 httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 httpContext.Response.ContentLength = buffer.Length;
-                                await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
+                                await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted);
                             }
                             else
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
-                                await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted).ConfigureAwait(false);
+                                await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted);
                             }
                         }
                         #endregion
@@ -232,7 +232,7 @@ namespace Lampac.Engine.Middlewares
                     else
                     {
                         httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
-                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                        await CopyProxyHttpResponse(httpContext, response);
                     }
                 }
             }
@@ -542,131 +542,122 @@ namespace Lampac.Engine.Middlewares
 
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
             {
-                await CopyToAsyncInternal(response.Body, responseStream, context, responseMessage.Content.Headers.ContentLength).ConfigureAwait(false);
-                //await responseStream.CopyToAsync(response.Body, context.RequestAborted);
-            }
-        }
-        #endregion
+                if (response.Body == null)
+                    throw new ArgumentNullException("destination");
+
+                if (!responseStream.CanRead && !responseStream.CanWrite)
+                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+
+                if (!response.Body.CanRead && !response.Body.CanWrite)
+                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+
+                if (!responseStream.CanRead)
+                    throw new NotSupportedException("NotSupported_UnreadableStream");
+
+                if (!response.Body.CanWrite)
+                    throw new NotSupportedException("NotSupported_UnwritableStream");
 
 
-        #region CopyToAsyncInternal
-        async ValueTask CopyToAsyncInternal(Stream destination, Stream responseStream, HttpContext context, long? contentLength)
-        {
-            if (destination == null)
-                throw new ArgumentNullException("destination");
-
-            if (!responseStream.CanRead && !responseStream.CanWrite)
-                throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
-
-            if (!destination.CanRead && !destination.CanWrite)
-                throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
-
-            if (!responseStream.CanRead)
-                throw new NotSupportedException("NotSupported_UnreadableStream");
-
-            if (!destination.CanWrite)
-                throw new NotSupportedException("NotSupported_UnwritableStream");
-
-
-            if (AppInit.conf.serverproxy?.buffering?.enable == true && (context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || contentLength > 10_000000))
-            {
-                var bunit = AppInit.conf.serverproxy.buffering;
-                byte[] array = ArrayPool<byte>.Shared.Rent(Math.Max(bunit.rent, 4096));
-
-                try
+                if (AppInit.conf.serverproxy?.buffering?.enable == true && (context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || responseMessage.Content.Headers.ContentLength > 10_000000))
                 {
-                    bool readFinished = false;
-                    var writeFinished = new TaskCompletionSource<bool>();
-                    var locker = new AsyncManualResetEvent();
+                    var bunit = AppInit.conf.serverproxy.buffering;
+                    byte[] array = ArrayPool<byte>.Shared.Rent(Math.Max(bunit.rent, 4096));
 
-                    Queue<byte[]> byteQueue = new Queue<byte[]>();
-
-                    #region read task
-                    _ = Task.Factory.StartNew(async () =>
+                    try
                     {
-                        try
+                        bool readFinished = false;
+                        var writeFinished = new TaskCompletionSource<bool>();
+                        var locker = new AsyncManualResetEvent();
+
+                        Queue<byte[]> byteQueue = new Queue<byte[]>();
+
+                        #region read task
+                        _ = Task.Factory.StartNew(async () =>
                         {
-                            int bytesRead;
-                            while (!context.RequestAborted.IsCancellationRequested && (bytesRead = await responseStream.ReadAsync(new Memory<byte>(array), context.RequestAborted).ConfigureAwait(false)) != 0)
+                            try
                             {
-                                byte[] byteCopy = new byte[bytesRead];
-                                Array.Copy(array, byteCopy, bytesRead);
-
-                                byteQueue.Enqueue(byteCopy);
-                                locker.Set();
-
-                                if (context.RequestAborted.IsCancellationRequested)
-                                    break;
-
-                                while (byteQueue.Count > bunit.length && !context.RequestAborted.IsCancellationRequested)
-                                    await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted).ConfigureAwait(false);
-                            }
-                        }
-                        finally 
-                        { 
-                            readFinished = true; 
-                            locker.Set(); 
-                        }
-
-                    }, context.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                    #endregion
-
-                    #region write task
-                    _ = Task.Factory.StartNew(async () =>
-                    {
-                        try
-                        {
-                            while (true)
-                            {
-                                if (context.RequestAborted.IsCancellationRequested)
-                                    break;
-
-                                if (byteQueue.Count > 0)
+                                int bytesRead;
+                                while (!context.RequestAborted.IsCancellationRequested && (bytesRead = await responseStream.ReadAsync(new Memory<byte>(array), context.RequestAborted)) != 0)
                                 {
-                                    byte[] bytesToSend = byteQueue.Dequeue();
+                                    byte[] byteCopy = new byte[bytesRead];
+                                    Array.Copy(array, byteCopy, bytesRead);
+
+                                    byteQueue.Enqueue(byteCopy);
                                     locker.Set();
 
-                                    await destination.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), context.RequestAborted).ConfigureAwait(false);
-                                }
-                                else if (readFinished)
-                                {
-                                    break;
-                                }
-                                else
-                                {
-                                    await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted).ConfigureAwait(false);
+                                    if (context.RequestAborted.IsCancellationRequested)
+                                        break;
+
+                                    while (byteQueue.Count > bunit.length && !context.RequestAborted.IsCancellationRequested)
+                                        await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted);
                                 }
                             }
-                        }
-                        finally 
+                            finally
+                            {
+                                readFinished = true;
+                                locker.Set();
+                            }
+
+                        }, context.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                        #endregion
+
+                        #region write task
+                        _ = Task.Factory.StartNew(async () =>
                         {
-                            locker.Set();
-                            writeFinished.SetResult(true); 
-                        }
+                            try
+                            {
+                                while (true)
+                                {
+                                    if (context.RequestAborted.IsCancellationRequested)
+                                        break;
 
-                    }, context.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                    #endregion
+                                    if (byteQueue.Count > 0)
+                                    {
+                                        byte[] bytesToSend = byteQueue.Dequeue();
+                                        locker.Set();
 
-                    await writeFinished.Task.ConfigureAwait(false);
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(array);
-                }
-            }
-            else
-            {
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), context.RequestAborted);
+                                    }
+                                    else if (readFinished)
+                                    {
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted);
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                locker.Set();
+                                writeFinished.SetResult(true);
+                            }
 
-                try
-                {
-                    int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
-                        await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                        }, context.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                        #endregion
+
+                        await writeFinished.Task;
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(array);
+                    }
                 }
-                finally
+                else
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                    try
+                    {
+                        int bytesRead;
+                        while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted)) != 0)
+                            await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
+                    }
                 }
             }
         }

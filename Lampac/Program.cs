@@ -39,7 +39,7 @@ namespace Lampac
             _reload = true;
 
             AppInit.LoadModules();
-            _host.StopAsync().ConfigureAwait(false);
+            _host.StopAsync();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>

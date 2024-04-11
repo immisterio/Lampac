@@ -1,6 +1,5 @@
 ﻿using JacRed.Engine;
 using JacRed.Models.AppConf;
-using Lampac.Engine.CORE;
 using Lampac.Models.AppConf;
 using Newtonsoft.Json;
 using System;
@@ -12,8 +11,6 @@ namespace Jackett
 {
     public class ModInit
     {
-        static string defaultapi = "62.112.8.193:9117";
-
         #region ModInit
         static (ModInit, DateTime) cacheconf = default;
 
@@ -38,7 +35,12 @@ namespace Jackett
                     }};
 
                     string json = File.ReadAllText("module/JacRed.conf");
-                    json = Regex.Replace(json, "(85.17.54.98|62.112.8.193):9117", defaultapi);
+
+                    if (Regex.IsMatch(json, "(85.17.54.98|62.112.8.193):9117"))
+                    {
+                        json = Regex.Replace(json, "(85.17.54.98|62.112.8.193):9117", $"http://{new ModInit().Red.syncapi}");
+                        File.WriteAllText("module/JacRed.conf", json);
+                    }
 
                     if (json.Contains("\"version\""))
                     {
@@ -69,9 +71,6 @@ namespace Jackett
             ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await FileDB.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await FileDB.CronFast());
-
-            if (HttpClient.Get(defaultapi, timeoutSeconds: 10).Result != "api work")
-                defaultapi = "redapi.cfhttp.top";
         }
 
 

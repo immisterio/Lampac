@@ -3,6 +3,7 @@ using Lampac.Models.AppConf;
 using Lampac.Models.LITE;
 using Lampac.Models.SISI;
 using Microsoft.JSInterop;
+using Shared.Model.Base;
 using System.Text.Json;
 
 namespace JinEnergy
@@ -93,7 +94,7 @@ namespace JinEnergy
 
         public static SisiConf sisi => conf.sisi;
 
-        public static string? apn => conf.apn;
+        public static ApnConf? apn => conf.apn;
 
         public static SisiSettings BongaCams => conf.BongaCams;
 
