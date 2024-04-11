@@ -37,6 +37,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Общие настройки
 1. Отключить TorrServer/DNLA/Jackett/etc можно в module/manifest.json
 2. Настройки Jackett в module/JacRed.conf (пример JacRed.example.conf)
+3. Основные настройки в init.conf (пример example.conf)
 
 # Источники 
 * Filmix, Kinobase, Rezka, Voidboost, VideoCDN, VDBmovies, Collaps, HDVB, Zetflix, Kodik, Ashdi (UKR), Eneyida (UKR), KinoUKR (UKR), Kinotochka, Kinoprofi, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Alloha, KinoPub, VoKino
@@ -104,6 +105,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Пример init.conf
 * Список всех параметров, а так же значения по умолчанию смотреть в example.conf 
 * В init.conf нужно указывать только те параметры, которые хотите изменить
+* Редактировать init.conf можно так же через ip:9118/admin/init
 
 ```
 {
