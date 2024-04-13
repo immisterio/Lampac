@@ -41,7 +41,7 @@ namespace Lampac.Controllers.LITE
 
             string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(40), async () => 
             {
-                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : "");
+                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
                 if (!AppInit.conf.multiaccess)
                     return await black_magic(uri);
