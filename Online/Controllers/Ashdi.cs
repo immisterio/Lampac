@@ -4,6 +4,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
+using Lampac.Models.LITE.Ashdi;
 
 namespace Lampac.Controllers.LITE
 {
@@ -14,10 +15,10 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1)
         {
             var init = AppInit.conf.Ashdi;
-
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("ashdi", init);
             var proxy = proxyManager.Get();
 
@@ -25,19 +26,19 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi")
             );
 
-            var content = await InvokeCache($"ashdi:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id), proxyManager);
+            var content = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(20), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            if (content == null)
-                return OnError(proxyManager);
+                return res.Success(await oninvk.Embed(kinopoisk_id));
+            });
 
-            if (string.IsNullOrEmpty(content.content) && content.serial == null)
-                return OnError();
-
-            return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
+            return OnResult(content, () => oninvk.Html(content.Value, kinopoisk_id, title, original_title, t, s));
         }
     }
 }

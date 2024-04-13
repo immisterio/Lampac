@@ -50,7 +50,7 @@ namespace Lampac.Controllers.Tizam
                 hybridCache.Set(memKey, playlists, cacheTime(60));
             }
 
-            return OnResult(playlists, null);
+            return OnResult(playlists, null, plugin: "tizam");
         }
 
 

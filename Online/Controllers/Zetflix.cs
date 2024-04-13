@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             if (origsource)
-                return Content(html, "text/html; charset=utf-8");
+                return Content(html, "text/plain; charset=utf-8");
 
             var content = oninvk.Embed(html);
             if (content.pl == null)

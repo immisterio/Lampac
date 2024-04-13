@@ -85,6 +85,7 @@ namespace TorrServer
                         {
                             if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                             {
+                                tsprocess?.Dispose();
                                 await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-windows-amd64.exe", tspath);
                             }
                             else
@@ -92,6 +93,7 @@ namespace TorrServer
                                 string uname = await Bash.Run("uname -m");
                                 string arch = uname.Contains("i386") || uname.Contains("i686") ? "386" : uname.Contains("x86_64") ? "amd64" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : null;
 
+                                tsprocess?.Dispose();
                                 await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch, tspath);
 
                                 await Bash.Run($"chmod +x {tspath}");

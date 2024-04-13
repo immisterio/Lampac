@@ -171,7 +171,7 @@ namespace Lampac.Engine.Middlewares
 
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
                 {
-                    CORE.HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+                    CORE.HttpClient.DefaultRequestHeaders(client, 8, 0, null, null, headers);
                     client.DefaultRequestHeaders.ConnectionClose = false;
 
                     using (HttpResponseMessage response = await client.GetAsync(url))

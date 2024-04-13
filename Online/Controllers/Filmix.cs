@@ -6,6 +6,8 @@ using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
 using System;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -50,6 +52,10 @@ namespace Lampac.Controllers.LITE
             if (init.tokens != null && init.tokens.Length > 1)
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
+            string livehash = string.Empty;
+            if (init.livehash && !string.IsNullOrEmpty(init.token))
+                livehash = await getLiveHash();
+
             var oninvk = new FilmixInvoke
             (
                host,
@@ -57,7 +63,7 @@ namespace Lampac.Controllers.LITE
                token,
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
+               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy)
             );
 
             if (postid == 0)
@@ -74,6 +80,31 @@ namespace Lampac.Controllers.LITE
                 return OnError(proxyManager);
 
             return Content(oninvk.Html(player_links, init.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
+        }
+
+
+        async ValueTask<string> getLiveHash()
+        {
+            string memKey = $"filmix:ChangeLink:hashfimix";
+            if (!memoryCache.TryGetValue(memKey, out string hash))
+            {
+                var init = AppInit.conf.Filmix;
+                string json = await HttpClient.Get($"{init.corsHost()}/api/v2/post/170245?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi");
+                hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
+
+                if (!string.IsNullOrWhiteSpace(hash))
+                    memoryCache.Set(memKey, hash, DateTime.Now.AddHours(4));
+            }
+
+            return hash;
+        }
+
+        string replaceLink(string hash, string l)
+        {
+            if (string.IsNullOrEmpty(hash))
+                return l;
+
+            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hash}/");
         }
     }
 }

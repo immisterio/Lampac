@@ -407,8 +407,11 @@ namespace Lampac.Controllers
 
             string res = await HttpClient.Get($"{srq}/{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
 
+            if (string.IsNullOrEmpty(res))
+                res = string.Empty;
+
             bool rch = res.Contains("\"rch\":true");
-            bool work = !string.IsNullOrWhiteSpace(res) && (res.Contains("data-json=") || rch);
+            bool work = res.Contains("data-json=") || rch;
 
             string quality = string.Empty;
             string balanser = plugin;

@@ -13,7 +13,7 @@ namespace Lampac.Models.LITE
 
         public bool pro { get; set; }
 
-        public bool freehash { get; set; }
+        public bool livehash { get; set; }
 
         public string? token { get; set; }
 

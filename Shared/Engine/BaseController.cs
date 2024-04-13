@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
+using Lampac.Models.LITE.KinoPub;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -151,6 +152,14 @@ namespace Lampac.Engine
                             string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{HttpContext.Connection.RemoteIpAddress} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
 
                             return $"{apn.host}/{hash}:{ex}/{uri}";
+                        }
+                    }
+                    else if (apn.secure == "cf")
+                    {
+                        using (var sha1 = SHA1.Create())
+                        {
+                            var data = Encoding.UTF8.GetBytes($"{HttpContext.Connection.RemoteIpAddress}{uri}{apn.secret}");
+                            return Convert.ToBase64String(sha1.ComputeHash(data));
                         }
                     }
 

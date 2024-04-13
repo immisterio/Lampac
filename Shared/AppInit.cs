@@ -174,7 +174,7 @@ namespace Lampac
 
         public bool weblog = false;
 
-        public RchConf rch = new RchConf() { enable = false, keepalive = 45 };
+        public RchConf rch = new RchConf() { enable = false, keepalive = 180 };
 
         public string anticaptchakey;
 
@@ -187,6 +187,10 @@ namespace Lampac
             buffering = new ServerproxyBufferingConf()
             {
                 enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
+            },
+            cache = new ServerproxyCacheConf() 
+            {
+                img = true, img_rsize = true
             }
         };
 

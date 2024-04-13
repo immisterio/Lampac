@@ -48,6 +48,7 @@ namespace Lampac.Engine.CORE
             {
                 rch = true,
                 AppInit.conf.rch.keepalive,
+                result = $"{host}/rch/result",
                 ws = $"{host}/ws"
             });
         }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace Shared.Engine
 {
@@ -10,6 +11,11 @@ namespace Shared.Engine
         {
             try
             {
+                string extension = Path.GetExtension(path);
+                string mypath = Regex.Replace(path, $"{extension}$", $".my{extension}");
+                if (File.Exists(mypath))
+                    path = mypath;
+
                 if (!File.Exists(path))
                     return string.Empty;
 
