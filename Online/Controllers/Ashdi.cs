@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi")
             );
 
-            var content = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(20), proxyManager, async res =>
+            var content = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(40), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

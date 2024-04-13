@@ -4,6 +4,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Online.Eneyida;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,6 +22,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("kinoukr", init);
             var proxy = proxyManager.Get();
 
@@ -28,17 +30,21 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr")
             );
 
             string search_title = clarification == 1 ? title : original_title;
-            var result = await InvokeCache($"kinoukr:view:{search_title}:{year}:{href}", cacheTime(40), () => oninvk.Embed(search_title, year, href), proxyManager);
-            if (result == null)
-                return OnError(proxyManager);
+            var content = await InvokeCache<EmbedModel>($"kinoukr:view:{search_title}:{year}:{href}", cacheTime(40), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(result, clarification, title, original_title, year, t, s, href), "text/html; charset=utf-8");
+                return res.Success(await oninvk.Embed(search_title, year, href));
+            });
+
+            return OnResult(content, () => oninvk.Html(content.Value, clarification, title, original_title, year, t, s, href));
         }
     }
 }
