@@ -4,6 +4,7 @@ using Lampac.Models.LITE;
 using Lampac.Models.SISI;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
+using Shared.Model.Online.Settings;
 using System.Text.Json;
 
 namespace JinEnergy
@@ -143,7 +144,7 @@ namespace JinEnergy
 
         public static FilmixSettings FilmixPartner => conf.FilmixPartner;
 
-        public static OnlinesSettings Zetflix => conf.Zetflix;
+        public static ZetflixSettings Zetflix => conf.Zetflix;
 
         public static OnlinesSettings VideoDB => conf.VideoDB;
 

@@ -35,6 +35,7 @@ namespace Jackett
                     }};
 
                     string json = File.ReadAllText("module/JacRed.conf");
+                    json = json.Replace("http://http://http://", "http://");
 
                     if (Regex.IsMatch(json, "(85.17.54.98|62.112.8.193):9117"))
                     {
