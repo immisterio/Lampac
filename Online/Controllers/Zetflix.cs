@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using System.Collections.Generic;
@@ -24,16 +23,13 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            ProxyManager proxyManager = new ProxyManager("zetflix", init);
-            var proxy = proxyManager.Get();
-
             var oninvk = new ZetflixInvoke
             (
                host,
                init.corsHost(),
                MaybeInHls(init.hls, init),
-               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix", proxy : proxy)
+               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix")
                //AppInit.log
             );
 
@@ -43,7 +39,7 @@ namespace Lampac.Controllers.LITE
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                if (!AppInit.conf.multiaccess)
+                if (init.black_magic)
                     return await black_magic(uri);
 
                 string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));

@@ -86,7 +86,7 @@ namespace Shared.Engine.Online
                                 return new SearchResult() { id = item.id };
                         }
 
-                        return new SearchResult() { id = -1 };
+                        return null;
                     }
                 }
             }

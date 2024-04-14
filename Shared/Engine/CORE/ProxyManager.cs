@@ -110,7 +110,7 @@ namespace Shared.Engine.CORE
             if (!refresh)
                 return;
 
-            int maxerror = 3;
+            int maxerror = 1;
 
             if (database.TryGetValue(plugin, out ProxyManagerModel val))
             {

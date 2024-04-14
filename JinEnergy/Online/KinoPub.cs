@@ -39,7 +39,7 @@ namespace JinEnergy.Online
 
                 postid = res == null ? 0 : res.id;
 
-                if (postid == 0 || postid == -1)
+                if (postid == 0)
                 {
                     IMemoryCache.Remove(memkey);
 

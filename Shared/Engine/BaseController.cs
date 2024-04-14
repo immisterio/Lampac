@@ -190,20 +190,30 @@ namespace Lampac.Engine
         #endregion
 
         #region cache
-        public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) => InvokeCache(key, time, null, onget);
+        public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, Func<CacheResult<T>, ValueTask<dynamic>> onget) => InvokeCache(key, time, null, onget);
 
-        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<CacheResult<T>>> onget) 
+        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool inmemory = false)
         {
             if (hybridCache.TryGetValue(key, out T _val))
                 return new CacheResult<T>() { IsSuccess = true, Value = _val };
 
-            var cache = await onget.Invoke(new CacheResult<T>());
-            if (cache == null || !cache.IsSuccess)
-                return cache;
+            var val = await onget.Invoke(new CacheResult<T>());
+
+            if (val == null)
+                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "null" };
+
+            if (val.GetType() == typeof(CacheResult<T>))
+                return (CacheResult<T>)val;
+
+            if (val.Equals(default(T)))
+                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "default" };
+
+            if (typeof(T) == typeof(string) && string.IsNullOrEmpty(val.ToString()))
+                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
 
             proxyManager?.Success();
-            hybridCache.Set(key, cache.Value, time);
-            return cache;
+            hybridCache.Set(key, val, time, inmemory);
+            return new CacheResult<T>() { IsSuccess = true, Value = val };
         }
 
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool inmemory = false)

@@ -36,15 +36,15 @@ namespace Lampac.Controllers.LITE
             );
 
             string search_title = clarification == 1 ? title : original_title;
-            var content = await InvokeCache<EmbedModel>($"eneyida:view:{search_title}:{year}:{href}", cacheTime(40), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"eneyida:view:{search_title}:{year}:{href}", cacheTime(init.rhub ? 180 : 40), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return res.Success(await oninvk.Embed(search_title, year, href));
+                return await oninvk.Embed(search_title, year, href);
             });
 
-            return OnResult(content, () => oninvk.Html(content.Value, clarification, title, original_title, year, t, s, href));
+            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href));
         }
     }
 }

@@ -20,6 +20,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("anilibria", init);
             var proxy = proxyManager.Get();
 
@@ -27,15 +28,19 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
+               ongettourl => init.rhub ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "anilibria")
             );
 
-            var result = await InvokeCache($"anilibriaonline:{title}", cacheTime(40), () => oninvk.Embed(title), proxyManager);
-            if (result == null)
-                return OnError(proxyManager);
+            var cache = await InvokeCache<List<RootObject>>($"anilibriaonline:{title}", cacheTime(40), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(result, title, code, year), "text/html; charset=utf-8");
+                return await oninvk.Embed(title);
+            });
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year));
         }
     }
 }

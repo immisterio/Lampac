@@ -22,6 +22,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("vdbmovies", init);
             var proxy = proxyManager.Get();
 
@@ -32,9 +33,14 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
             );
 
-            EmbedModel root = await InvokeCache($"vdbmovies:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), async () => 
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
             {
-                string html = await HttpClient.Get($"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe", proxy: proxy, headers: HeadersModel.Init(
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
+
+                string html = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, headers: HeadersModel.Init(
                     ("Origin", "https://cdnmovies.net"),
                     ("Referer", "https://cdnmovies.net/")
                 ));
@@ -61,10 +67,7 @@ namespace Lampac.Controllers.LITE
                 }
             });
 
-            if (root == null)
-                return OnError();
-
-            return Content(oninvk.Html(root, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid));
         }
     }
 }

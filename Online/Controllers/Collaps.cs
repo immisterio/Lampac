@@ -4,6 +4,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
+using Shared.Model.Online.Collaps;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,6 +22,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("collaps", init);
             var proxy = proxyManager.Get();
 
@@ -29,15 +31,19 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.dash,
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps")
             );
 
-            var content = await InvokeCache($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(imdb_id, kinopoisk_id), proxyManager);
-            if (content == null)
-                return OnError(proxyManager);
+            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, s), "text/html; charset=utf-8");
+                return await oninvk.Embed(imdb_id, kinopoisk_id);
+            });
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s));
         }
     }
 }

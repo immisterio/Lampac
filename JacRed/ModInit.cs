@@ -38,7 +38,7 @@ namespace Jackett
 
                     if (Regex.IsMatch(json, "(85.17.54.98|62.112.8.193):9117"))
                     {
-                        json = Regex.Replace(json, "(85.17.54.98|62.112.8.193):9117", $"http://{new ModInit().Red.syncapi}");
+                        json = Regex.Replace(json, "https?://(85.17.54.98|62.112.8.193):9117", new ModInit().Red.syncapi);
                         File.WriteAllText("module/JacRed.conf", json);
                     }
 

@@ -8,6 +8,8 @@ using System.Linq;
 using Online;
 using Shared.Engine.CORE;
 using Shared.Engine.Online;
+using Shared.Model.Online.VoKino;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -31,7 +33,10 @@ namespace Lampac.Controllers.LITE
                 string deviceid = new string(DateTime.Now.ToBinary().ToString().Reverse().ToArray()).Substring(0, 8);
                 var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get());
 
-                html = $"В init.conf для VoKino укажите token <br><br><b>{token_request.Value<string>("authToken")}</b>";
+                if (token_request == null)
+                    return Content($"нет доступа к {AppInit.conf.VoKino.corsHost()}", "text/html; charset=utf-8");
+
+                html = "Добавьте в init.conf<br><br>\"VoKino\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + token_request.Value<string>("authToken") + "\"<br>}";
             }
 
             return Content(html, "text/html; charset=utf-8");
@@ -47,6 +52,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxy = proxyManager.Get();
 
             var oninvk = new VoKinoInvoke
@@ -54,15 +60,19 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.token,
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
-            var content = await InvokeCache($"vokino:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(kinopoisk_id), proxyManager);
-            if (content == null)
-                return OnError(proxyManager);
+            var cache = await InvokeCache<List<Сhannel>>(rch.ipkey($"vokino:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(content, kinopoisk_id, title, original_title, s), "text/html; charset=utf-8");
+                return await oninvk.Embed(kinopoisk_id);
+            });
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, s));
         }
     }
 }

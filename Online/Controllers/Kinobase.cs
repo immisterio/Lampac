@@ -6,6 +6,7 @@ using Shared.Engine.reCAPTCHA;
 using Shared.Engine.Online;
 using Online;
 using Shared.Engine.CORE;
+using Shared.Model.Online.Kinobase;
 
 namespace Lampac.Controllers.LITE
 {
@@ -25,22 +26,27 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(title) || year == 0)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxy = proxyManager.Get();
 
             var oninvk = new KinobaseInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init)),
-               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init)),
+               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
-            var content = await InvokeCache($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(title, year));
-            if (content == null)
-                return OnError(proxyManager);
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"kinobase:view:{title}:{year}", proxyManager), cacheTime(20), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(content, title, year, s), "text/html; charset=utf-8");
+                return await oninvk.Embed(title, year);
+            });
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, year, s));
         }
 
 

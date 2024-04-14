@@ -35,7 +35,7 @@ namespace Lampac.Controllers.Eporner
                 if (playlists.Count == 0)
                     return res.Fail("playlists");
 
-                return res.Success(playlists);
+                return playlists;
             });
 
             if (!cache.IsSuccess)

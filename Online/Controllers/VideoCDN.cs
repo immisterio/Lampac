@@ -37,19 +37,19 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    return res.Success(await oninvk.Search(title, original_title, serial));
+                    return await oninvk.Search(title, original_title, serial);
                 }));
             }
 
-            var content = await InvokeCache<EmbedModel>(rch.ipkey($"videocdn:{imdb_id}:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videocdn:{imdb_id}:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return res.Success(await oninvk.Embed(kinopoisk_id, imdb_id));
+                return await oninvk.Embed(kinopoisk_id, imdb_id);
             });
 
-            return OnResult(content, () => oninvk.Html(content.Value, imdb_id, kinopoisk_id, title, original_title, t, s));
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s));
         }
     }
 }

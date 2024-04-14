@@ -5,6 +5,8 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online;
+using System.Collections.Generic;
+using Lampac.Models.LITE.CDNmovies;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,6 +21,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("cdnmovies", init);
             var proxy = proxyManager.Get();
 
@@ -26,18 +29,22 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
                ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
             );
 
-            var voices = await InvokeCache($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), () => oninvk.Embed(kinopoisk_id), proxyManager);
-            if (voices == null)
-                return OnError(proxyManager);
+            var cache = await InvokeCache<List<Voice>>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(voices, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
+                return await oninvk.Embed(kinopoisk_id);
+            });
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid));
         }
     }
 }

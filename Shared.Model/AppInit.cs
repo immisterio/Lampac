@@ -3,6 +3,7 @@ using Lampac.Models.LITE;
 using Lampac.Models.AppConf;
 using System.Text.RegularExpressions;
 using Shared.Model.Base;
+using Shared.Model.Online.Settings;
 
 namespace Shared.Model
 {
@@ -72,7 +73,7 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
 
-        public OnlinesSettings Zetflix { get; set; } = new OnlinesSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "UA" } };
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "UA" } };
 
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false) { geostreamproxy = new List<string>() { "UA" } };
 

@@ -8,6 +8,8 @@ using Shared.Engine.CORE;
 using System;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
+using Lampac.Models.LITE.Filmix;
+using Shared.Model.Online.Filmix;
 
 namespace Lampac.Controllers.LITE
 {
@@ -25,9 +27,8 @@ namespace Lampac.Controllers.LITE
 
             string html = "1. Откройте <a href='https://filmix.biz/consoles'>https://filmix.biz/consoles</a> <br>";
             html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";
-            html += $"<br><br>В init.conf<br>";
-            html += $"1. Укажите token <b>{token_request.Value<string>("code")}</b><br>";
-            html += $"2. Измените \"pro\": false, на \"pro\": true, если у вас PRO аккаунт</b>";
+            html += $"<br><br><br>Добавьте в init.conf<br><br>";
+            html += "\"Filmix\": {<br>&nbsp;&nbsp;\"token\": \"" + token_request.Value<string>("code") + "\",<br>&nbsp;&nbsp;\"pro\": true<br>}";
 
             return Content(html, "text/html; charset=utf-8");
         }
@@ -45,6 +46,7 @@ namespace Lampac.Controllers.LITE
             if (original_language != "en")
                 clarification = 1;
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();
 
@@ -53,7 +55,7 @@ namespace Lampac.Controllers.LITE
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
             string livehash = string.Empty;
-            if (init.livehash && !string.IsNullOrEmpty(init.token))
+            if (!init.rhub && init.livehash && !string.IsNullOrEmpty(init.token))
                 livehash = await getLiveHash();
 
             var oninvk = new FilmixInvoke
@@ -61,25 +63,39 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                token,
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data, head) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy)
             );
 
             if (postid == 0)
             {
-                var res = await InvokeCache($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40), () => oninvk.Search(title, original_title, clarification, year));
-                if (res == null || res.id == 0)
-                    return Content(res?.similars ?? string.Empty);
+                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40), proxyManager, async res =>
+                {
+                    if (rch.IsNotConnected())
+                        return res.Fail(rch.connectionMsg);
 
-                postid = res.id;
+                    return await oninvk.Search(title, original_title, clarification, year);
+                });
+
+                if (!search.IsSuccess)
+                    return OnError(search.ErrorMsg);
+
+                if (search.Value.id == 0)
+                    return Content(search.Value.similars);
+
+                postid = search.Value.id;
             }
 
-            var player_links = await InvokeCache($"filmix:post:{postid}", cacheTime(20), () => oninvk.Post(postid), proxyManager, inmemory: true);
-            if (player_links == null)
-                return OnError(proxyManager);
+            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20), proxyManager, inmemory: true, onget: async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return Content(oninvk.Html(player_links, init.pro, postid, title, original_title, t, s), "text/html; charset=utf-8");
+                return await oninvk.Post(postid);
+            });
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s));
         }
 
 
