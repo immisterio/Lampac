@@ -20,8 +20,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public KodikInvoke(string? host, string apihost, string token, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public KodikInvoke(string? host, string apihost, string token, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,6 +32,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.usehls = hls;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -49,7 +51,14 @@ namespace Shared.Engine.Online
 
             try
             {
-                var root = JsonSerializer.Deserialize<RootObject>(await onget(url, null));
+                string? json = await onget(url, null);
+                if (json == null)
+                {
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                var root = JsonSerializer.Deserialize<RootObject>(json);
                 if (root?.results == null)
                     return null;
 
@@ -65,7 +74,14 @@ namespace Shared.Engine.Online
             {
                 string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(title)}&with_episodes=true";
 
-                var root = JsonSerializer.Deserialize<RootObject>(await onget(url, null));
+                string? json = await onget(url, null);
+                if (json == null)
+                {
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                var root = JsonSerializer.Deserialize<RootObject>(json);
                 if (root?.results == null)
                     return null;
 
@@ -75,7 +91,10 @@ namespace Shared.Engine.Online
 
                 foreach (var similar in root.results)
                 {
-                    string pick = similar.title.ToLower().Trim();
+                    string? pick = similar.title?.ToLower()?.Trim();
+                    if (string.IsNullOrEmpty(pick))
+                        continue;
+
                     if (hash.Contains(pick))
                         continue;
 
@@ -218,7 +237,10 @@ namespace Shared.Engine.Online
         {
             string? iframe = await onget($"https:{link}", null);
             if (iframe == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string? uri = null;
             string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
@@ -227,12 +249,16 @@ namespace Shared.Engine.Online
                 if (!psingles.TryGetValue(player_single, out uri))
                 {
                     string? playerjs = await onget($"{linkhost}/{player_single}", null);
-                    if (playerjs != null)
+
+                    if (playerjs == null)
                     {
-                        uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)").Groups[1].Value);
-                        if (!string.IsNullOrEmpty(uri))
-                            psingles.TryAdd(player_single, uri);
+                        requesterror?.Invoke();
+                        return null;
                     }
+
+                    uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)").Groups[1].Value);
+                    if (!string.IsNullOrEmpty(uri))
+                        psingles.TryAdd(player_single, uri);
                 }
             }
 
@@ -252,7 +278,10 @@ namespace Shared.Engine.Online
 
             string? json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&type={type}&hash={hash}&id={id}&info=%7B%7D");
             if (json == null || !json.Contains("\"src\":\""))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var streams = new List<StreamModel>();
 

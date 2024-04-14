@@ -16,14 +16,16 @@ namespace Shared.Engine.Online
         bool dash;
         Func<string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
+        Action? requesterror;
 
-        public CollapsInvoke(string? host, string apihost, bool dash, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile)
+        public CollapsInvoke(string? host, string apihost, bool dash, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.dash = dash;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -35,8 +37,11 @@ namespace Shared.Engine.Online
                 uri = $"{apihost}/embed/kp/{kinopoisk_id}";
 
             string? content = await onget.Invoke(uri);
-            if (string.IsNullOrWhiteSpace(content))
+            if (string.IsNullOrEmpty(content))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             if (!content.Contains("seasons:"))
                 return new EmbedModel() { content = content };

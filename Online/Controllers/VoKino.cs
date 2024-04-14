@@ -61,7 +61,8 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                init.token,
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
+               requesterror: () => proxyManager.Refresh()
             );
 
             var cache = await InvokeCache<List<Сhannel>>(rch.ipkey($"vokino:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>

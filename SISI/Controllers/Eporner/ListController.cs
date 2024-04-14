@@ -39,7 +39,7 @@ namespace Lampac.Controllers.Eporner
             });
 
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, proxyManager, string.IsNullOrEmpty(search));
+                return OnError(cache.ErrorMsg, proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
             return OnResult(cache.Value, string.IsNullOrEmpty(search) ? EpornerTo.Menu(host, sort, c) : null);
         }

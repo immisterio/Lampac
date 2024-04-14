@@ -16,8 +16,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public EneyidaInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public EneyidaInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -25,6 +26,7 @@ namespace Shared.Engine.Online
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -37,12 +39,15 @@ namespace Shared.Engine.Online
             string? link = href, reservedlink = null;
             var result = new EmbedModel();
 
-            if (string.IsNullOrWhiteSpace(link))
+            if (string.IsNullOrEmpty(link))
             {
                 onlog?.Invoke("search start");
                 string? search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
+                {
+                    requesterror?.Invoke();
                     return null;
+                }
 
                 onlog?.Invoke("search ok");
 
@@ -79,9 +84,9 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(link))
+                if (string.IsNullOrEmpty(link))
                 {
-                    if (string.IsNullOrWhiteSpace(reservedlink))
+                    if (string.IsNullOrEmpty(reservedlink))
                         return result;
 
                     link = reservedlink;
@@ -91,19 +96,25 @@ namespace Shared.Engine.Online
             onlog?.Invoke("link: " + link);
             string? news = await onget.Invoke(link);
             if (news == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             if (news.Contains("full_content fx_row"))
                 result.quel = Regex.Match(news.Split("full_content fx_row")[1].Split("full__favourite")[0], " (1080p|720p|480p)</div>").Groups[1].Value;
 
             string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(iframeUri))
+            if (string.IsNullOrEmpty(iframeUri))
                 return null;
 
             onlog?.Invoke("iframeUri: " + iframeUri);
             string? content = await onget.Invoke(iframeUri);
             if (content == null || !content.Contains("file:"))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             if (!content.Contains("file:'[{"))
             {

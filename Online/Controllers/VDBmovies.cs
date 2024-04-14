@@ -45,8 +45,14 @@ namespace Lampac.Controllers.LITE
                     ("Referer", "https://cdnmovies.net/")
                 ));
 
-                string file = Regex.Match(html ?? "", "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
-                if (string.IsNullOrEmpty(file))
+                if (html == null)
+                {
+                    proxyManager.Refresh();
+                    return null;
+                }
+
+                string file = Regex.Match(html, "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
+                if (string.IsNullOrEmpty(file)) 
                     return null;
 
                 try

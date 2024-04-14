@@ -13,13 +13,15 @@ namespace Shared.Engine.Online
         string apihost;
         Func<string, ValueTask<List<RootObject>?>> onget;
         Func<string, string> onstreamfile;
+        Action? requesterror;
 
-        public AniLibriaInvoke(string? host, string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile)
+        public AniLibriaInvoke(string? host, string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -28,7 +30,10 @@ namespace Shared.Engine.Online
         {
             var search = await onget($"{apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title));
             if (search == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var result = new List<RootObject>();
             foreach (var item in search)

@@ -36,7 +36,7 @@ namespace Lampac.Controllers.Chaturbate
                 playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html);
 
                 if (playlists.Count == 0)
-                    return OnError("playlists", proxyManager);
+                    return OnError("playlists", proxyManager, pg > 1);
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, playlists, cacheTime(5));

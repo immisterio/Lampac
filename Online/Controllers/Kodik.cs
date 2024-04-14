@@ -32,7 +32,8 @@ namespace Lampac.Controllers.LITE
                 init.hls,
                 (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik")
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik"),
+                requesterror: () => proxyManager.Refresh()
             );
         }
         #endregion
@@ -54,7 +55,7 @@ namespace Lampac.Controllers.LITE
 
                 var res = await InvokeCache($"kodik:search:{title}", cacheTime(40), () => oninvk.Embed(title), proxyManager);
                 if (res?.result == null)
-                    return OnError(proxyManager);
+                    return OnError();
 
                 if (res.result.Count == 0)
                     return OnError();
@@ -71,7 +72,7 @@ namespace Lampac.Controllers.LITE
 
                 content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);
                 if (content == null)
-                    return OnError(proxyManager);
+                    return OnError();
 
                 if (content.Count == 0)
                     return OnError();
@@ -170,7 +171,7 @@ namespace Lampac.Controllers.LITE
 
             var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40), () => oninvk.VideoParse(init.linkhost, link), proxyManager);
             if (streams == null)
-                return OnError(proxyManager);
+                return OnError();
 
             string result = oninvk.VideoParse(streams, title, original_title, episode, play);
             if (string.IsNullOrEmpty(result))

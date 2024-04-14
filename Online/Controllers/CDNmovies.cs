@@ -33,7 +33,8 @@ namespace Lampac.Controllers.LITE
                    ("DNT", "1"),
                    ("Upgrade-Insecure-Requests", "1")
                ))),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy)
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
+               requesterror: () => proxyManager.Refresh()
             );
 
             var cache = await InvokeCache<List<Voice>>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20), proxyManager, async res =>

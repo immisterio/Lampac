@@ -32,7 +32,8 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                init.dash,
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps")
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps"),
+               requesterror: () => proxyManager.Refresh()
             );
 
             var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20), proxyManager, async res =>

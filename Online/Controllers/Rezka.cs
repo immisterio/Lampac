@@ -45,7 +45,8 @@ namespace Lampac.Controllers.LITE
                 MaybeInHls(init.hls, init),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
-                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka")
+                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka"),
+                requesterror: () => proxyManager.Refresh()
             );
         }
         #endregion
@@ -87,11 +88,11 @@ namespace Lampac.Controllers.LITE
 
             Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t));
             if (root == null)
-                return OnError(proxyManager);
+                return OnError();
 
             var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
-                return OnError(proxyManager);
+                return OnError();
 
             return Content(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true), "text/html; charset=utf-8");
         }
@@ -113,7 +114,7 @@ namespace Lampac.Controllers.LITE
 
             var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
-                return OnError(proxyManager);
+                return OnError();
 
             string result = oninvk.Movie(md, title, original_title, play);
             if (result == null)

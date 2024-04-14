@@ -15,14 +15,16 @@ namespace Shared.Engine.Online
         Func<string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public AshdiInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public AshdiInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -31,20 +33,27 @@ namespace Shared.Engine.Online
         {
             string? product = await onget.Invoke($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}");
             if (product == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
+
+            if (product.Contains("{\"message\":\"Product does not exist.\"}"))
+                return new EmbedModel();
 
             string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeuri))
             {
-                if (product.Contains("{\"message\":\"Product does not exist.\"}"))
-                    return new EmbedModel();
-
+                requesterror?.Invoke();
                 return null;
             }
 
             string? content = await onget.Invoke(iframeuri);
             if (content == null || !content.Contains("Playerjs"))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             if (!content.Contains("file:'[{"))
                 return new EmbedModel() { content = content };

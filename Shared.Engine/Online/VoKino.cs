@@ -15,8 +15,9 @@ namespace Shared.Engine.Online
         Func<string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public VoKinoInvoke(string? host, string apihost, string token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VoKinoInvoke(string? host, string apihost, string token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -24,6 +25,7 @@ namespace Shared.Engine.Online
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -34,6 +36,12 @@ namespace Shared.Engine.Online
             {
                 string? json = await onget($"{apihost}/v2/online/vokino/{kinopoisk_id}?token={token}");
                 if (json == null)
+                {
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                if (json.StartsWith("{\"error\":"))
                     return null;
 
                 var root = JsonSerializer.Deserialize<RootObject>(json);

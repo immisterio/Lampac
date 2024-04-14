@@ -18,8 +18,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public RezkaInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public RezkaInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -28,6 +29,7 @@ namespace Shared.Engine.Online
             this.onlog = onlog;
             this.onpost = onpost;
             usehls = hls;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -48,7 +50,10 @@ namespace Shared.Engine.Online
 
                 string? search = await onget($"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}");
                 if (search == null)
+                {
+                    requesterror?.Invoke();
                     return null;
+                }
 
                 foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
                 {
@@ -91,7 +96,12 @@ namespace Shared.Engine.Online
             result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
             result.content = await onget(link);
             if (result.content == null || string.IsNullOrEmpty(result.id))
+            {
+                if (result.content == null)
+                    requesterror?.Invoke();
+
                 return null;
+            }
 
             return result;
         }
@@ -102,7 +112,10 @@ namespace Shared.Engine.Online
         {
             string? search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()));
             if (search == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string? link = null;
             var result = new EmbedModel();
@@ -132,7 +145,12 @@ namespace Shared.Engine.Online
             result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
             result.content = await onget(link);
             if (result.content == null || string.IsNullOrEmpty(result.id))
+            {
+                if (result.content == null)
+                    requesterror?.Invoke();
+
                 return null;
+            }
 
             return result;
         }
@@ -294,7 +312,14 @@ namespace Shared.Engine.Online
 
             try
             {
-                root = JsonSerializer.Deserialize<Episodes>(await onpost(uri, data));
+                string? json = await onpost(uri, data);
+                if (json == null)
+                {
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                root = JsonSerializer.Deserialize<Episodes>(json);
             }
             catch { }
 
@@ -405,7 +430,10 @@ namespace Shared.Engine.Online
 
             string? json = await onpost(uri, data);
             if (string.IsNullOrEmpty(json))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             Dictionary<string, object>? root = null;
 
@@ -413,11 +441,18 @@ namespace Shared.Engine.Online
             {
                 root = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
             }
-            catch { return null; }
+            catch
+            {
+                requesterror?.Invoke();
+                return null;
+            }
 
             string? url = root?["url"]?.ToString();
-            if (string.IsNullOrWhiteSpace(url) || url.ToLower() == "false")
+            if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var links = getStreamLink(url);
             if (links.Count == 0)

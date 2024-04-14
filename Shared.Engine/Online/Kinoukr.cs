@@ -16,8 +16,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public KinoukrInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public KinoukrInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -25,6 +26,7 @@ namespace Shared.Engine.Online
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -42,7 +44,10 @@ namespace Shared.Engine.Online
                 onlog?.Invoke("search start");
                 string? search = await onget.Invoke($"{apihost}/index.php?do=search&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
+                {
+                    requesterror?.Invoke();
                     return null;
+                }
 
                 onlog?.Invoke("search ok");
 
@@ -81,7 +86,10 @@ namespace Shared.Engine.Online
             onlog?.Invoke("link: " + link);
             string? news = await onget.Invoke(link);
             if (news == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             result.quel = Regex.Match(news, "class=\"m-meta m-qual\">([^<]+)<").Groups[1].Value;
 
@@ -96,7 +104,10 @@ namespace Shared.Engine.Online
             onlog?.Invoke("iframeUri: " + iframeUri);
             string? content = await onget.Invoke(iframeUri);
             if (content == null || !content.Contains("file:"))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             if (!content.Contains("file:'[{"))
             {

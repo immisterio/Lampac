@@ -27,7 +27,8 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi")
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi"),
+               requesterror: () => proxyManager.Refresh()
             );
 
             var cache = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(init.rhub ? 180 : 40), proxyManager, async res =>

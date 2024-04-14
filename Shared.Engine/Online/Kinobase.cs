@@ -17,8 +17,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public KinobaseInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public KinobaseInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -26,15 +27,22 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onpost = onpost;
+            this.requesterror = requesterror;
         }
         #endregion
 
         #region Embed
         async public ValueTask<EmbedModel?> Embed(string? title, int year, Func<string, ValueTask<string?>>? oneval = null)
         {
+            if (string.IsNullOrEmpty(title))
+                return null;
+
             string? content = await onget($"{apihost}/search?query={HttpUtility.UrlEncode(title)}");
             if (content == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string? link = null, reservedlink = null;
             foreach (string row in content.Split("<li class=\"item\">").Skip(1))
@@ -68,7 +76,10 @@ namespace Shared.Engine.Online
 
             string? news = await onget($"{apihost}/{link}");
             if (news == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string MOVIE_ID = Regex.Match(news, "var MOVIE_ID = ([0-9]+)").Groups[1].Value;
             string IDENTIFIER = Regex.Match(news, "var IDENTIFIER = \"([^\"]+)").Groups[1].Value;
@@ -77,14 +88,20 @@ namespace Shared.Engine.Online
 
             string? user_data = await onget($"{apihost}/user_data?page=movie&movie_id={MOVIE_ID}&cuid={PLAYER_CUID}&_={time}");
             if (user_data == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string vod_hash2 = Regex.Match(user_data, "\"vod_hash2\":\"([^\"]+)\"").Groups[1].Value;
             string vod_time2 = Regex.Match(user_data, "\"vod_time2\":([0-9]+)").Groups[1].Value;
 
             content = await onget($"{apihost}/vod/{MOVIE_ID}?identifier={IDENTIFIER}&player_type=new&file_type=mp4&st={vod_hash2}&e={vod_time2}&_={time}");
             if (content == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             if (content.StartsWith("file|"))
                 return new EmbedModel() { content = content };

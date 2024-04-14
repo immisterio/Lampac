@@ -52,7 +52,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
-                        return OnError(proxyManager);
+                        return OnError();
 
                     proxyManager.Success();
                     hybridCache.Set(memkey, catalog, cacheTime(40));
@@ -64,11 +64,7 @@ namespace Lampac.Controllers.LITE
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                {
-                    string link = $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
-
-                    stpl.Append(res.title, res.year, string.Empty, link);
-                }
+                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
 
                 return Content(stpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
@@ -83,10 +79,12 @@ namespace Lampac.Controllers.LITE
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
                     string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
-                    string videoList = Regex.Match(news ?? "", "var videoList = ([^\n\r]+)").Groups[1].Value;
-
-                    if (string.IsNullOrWhiteSpace(videoList))
+                    if (news == null)
                         return OnError(proxyManager);
+
+                    string videoList = Regex.Match(news, "var videoList = ([^\n\r]+)").Groups[1].Value;
+                    if (string.IsNullOrEmpty(videoList))
+                        return OnError();
 
                     links = new List<(string episode, string name, string uri)>();
                     var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
@@ -99,7 +97,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (links.Count == 0)
-                        return OnError(proxyManager);
+                        return OnError();
 
                     proxyManager.Success();
                     hybridCache.Set(memKey, links, cacheTime(30));
@@ -136,10 +134,12 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out string hls))
             {
                 string iframe = await HttpClient.Get(init.cors($"https://{uri}"), timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
-                hls = Regex.Match(iframe ?? "", "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
-
-                if (string.IsNullOrEmpty(hls))
+                if (iframe == null)
                     return OnError(proxyManager);
+
+                hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(hls))
+                    return OnError();
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, hls, cacheTime(30));

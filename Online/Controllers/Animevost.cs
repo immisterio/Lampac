@@ -52,7 +52,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
-                        return OnError(proxyManager);
+                        return OnError();
 
                     proxyManager.Success();
                     hybridCache.Set(memkey, catalog, cacheTime(40));
@@ -64,11 +64,7 @@ namespace Lampac.Controllers.LITE
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                {
-                    string link = $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
-
-                    stpl.Append(res.title, res.year, string.Empty, link);
-                }
+                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
 
                 return Content(stpl.ToHtml(), "text/html; charset=utf-8");
                 #endregion
@@ -83,9 +79,11 @@ namespace Lampac.Controllers.LITE
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string id)> links))
                 {
                     string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
-                    string data = Regex.Match(news ?? "", "var data = ([^\n\r]+)").Groups[1].Value;
+                    if (news == null)
+                        return OnError(proxyManager);
 
-                    if (string.IsNullOrWhiteSpace(data))
+                    string data = Regex.Match(news, "var data = ([^\n\r]+)").Groups[1].Value;
+                    if (string.IsNullOrEmpty(data))
                         return OnError(proxyManager);
 
                     links = new List<(string episode, string id)>();
@@ -99,7 +97,7 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (links.Count == 0)
-                        return OnError(proxyManager);
+                        return OnError();
 
                     proxyManager.Success();
                     hybridCache.Set(memKey, links, cacheTime(30));

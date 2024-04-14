@@ -27,7 +27,8 @@ namespace Lampac.Controllers.LITE
                init,
                (url, referer) => init.rhub ? rch.Get(init.cors(url)) : HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vcdn"),
-               host
+               host,
+               requesterror: () => proxyManager.Refresh()
             );
 
             if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))

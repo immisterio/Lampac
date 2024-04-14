@@ -13,13 +13,15 @@ namespace Shared.Engine.Online
         string apihost;
         Func<string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
+        Action? requesterror;
 
-        public CDNmoviesInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile)
+        public CDNmoviesInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -28,10 +30,13 @@ namespace Shared.Engine.Online
         {
             string? html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
             if (html == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string file = Regex.Match(html, "file:'([^\n\r]+)'").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(file))
+            if (string.IsNullOrEmpty(file))
                 return null;
 
             List<Voice>? content;

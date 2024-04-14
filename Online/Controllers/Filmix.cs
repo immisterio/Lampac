@@ -65,7 +65,8 @@ namespace Lampac.Controllers.LITE
                token,
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data, head) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
-               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy)
+               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
+               requesterror: () => proxyManager.Refresh()
             );
 
             if (postid == 0)

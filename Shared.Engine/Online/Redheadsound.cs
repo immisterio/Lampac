@@ -14,8 +14,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public RedheadsoundInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public RedheadsoundInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -23,6 +24,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onpost = onpost;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -31,7 +33,10 @@ namespace Shared.Engine.Online
         {
             string? search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}");
             if (search == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string? link = null, reservedlink = null;
             foreach (string row in search.Split("card d-flex").Skip(1))
@@ -60,18 +65,21 @@ namespace Shared.Engine.Online
 
             string? news = await onget(link);
             if (news == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string iframeUri = Regex.Match(news, "<iframe data-src=\"((https?://)(player\\.cdnvideohub|redheadsound)\\.[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
 
             string? iframe = await onget(iframeUri);
-            if (iframe == null)
-                return null;
-
             if (string.IsNullOrWhiteSpace(iframe))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             return new EmbedModel() { iframe = iframe.Replace("\\", ""), iframeUri = iframeUri };
         }

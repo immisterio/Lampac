@@ -18,8 +18,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public VoidboostInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VoidboostInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -28,6 +29,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onpost = onpost;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -45,7 +47,10 @@ namespace Shared.Engine.Online
 
             string? content = await onget(uri);
             if (string.IsNullOrEmpty(content))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             return content;
         }
@@ -144,7 +149,10 @@ namespace Shared.Engine.Online
         {
             string? content = await onget($"{apihost}/serial/{t}/iframe?s={s}");
             if (content == null || !content.Contains("name=\"episode\""))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             bool firstjson = true;
             var html = new StringBuilder();
@@ -213,7 +221,10 @@ namespace Shared.Engine.Online
 
             string? content = await onget(uri);
             if (content == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var mfile = Regex.Match(content, "'file': ?'([^']+)'");
             if (!mfile.Success)

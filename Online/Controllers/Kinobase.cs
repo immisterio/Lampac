@@ -35,7 +35,8 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init)),
                (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
+               requesterror: () => proxyManager.Refresh()
             );
 
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"kinobase:view:{title}:{year}", proxyManager), cacheTime(20), proxyManager, async res =>

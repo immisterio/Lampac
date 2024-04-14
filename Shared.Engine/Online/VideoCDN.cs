@@ -19,6 +19,7 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onget;
         Func<string, string>? onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
         public string onstream(string stream)
         {
@@ -28,7 +29,7 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null)
+        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.iframeapihost = init.corsHost();
@@ -38,6 +39,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             usehls = init.hls;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -51,7 +53,10 @@ namespace Shared.Engine.Online
 
             string? json = await onget.Invoke(uri, apihost);
             if (json == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var root = JsonSerializer.Deserialize<SearchRoot>(json);
             if (root?.data == null || root.data.Count == 0)
@@ -97,7 +102,10 @@ namespace Shared.Engine.Online
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
             string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.biz/82065-pchelovod.html");
             if (content == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var result = new EmbedModel();
             result.type = Regex.Match(content, "id=\"videoType\" value=\"([^\"]+)\"").Groups[1].Value;

@@ -15,8 +15,9 @@ namespace Shared.Engine.Online
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public iRemuxInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public iRemuxInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -24,6 +25,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onpost = onpost;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -36,7 +38,10 @@ namespace Shared.Engine.Online
             {
                 string? search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
                 if (search == null)
+                {
+                    requesterror?.Invoke();
                     return null;
+                }
 
                 foreach (string row in search.Split("class=\"entry\"").Skip(1))
                 {
@@ -74,7 +79,10 @@ namespace Shared.Engine.Online
 
             string? news = await onget(link);
             if (news == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string content = news.Split("id=\"msg\"")[1].Split("id=\"download")[0];
             if (!content.Contains("cloud.mail.ru/public/"))
@@ -144,7 +152,10 @@ namespace Shared.Engine.Online
         {
             string? html = await onget($"https://cloud.mail.ru/public/{linkid}");
             if (html == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string? weblinkRow = StringConvert.FindLastText(html, "\"weblink_get\"", "}");
             if (weblinkRow == null)

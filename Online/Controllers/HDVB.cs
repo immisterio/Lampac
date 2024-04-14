@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
 
             JArray data = await search(kinopoisk_id);
             if (data == null)
-                return OnError(proxyManager);
+                return OnError();
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -133,7 +133,7 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                    return OnError(proxyManager);
+                    return OnError();
 
                 var header = httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
@@ -159,7 +159,7 @@ namespace Lampac.Controllers.LITE
                     file = Regex.Replace(file, "^/playlist/", "/");
                     file = Regex.Replace(file, "\\.txt$", "");
                     if (string.IsNullOrWhiteSpace(file))
-                        return OnError(proxyManager);
+                        return OnError();
 
                     urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
                     if (urim3u8 == null)
@@ -208,7 +208,7 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "\\.txt$", "");
 
                 if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                    return OnError(proxyManager);
+                    return OnError();
 
                 var headers = httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
@@ -231,7 +231,7 @@ namespace Lampac.Controllers.LITE
 
                 file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
                 if (string.IsNullOrWhiteSpace(file))
-                    return OnError(proxyManager);
+                    return OnError();
 
                 file = Regex.Replace(file, "^/playlist/", "/");
                 file = Regex.Replace(file, "\\.txt$", "");
@@ -259,7 +259,13 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 root = await HttpClient.Get<JArray>($"{AppInit.conf.HDVB.host}/api/videos.json?token={AppInit.conf.HDVB.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(AppInit.conf.HDVB));
-                if (root == null || root.Count == 0)
+                if (root == null)
+                {
+                    proxyManager.Refresh();
+                    return null;
+                }
+
+                if (root.Count == 0)
                     return null;
 
                 proxyManager.Success();

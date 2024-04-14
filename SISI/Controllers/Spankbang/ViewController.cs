@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Lampac.Engine.CORE;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;

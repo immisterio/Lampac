@@ -21,8 +21,9 @@ namespace Shared.Engine.Online
         Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
+        Action? requesterror;
 
-        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,6 +32,7 @@ namespace Shared.Engine.Online
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -94,7 +96,10 @@ namespace Shared.Engine.Online
         async ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
         {
             if (disableSphinxSearch)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             onlog?.Invoke("Search2");
 
@@ -110,7 +115,10 @@ namespace Shared.Engine.Online
             ));
 
             if (html == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             var ids = new List<int>();
             var stpl = new SimilarTpl();
@@ -157,7 +165,10 @@ namespace Shared.Engine.Online
 
             string? json = await onget.Invoke(uri);
             if (json == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             try
             {
