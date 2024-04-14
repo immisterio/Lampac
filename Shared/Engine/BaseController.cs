@@ -167,7 +167,7 @@ namespace Lampac.Engine
                 }
 
                 if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
-                    return apnlink(conf.apn);;
+                    return apnlink(conf.apn);
 
                 if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
                     return apnlink(AppInit.conf.apn);

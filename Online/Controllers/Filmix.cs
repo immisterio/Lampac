@@ -56,7 +56,10 @@ namespace Lampac.Controllers.LITE
 
             string livehash = string.Empty;
             if (!init.rhub && init.livehash && !string.IsNullOrEmpty(init.token))
+            {
+                token = string.Empty;
                 livehash = await getLiveHash();
+            }
 
             var oninvk = new FilmixInvoke
             (
