@@ -87,7 +87,7 @@ namespace SISI
                 {
                     pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = HostImgProxy(0, 110, pl.picture, headers: headers),
+                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture > 0 ? 110 : 0, pl.picture, headers: headers),
                     pl.json
                 })
             });
