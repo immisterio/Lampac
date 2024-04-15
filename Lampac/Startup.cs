@@ -115,6 +115,7 @@ namespace Lampac
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
+            ProxyManager.Configure(memory);
             HttpClient.httpClientFactory = httpClientFactory;
             bool manifestload = File.Exists("module/manifest.json");
 
