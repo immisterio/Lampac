@@ -40,7 +40,7 @@ namespace Lampac.Controllers.Porntrex
                 hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: HeadersModel.Init("referer", $"{init.host}/"));
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: HeadersModel.Init("referer", $"{init.host}/"), plugin: "ptx");
         }
     }
 }

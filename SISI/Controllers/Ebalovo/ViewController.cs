@@ -36,7 +36,7 @@ namespace Lampac.Controllers.Ebalovo
                 hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
 
-            return OnResult(stream_links, init, proxy);
+            return OnResult(stream_links, init, proxy, plugin: "elo");
         }
     }
 }

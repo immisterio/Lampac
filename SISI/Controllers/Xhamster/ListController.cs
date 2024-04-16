@@ -45,7 +45,7 @@ namespace Lampac.Controllers.Xhamster
                 hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null);
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null, plugin: "xmr");
         }
     }
 }

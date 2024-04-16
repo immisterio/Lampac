@@ -8,7 +8,9 @@ namespace Lampac.Models.AppConf
 
         public bool rsize { get; set; }
 
-        public string? rsizehost { get; set; }
+        public string? rsize_host { get; set; }
+
+        public string? rsize_disable { get; set; }
 
         public int heightPicture { get; set; }
 

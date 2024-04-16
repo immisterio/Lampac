@@ -39,7 +39,7 @@ namespace Lampac.Controllers.Ebalovo
                 hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null);
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null, plugin: "elo");
         }
     }
 }

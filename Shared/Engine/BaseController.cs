@@ -109,7 +109,7 @@ namespace Lampac.Engine
         #endregion
 
         #region proxy
-        public string HostImgProxy(string uri, int width = 0, int height = 0, List<HeadersModel> headers = null)
+        public string HostImgProxy(string uri, int width = 0, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
             if (string.IsNullOrWhiteSpace(uri) || !AppInit.conf.sisi.rsize) 
                 return uri;
@@ -118,10 +118,13 @@ namespace Lampac.Engine
             width = Math.Max(width, init.widthPicture);
             height = Math.Max(height, init.heightPicture);
 
-            if (!string.IsNullOrEmpty(init.rsizehost))
+            if (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
+                return uri;
+
+            if (!string.IsNullOrEmpty(init.rsize_host))
             {
                 string sheme = uri.StartsWith("https:") ? "https" : "http";
-                return init.rsizehost.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
+                return init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
                            .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
             }
 

@@ -35,7 +35,7 @@ namespace SISI
                 {
                     pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin, sisi: true),
-                    picture = (plugin is "bgs" or "chu" or "tizam") ? pl.picture : HostImgProxy(pl.picture),
+                    picture = HostImgProxy(pl.picture, plugin: plugin),
                     pl.preview,
                     pl.time,
                     pl.json,
@@ -55,7 +55,7 @@ namespace SISI
                 {
                     pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = (plugin is "bgs" or "chu" or "tizam") ? pl.picture : HostImgProxy(pl.picture, headers: headers),
+                    picture = HostImgProxy(pl.picture, plugin: plugin, headers: headers),
                     pl.preview,
                     pl.time,
                     pl.json,
@@ -87,7 +87,7 @@ namespace SISI
                 {
                     pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = HostImgProxy(pl.picture, height: 110, headers: headers),
+                    picture = HostImgProxy(pl.picture, height: 110, plugin: plugin, headers: headers),
                     pl.json
                 })
             });

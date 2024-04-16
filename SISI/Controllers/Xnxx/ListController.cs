@@ -39,7 +39,7 @@ namespace Lampac.Controllers.Xnxx
                 hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null);
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: "xnx");
         }
     }
 }
