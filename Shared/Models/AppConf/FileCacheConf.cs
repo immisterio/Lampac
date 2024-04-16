@@ -2,6 +2,10 @@
 {
     public class FileCacheConf
     {
+        public int maxcachesize { get; set; }
+
+        public int intervalclear { get; set; }
+
         public int html { get; set; }
 
         public int img { get; set; }

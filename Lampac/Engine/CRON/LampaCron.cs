@@ -63,7 +63,7 @@ namespace Lampac.Engine.CRON
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.crontime.updateLampaWeb));
+                await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.LampaWeb.intervalupdate, 1)));
             }
         }
     }

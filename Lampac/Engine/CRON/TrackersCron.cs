@@ -15,10 +15,10 @@ namespace Lampac.Engine.CRON
 
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.crontime.updateTrackers));
-                
                 try
                 {
+                    await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.dlna.intervalUpdateTrackers));
+
                     if (AppInit.modules == null || AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) == null)
                         continue;
 

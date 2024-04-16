@@ -190,18 +190,15 @@ namespace Lampac
             },
             cache = new ServerproxyCacheConf() 
             {
-                img = true, img_rsize = true
+                img = false, img_rsize = true
             }
         };
 
-        public CronTime crontime = new CronTime() { updateLampaWeb = 20, clearCache = 20, updateTrackers = 120 };
+        public FileCacheConf fileCacheInactive = new FileCacheConf() { maxcachesize = 400, intervalclear = 4, img = 10, hls = 90, html = 5, torrent = 50 };
 
+        public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, intervalUpdateTrackers = 120, path = "dlna" };
 
-        public FileCacheConf fileCacheInactiveHour = new FileCacheConf() { html = 1, img = 1, torrent = 8, hls = 2 };
-
-        public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, path = "dlna" };
-
-        public WebConf LampaWeb = new WebConf() { autoupdate = true, basetag = true, index = "lampa-main/index.html" };
+        public WebConf LampaWeb = new WebConf() { autoupdate = true, intervalupdate = 20, basetag = true, index = "lampa-main/index.html" };
 
         public OnlineConf online = new OnlineConf() 
         { 

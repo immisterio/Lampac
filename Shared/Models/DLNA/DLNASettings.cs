@@ -8,6 +8,8 @@
 
         public bool autoupdatetrackers { get; set; }
 
+        public int intervalUpdateTrackers { get; set; }
+
         public string mode { get; set; }
 
         public int downloadSpeed { get; set; }
