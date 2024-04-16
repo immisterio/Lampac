@@ -17,8 +17,10 @@ namespace Shared.Model
 
         public string? corsehost { get; set; }
 
-        public SisiConf sisi { get; set; } = new SisiConf() { 
-            heightPicture = 240, rsize = true, component = "sisi", iconame = "",
+        public SisiConf sisi { get; set; } = new SisiConf()
+        {
+            component = "sisi", iconame = "",
+            heightPicture = 240, rsize = true, rsize_disable = new string[] { "bgs", "chu" },
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
