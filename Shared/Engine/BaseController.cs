@@ -109,10 +109,21 @@ namespace Lampac.Engine
         #endregion
 
         #region proxy
-        public string HostImgProxy(int width, int height, string uri, List<HeadersModel> headers = null)
+        public string HostImgProxy(string uri, int width = 0, int height = 0, List<HeadersModel> headers = null)
         {
-            if (string.IsNullOrWhiteSpace(uri) || (width == 0 && height == 0)) 
+            if (string.IsNullOrWhiteSpace(uri) || !AppInit.conf.sisi.rsize) 
                 return uri;
+
+            var init = AppInit.conf.sisi;
+            width = Math.Max(width, init.widthPicture);
+            height = Math.Max(height, init.heightPicture);
+
+            if (!string.IsNullOrEmpty(init.rsizehost))
+            {
+                string sheme = uri.StartsWith("https:") ? "https" : "http";
+                return init.rsizehost.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
+                           .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+            }
 
             uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
 

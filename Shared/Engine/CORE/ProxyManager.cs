@@ -98,7 +98,7 @@ namespace Shared.Engine.CORE
             {
                 if (database.TryGetValue(key, out ProxyManagerModel val))
                 {
-                    if (val.errors >= 2)
+                    if (val.errors >= p.maxRequestError)
                     {
                         if (!string.IsNullOrEmpty(p?.refresh_uri))
                             _ = HttpClient.Get(p.refresh_uri, timeoutSeconds: 5).ConfigureAwait(false);

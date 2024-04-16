@@ -45,7 +45,7 @@ namespace SISI
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(0, AppInit.conf.sisi.heightPicture, pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image),
+                    picture = HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image),
                     pl.time,
                     pl.json,
                     pl.quality,
@@ -72,41 +72,47 @@ namespace SISI
             if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
             {
                 #region download image
-                string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
+                if (AppInit.conf.sisi.bookmarks.saveimage)
+                {
+                    string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
 
-                if (System.IO.File.Exists($"wwwroot/{pimg}"))
-                {
-                    data.bookmark.image = pimg;
-                }
-                else
-                {
-                    var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 7);
-                    if (image != null)
+                    if (System.IO.File.Exists($"wwwroot/{pimg}"))
                     {
-                        Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                        System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
                         data.bookmark.image = pimg;
+                    }
+                    else
+                    {
+                        var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 7);
+                        if (image != null)
+                        {
+                            Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+                            System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
+                            data.bookmark.image = pimg;
+                        }
                     }
                 }
                 #endregion
 
                 #region download preview
-                if (data.preview != null)
+                if (AppInit.conf.sisi.bookmarks.savepreview)
                 {
-                    string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
+                    if (data.preview != null)
+                    {
+                        string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
 
-                    if (System.IO.File.Exists($"wwwroot/{path}"))
-                    {
-                        data.preview = path;
-                    }
-                    else
-                    {
-                        var preview = await HttpClient.Download(data.preview, timeoutSeconds: 8);
-                        if (preview != null)
+                        if (System.IO.File.Exists($"wwwroot/{path}"))
                         {
-                            Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                            await System.IO.File.WriteAllBytesAsync($"wwwroot/{path}", preview);
                             data.preview = path;
+                        }
+                        else
+                        {
+                            var preview = await HttpClient.Download(data.preview, timeoutSeconds: 8);
+                            if (preview != null)
+                            {
+                                Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+                                await System.IO.File.WriteAllBytesAsync($"wwwroot/{path}", preview);
+                                data.preview = path;
+                            }
                         }
                     }
                 }

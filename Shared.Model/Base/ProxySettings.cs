@@ -17,6 +17,8 @@ namespace Shared.Model.Base
 
         public string? password;
 
+        public int maxRequestError = 2;
+
 
         public string? file;
 

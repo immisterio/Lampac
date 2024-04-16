@@ -10,10 +10,8 @@ using Lampac.Engine.CORE;
 using Lampac.Models.Module;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
-using IO = System.IO;
 
 namespace SISI
 {
@@ -24,7 +22,22 @@ namespace SISI
         [Route("sisi.js")]
         public ActionResult Sisi(bool lite)
         {
-            return Content(FileCache.ReadAllText("plugins/" + (lite ? "sisi.lite.js" : "sisi.js")).Replace("{localhost}", $"{host}/sisi"), contentType: "application/javascript; charset=utf-8");
+            if (lite)
+                return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", $"{host}/sisi"), contentType: "application/javascript; charset=utf-8");
+
+            var init = AppInit.conf.sisi;
+            string file = FileCache.ReadAllText("plugins/sisi.js").Replace("{localhost}", $"{host}/sisi");
+
+            if (init.component != "sisi")
+                file = file.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
+
+            if (!string.IsNullOrEmpty(init.iconame))
+            {
+                file = file.Replace("Defined.use_api == 'pwa'", "true");
+                file = file.Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
+            }
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

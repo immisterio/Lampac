@@ -17,7 +17,10 @@ namespace Shared.Model
 
         public string? corsehost { get; set; }
 
-        public SisiConf sisi { get; set; } = new SisiConf() { heightPicture = 240 };
+        public SisiConf sisi { get; set; } = new SisiConf() { 
+            heightPicture = 240, rsize = true, component = "sisi", iconame = "",
+            bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
+        };
 
         public SisiSettings BongaCams { get; set; } = new SisiSettings("https://ru2.bongacams.com");
 
@@ -103,10 +106,10 @@ namespace Shared.Model
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true);
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.onl", streamproxy: true);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 
-        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.best", streamproxy: true);
+        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.best");
     }
 }
