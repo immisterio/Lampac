@@ -131,7 +131,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region bullderClientEngine
-        static Task bullderClientEngine()
+        static Task bullderClientEngine(int connectionTimeout = 10)
         {
             if (torrentEngine != null)
                 return Task.CompletedTask;
@@ -142,10 +142,14 @@ namespace Lampac.Controllers
                 MaximumHalfOpenConnections = 20,
                 MaximumUploadSpeed = 125000 * 5, // 5Mbit/s
                 MaximumOpenFiles = 40,
+                ConnectionTimeout = TimeSpan.FromSeconds(connectionTimeout),
                 MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
                 MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
                 MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
-                AllowedEncryption = new List<EncryptionType>() { EncryptionType.PlainText, EncryptionType.RC4Header, EncryptionType.RC4Full }
+
+                AllowedEncryption = AppInit.conf.dlna.allowedEncryption ? 
+                    new List<EncryptionType>() { EncryptionType.RC4Full, EncryptionType.RC4Header, EncryptionType.PlainText } : 
+                    new List<EncryptionType>() { EncryptionType.PlainText, EncryptionType.RC4Header, EncryptionType.RC4Full }
             };
 
             torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
@@ -487,7 +491,7 @@ namespace Lampac.Controllers
                 }
                 #endregion
 
-                await bullderClientEngine();
+                await bullderClientEngine(5);
 
                 if (torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex().ToLower() == hash) is TorrentManager manager)
                 {

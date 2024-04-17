@@ -22,6 +22,9 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd) && _localpasswd.ToString() == File.ReadAllText("passwd"))
+                return _next(httpContext);
+
             #region manifest / admin
             if (!File.Exists("module/manifest.json"))
             {
@@ -47,9 +50,6 @@ namespace Lampac.Engine.Middlewares
 
             if (!AppInit.conf.weblog && !AppInit.conf.rch.enable && httpContext.Request.Path.Value.StartsWith("/ws"))
                 return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
-
-            if (httpContext.Connection.RemoteIpAddress.ToString() == AppInit.conf.localhost)
-                return _next(httpContext);
 
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|baibako|hdrezka)";
 

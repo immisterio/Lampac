@@ -9,17 +9,17 @@ namespace JinEnergy.Engine
 {
     public static class JsHttpClient
     {
-        #region headers
-        static string headers(List<HeadersModel>? addHeaders)
+        #region httpReqHeaders
+        static Dictionary<string, string> httpReqHeaders(List<HeadersModel>? addHeaders)
         {
-            string hed = string.Empty;
+            var hed = new Dictionary<string, string>();
             if (addHeaders != null && addHeaders.Count > 0)
             {
                 foreach (var h in addHeaders)
-                    hed += $"'{h.name}':'{h.val}',";
+                    hed.TryAdd(h.name, h.val);
             }
 
-            return Regex.Replace(hed, ",$", "");
+            return hed;
         }
         #endregion
 
@@ -60,7 +60,7 @@ namespace JinEnergy.Engine
             try
             {
                 if (androidHttpReq && AppInit.IsAndrod && AppInit.JSRuntime != null)
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, false, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = headers(addHeaders) });
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, false, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = httpReqHeaders(addHeaders) });
 
                 using (var client = new HttpClient())
                 {
@@ -118,7 +118,7 @@ namespace JinEnergy.Engine
             try
             {
                 if (AppInit.IsAndrod && AppInit.JSRuntime != null)
-                    return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, data.ReadAsStringAsync().Result, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = headers(addHeaders) });
+                    return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, data.ReadAsStringAsync().Result, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = httpReqHeaders(addHeaders) });
 
                 using (var client = new HttpClient())
                 {

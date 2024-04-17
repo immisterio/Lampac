@@ -355,7 +355,7 @@ namespace Lampac.Controllers
 
             if (chos && IO.File.Exists("isdocker"))
             {
-                if ((await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4)) != appversion)
+                if ((await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", System.IO.File.ReadAllText("passwd")))) != appversion)
                     chos = false;
             }
 
@@ -404,7 +404,7 @@ namespace Lampac.Controllers
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
             string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
-            var header = uri.Contains("{localhost}") ? HeadersModel.Init("xhost", host) : null;
+            var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
             string res = await HttpClient.Get($"{srq}/{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
 

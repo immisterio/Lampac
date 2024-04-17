@@ -175,10 +175,7 @@ namespace Lampac.Controllers
         [Route("admin/init/current")]
         public ActionResult InitCurrent()
         {
-            return Content(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
-            {
-                NullValueHandling = NullValueHandling.Ignore
-            }), contentType: "application/json; charset=utf-8");
+            return Content(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented), contentType: "application/json; charset=utf-8");
         }
 
         [Route("admin/init/example")]

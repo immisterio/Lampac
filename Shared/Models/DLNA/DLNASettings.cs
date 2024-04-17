@@ -19,5 +19,7 @@
         public int maximumDiskReadRate { get; set; }
 
         public int maximumDiskWriteRate { get; set; }
+
+        public bool allowedEncryption { get; set; }
     }
 }
