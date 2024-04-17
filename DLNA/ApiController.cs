@@ -106,7 +106,7 @@ namespace Lampac.Controllers
                                 catch { }
                             }
 
-                            await removeClientEngine();
+                            await removeClientEngine(e.TorrentManager.InfoHash.ToHex().ToLower());
                         }
                     }
                     catch { }
@@ -138,12 +138,14 @@ namespace Lampac.Controllers
 
             EngineSettingsBuilder engineSettingsBuilder = new EngineSettingsBuilder()
             {
-                MaximumConnections = 30,
+                MaximumConnections = 50,
                 MaximumHalfOpenConnections = 20,
                 MaximumUploadSpeed = 125000 * 5, // 5Mbit/s
+                MaximumOpenFiles = 40,
                 MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
                 MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
                 MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
+                AllowedEncryption = new List<EncryptionType>() { EncryptionType.PlainText, EncryptionType.RC4Header, EncryptionType.RC4Full }
             };
 
             torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
@@ -152,20 +154,52 @@ namespace Lampac.Controllers
         #endregion
 
         #region removeClientEngine
-        async static Task removeClientEngine()
+        async static Task removeClientEngine(string hash = null)
         {
             try
             {
-                if (torrentEngine != null && torrentEngine.Torrents.Count(i => i.State != TorrentState.Stopped && i.State != TorrentState.Stopping && i.State != TorrentState.Error) == 0)
+                if (torrentEngine != null)
                 {
-                    try
-                    {
-                        await torrentEngine.StopAllAsync();
-                    }
-                    catch { }
+                    var tdl = new List<TorrentManager>();
 
-                    torrentEngine.Dispose();
-                    torrentEngine = null;
+                    foreach (var i in torrentEngine.Torrents)
+                    {
+                        if (i.State == TorrentState.Stopped || i.State == TorrentState.Stopping || i.State == TorrentState.Error || i.InfoHash.ToHex().ToLower() == hash)
+                        {
+                            try
+                            {
+                                await i.StopAsync(TimeSpan.FromSeconds(8));
+                            }
+                            catch { }
+
+                            tdl.Add(i);
+                        }
+                    }
+
+                    if (tdl.Count > 0)
+                    {
+                        foreach (var item in tdl)
+                        {
+                            try
+                            {
+                                torrentEngine.Torrents.Remove(item);
+                            }
+                            catch { }
+                        }
+
+                    }
+
+                    if (torrentEngine.Torrents.Count == 0)
+                    {
+                        try
+                        {
+                            await torrentEngine.StopAllAsync();
+                        }
+                        catch { }
+
+                        torrentEngine.Dispose();
+                        torrentEngine = null;
+                    }
                 }
             }
             catch { }
@@ -414,33 +448,65 @@ namespace Lampac.Controllers
                 var s_cts = new CancellationTokenSource();
                 s_cts.CancelAfter(1000 * 60 * 2);
 
+                string magnet = tparse.magnet.ToLower();
+
                 #region trackers
                 string trackers = string.Empty;
 
-                if (IO.File.Exists("cache/trackers.txt"))
+                if (IO.File.Exists("cache/trackers.txt") && AppInit.conf.dlna.addTrackersToMagnet)
                 {
+                    if (magnet.Contains("&") && IO.File.Exists("cache/trackers_bad.txt"))
+                    {
+                        magnet = magnet.Split("&")[0]; 
+                        var trackers_bad = IO.File.ReadLines("cache/trackers_bad.txt");
+
+                        foreach (Match item in Regex.Matches(tparse.magnet, "tr=([^&]+)"))
+                        {
+                            string tr = item.Groups[1].Value;
+                            if (string.IsNullOrWhiteSpace(tr) || trackers_bad.Contains(tr) || trackers_bad.Contains(HttpUtility.UrlDecode(tr)))
+                                continue;
+
+                            magnet += $"&tr={tr}";
+                        }
+                    }
+
                     foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
                     {
                         if (string.IsNullOrWhiteSpace(line))
                             continue;
 
-                        if (line.StartsWith("http") /*|| line.StartsWith("udp:")*/)
-                            trackers += $"&tr={HttpUtility.HtmlEncode(line)}";
+                        if (line.StartsWith("http") || line.StartsWith("udp:"))
+                        {
+                            string host = line.Replace("\r", "").Replace("\n", "").Replace("\t", "").ToLower().Trim();
+                            string tr = HttpUtility.UrlEncode(host);
+
+                            if (!magnet.Contains(host) && !magnet.Contains(tr))
+                                magnet += $"&tr={tr}";
+                        }
                     }
                 }
                 #endregion
 
                 await bullderClientEngine();
-                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(tparse.magnet + trackers), s_cts.Token);
+
+                if (torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex().ToLower() == hash) is TorrentManager manager)
+                {
+                    await manager.WaitForMetadataAsync(s_cts.Token);
+                    var files = manager.Files.Select(i => (ITorrentFile)i);
+                    await removeClientEngine(hash);
+                    return Json(files);
+                }
+
+                byte[] data = await torrentEngine.DownloadMetadataAsync(MagnetLink.Parse(magnet), s_cts.Token);
                 if (data == null)
                 {
-                    await removeClientEngine();
+                    await removeClientEngine(hash);
                     return Json(new { error = "DownloadMetadata" });
                 }
 
                 Directory.CreateDirectory("cache/torrent");
                 IO.File.WriteAllBytes($"cache/torrent/{hash}", data);
-                await removeClientEngine();
+                await removeClientEngine(hash);
 
                 return Json(Torrent.Load(data).Files);
             }
@@ -475,12 +541,51 @@ namespace Lampac.Controllers
                 await bullderClientEngine();
                 TorrentManager manager = torrentEngine.Torrents.FirstOrDefault(i => i.InfoHash.ToHex() == magnetLink.InfoHash.ToHex());
 
+                Directory.CreateDirectory($"{dlna_path}/");
+
                 if (manager != null)
                 {
                     if (manager.State is TorrentState.Stopped or TorrentState.Stopping or TorrentState.Error)
                     {
                         await manager.StartAsync();
                         await manager.WaitForMetadataAsync();
+
+                        #region TorrentStateChanged
+                        manager.TorrentStateChanged += async (s, e) =>
+                        {
+                            try
+                            {
+                                if (e != null && e.NewState == TorrentState.Seeding)
+                                    await e.TorrentManager.StopAsync();
+
+                                //if (e != null && e.NewState == TorrentState.Error)
+                                //    await e.TorrentManager.StartAsync();
+
+                                if (e != null && (e.NewState == TorrentState.Stopped || e.NewState == TorrentState.Stopping))
+                                {
+                                    try
+                                    {
+                                        IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.torrent");
+                                        IO.File.Delete($"cache/metadata/{e.TorrentManager.InfoHash.ToHex()}.json");
+                                    }
+                                    catch { }
+
+                                    foreach (var f in e.TorrentManager.Files)
+                                    {
+                                        try
+                                        {
+                                            if (f.Priority == Priority.DoNotDownload && IO.File.Exists(f.FullPath))
+                                                IO.File.Delete(f.FullPath);
+                                        }
+                                        catch { }
+                                    }
+
+                                    await removeClientEngine(e.TorrentManager.InfoHash.ToHex().ToLower());
+                                }
+                            }
+                            catch { }
+                        };
+                        #endregion
                     }
 
                     #region overideindexs
@@ -500,21 +605,27 @@ namespace Lampac.Controllers
                 }
                 else
                 {
-                    Directory.CreateDirectory($"{dlna_path}/");
-
                     dynamic tlink = tparse.torrent != null ? Torrent.Load(tparse.torrent) : magnetLink;
                     manager = AppInit.conf.dlna.mode == "stream" ? await torrentEngine.AddStreamingAsync(tlink, $"{dlna_path}/") : await torrentEngine.AddAsync(tlink, $"{dlna_path}/");
 
                     #region AddTrackerAsync
-                    if (IO.File.Exists("cache/trackers.txt"))
+                    if (IO.File.Exists("cache/trackers.txt") && AppInit.conf.dlna.addTrackersToMagnet)
                     {
                         foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
                         {
                             if (string.IsNullOrWhiteSpace(line))
                                 continue;
 
-                            if (line.StartsWith("http") || line.StartsWith("udp:"))
-                                await manager.TrackerManager.AddTrackerAsync(new Uri(line));
+                            string host = line.Replace("\r", "").Replace("\n", "").Replace("\t", "").ToLower().Trim();
+
+                            if (host.StartsWith("http") || host.StartsWith("udp:"))
+                            {
+                                try
+                                {
+                                    await manager.TrackerManager.AddTrackerAsync(new Uri(host));
+                                }
+                                catch { }
+                            }
                         }
                     }
                     #endregion
@@ -567,7 +678,7 @@ namespace Lampac.Controllers
                                     catch { }
                                 }
 
-                                await removeClientEngine();
+                                await removeClientEngine(e.TorrentManager.InfoHash.ToHex().ToLower());
                             }
                         }
                         catch { }
@@ -653,11 +764,18 @@ namespace Lampac.Controllers
             {
                 try
                 {
+                    IO.File.Delete($"cache/metadata/{manager.InfoHash.ToHex()}.torrent");
+                    IO.File.Delete($"cache/metadata/{manager.InfoHash.ToHex()}.json");
+                }
+                catch { }
+
+                try
+                {
                     await manager.StopAsync();
                 }
                 catch { }
 
-                await removeClientEngine();
+                await removeClientEngine(manager.InfoHash.ToHex().ToLower());
             }
 
             return Json(new { status = true });

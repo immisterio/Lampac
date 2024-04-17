@@ -56,7 +56,7 @@ namespace Shared.Model
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx-ams.ukrtelcdn.net" };
 
-        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true);
+        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false };
 
         public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.delivembd.ws");
 

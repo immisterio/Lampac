@@ -8,6 +8,8 @@
 
         public bool autoupdatetrackers { get; set; }
 
+        public bool addTrackersToMagnet { get; set; }
+
         public int intervalUpdateTrackers { get; set; }
 
         public string mode { get; set; }

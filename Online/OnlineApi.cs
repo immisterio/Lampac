@@ -52,6 +52,7 @@ namespace Lampac.Controllers
 
             file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
+            file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }

@@ -196,7 +196,7 @@ namespace Lampac
 
         public FileCacheConf fileCacheInactive = new FileCacheConf() { maxcachesize = 400, intervalclear = 4, img = 10, hls = 90, html = 5, torrent = 50 };
 
-        public DLNASettings dlna = new DLNASettings() { enable = true,  autoupdatetrackers = true, intervalUpdateTrackers = 120, path = "dlna" };
+        public DLNASettings dlna = new DLNASettings() { enable = true, autoupdatetrackers = true, addTrackersToMagnet = true, intervalUpdateTrackers = 90, path = "dlna" };
 
         public WebConf LampaWeb = new WebConf() { autoupdate = true, intervalupdate = 20, basetag = true, index = "lampa-main/index.html" };
 

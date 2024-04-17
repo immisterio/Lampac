@@ -14,5 +14,8 @@
         public string description { get; set; }
 
         public bool version { get; set; }
+
+
+        public string apn { get; set; }
     }
 }
