@@ -12,7 +12,11 @@ namespace JinEnergy.Engine
         #region httpReqHeaders
         static Dictionary<string, string> httpReqHeaders(List<HeadersModel>? addHeaders)
         {
-            var hed = new Dictionary<string, string>();
+            var hed = new Dictionary<string, string>() 
+            {
+                ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+            };
+
             if (addHeaders != null && addHeaders.Count > 0)
             {
                 foreach (var h in addHeaders)
