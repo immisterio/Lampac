@@ -39,7 +39,7 @@ namespace JinEnergy.Online
 
                 AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
 
-                string file = Regex.Match(html ?? "", "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
+                string file = Regex.Match(html ?? "", "file: ?'(#[^&']+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
                     return null;
 

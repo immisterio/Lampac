@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                string file = Regex.Match(html, "&quot;player&quot;:&quot;(#[^&]+)").Groups[1].Value;
+                string file = Regex.Match(html, "file: ?'(#[^&']+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file)) 
                     return null;
 
