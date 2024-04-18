@@ -24,6 +24,5 @@ RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://git
     && chmod +x torrserver/TorrServer-linux
 
 RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}}' > init.conf
-RUN echo '{"rdb": false, "updatets": false}' > module/TorrServer.conf
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]
