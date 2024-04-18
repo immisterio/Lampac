@@ -22,7 +22,10 @@ namespace Lampac.Engine.CRON
                 try
                 {
                     if (AppInit.modules == null || AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) == null)
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1));
                         continue;
+                    }
 
                     if (AppInit.conf.dlna.enable && AppInit.conf.dlna.autoupdatetrackers)
                     {
