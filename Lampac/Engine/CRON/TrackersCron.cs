@@ -41,7 +41,8 @@ namespace Lampac.Engine.CRON
                                 continue;
 
                             foreach (string line in plain.Replace("\r", "").Replace("\t", "").Split("\n"))
-                                temp.Add(line.Trim());
+                                if (!string.IsNullOrEmpty(line))
+                                    temp.Add(line.Trim());
                         }
 
                         foreach (string url in temp)
@@ -53,7 +54,7 @@ namespace Lampac.Engine.CRON
                         }
 
                         File.WriteAllLines("cache/trackers_bad.txt", trackers_bad);
-                        File.WriteAllLines("cache/trackers.txt", trackers.OrderByDescending(i => i.StartsWith("http")).ThenByDescending(i => Regex.IsMatch(i, "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")));
+                        File.WriteAllLines("cache/trackers.txt", trackers.OrderByDescending(i => Regex.IsMatch(i, "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")).ThenByDescending(i => i.StartsWith("http")));
                     }
                 }
                 catch { }
