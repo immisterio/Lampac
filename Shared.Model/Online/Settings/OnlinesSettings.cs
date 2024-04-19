@@ -4,7 +4,7 @@ namespace Lampac.Models.LITE
 {
     public class OnlinesSettings : BaseSettings
     {
-        public OnlinesSettings(string host, string? apihost = null, bool useproxy = false, string? token = null, bool enable = true, bool streamproxy = false, bool rip = false)
+        public OnlinesSettings(string host, string? apihost = null, bool useproxy = false, string? token = null, bool enable = true, bool streamproxy = false, bool geostream = false, bool rip = false)
         {
             this.host = host;
             this.apihost = apihost;
@@ -13,6 +13,9 @@ namespace Lampac.Models.LITE
             this.useproxy = useproxy;
             this.streamproxy = streamproxy;
             this.rip = rip;
+
+            if (geostream)
+                geostreamproxy = new List<string>() { "ALL" };
         }
 
 

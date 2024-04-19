@@ -28,11 +28,11 @@ namespace Shared.Model
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("https://chaturbate.com");
 
-        public SisiSettings Ebalovo { get; set; } = new SisiSettings("https://www.ebalovo.pro"/*, streamproxy: true*/);
+        public SisiSettings Ebalovo { get; set; } = new SisiSettings("https://www.ebalovo.pro");
 
-        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com"/*, streamproxy: true*/);
+        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com");
 
-        public SisiSettings HQporner { get; set; } = new SisiSettings("https://m.hqporner.com", streamproxy: true);
+        public SisiSettings HQporner { get; set; } = new SisiSettings("https://m.hqporner.com") { geostreamproxy = new List<string>() { "ALL" } };
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("https://www.porntrex.com");
 
@@ -42,17 +42,17 @@ namespace Shared.Model
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("https://www.xnxx.com");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("https://tizam.pw"/*, streamproxy: true*/);
+        public SisiSettings Tizam { get; set; } = new SisiSettings("https://tizam.pw");
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("https://www.xvideos.com");
 
-        public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com"/*, streamproxy: true*/);
+        public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com");
 
-        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("https://rt.pornhubpremium.com", enable: false/*, streamproxy: true*/);
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("https://rt.pornhubpremium.com", enable: false);
 
 
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", streamproxy: true);
+        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", geostream: true);
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx-ams.ukrtelcdn.net" };
 
@@ -80,14 +80,14 @@ namespace Shared.Model
 
         public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "UA" } };
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false) { geostreamproxy = new List<string>() { "UA" } };
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false, rip: true) { geostreamproxy = new List<string>() { "UA" } };
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online", streamproxy: true/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online", geostream: true/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
 
 
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", streamproxy: true);
+        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", geostream: true);
 
         public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("http://api.vokino.tv", enable: false, streamproxy: true);
 
@@ -108,7 +108,7 @@ namespace Shared.Model
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.onl", streamproxy: true);
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.onl", streamproxy: true, enable: false);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 
