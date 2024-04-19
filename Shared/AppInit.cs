@@ -214,7 +214,11 @@ namespace Lampac
 
         public MerchantsModel Merchant = new MerchantsModel();
 
-        public HashSet<Known> KnownProxies { get; set; }
+        public HashSet<Known> KnownProxies { get; set; } = new HashSet<Known>() 
+        {
+            new Known() { ip = "10.2.0.0", prefixLength = 16 },
+            new Known() { ip = "192.168.0.0", prefixLength = 16 }
+        };
 
         public bool real_ip_cf { get; set; }
 

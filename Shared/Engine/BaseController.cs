@@ -150,8 +150,11 @@ namespace Lampac.Engine
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {
                 string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
-                if (country != null && conf.geostreamproxy.Contains(country))
-                    streamproxy = true;
+                if (!string.IsNullOrEmpty(country) && country.Length == 2)
+                {
+                    if (conf.geostreamproxy.Contains("ALL") || conf.geostreamproxy.Contains(country))
+                        streamproxy = true;
+                }
             }
 
             if (streamproxy)
