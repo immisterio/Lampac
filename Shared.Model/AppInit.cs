@@ -52,7 +52,7 @@ namespace Shared.Model
 
 
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org", geostream: true);
+        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org") { geostreamproxy = new List<string>() { "ALL" } };
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://rezka.ag") { uacdn = "https://prx-ams.ukrtelcdn.net" };
 
@@ -84,10 +84,10 @@ namespace Shared.Model
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online", geostream: true/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/);
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/) { geostreamproxy = new List<string>() { "ALL" } };
 
 
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE", geostream: true);
+        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("http://api.vokino.tv", enable: false, streamproxy: true);
 
