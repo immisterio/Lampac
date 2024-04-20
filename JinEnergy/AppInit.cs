@@ -71,7 +71,7 @@ namespace JinEnergy
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { log(ex.ToString()); }
         }
         #endregion
 
