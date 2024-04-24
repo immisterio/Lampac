@@ -132,7 +132,10 @@ namespace Lampac.Controllers
         async public Task TorAPI()
         {
             if (await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
+            {
+                await HttpContext.Response.WriteAsync("application failed to start", HttpContext.RequestAborted);
                 return;
+            }
 
             #region settings
             if (HttpContext.Request.Path.Value.StartsWith("/ts/settings"))
@@ -150,20 +153,17 @@ namespace Lampac.Controllers
 
                 using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                 {
+                    client.Timeout = TimeSpan.FromSeconds(10);
                     client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
 
                     if (requestJson.Contains("\"get\""))
                     {
-                        client.Timeout = TimeSpan.FromSeconds(5);
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
-                        return;
                     }
                     else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
-                        client.Timeout = TimeSpan.FromSeconds(10);
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
-                        return;
                     }
                 }
 
@@ -198,6 +198,8 @@ namespace Lampac.Controllers
                 {
                     try
                     {
+                        ModInit.taskCompletionSource = new TaskCompletionSource<bool>();
+
                         ModInit.tsprocess = new Process();
                         ModInit.tsprocess.StartInfo.UseShellExecute = false;
                         ModInit.tsprocess.StartInfo.RedirectStandardOutput = true;
@@ -226,7 +228,13 @@ namespace Lampac.Controllers
                     return false;
                 }
                 #endregion
+
+                ModInit.taskCompletionSource.SetResult(true);
+                ModInit.taskCompletionSource = null;
             }
+
+            if (ModInit.taskCompletionSource != null)
+                await ModInit.taskCompletionSource.Task;
 
             if (ModInit.tsprocess == null)
                 return false;

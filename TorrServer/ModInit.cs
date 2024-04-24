@@ -28,6 +28,8 @@ namespace TorrServer
         public static HashSet<string> clientIps = new HashSet<string>();
 
         public static System.Diagnostics.Process tsprocess;
+
+        public static TaskCompletionSource<bool> taskCompletionSource { get; set; }
         #endregion
 
         #region loaded

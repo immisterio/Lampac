@@ -102,7 +102,7 @@ namespace Lampac.Engine.Middlewares
 
                         httpContext.Response.ContentType = "application/vnd.apple.mpegurl";
                         httpContext.Response.ContentLength = hls.Length;
-                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
+                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                     }
                     else
                     {
@@ -156,7 +156,7 @@ namespace Lampac.Engine.Middlewares
                                 if (response.Content.Headers.ContentLength > 625000)
                                 {
                                     httpContext.Response.ContentType = "text/plain";
-                                    await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted);
+                                    await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
                                     return;
                                 }
 
@@ -176,12 +176,12 @@ namespace Lampac.Engine.Middlewares
                                 httpContext.Response.Headers.Add("PX-Cache", cache_stream ? "MISS" : "BYPASS");
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                 httpContext.Response.ContentLength = hls.Length;
-                                await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted);
+                                await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                             }
                             else
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
-                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted);
+                                await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
                             }
                         }
                         #endregion
@@ -196,11 +196,11 @@ namespace Lampac.Engine.Middlewares
                                 if (response.Content.Headers.ContentLength > 10_000000)
                                 {
                                     httpContext.Response.ContentType = "text/plain";
-                                    await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted);
+                                    await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
                                     return;
                                 }
 
-                                byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
+                                byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
 
                                 if (!File.Exists(cachefile))
                                 {
@@ -219,7 +219,7 @@ namespace Lampac.Engine.Middlewares
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
                                 httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 httpContext.Response.ContentLength = buffer.Length;
-                                await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted);
+                                await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
                             }
                             else
                             {
@@ -589,7 +589,7 @@ namespace Lampac.Engine.Middlewares
                                         break;
 
                                     while (byteQueue.Count > bunit.length && !context.RequestAborted.IsCancellationRequested)
-                                        await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted);
+                                        await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted).ConfigureAwait(false);
                                 }
                             }
                             finally
@@ -616,7 +616,7 @@ namespace Lampac.Engine.Middlewares
                                         byte[] bytesToSend = byteQueue.Dequeue();
                                         locker.Set();
 
-                                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), context.RequestAborted);
+                                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(bytesToSend), context.RequestAborted).ConfigureAwait(false);
                                     }
                                     else if (readFinished)
                                     {
@@ -624,7 +624,7 @@ namespace Lampac.Engine.Middlewares
                                     }
                                     else
                                     {
-                                        await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted);
+                                        await locker.WaitAsync(Math.Max(bunit.millisecondsTimeout, 1), context.RequestAborted).ConfigureAwait(false);
                                     }
                                 }
                             }
@@ -651,8 +651,8 @@ namespace Lampac.Engine.Middlewares
                     try
                     {
                         int bytesRead;
-                        while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted)) != 0)
-                            await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted);
+                        while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                            await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
                     }
                     finally
                     {

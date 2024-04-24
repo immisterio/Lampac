@@ -11,7 +11,7 @@ namespace Shared.Engine.Online
     public class RezkaInvoke
     {
         #region RezkaInvoke
-        string? host;
+        string? host, scheme;
         string apihost;
         bool usehls;
         Func<string, ValueTask<string?>> onget;
@@ -20,10 +20,11 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public RezkaInvoke(string? host, string apihost, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
+            this.scheme = scheme;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
@@ -588,6 +589,9 @@ namespace Shared.Engine.Online
 
                 if (string.IsNullOrEmpty(link))
                     continue;
+
+                if (scheme == "http")
+                    link.Replace("https:", "http:");
 
                 links.Add(new ApiModel()
                 {

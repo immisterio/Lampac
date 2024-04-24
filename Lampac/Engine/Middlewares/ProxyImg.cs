@@ -153,7 +153,7 @@ namespace Lampac.Engine.Middlewares
                     httpContext.Response.Headers.Add("X-Cache-Status", cacheimg ? "MISS" : "bypass");
                 }
 
-                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted);
+                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
             }
             else
             {

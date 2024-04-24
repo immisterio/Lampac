@@ -176,7 +176,7 @@ namespace JinEnergy.Online
                 send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
 
             if (!AppInit.Filmix.pro)
-                send("Filmix - 480p", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+                send($"Filmix - {(string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
             if (serial == 0 && !isanime)
             {

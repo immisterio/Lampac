@@ -28,7 +28,7 @@ namespace Shared.Engine.Online
             this.apihost = apihost;
             this.token = token;
             this.onget = onget;
-            this.onpost= onpost;
+            this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.usehls = hls;

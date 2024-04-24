@@ -42,6 +42,7 @@ namespace Lampac.Controllers.LITE
             (
                 host,
                 init.corsHost(),
+                init.scheme,
                 MaybeInHls(init.hls, init),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),

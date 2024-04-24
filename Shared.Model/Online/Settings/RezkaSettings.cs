@@ -28,6 +28,8 @@ namespace Lampac.Models.LITE
 
         public bool hls { get; set; }
 
+        public string? scheme { get; set; }
+
         public RezkaSettings Clone()
         {
             return (RezkaSettings)MemberwiseClone();
