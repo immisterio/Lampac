@@ -591,7 +591,7 @@ namespace Shared.Engine.Online
                     continue;
 
                 if (scheme == "http")
-                    link.Replace("https:", "http:");
+                    link = link.Replace("https:", "http:");
 
                 links.Add(new ApiModel()
                 {
