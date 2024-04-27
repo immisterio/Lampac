@@ -13,14 +13,14 @@ namespace Shared.Engine.Online
         #region RezkaInvoke
         string? host, scheme;
         string apihost;
-        bool usehls;
+        bool usehls, userprem;
         Func<string, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -30,6 +30,7 @@ namespace Shared.Engine.Online
             this.onlog = onlog;
             this.onpost = onpost;
             usehls = hls;
+            this.userprem = userprem;
             this.requesterror = requesterror;
         }
         #endregion
@@ -204,6 +205,12 @@ namespace Shared.Engine.Online
                     {
                         if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups[3].Value))
                         {
+                            if (!userprem && match.Groups[0].Value.Contains("prem_translator"))
+                            {
+                                match = match.NextMatch();
+                                continue;
+                            }
+
                             string favs = Regex.Match(result.content, "id=\"ctrl_favs\" value=\"([^\"]+)\"").Groups[1].Value;
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}&favs={favs}";
                             string voice = match.Groups[3].Value.Trim();
@@ -242,9 +249,15 @@ namespace Shared.Engine.Online
                 #region Перевод
                 if (result.content.Contains("data-translator_id="))
                 {
-                    var match = new Regex("data-translator_id=\"([0-9]+)\">([^<]+)(<img title=\"([^\"]+)\" [^>]+/>)?").Match(result.content);
+                    var match = new Regex("<li [^>]+ data-translator_id=\"([0-9]+)\">([^<]+)(<img title=\"([^\"]+)\" [^>]+/>)?").Match(result.content);
                     while (match.Success)
                     {
+                        if (!userprem && match.Groups[0].Value.Contains("prem_translator"))
+                        {
+                            match = match.NextMatch();
+                            continue;
+                        }
+
                         string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
                         string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
 
@@ -355,9 +368,15 @@ namespace Shared.Engine.Online
                 {
                     if (result.content.Contains("data-translator_id="))
                     {
-                        var match = new Regex("data-translator_id=\"([0-9]+)\">([^<]+)(<img title=\"([^\"]+)\" [^>]+/>)?").Match(result.content);
+                        var match = new Regex("<li [^>]+ data-translator_id=\"([0-9]+)\">([^<]+)(<img title=\"([^\"]+)\" [^>]+/>)?").Match(result.content);
                         while (match.Success)
                         {
+                            if (!userprem && match.Groups[0].Value.Contains("prem_translator"))
+                            {
+                                match = match.NextMatch();
+                                continue;
+                            }
+
                             string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
                             string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={match.Groups[1].Value}";
 

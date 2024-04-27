@@ -20,6 +20,7 @@ namespace JinEnergy.Online
                 init.corsHost(),
                 init.scheme,
                 MaybeInHls(init.hls, init),
+                false,
                 ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init)),
                 (url, data) => JsHttpClient.Post(init.cors(url), data, httpHeaders(args, init)),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(origstream ? RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile) : streamfile, origstream)
