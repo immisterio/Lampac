@@ -5,6 +5,7 @@ using Microsoft.JSInterop;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace JinEnergy.Engine
@@ -172,12 +173,12 @@ namespace JinEnergy.Engine
             return hls;
         }
 
-        async public static ValueTask<bool> IsOrigStream(string? uri)
+        async public static ValueTask<bool> IsOrigStream(string? uri, int timeout = 2)
         {
             if (string.IsNullOrWhiteSpace(uri) || uri.Contains("ukrtelcdn.") || AppInit.Country != "UA")
                 return true;
 
-            return await JsHttpClient.StatusCode(uri) is 200 or 301 or 302 or 0;
+            return await JsHttpClient.StatusCode(uri, timeout) is 200 or 301 or 302 or 0;
         }
 
         public static string DefaultStreamProxy(string? uri, bool orig = false)

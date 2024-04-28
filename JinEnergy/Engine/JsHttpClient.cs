@@ -188,7 +188,7 @@ namespace JinEnergy.Engine
 
 
         #region StatusCode
-        async public static ValueTask<int> StatusCode(string? url)
+        async public static ValueTask<int> StatusCode(string? url, int timeout = 2)
         {
             try
             {
@@ -197,7 +197,7 @@ namespace JinEnergy.Engine
 
                 using (var client = new HttpClient(new HttpClientHandler() { AllowAutoRedirect = false }))
                 {
-                    client.Timeout = TimeSpan.FromMilliseconds(1500);
+                    client.Timeout = TimeSpan.FromSeconds(timeout);
                     client.MaxResponseContentBufferSize = 1_000_000;
 
                     using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))

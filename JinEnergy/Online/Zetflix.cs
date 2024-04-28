@@ -19,6 +19,7 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             string? t = parse_arg("t", args);
+            int serial = int.Parse(parse_arg("serial", args) ?? "0");
 
             var oninvk = new ZetflixInvoke
             (
@@ -30,10 +31,12 @@ namespace JinEnergy.Online
                //AppInit.log
             );
 
-            string memkey = $"zetfix:view:{arg.kinopoisk_id}:{s}";
+            int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
+            string memkey = $"zetfix:view:{arg.kinopoisk_id}:{rs}";
+
             refresh: var content = await InvokeCache(arg.id, memkey, async () => 
             {
-                string? html = await JsHttpClient.Get("https://bwa-cloud.apn.monster/lite/zetflix"+$"?kinopoisk_id={arg.kinopoisk_id}&s={s}&origsource=true");
+                string? html = await JsHttpClient.Get("https://bwa-cloud.apn.monster/lite/zetflix"+$"?kinopoisk_id={arg.kinopoisk_id}&serial={serial}&s={s}&origsource=true");
                 return oninvk.Embed(html);
             });
 
@@ -46,7 +49,7 @@ namespace JinEnergy.Online
                 if (last_check_url != content.check_url)
                 {
                     last_check_url = content.check_url;
-                    origstream = await IsOrigStream(content.check_url);
+                    origstream = await IsOrigStream(content.check_url, 4);
                 }
             }
 
