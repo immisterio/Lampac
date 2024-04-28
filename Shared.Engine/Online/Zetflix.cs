@@ -50,13 +50,14 @@ namespace Shared.Engine.Online
                 return null;
 
             string quality = html.Contains("1080p") ? "1080p" : html.Contains("720p") ? "720p" : "480p";
+            string check_url = Regex.Match(html, "(https?://[^\\[\\|,\n\r\t ]+\\.mp4)").Groups[1].Value;
 
             string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\]),").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
             {
                 file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(file))
-                    return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true, quality = quality };
+                    return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true, quality = quality, check_url = check_url };
 
                 return null;
             }
@@ -68,7 +69,7 @@ namespace Shared.Engine.Online
             if (pl == null || pl.Count == 0)
                 return null;
 
-            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":"), quality = quality };
+            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":"), quality = quality, check_url = check_url };
         }
         #endregion
 

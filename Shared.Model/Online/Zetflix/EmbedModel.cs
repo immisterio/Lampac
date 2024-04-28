@@ -7,5 +7,7 @@
         public bool movie { get; set; }
 
         public string quality { get; set; }
+
+        public string? check_url { get; set; }
     }
 }
