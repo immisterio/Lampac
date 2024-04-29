@@ -37,7 +37,7 @@ namespace Lampac.Controllers.Porntrex
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? PorntrexTo.Menu(host, sort, c) : null, headers: HeadersModel.Init("referer", $"{init.host}/"), plugin: "ptx");

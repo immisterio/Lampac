@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     proxyManager.Success();
-                    hybridCache.Set(memkey, catalog, cacheTime(40));
+                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
                 if (catalog.Count == 1)
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, cache, cacheTime(30));
+                    hybridCache.Set(memKey, cache, cacheTime(30, init: init));
                 }
 
                 #region Перевод
@@ -204,7 +204,7 @@ namespace Lampac.Controllers.LITE
                 hls = "https:" + hls;
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, hls, cacheTime(30));
+                hybridCache.Set(memKey, hls, cacheTime(30, init: init));
             }
 
             return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: HeadersModel.Init(

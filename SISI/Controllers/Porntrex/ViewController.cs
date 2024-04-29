@@ -34,7 +34,7 @@ namespace Lampac.Controllers.Porntrex
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, links, cacheTime(20));
+                hybridCache.Set(memKey, links, cacheTime(20, init: init));
             }
 
             return Json(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
@@ -68,7 +68,7 @@ namespace Lampac.Controllers.Porntrex
                     return OnError("location");
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, location, cacheTime(40));
+                hybridCache.Set(memKey, location, cacheTime(40, init: init));
             }
 
             return Redirect(HostStreamProxy(init, location, proxy: proxy));

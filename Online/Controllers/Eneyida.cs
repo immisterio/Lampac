@@ -37,7 +37,7 @@ namespace Lampac.Controllers.LITE
             );
 
             string search_title = clarification == 1 ? title : original_title;
-            var cache = await InvokeCache<EmbedModel>($"eneyida:view:{search_title}:{year}:{href}", cacheTime(init.rhub ? 180 : 40), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"eneyida:view:{search_title}:{year}:{href}", cacheTime(40, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

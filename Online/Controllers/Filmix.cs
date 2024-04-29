@@ -74,7 +74,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40), proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20), proxyManager, inmemory: true, onget: async res =>
+            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), proxyManager, inmemory: true, onget: async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

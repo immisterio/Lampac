@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, plugin: "videodb")
             );
 
-            string html = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(120), () => black_magic(kinopoisk_id));
+            string html = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(120, init: init), () => black_magic(kinopoisk_id));
 
             var content = oninvk.Embed(html);
             if (content.pl == null)

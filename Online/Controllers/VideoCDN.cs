@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
 
             if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
             {
-                return OnResult(await InvokeCache<string>($"videocdn:search:{title}:{original_title}", cacheTime(40), async res =>
+                return OnResult(await InvokeCache<string>($"videocdn:search:{title}:{original_title}", cacheTime(40, init: init), async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
                 }));
             }
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videocdn:{imdb_id}:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videocdn:{imdb_id}:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

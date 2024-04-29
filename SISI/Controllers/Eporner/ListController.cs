@@ -24,7 +24,7 @@ namespace Lampac.Controllers.Eporner
             var proxy = proxyManager.Get();
 
             pg += 1;
-            var cache = await InvokeCache<List<PlaylistItem>>($"epr:{search}:{sort}:{c}:{pg}", cacheTime(10), proxyManager, async res => 
+            var cache = await InvokeCache<List<PlaylistItem>>($"epr:{search}:{sort}:{c}:{pg}", cacheTime(10, init: init), proxyManager, async res => 
             {
                 string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
                 if (html == null)

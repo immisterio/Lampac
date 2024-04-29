@@ -65,7 +65,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<List<Сhannel>>(rch.ipkey($"vokino:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
+            var cache = await InvokeCache<List<Сhannel>>(rch.ipkey($"vokino:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

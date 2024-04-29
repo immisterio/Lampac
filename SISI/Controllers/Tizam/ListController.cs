@@ -47,7 +47,7 @@ namespace Lampac.Controllers.Tizam
                     return OnError("playlists", proxyManager, pg > 1);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(60));
+                hybridCache.Set(memKey, playlists, cacheTime(60, init: init));
             }
 
             return OnResult(playlists, null, plugin: "tizam");

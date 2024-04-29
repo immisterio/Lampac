@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

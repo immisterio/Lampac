@@ -55,7 +55,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     proxyManager.Success();
-                    hybridCache.Set(memkey, catalog, cacheTime(40));
+                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
                 if (catalog.Count == 1)
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, links, cacheTime(30));
+                    hybridCache.Set(memKey, links, cacheTime(30, init: init));
                 }
 
                 foreach (var l in links)
@@ -140,7 +140,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(proxyManager);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, mp4, cacheTime(20));
+                hybridCache.Set(memKey, mp4, cacheTime(20, init: init));
             }
 
             return Redirect(HostStreamProxy(init, mp4, proxy: proxyManager.Get(), plugin: "animevost"));

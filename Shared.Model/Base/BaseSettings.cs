@@ -10,6 +10,8 @@ namespace Shared.Model.Base
 
         public bool rip { get; set; }
 
+        public int cache_time { get; set; }
+
         public string? displayname { get; set; }
 
         public int displayindex { get; set; }

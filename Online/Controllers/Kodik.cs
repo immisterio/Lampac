@@ -53,7 +53,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(title))
                     return OnError();
 
-                var res = await InvokeCache($"kodik:search:{title}", cacheTime(40), () => oninvk.Embed(title), proxyManager);
+                var res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title), proxyManager);
                 if (res?.result == null)
                     return OnError();
 
@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
                 if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                     return OnError();
 
-                content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);
+                content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);
                 if (content == null)
                     return OnError();
 
@@ -133,7 +133,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, streams, cacheTime(20));
+                hybridCache.Set(memKey, streams, cacheTime(20, init: init));
             }
 
             string streansquality = string.Empty;
@@ -169,7 +169,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitKodikInvoke();
 
-            var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40), () => oninvk.VideoParse(init.linkhost, link), proxyManager);
+            var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40, init: init), () => oninvk.VideoParse(init.linkhost, link), proxyManager);
             if (streams == null)
                 return OnError();
 

@@ -36,7 +36,7 @@ namespace Lampac.Controllers.HQporner
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? HQpornerTo.Menu(host, sort, c) : null, plugin: "hqr");

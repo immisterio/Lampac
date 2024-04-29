@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

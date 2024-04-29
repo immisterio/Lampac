@@ -45,7 +45,7 @@ namespace Lampac.Controllers.Tizam
                 location = HttpUtility.UrlDecode(location);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, location, cacheTime(360));
+                hybridCache.Set(memKey, location, cacheTime(360, init: init));
             }
 
             return Redirect(HostStreamProxy(init, location, proxy: proxy));

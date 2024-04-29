@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                 if (original_language != "en")
                     clarification = 1;
 
-                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40), proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40, init: init), proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10), proxyManager, async res =>
+            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

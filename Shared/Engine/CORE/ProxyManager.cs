@@ -98,12 +98,16 @@ namespace Shared.Engine.CORE
             {
                 if (database.TryGetValue(key, out ProxyManagerModel val))
                 {
-                    if (val.errors >= p.maxRequestError)
+                    int maxRequestError = 2;
+                    if (p?.maxRequestError > 0)
+                        maxRequestError = p.maxRequestError;
+
+                    if (val.errors >= maxRequestError)
                     {
                         if (!string.IsNullOrEmpty(p?.refresh_uri))
                             _ = HttpClient.Get(p.refresh_uri, timeoutSeconds: 5).ConfigureAwait(false);
 
-                        if (p.actions != null && p.actions.Count > 0)
+                        if (p?.actions != null && p.actions.Count > 0)
                         {
                             val.errors = 0;
                             start_action(ConfigureProxy(p), key, val.proxyip);

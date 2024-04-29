@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<List<RootObject>>($"anilibriaonline:{title}", cacheTime(40), proxyManager, async res =>
+            var cache = await InvokeCache<List<RootObject>>($"anilibriaonline:{title}", cacheTime(40, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

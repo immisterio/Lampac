@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitRemuxInvoke();
 
-            var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", cacheTime(180), () => oninvk.Embed(title, original_title, year, href), proxyManager);
+            var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", cacheTime(40, init: init), () => oninvk.Embed(title, original_title, year, href), proxyManager);
             if (content == null)
                 return OnError();
 

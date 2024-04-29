@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(urim3u8))
                     return OnError(proxyManager);
 
-                hybridCache.Set(memKey, urim3u8, cacheTime(20));
+                hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
             }
 
             string url = HostStreamProxy(init, urim3u8, proxy: proxy);
@@ -156,7 +156,7 @@ namespace Lampac.Controllers.LITE
                     return (null, null, 0, null);
                 }
 
-                hybridCache.Set(memKey, res, cacheTime(20));
+                hybridCache.Set(memKey, res, cacheTime(20, init: init));
             }
 
             return res;

@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(40), async () => 
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(40, init: init), async () => 
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)
-                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(120), () => oninvk.number_of_seasons(id));
+                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(120, init: init), () => oninvk.number_of_seasons(id));
 
             return Content(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }

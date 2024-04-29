@@ -183,7 +183,7 @@ namespace Lampac.Controllers.LITE
                     _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, _cache, cacheTime(10));
+                hybridCache.Set(memKey, _cache, cacheTime(10, init: init));
             }
 
             string m3u8 = HostStreamProxy(init, _cache.m3u8, proxy: proxyManager.Get(), plugin: "alloha");
@@ -252,7 +252,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, res, cacheTime(40));
+                hybridCache.Set(memKey, res, cacheTime(40, init: init));
             }
 
             return (false, res.category_id, res.data);

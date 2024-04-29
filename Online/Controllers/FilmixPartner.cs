@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40), () => Search(title, original_title, year));
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year));
                 postid = res.id;
 
                 // платный поиск

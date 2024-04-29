@@ -92,7 +92,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(proxyManager);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, urim3u8, cacheTime(40));
+                hybridCache.Set(memKey, urim3u8, cacheTime(40, init: init));
             }
 
             if (play)
@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
                 cache.seasons = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, cache, cacheTime(40));
+                hybridCache.Set(memKey, cache, cacheTime(40, init: init));
             }
 
             return cache;

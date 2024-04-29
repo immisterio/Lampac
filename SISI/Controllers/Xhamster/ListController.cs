@@ -42,7 +42,7 @@ namespace Lampac.Controllers.Xhamster
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null, plugin: "xmr");

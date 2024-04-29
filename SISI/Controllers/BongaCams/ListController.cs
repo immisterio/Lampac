@@ -51,7 +51,7 @@ namespace Lampac.Controllers.BongaCams
                     return OnError("playlists", proxyManager, pg > 1);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(5));
+                hybridCache.Set(memKey, playlists, cacheTime(5, init: init));
             }
 
             return OnResult(playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy, plugin: "bgs");

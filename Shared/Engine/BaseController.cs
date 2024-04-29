@@ -213,7 +213,12 @@ namespace Lampac.Engine
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool inmemory = false)
         {
             if (hybridCache.TryGetValue(key, out T _val))
+            {
+                HttpContext.Response.Headers.TryAdd("X-InvokeCache", "HIT");
                 return new CacheResult<T>() { IsSuccess = true, Value = _val };
+            }
+
+            HttpContext.Response.Headers.TryAdd("X-InvokeCache", "MISS");
 
             var val = await onget.Invoke(new CacheResult<T>());
 
@@ -248,9 +253,9 @@ namespace Lampac.Engine
             return val;
         }
 
-        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2)
+        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null)
         {
-            int ctime = AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? multiaccess : home;
+            int ctime = AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? (init != null && init.cache_time > 0 ? init.cache_time : multiaccess) : home;
             if (ctime > multiaccess)
                 ctime = multiaccess;
 

@@ -57,16 +57,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null)
         {
-            if (!AppInit.conf.Rezka.enable)
+            var init = AppInit.conf.Rezka;
+            if (!init.enable)
                 return OnError();
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
             var oninvk = await InitRezkaInvoke();
-            var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
+            var proxyManager = new ProxyManager("rezka", init);
 
-            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
 
@@ -79,20 +80,21 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/serial")]
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1)
         {
-            if (!AppInit.conf.Rezka.enable)
+            var init = AppInit.conf.Rezka;
+            if (!init.enable)
                 return OnError();
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
             var oninvk = await InitRezkaInvoke();
-            var proxyManager = new ProxyManager("rezka", AppInit.conf.Rezka);
+            var proxyManager = new ProxyManager("rezka", init);
 
-            Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20), () => oninvk.SerialEmbed(id, t));
+            Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
             if (root == null)
                 return OnError();
 
-            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
                 return OnError();
 
@@ -114,7 +116,7 @@ namespace Lampac.Controllers.LITE
 
             string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
 
-            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
+            var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
                 return OnError();
 

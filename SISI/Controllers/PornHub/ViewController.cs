@@ -34,7 +34,7 @@ namespace Lampac.Controllers.PornHub
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 
             return OnResult(stream_links, init, proxy, plugin: "phub");
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.PornHub
                     return OnError("stream_links", proxyManager);
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, stream_links, cacheTime(20));
+                hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 
             return OnResult(stream_links, init, proxy, plugin: "phubprem");

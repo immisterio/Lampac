@@ -64,7 +64,8 @@ namespace Lampac.Controllers.LITE
         [Route("lite/voidboost")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t)
         {
-            if (!AppInit.conf.Voidboost.enable)
+            var init = AppInit.conf.Voidboost;
+            if (!init.enable)
                 return OnError();
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
@@ -72,7 +73,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            var content = await InvokeCache($"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Embed(imdb_id, kinopoisk_id, t), proxyManager);
+            var content = await InvokeCache($"voidboost:view:{kinopoisk_id}:{imdb_id}:{t}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), () => oninvk.Embed(imdb_id, kinopoisk_id, t), proxyManager);
             if (content == null)
                 return OnError();
 
@@ -90,7 +91,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            string html = await InvokeCache($"voidboost:view:serial:{t}:{s}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Serial(imdb_id, kinopoisk_id, title, original_title, t, s, true), proxyManager);
+            string html = await InvokeCache($"voidboost:view:serial:{t}:{s}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: AppInit.conf.Voidboost), () => oninvk.Serial(imdb_id, kinopoisk_id, title, original_title, t, s, true), proxyManager);
             if (html == null)
                 return OnError();
 
@@ -112,7 +113,7 @@ namespace Lampac.Controllers.LITE
 
             string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
 
-            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1), () => oninvk.Movie(t, s, e), proxyManager);
+            var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(t, s, e), proxyManager);
 
             if (md == null)
                 return OnError();

@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"kinobase:view:{title}:{year}", proxyManager), cacheTime(20), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"kinobase:view:{title}:{year}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
