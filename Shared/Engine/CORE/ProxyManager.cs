@@ -56,8 +56,8 @@ namespace Shared.Engine.CORE
 
                     if (p.actions != null && p.actions.Count > 0)
                     {
-                        start_action(p, key);
                         val.proxyip = p.list.First();
+                        start_action(p, key, val.proxyip);
                     }
                     else
                     {
@@ -103,12 +103,16 @@ namespace Shared.Engine.CORE
                         if (!string.IsNullOrEmpty(p?.refresh_uri))
                             _ = HttpClient.Get(p.refresh_uri, timeoutSeconds: 5).ConfigureAwait(false);
 
+                        if (p.actions != null && p.actions.Count > 0)
+                        {
+                            val.errors = 0;
+                            start_action(ConfigureProxy(p), key, val.proxyip);
+                            return;
+                        }
+
                         val.errors = 0;
                         val.proxyip = null;
                         database.TryRemove(key, out _);
-
-                        if (p.actions != null && p.actions.Count > 0)
-                            start_action(ConfigureProxy(p), key);
                     }
                     else
                     {
@@ -173,7 +177,7 @@ namespace Shared.Engine.CORE
                 {
                     list = new List<string>();
 
-                    string txt = HttpClient.Get(p.url, timeoutSeconds: 4).Result;
+                    string txt = HttpClient.Get(p.url, timeoutSeconds: 5).Result;
                     if (txt != null)
                     {
                         foreach (string line in txt.Split("\n"))
@@ -183,7 +187,7 @@ namespace Shared.Engine.CORE
                         }
                     }
 
-                    memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(list.Count == 0 ? 4 : 20));
+                    memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(list.Count == 0 ? 4 : 15));
                 }
 
                 p.list = new ConcurrentBag<string>(list);
@@ -199,9 +203,9 @@ namespace Shared.Engine.CORE
 
             if (proxyip.Contains("@"))
             {
-                var g = Regex.Match(proxyip, "^([^/]+//)?([^:/]+):([^@]+)@(.*)").Groups;
-                proxyip = g[1].Value + g[4].Value;
-                credentials = new NetworkCredential(g[2].Value, g[3].Value);
+                var g = Regex.Match(proxyip, p.pattern_auth).Groups;
+                proxyip = g["sheme"].Value + g["host"].Value;
+                credentials = new NetworkCredential(g["username"].Value, g["password"].Value);
             }
             else if (p.useAuth)
                 credentials = new NetworkCredential(p.username, p.password);
@@ -210,7 +214,7 @@ namespace Shared.Engine.CORE
         }
 
 
-        void start_action(ProxySettings p, string key)
+        void start_action(ProxySettings p, string key, string current_proxyip = null)
         {
             if (p == null)
                 return;
@@ -226,8 +230,18 @@ namespace Shared.Engine.CORE
                 try
                 {
                     string proxyip = null;
+                    var list = p.list.OrderBy(a => Guid.NewGuid()).ToList();
 
-                    foreach (string proxy in p.list.OrderBy(a => Guid.NewGuid()))
+                    if (!string.IsNullOrEmpty(current_proxyip))
+                    {
+                        if (list.Contains(current_proxyip))
+                        {
+                            list.Remove(current_proxyip);
+                            list.Insert(0, current_proxyip);
+                        }
+                    }
+
+                    foreach (string proxy in list)
                     {
                         bool isok = true;
 

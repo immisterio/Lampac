@@ -17,6 +17,9 @@ namespace Shared.Model.Base
 
         public string? password;
 
+
+        public string pattern_auth = "^(?<sheme>[^/]+//)?(?<username>[^:/]+):(?<password>[^@]+)@(?<host>.*)";
+
         public int maxRequestError = 2;
 
 
