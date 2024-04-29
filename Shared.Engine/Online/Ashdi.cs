@@ -38,7 +38,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (product.Contains("{\"message\":\"Product does not exist.\"}"))
+            if (product.Contains("Product does not exist"))
                 return new EmbedModel() { IsEmpty = true };
 
             string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"").Groups[1].Value;

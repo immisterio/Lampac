@@ -150,18 +150,18 @@ namespace Lampac.Engine.CORE
 
 
         #region Get
-        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true)
         {
-            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion)).content;
+            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK)).content;
         }
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null)
+        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true)
         {
             try
             {
-                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy)).content;
+                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, statusCodeOK: statusCodeOK)).content;
                 if (html == null)
                     return default;
 
@@ -178,7 +178,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region BaseGetAsync
-        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1)
+        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true)
         {
             string loglines = string.Empty;
 
@@ -210,7 +210,7 @@ namespace Lampac.Engine.CORE
                                     return (null, response);
 
                                 loglines += "\n" + res;
-                                if (response.StatusCode != HttpStatusCode.OK)
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                                     return (null, response);
 
                                 return (res, response);
@@ -222,7 +222,7 @@ namespace Lampac.Engine.CORE
                                     return (null, response);
 
                                 loglines += "\n" + res;
-                                if (response.StatusCode != HttpStatusCode.OK)
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                                     return (null, response);
 
                                 return (res, response);
