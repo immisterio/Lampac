@@ -69,7 +69,7 @@ namespace Shared.Engine.Online
                 }
 
                 if (result.similars.Count == 0)
-                    return null;
+                    return new EmbedModel() { IsEmpty = true };
 
                 if (result.similars.Count > 1)
                     return result;
@@ -96,7 +96,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel? result, string? title, string? original_title, int year)
         {
-            if (result == null)
+            if (result == null || result.IsEmpty)
                 return string.Empty;
 
             string? enc_title = HttpUtility.UrlEncode(title);

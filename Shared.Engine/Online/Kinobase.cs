@@ -54,9 +54,11 @@ namespace Shared.Engine.Online
 
                 if (g[1].Value.ToLower().Trim() == title.ToLower())
                 {
-                    reservedlink = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(reservedlink))
+                    string rlnk = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(rlnk))
                         continue;
+
+                    reservedlink = rlnk;
 
                     if (g[2].Value == year.ToString())
                     {
@@ -69,7 +71,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(link))
             {
                 if (string.IsNullOrEmpty(reservedlink))
-                    return null;
+                    return new EmbedModel() { IsEmpty = true };
 
                 link = reservedlink;
             }
@@ -121,7 +123,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel? md, string? title, int year, int s)
         {
-            if (md == null)
+            if (md == null || md.IsEmpty)
                 return string.Empty;
 
             bool firstjson = true;

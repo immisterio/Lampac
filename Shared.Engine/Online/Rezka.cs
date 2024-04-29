@@ -72,9 +72,10 @@ namespace Shared.Engine.Online
 
                     if (title != null && (name.Contains(" / ") && name.Contains(title.ToLower()) || name == title.ToLower()))
                     {
+                        reservedlink = g[1].Value;
+
                         if (g[3].Value == year.ToString())
                         {
-                            reservedlink = g[1].Value;
                             link = reservedlink;
                             break;
                         }
@@ -88,7 +89,7 @@ namespace Shared.Engine.Online
                         if (result?.similar != null && result.similar.Count > 0)
                             return result;
 
-                        return null;
+                        return new EmbedModel() { IsEmpty = true };
                     }
 
                     link = reservedlink;
@@ -142,7 +143,12 @@ namespace Shared.Engine.Online
                 return result;
 
             if (string.IsNullOrEmpty(link))
+            {
+                if (search.Contains("b-search__section_title"))
+                    return new EmbedModel() { IsEmpty = true };
+
                 return null;
+            }
 
             result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
             result.content = await onget(link);
@@ -161,7 +167,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
         {
-            if (result == null)
+            if (result == null || result.IsEmpty)
                 return string.Empty;
 
             string? enc_title = HttpUtility.UrlEncode(title);

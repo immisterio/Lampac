@@ -77,7 +77,7 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrWhiteSpace(link))
                 {
                     if (string.IsNullOrWhiteSpace(reservedlink))
-                        return result;
+                        return new EmbedModel() { IsEmpty = true };
 
                     link = reservedlink;
                 }
@@ -129,7 +129,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href)
         {
-            if (result == null)
+            if (result == null || result.IsEmpty)
                 return string.Empty;
 
             bool firstjson = true;

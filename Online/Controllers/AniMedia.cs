@@ -45,12 +45,12 @@ namespace Lampac.Controllers.LITE
                             catalog.Add((g[2].Value, g[1].Value));
                     }
 
-                    if (catalog.Count == 0)
-                        return OnError();
-
                     proxyManager.Success();
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
+
+                if (catalog.Count == 0)
+                    return OnError();
 
                 if (catalog.Count == 1)
                     return LocalRedirect($"/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}&account_email={HttpUtility.UrlEncode(account_email)}");

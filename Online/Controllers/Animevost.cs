@@ -51,12 +51,12 @@ namespace Lampac.Controllers.LITE
                         }
                     }
 
-                    if (catalog.Count == 0)
-                        return OnError();
-
                     proxyManager.Success();
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
+
+                if (catalog.Count == 0)
+                    return OnError();
 
                 if (catalog.Count == 1)
                     return LocalRedirect($"/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");

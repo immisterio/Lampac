@@ -31,6 +31,9 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<EmbedModel?> Embed(string? title, int year)
         {
+            if (string.IsNullOrEmpty(title))
+                return null;
+
             string? search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}");
             if (search == null)
             {
@@ -43,9 +46,11 @@ namespace Shared.Engine.Online
             {
                 if (row.ToLower().Contains($">{title.ToLower()}<"))
                 {
-                    reservedlink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(reservedlink))
+                    string rlnk = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                    if (string.IsNullOrWhiteSpace(rlnk))
                         continue;
+
+                    reservedlink = rlnk;
 
                     if (Regex.Match(row, "<span>Год выпуска:</span> ?<a [^>]+>([0-9]{4})</a>").Groups[1].Value == year.ToString())
                     {
@@ -58,7 +63,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(link))
             {
                 if (string.IsNullOrWhiteSpace(reservedlink))
-                    return null;
+                    return new EmbedModel() { IsEmpty = true };
 
                 link = reservedlink;
             }
@@ -88,7 +93,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel? content, string? title)
         {
-            if (content == null)
+            if (content == null || content.IsEmpty)
                 return string.Empty;
 
             var mtpl = new MovieTpl(title, null, 4);

@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
 
             if (serial == 1)
             {
-                // https://kinovibe.tv/embed.html
+                // https://kinovibe.co/embed.html
 
                 if (s == -1)
                 {
@@ -63,12 +63,12 @@ namespace Lampac.Controllers.LITE
                             }
                         }
 
-                        if (links.Count == 0)
-                            return OnError();
-
                         proxyManager.Success();
                         hybridCache.Set(memKey, links, cacheTime(30, init: init));
                     }
+
+                    if (links.Count == 0)
+                        return OnError();
 
                     foreach (var l in links)
                     {

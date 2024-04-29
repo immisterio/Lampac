@@ -56,7 +56,7 @@ namespace Shared.Model
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.la") { uacdn = "https://prx-ams.ukrtelcdn.net" };
 
-        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false };
+        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
 
         public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.delivembd.ws");
 
@@ -108,7 +108,7 @@ namespace Shared.Model
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.onl", streamproxy: true, enable: false);
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.onl", streamproxy: true, enable: false, rip: true);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 

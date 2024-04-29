@@ -267,12 +267,12 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                if (root.Count == 0)
-                    return null;
-
                 proxyManager.Success();
                 hybridCache.Set(memKey, root, cacheTime(40, init: init));
             }
+
+            if (root.Count == 0)
+                return null;
 
             return root;
         }
