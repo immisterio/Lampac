@@ -89,7 +89,10 @@ namespace Shared.Engine.Online
                         if (result?.similar != null && result.similar.Count > 0)
                             return result;
 
-                        return new EmbedModel() { IsEmpty = true };
+                        if (search.Contains("Результаты поиска"))
+                            return new EmbedModel() { IsEmpty = true };
+
+                        return null;
                     }
 
                     link = reservedlink;

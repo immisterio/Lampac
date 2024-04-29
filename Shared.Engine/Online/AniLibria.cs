@@ -28,7 +28,7 @@ namespace Shared.Engine.Online
         #region Embed
         public async ValueTask<List<RootObject>?> Embed(string title)
         {
-            var search = await onget($"{apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title));
+            List<RootObject>? search = await onget($"{apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title));
             if (search == null)
             {
                 requesterror?.Invoke();

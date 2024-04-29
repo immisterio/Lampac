@@ -36,7 +36,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;
 
-            string? link = href, reservedlink = null;
+            string? link = href;
             var result = new EmbedModel();
 
             if (string.IsNullOrWhiteSpace(link))
@@ -71,16 +71,18 @@ namespace Shared.Engine.Online
                     });
                 }
 
-                if (result.similars != null && result.similars.Count == 1)
-                    link = result.similars[0].href;
-
-                if (string.IsNullOrWhiteSpace(link))
+                if (result.similars == null || result.similars.Count == 0)
                 {
-                    if (string.IsNullOrWhiteSpace(reservedlink))
+                    if (search.Contains(">Пошук по сайту<"))
                         return new EmbedModel() { IsEmpty = true };
 
-                    link = reservedlink;
+                    return null;
                 }
+
+                if (result.similars.Count > 1)
+                    return result;
+
+                link = result.similars[0].href;
             }
 
             onlog?.Invoke("link: " + link);

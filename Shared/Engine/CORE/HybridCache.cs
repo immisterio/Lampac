@@ -46,11 +46,11 @@ namespace Shared.Engine.CORE
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(10));
+                    await Task.Delay(TimeSpan.FromMinutes(5));
 
                     try
                     {
-                        foreach (string infile in Directory.EnumerateFiles(folderCache, "*", SearchOption.AllDirectories))
+                        foreach (string infile in Directory.GetFiles(folderCache, "*", SearchOption.AllDirectories))
                         {
                             try
                             {

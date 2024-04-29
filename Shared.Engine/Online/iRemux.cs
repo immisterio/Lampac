@@ -69,7 +69,12 @@ namespace Shared.Engine.Online
                 }
 
                 if (result.similars.Count == 0)
-                    return new EmbedModel() { IsEmpty = true };
+                {
+                    if (search.Contains(">Поиск по сайту<"))
+                        return new EmbedModel() { IsEmpty = true };
+
+                    return null;
+                }
 
                 if (result.similars.Count > 1)
                     return result;

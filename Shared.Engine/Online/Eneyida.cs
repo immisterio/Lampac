@@ -88,7 +88,12 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(link))
                 {
                     if (string.IsNullOrEmpty(reservedlink))
-                        return new EmbedModel() { IsEmpty = true };
+                    {
+                        if (search.Contains(">Пошук по сайту<"))
+                            return new EmbedModel() { IsEmpty = true };
+
+                        return null;
+                    }
 
                     link = reservedlink;
                 }

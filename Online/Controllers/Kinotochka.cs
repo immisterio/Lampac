@@ -63,6 +63,9 @@ namespace Lampac.Controllers.LITE
                             }
                         }
 
+                        if (links.Count == 0 && !search.Contains(">Поиск по сайту<"))
+                            return OnError();
+
                         proxyManager.Success();
                         hybridCache.Set(memKey, links, cacheTime(30, init: init));
                     }

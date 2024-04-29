@@ -71,7 +71,12 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(link))
             {
                 if (string.IsNullOrEmpty(reservedlink))
-                    return new EmbedModel() { IsEmpty = true };
+                {
+                    if (content.Contains(">По запросу"))
+                        return new EmbedModel() { IsEmpty = true };
+
+                    return null;
+                }
 
                 link = reservedlink;
             }
