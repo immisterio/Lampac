@@ -177,13 +177,8 @@ namespace Lampac.Controllers
         [Route("lampainit.js")]
         public ActionResult LamInit(bool lite)
         {
-            if (!memoryCache.TryGetValue($"ApiController:lampainit.js:{lite}", out string file))
-            {
-                file = IO.File.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js");
-                memoryCache.Set($"ApiController:lampainit.js:{lite}", file, DateTime.Now.AddMinutes(5));
-            }
-
             string initiale = string.Empty;
+            string file = FileCache.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js");
 
             if (AppInit.modules != null)
             {

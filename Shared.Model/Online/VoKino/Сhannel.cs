@@ -4,6 +4,8 @@
     {
         public string title { get; set; }
 
+        public string ident { get; set; }
+
         public string playlist_url { get; set; }
 
         public List<Сhannel> submenu { get; set; }

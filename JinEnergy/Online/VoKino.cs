@@ -12,6 +12,7 @@ namespace JinEnergy.Online
             var init = AppInit.VoKino.Clone();
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
+            string? balancer = parse_arg("balancer", args);
 
             var oninvk = new VoKinoInvoke
             (
@@ -22,10 +23,10 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            string memkey = $"vokino:{arg.kinopoisk_id}";
-            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id));
+            string memkey = $"vokino:{arg.kinopoisk_id}:{balancer}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, balancer));
 
-            string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, s);
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.title, arg.original_title, balancer, s);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);

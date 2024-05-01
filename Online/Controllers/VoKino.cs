@@ -9,7 +9,6 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Model.Online.VoKino;
-using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -45,7 +44,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, int s = -1)
         {
             var init = AppInit.conf.VoKino;
 
@@ -65,15 +64,15 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<List<Сhannel>>(rch.ipkey($"vokino:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id);
+                return await oninvk.Embed(kinopoisk_id, balancer);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, s));
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, s));
         }
     }
 }

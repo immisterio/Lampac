@@ -148,11 +148,13 @@ namespace Lampac
 
         public string listenip = "any";
 
+        public int listenport = 9118;
+
+        public string listen_sock = null;
+
         public string listenscheme = null;
 
         public string listenhost = null;
-
-        public int listenport = 9118;
 
         public string localhost = "127.0.0.1";
 

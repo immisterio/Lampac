@@ -46,7 +46,13 @@ namespace Lampac
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseKestrel(op => op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport))
+                    webBuilder.UseKestrel(op => 
+                    {
+                        if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
+                            op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
+                        else
+                            op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
+                    })
                     .UseStartup<Startup>();
                 });
     }
