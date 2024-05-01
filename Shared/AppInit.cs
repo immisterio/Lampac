@@ -150,6 +150,8 @@ namespace Lampac
 
         public int listenport = 9118;
 
+        public bool compression = true;
+
         public string listen_sock = null;
 
         public string listenscheme = null;

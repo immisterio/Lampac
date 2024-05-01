@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading;
 using Lampac.Engine.CRON;
 using Lampac.Engine.CORE;
+using System;
+using System.IO;
 
 namespace Lampac
 {
@@ -25,6 +27,9 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
+
+            if (!File.Exists("passwd"))
+                File.WriteAllText("passwd", Guid.NewGuid().ToString());
 
             while (_reload)
             {

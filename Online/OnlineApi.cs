@@ -69,13 +69,13 @@ namespace Lampac.Controllers
 
 
         #region externalids
-        static Dictionary<string, string> externalids = new Dictionary<string, string>();
+        static Dictionary<string, string> externalids = null;
 
         [Route("externalids")]
         async public Task<ActionResult> Externalids(long id, string imdb_id, long kinopoisk_id, int serial)
         {
             if (id == 0)
-                return Json(new { });
+                return Content("{}");
 
             if (IO.File.Exists("cache/externalids/master.json"))
             {
@@ -85,6 +85,9 @@ namespace Lampac.Controllers
                 }
                 catch { externalids = new Dictionary<string, string>(); }
             }
+
+            if (externalids == null)
+                externalids = new Dictionary<string, string>();
 
             #region getAlloha / getVSDN / getTabus
             async Task<string> getAlloha(string imdb)
@@ -212,7 +215,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            return Json(new { imdb_id, kinopoisk_id = (kpid != null ? kpid : kinopoisk_id > 0 ? kinopoisk_id.ToString() : null) });
+            return Content($"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{(kpid != null ? kpid : kinopoisk_id)}\"}}", "application/json; charset=utf-8");
         }
         #endregion
 

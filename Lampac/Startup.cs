@@ -76,10 +76,13 @@ namespace Lampac
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddResponseCompression(options =>
+            if (AppInit.conf.compression)
             {
-                options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/vnd.apple.mpegurl", "image/svg+xml" });
-            });
+                services.AddResponseCompression(options =>
+                {
+                    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/vnd.apple.mpegurl", "image/svg+xml" });
+                });
+            }
 
             services.AddSignalR();
 
@@ -124,9 +127,6 @@ namespace Lampac
                 HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
                 RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data);
             }
-
-            if (!File.Exists("passwd"))
-                File.WriteAllText("passwd", Guid.NewGuid().ToString());
 
             try
             {
@@ -200,7 +200,10 @@ namespace Lampac
             #endregion
 
             app.UseRouting();
-            app.UseResponseCompression();
+
+            if (AppInit.conf.compression)
+                app.UseResponseCompression();
+
             app.UseModHeaders();
             app.UseStaticFiles();
             app.UseAccsdb();
