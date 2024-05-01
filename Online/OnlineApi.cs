@@ -77,13 +77,13 @@ namespace Lampac.Controllers
             if (id == 0)
                 return Content("{}");
 
-            if (IO.File.Exists("cache/externalids/master.json"))
+            if (externalids == null && IO.File.Exists("cache/externalids/master.json"))
             {
                 try
                 {
                     externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
                 }
-                catch { externalids = new Dictionary<string, string>(); }
+                catch { }
             }
 
             if (externalids == null)
