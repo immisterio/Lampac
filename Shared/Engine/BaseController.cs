@@ -7,7 +7,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
-using Lampac.Models.LITE.KinoPub;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -66,7 +65,7 @@ namespace Lampac.Engine
                 return headers;
 
             string ip = HttpContext.Connection.RemoteIpAddress.ToString();
-            string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "&account_email=([^&]+)").Groups[1].Value;
+            string account_email = HttpContext.Request.Query["account_email"].ToString() ?? string.Empty;
 
             foreach (var h in init.headers)
             {
@@ -133,7 +132,7 @@ namespace Lampac.Engine
 
             if (AppInit.conf.accsdb.enable)
             {
-                string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
+                string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(account_email))
                     uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
             }
@@ -195,7 +194,7 @@ namespace Lampac.Engine
 
                 if (AppInit.conf.accsdb.enable)
                 {
-                    string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value;
+                    string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
                     if (!string.IsNullOrWhiteSpace(account_email))
                         uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
                 }

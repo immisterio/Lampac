@@ -16,16 +16,16 @@ namespace JinEnergy.Engine
 
         public static ResultModel OnError(string msg)
         {
-            if (!string.IsNullOrEmpty(msg))
-                AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);
+            if (!string.IsNullOrEmpty(msg) && AppInit.JSRuntime != null)
+                AppInit.JSRuntime.InvokeVoidAsync("console.log", "BWA", msg).ConfigureAwait(false);
 
             return new ResultModel() { error = "html" };
         }
 
         public static string EmptyError(string msg)
         {
-            if (!string.IsNullOrEmpty(msg))
-                AppInit.JSRuntime?.InvokeVoidAsync("console.log", "BWA", msg);
+            if (!string.IsNullOrEmpty(msg) && AppInit.JSRuntime != null)
+                AppInit.JSRuntime.InvokeVoidAsync("console.log", "BWA", msg).ConfigureAwait(false);
 
             return string.Empty;
         }

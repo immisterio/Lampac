@@ -9,6 +9,7 @@ using System;
 using Shared.Model.Online;
 using System.Collections.Generic;
 using Lampac.Models.LITE;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -149,10 +150,10 @@ namespace Lampac.Controllers.LITE
                 return $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
             }
 
-            if (hybridCache.TryGetValue("rezka:login", out _))
+            if (memoryCache.TryGetValue("rezka:login", out _))
                 return null;
 
-            hybridCache.Set("rezka:login", 0, TimeSpan.FromMinutes(2));
+            memoryCache.Set("rezka:login", 0, TimeSpan.FromMinutes(2));
 
             try
             {

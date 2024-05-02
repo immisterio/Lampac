@@ -149,22 +149,30 @@ namespace Lampac.Controllers.LITE
                     return OnError("data");
 
                 var data = root["data"];
+                bool uhd = data.Value<bool>("4k");
                 string default_audio = data.Value<string>("default_audio");
                 string subtitle = data.Value<string>("subtitle");
-                string playlist_file = data.Value<string>("playlist_file");
+                //string playlist_file = data.Value<string>("playlist_file");
 
                 foreach (var item in data["file"])
                 {
+                    string av1 = item.Value<string>("av1");
                     string h264 = item.Value<string>("h264");
                     string audio = item.Value<string>("audio");
 
-                    void setvideo() {
-                        string oiha = h264.Replace("/oihs/", "/oiha/"); // как бы мы жили без костелей
-                        _cache.m3u8 = init.m4s && playlist_file.Contains(oiha) ? oiha : h264;
-                    }
+                    void setvideo() 
+                    {
+                        if (uhd && init.m4s && !string.IsNullOrEmpty(av1)) {
+                            _cache.m3u8 = av1;
+                        }
+                        else
+                        {
+                            string _stream = string.IsNullOrEmpty(h264) ? av1 : h264;
 
-                    if (string.IsNullOrEmpty(h264))
-                        continue;
+                            if (!string.IsNullOrEmpty(_stream))
+                                _cache.m3u8 = _stream;
+                        }
+                    }
 
                     if (string.IsNullOrEmpty(_cache.m3u8))
                         setvideo();

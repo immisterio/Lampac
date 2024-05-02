@@ -2,6 +2,8 @@
 {
     public class RootObject
     {
+        public List<Сhannel>? menu { get; set; }
+
         public List<Сhannel> channels { get; set; }
     }
 }

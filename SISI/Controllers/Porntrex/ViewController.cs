@@ -17,7 +17,7 @@ namespace Lampac.Controllers.Porntrex
 
         [HttpGet]
         [Route("ptx/vidosik")]
-        async public Task<ActionResult> vidosik(string uri)
+        async public Task<JsonResult> vidosik(string uri)
         {
             var init = AppInit.conf.Porntrex;
 

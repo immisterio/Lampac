@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -57,7 +56,7 @@ namespace Lampac.Engine.Middlewares
             {
                 if (Regex.IsMatch(httpContext.Request.Path.Value, jacpattern))
                 {
-                    if (AppInit.conf.apikey != Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)apikey=([^&]+)").Groups[2].Value)
+                    if (AppInit.conf.apikey != httpContext.Request.Query["apikey"])
                         return Task.CompletedTask;
                 }
             }
@@ -75,7 +74,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     bool limitip = false;
                     HashSet<string> ips = null;
-                    string account_email = HttpUtility.UrlDecode(Regex.Match(httpContext.Request.QueryString.Value, "(\\?|&)account_email=([^&]+)").Groups[2].Value)?.ToLower()?.Trim();
+                    string account_email = httpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim() ?? string.Empty;
 
                     bool userfindtoaccounts = AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex);
 

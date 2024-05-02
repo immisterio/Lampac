@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
+using Shared.Model.SISI;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -23,47 +24,52 @@ namespace SISI
 
         public JsonResult OnError(string msg)
         {
-            return new JsonResult(new { success = false, msg });
+            return Json(new OnErrorResult() { msg = msg });
         }
 
         public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null)
         {
-            return new JsonResult(new
+            return new JsonResult(new OnListResult()
             {
-                menu,
-                list = playlists.Select(pl => new
+                menu = menu,
+                list = playlists.Select(pl => new PlaylistItem
                 {
-                    pl.name,
+                    name = pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin, sisi: true),
                     picture = HostImgProxy(pl.picture, plugin: plugin),
-                    pl.preview,
-                    pl.time,
-                    pl.json,
-                    pl.quality,
-                    pl.qualitys,
-                    pl.bookmark
+                    preview = pl.preview,
+                    time =pl.time,
+                    json = pl.json,
+                    quality = pl.quality,
+                    qualitys = pl.qualitys,
+                    bookmark = pl.bookmark
                 })
             });
         }
 
         public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, string plugin = null)
         {
-            return new JsonResult(new
+            return new JsonResult(new OnListResult()
             {
-                menu,
-                list = playlists.Select(pl => new
+                menu = menu,
+                list = playlists.Select(pl => new PlaylistItem
                 {
-                    pl.name,
+                    name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
                     picture = HostImgProxy(pl.picture, plugin: plugin, headers: headers),
-                    pl.preview,
-                    pl.time,
-                    pl.json,
-                    pl.quality,
-                    pl.qualitys,
-                    pl.bookmark
+                    preview = pl.preview,
+                    time = pl.time,
+                    json = pl.json,
+                    quality = pl.quality,
+                    qualitys = pl.qualitys,
+                    bookmark = pl.bookmark
                 })
             });
+        }
+
+        public JsonResult OnResult(Dictionary<string, string> stream_links, Istreamproxy proxyconf, WebProxy proxy)
+        {
+            return OnResult(new StreamItem() { qualitys = stream_links }, proxyconf, proxy);
         }
 
         public JsonResult OnResult(StreamItem stream_links, Istreamproxy proxyconf, WebProxy proxy, List<HeadersModel> headers = null, string plugin = null)
@@ -79,23 +85,18 @@ namespace SISI
                 }
             }
 
-            return new JsonResult(new
+            return new JsonResult(new OnStreamResult()
             {
                 qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy, sisi: true)),
-                qualitys_proxy,
-                recomends = stream_links?.recomends?.Select(pl => new
+                qualitys_proxy = qualitys_proxy,
+                recomends = stream_links?.recomends?.Select(pl => new PlaylistItem
                 {
-                    pl.name,
+                    name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
                     picture = HostImgProxy(pl.picture, height: 110, plugin: plugin, headers: headers),
-                    pl.json
+                    json = pl.json
                 })
             });
-        }
-
-        public JsonResult OnResult(Dictionary<string, string> stream_links, Istreamproxy proxyconf, WebProxy proxy)
-        {
-            return OnResult(new StreamItem() { qualitys = stream_links }, proxyconf, proxy);
         }
     }
 }

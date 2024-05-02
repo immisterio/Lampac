@@ -153,7 +153,12 @@ namespace Shared.Engine.CORE
         public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool inmemory = false)
         {
             if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
+            {
+                if (AppInit.conf.typecache == "hybrid")
+                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(2));
+
                 return value;
+            }
 
             return memoryCache.Set(key, value, absoluteExpiration);
         }
@@ -161,7 +166,12 @@ namespace Shared.Engine.CORE
         public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool inmemory = false)
         {
             if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
+            {
+                if (AppInit.conf.typecache == "hybrid")
+                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(2));
+
                 return value;
+            }
 
             return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);
         }

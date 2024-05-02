@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Spankbang
     {
         [HttpGet]
         [Route("sbg/vidosik")]
-        async public Task<ActionResult> Index(string uri)
+        async public Task<JsonResult> Index(string uri)
         {
             var init = AppInit.conf.Spankbang;
 

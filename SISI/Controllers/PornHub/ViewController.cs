@@ -12,7 +12,7 @@ namespace Lampac.Controllers.PornHub
     {
         [HttpGet]
         [Route("phub/vidosik")]
-        async public Task<ActionResult> Index(string vkey)
+        async public Task<JsonResult> Index(string vkey)
         {
             var init = AppInit.conf.PornHub;
 
@@ -43,7 +43,7 @@ namespace Lampac.Controllers.PornHub
 
         [HttpGet]
         [Route("phubprem/vidosik")]
-        async public Task<ActionResult> Prem(string vkey)
+        async public Task<JsonResult> Prem(string vkey)
         {
             var init = AppInit.conf.PornHubPremium;
 

@@ -30,7 +30,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? balancer)
+        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? balancer, string? t)
         {
             try
             {
@@ -70,7 +70,11 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    string? json = await onget($"{apihost}/v2/online/{balancer}/{kinopoisk_id}?token={token}");
+                    string uri = $"{apihost}/v2/online/{balancer}/{kinopoisk_id}?token={token}";
+                    if (!string.IsNullOrEmpty(t))
+                        uri += $"&{t}";
+
+                    string? json = await onget(uri);
                     if (json == null)
                     {
                         requesterror?.Invoke();
@@ -84,7 +88,7 @@ namespace Shared.Engine.Online
                     if (root?.channels == null || root.channels.Count == 0)
                         return null;
 
-                    return new EmbedModel() { channels = root.channels };
+                    return new EmbedModel() { menu = root.menu, channels = root.channels };
                 }
             }
             catch { }
@@ -94,7 +98,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, int s)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -121,7 +125,23 @@ namespace Shared.Engine.Online
             if (result?.channels == null || result.channels.Count == 0)
                 return string.Empty;
 
-            if (result.channels.First().playlist_url == "submenu")
+            #region Переводы
+            var vtpl = new VoiceTpl();
+            var voices = result?.menu?.FirstOrDefault(i => i.title == "Перевод")?.submenu;
+            if (voices != null && voices.Count > 0)
+            {
+                foreach (var translation in voices)
+                {
+                    if (translation.playlist_url != null && translation.playlist_url.Contains("?"))
+                    {
+                        string _t = HttpUtility.UrlEncode(translation.playlist_url.Split("?")[1]);
+                        vtpl.Append(translation.title, translation.selected, host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}");
+                    }
+                }
+            }
+            #endregion
+
+            if (result!.channels.First().playlist_url == "submenu")
             {
                 if (s == -1)
                 {
@@ -133,7 +153,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(sname))
                             sname = Regex.Match(ch.title, "([0-9]+)$").Groups[1].Value;
 
-                        tpl.Append(ch.title, host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&s={sname}");
+                        tpl.Append(ch.title, host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}");
                     }
 
                     return tpl.ToHtml();
@@ -148,14 +168,14 @@ namespace Shared.Engine.Online
                         tpl.Append(e.title, $"{title ?? original_title} ({e.title})", s.ToString(), ename, onstreamfile(e.stream_url));
                     }
 
-                    return tpl.ToHtml();
+                    return vtpl.ToHtml() + tpl.ToHtml();
                 }
             }
             else
             {
                 var mtpl = new MovieTpl(title, original_title, result.channels.Count);
 
-                foreach (var ch in result.channels)
+                foreach (var ch in result!.channels)
                 {
                     string name = ch.quality_full;
                     if (!string.IsNullOrWhiteSpace(name.Replace("2160p.", "")))
@@ -169,7 +189,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, onstreamfile(ch.stream_url));
                 }
 
-                return mtpl.ToHtml();
+                return vtpl.ToHtml() + mtpl.ToHtml();
             }
         }
         #endregion

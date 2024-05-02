@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Chaturbate
     {
         [HttpGet]
         [Route("chu/potok")]
-        async public Task<ActionResult> Index(string baba)
+        async public Task<JsonResult> Index(string baba)
         {
             var init = AppInit.conf.Chaturbate;
 
