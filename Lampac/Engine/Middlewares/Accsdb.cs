@@ -52,7 +52,7 @@ namespace Lampac.Engine.Middlewares
 
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|baibako|hdrezka)";
 
-            if (!string.IsNullOrWhiteSpace(AppInit.conf.apikey))
+            if (!string.IsNullOrEmpty(AppInit.conf.apikey))
             {
                 if (Regex.IsMatch(httpContext.Request.Path.Value, jacpattern))
                 {
@@ -66,11 +66,13 @@ namespace Lampac.Engine.Middlewares
                 if (!string.IsNullOrEmpty(AppInit.conf.accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, AppInit.conf.accsdb.whitepattern, RegexOptions.IgnoreCase))
                     return _next(httpContext);
 
+                if (Regex.IsMatch(httpContext.Request.Path.Value, jacpattern))
+                    return _next(httpContext);
+
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, jacpattern) && 
-                    !Regex.IsMatch(httpContext.Request.Path.Value, "^/((ts|ws|headers|myip|version|rch/result)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((ts|ws|headers|myip|version|rch/result)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
                     HashSet<string> ips = null;

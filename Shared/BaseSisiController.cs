@@ -2,10 +2,13 @@
 using Lampac.Engine;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -24,7 +27,15 @@ namespace SISI
 
         public JsonResult OnError(string msg)
         {
-            return Json(new OnErrorResult() { msg = msg });
+            var model = new OnErrorResult() { msg = msg };
+
+            if (AppInit.conf.multiaccess)
+            {
+                var gbc = new ResponseCache();
+                memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddMinutes(1));
+            }
+
+            return Json(model);
         }
 
         public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null)
@@ -38,7 +49,7 @@ namespace SISI
                     video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin, sisi: true),
                     picture = HostImgProxy(pl.picture, plugin: plugin),
                     preview = pl.preview,
-                    time =pl.time,
+                    time = pl.time,
                     json = pl.json,
                     quality = pl.quality,
                     qualitys = pl.qualitys,
