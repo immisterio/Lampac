@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Shared.Engine;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace Lampac.Engine.Middlewares
                                     httpContext.Response.ContentType = over.type;
                                     if (Regex.IsMatch(over.val, "\\.(html|txt|css|js|json|xml)$", RegexOptions.IgnoreCase))
                                     {
-                                        string val = File.ReadAllText(over.val);
+                                        string val = FileCache.ReadAllText(over.val);
                                         await httpContext.Response.WriteAsync(val.Replace("{localhost}", AppInit.Host(httpContext)));
                                     }
                                     else

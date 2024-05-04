@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,7 +22,7 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
-            if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd) && _localpasswd.ToString() == File.ReadAllText("passwd"))
+            if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd) && _localpasswd.ToString() == FileCache.ReadAllText("passwd"))
                 return _next(httpContext);
 
             #region manifest / admin
@@ -39,7 +40,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == File.ReadAllText("passwd"))
+                if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd"))
                     return _next(httpContext);
 
                 httpContext.Response.Redirect("/admin/auth");

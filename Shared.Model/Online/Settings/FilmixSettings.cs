@@ -13,11 +13,18 @@ namespace Lampac.Models.LITE
 
         public bool pro { get; set; }
 
-        public bool livehash { get; set; }
-
         public string? token { get; set; }
 
         public string[]? tokens { get; set; }
+
+
+        public bool livehash { get; set; }
+
+        public string? token_apitv { get; set; }
+
+        public string? user_apitv { get; set; }
+
+        public string? passwd_apitv { get; set; }
 
 
         public string? APIKEY { get; set; }

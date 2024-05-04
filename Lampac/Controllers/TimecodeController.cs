@@ -56,7 +56,7 @@ namespace Lampac.Controllers
                 db.TryAdd(id, data);
             }
 
-            IO.File.WriteAllBytes(path, BrotliTo.Compress(JsonConvert.SerializeObject(db)));
+            BrotliTo.Compress(path, JsonConvert.SerializeObject(db));
             return Content("{\"secuses\", true}");
         }
 
@@ -78,7 +78,7 @@ namespace Lampac.Controllers
         {
             if (!memoryCache.TryGetValue($"TimecodeController:{path}", out Dictionary<string, string> data))
             {
-                data = IO.File.Exists(path) ? JsonConvert.DeserializeObject<Dictionary<string, string>>(BrotliTo.Decompress(IO.File.ReadAllBytes(path))) : new Dictionary<string, string>();
+                data = IO.File.Exists(path) ? JsonConvert.DeserializeObject<Dictionary<string, string>>(BrotliTo.Decompress(path)) : new Dictionary<string, string>();
                 memoryCache.Set($"TimecodeController:{path}", data, DateTime.Now.AddMinutes(10));
             }
 

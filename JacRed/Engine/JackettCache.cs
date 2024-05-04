@@ -65,7 +65,7 @@ namespace Lampac.Engine.CORE
                 bool cache = Startup.memoryCache.TryGetValue(key, out _);
 
                 if (File.Exists(pathfile))
-                    return (cache, false, JsonConvert.DeserializeObject<List<TorrentDetails>>(BrotliTo.Decompress(File.ReadAllBytes(pathfile))));
+                    return (cache, false, JsonConvert.DeserializeObject<List<TorrentDetails>>(BrotliTo.Decompress(pathfile)));
                 else
                     return (false, cache, null);
             }
@@ -97,7 +97,7 @@ namespace Lampac.Engine.CORE
                     }
                     else
                     {
-                        File.WriteAllBytes(getFolder(key), BrotliTo.Compress(JsonConvert.SerializeObject(torrents)));
+                        BrotliTo.Compress(getFolder(key), JsonConvert.SerializeObject(torrents));
                         Startup.memoryCache.Set(key, string.Empty, DateTime.Now.AddMinutes(jac.cacheToMinutes));
                     }
                 }

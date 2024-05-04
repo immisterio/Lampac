@@ -66,7 +66,7 @@ namespace Lampac.Controllers
                 {
                     magnethash = Regex.Match(media, "link=([a-z0-9]+)").Groups[1].Value;
                     if (!string.IsNullOrWhiteSpace(magnethash) && System.IO.File.Exists(getFolder(magnethash)))
-                        outPut = BrotliTo.Decompress(System.IO.File.ReadAllBytes(getFolder(magnethash)));
+                        outPut = BrotliTo.Decompress(getFolder(magnethash));
                 }
 
                 if (string.IsNullOrWhiteSpace(outPut))
@@ -90,7 +90,7 @@ namespace Lampac.Controllers
 
                     if (!string.IsNullOrWhiteSpace(outPut) && !string.IsNullOrWhiteSpace(magnethash))
                     {
-                        System.IO.File.WriteAllBytes(getFolder(magnethash), BrotliTo.Compress(outPut));
+                        BrotliTo.Compress(getFolder(magnethash), outPut);
                     }
                     else
                     {

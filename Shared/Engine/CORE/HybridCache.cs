@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -16,7 +17,11 @@ namespace Shared.Engine.CORE
         #region HybridCache
         static IMemoryCache memoryCache;
 
+        static int extend = 1;
+
         static ConcurrentDictionary<string, DateTimeOffset> condition = new ConcurrentDictionary<string, DateTimeOffset>();
+
+        static readonly object lockObject = new object();
 
         static string folderCache => "cache/fdb";
 
@@ -24,22 +29,28 @@ namespace Shared.Engine.CORE
         {
             memoryCache = mem;
             string conditionPath = $"{folderCache}/condition.json";
-            Directory.CreateDirectory(folderCache);
 
-            if (File.Exists(conditionPath))
+            lock (lockObject)
             {
-                try
+                if (File.Exists(conditionPath))
                 {
-                    foreach (var item in JsonConvert.DeserializeObject<ConcurrentDictionary<string, DateTimeOffset>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))))
+                    try
                     {
-                        if (item.Value > DateTimeOffset.Now)
+                        foreach (var item in JsonConvert.DeserializeObject<Dictionary<string, DateTimeOffset>>(BrotliTo.Decompress(conditionPath)))
                         {
-                            memoryCache.Set(item.Key, (byte)0, item.Value);
-                            condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                            if (item.Value > DateTimeOffset.Now)
+                            {
+                                memoryCache.Set(item.Key, (byte)0, item.Value);
+                                condition.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                            }
                         }
                     }
+                    catch { }
                 }
-                catch { }
+                else
+                {
+                    Directory.CreateDirectory(folderCache);
+                }
             }
 
             ThreadPool.QueueUserWorkItem(async _ => 
@@ -67,7 +78,7 @@ namespace Shared.Engine.CORE
                         foreach (var item in condition.Where(i => DateTimeOffset.Now > i.Value))
                             condition.TryRemove(item);
 
-                        File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(condition)));
+                        BrotliTo.Compress(conditionPath, JsonConvert.SerializeObject(condition));
                     }
                     catch { }
                 }
@@ -86,8 +97,6 @@ namespace Shared.Engine.CORE
         {
             if (!inmemory && !AppInit.conf.mikrotik)
             {
-                int extend = 2;
-
                 if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
                 {
                     if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddMinutes(extend))
@@ -133,7 +142,7 @@ namespace Shared.Engine.CORE
 
             try
             {
-                string content = BrotliTo.Decompress(File.ReadAllBytes(path));
+                string content = BrotliTo.Decompress(path);
 
                 if (isConstructor || isValueType)
                     value = JsonConvert.DeserializeObject<TItem>(content);
@@ -155,7 +164,7 @@ namespace Shared.Engine.CORE
             if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
             {
                 if (AppInit.conf.typecache == "hybrid")
-                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(2));
+                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(extend));
 
                 return value;
             }
@@ -168,7 +177,7 @@ namespace Shared.Engine.CORE
             if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
             {
                 if (AppInit.conf.typecache == "hybrid")
-                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(2));
+                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(extend));
 
                 return value;
             }
@@ -193,26 +202,23 @@ namespace Shared.Engine.CORE
 
             try
             {
-                byte[] array = null;
+                string md5key = CrypTo.md5(key);
 
                 if (isConstructor || isValueType)
                 {
-                    array = BrotliTo.Compress(JsonConvert.SerializeObject(value));
+                    BrotliTo.Compress($"{folderCache}/{md5key}", JsonConvert.SerializeObject(value));
                 }
                 else
                 {
-                    array = BrotliTo.Compress(value.ToString());
+                    BrotliTo.Compress($"{folderCache}/{md5key}", value.ToString());
                 }
-
-                string md5key = CrypTo.md5(key);
-                File.WriteAllBytes($"{folderCache}/{md5key}", array);
 
                 if (absoluteExpiration != default)
                     memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpiration);
                 else
                 {
                     memoryCache.Set($"{folderCache}:{md5key}", (byte)0, absoluteExpirationRelativeToNow);
-                    absoluteExpiration = new DateTimeOffset(absoluteExpirationRelativeToNow.Ticks, TimeSpan.Zero);
+                    absoluteExpiration = DateTimeOffset.Now.Add(absoluteExpirationRelativeToNow);
                 }
 
                 condition.AddOrUpdate($"{folderCache}:{md5key}", absoluteExpiration, (k, v) => absoluteExpiration);

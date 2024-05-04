@@ -27,7 +27,7 @@ namespace Lampac.Engine.Middlewares
 
             if (memoryCache.TryGetValue(gbc.ErrorKey(httpContext), out object errorCache))
             {
-                httpContext.Response.Headers.TryAdd("X-GlobalCache-Error", "true");
+                httpContext.Response.Headers.TryAdd("X-RCache", "true");
 
                 if (errorCache is OnErrorResult)
                 {

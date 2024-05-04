@@ -22,7 +22,7 @@ namespace Lampac.Engine.CORE
             {
                 try
                 {
-                    links = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ProxyLinkModel>>(BrotliTo.Decompress(File.ReadAllBytes(conditionPath))) ?? new ConcurrentDictionary<string, ProxyLinkModel>();
+                    links = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ProxyLinkModel>>(BrotliTo.Decompress(conditionPath)) ?? new ConcurrentDictionary<string, ProxyLinkModel>();
                 }
                 catch { links = new ConcurrentDictionary<string, ProxyLinkModel>(); }
             }
@@ -94,7 +94,7 @@ namespace Lampac.Engine.CORE
                             links.TryRemove(link.Key, out _);
                     }
 
-                    File.WriteAllBytes(conditionPath, BrotliTo.Compress(JsonConvert.SerializeObject(links)));
+                    BrotliTo.Compress(conditionPath, JsonConvert.SerializeObject(links));
                 }
                 catch { }
 
