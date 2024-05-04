@@ -70,13 +70,12 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrEmpty(accessToken))
                 {
                     init.pro = true;
-                    init.livehash = true;
                     init.token_apitv = accessToken;
                 }
             }
 
             string livehash = string.Empty;
-            if (!init.rhub && init.livehash)
+            if (!init.rhub && (init.livehash || !string.IsNullOrEmpty(init.token_apitv)))
                 livehash = await getLiveHash(init);
             #endregion
 
@@ -129,12 +128,12 @@ namespace Lampac.Controllers.LITE
             {
                 if (!string.IsNullOrEmpty(init.token_apitv))
                 {
-                    string json = await HttpClient.Get("https://api.filmix.tv/api-fx/post/171042/video-links", headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
+                    string json = await HttpClient.Get("https://api.filmix.tv/api-fx/post/171042/video-links", timeoutSeconds: 8, headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
                     hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
                 }
                 else if (!string.IsNullOrEmpty(init.token))
                 {
-                    string json = await HttpClient.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi");
+                    string json = await HttpClient.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
                     hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
                 }
                 else
@@ -142,7 +141,7 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                if (!string.IsNullOrWhiteSpace(hash))
+                if (init.livehash && !string.IsNullOrWhiteSpace(hash))
                     memoryCache.Set(memKey, hash, DateTime.Now.AddHours(2));
             }
 
