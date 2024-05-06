@@ -128,7 +128,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string files = Regex.Match(content, "id=\"(fs|files)\" value='([^\n\r]+)'>").Groups[2].Value;
+            string files = Regex.Match(content, "id=\"[^\"]+\" value='(\\{[^\n\r]+)'>").Groups[1].Value;
             result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
             if (result.type is "movie" or "anime")
