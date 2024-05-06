@@ -70,7 +70,7 @@ namespace Shared.Model
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
-        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://oblakofailov.ru", streamproxy: true) { corseu = true, geostreamproxy = new List<string>() { "UA" } };
+        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://megaoblako.com", streamproxy: true) { corseu = true, geostreamproxy = new List<string>() { "UA" } };
 
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
 
