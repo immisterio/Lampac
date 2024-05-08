@@ -151,7 +151,6 @@ namespace Lampac.Controllers.LITE
                 var data = root["data"];
                 bool uhd = data.Value<bool>("4k");
                 string default_audio = data.Value<string>("default_audio");
-                string subtitle = data.Value<string>("subtitle");
                 //string playlist_file = data.Value<string>("playlist_file");
 
                 foreach (var item in data["file"])
@@ -187,8 +186,18 @@ namespace Lampac.Controllers.LITE
                     break;
                 }
 
-                if (!string.IsNullOrEmpty(subtitle) && subtitle.Contains(".vtt"))
-                    _cache.subtitle = "{\"label\": \"По умолчанию\",\"url\": \"" + subtitle + "\"}";
+                #region subtitle
+                try
+                {
+                    var subtitles = new SubtitleTpl();
+
+                    foreach (var sub in data["subtitle"])
+                        subtitles.Append(sub.Value<string>("label"), sub.Value<string>("url"));
+
+                    _cache.subtitle = subtitles.ToHtml();
+                }
+                catch { }
+                #endregion
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, _cache, cacheTime(10, init: init));
