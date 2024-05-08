@@ -443,6 +443,9 @@ namespace Lampac.Controllers
                 if (balanser == "filmix")
                     quality = AppInit.conf.Filmix.pro ? quality : " - 480p";
 
+                if (balanser == "alloha")
+                    quality = AppInit.conf.Alloha.m4s ? quality : " ~ 1080p";
+
                 if (balanser == "collaps")
                     quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
 
