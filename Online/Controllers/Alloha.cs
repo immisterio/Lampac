@@ -26,8 +26,11 @@ namespace Lampac.Controllers.LITE
                 return OnError("disable");
 
             var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
-            if (result.data == null)
+            if (result.category_id == 0)
                 return OnError("data", proxyManager, result.refresh_proxy);
+
+            if (result.data == null)
+                return Ok();
 
             JToken data = result.data;
 
@@ -245,6 +248,8 @@ namespace Lampac.Controllers.LITE
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";
 
+            JObject root;
+
             if (!hybridCache.TryGetValue(memKey, out (int category_id, JToken data) res))
             {
                 if (memKey.Contains(":viewsearch:"))
@@ -252,48 +257,50 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null)
                         return (true, 0, null);
 
-                    if (!root.ContainsKey("data"))
-                        return default;
-
-                    foreach (var item in root["data"])
+                    if (root.ContainsKey("data"))
                     {
-                        if (item.Value<string>("name")?.ToLower()?.Trim() == title.ToLower())
+                        foreach (var item in root["data"])
                         {
-                            int y = item.Value<int>("year");
-                            if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))
+                            if (item.Value<string>("name")?.ToLower()?.Trim() == title.ToLower())
                             {
-                                if (original_language == "ru" && item.Value<string>("country")?.ToLower() != "россия")
-                                    continue;
+                                int y = item.Value<int>("year");
+                                if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))
+                                {
+                                    if (original_language == "ru" && item.Value<string>("country")?.ToLower() != "россия")
+                                        continue;
 
-                                res.data = item;
-                                res.category_id = item.Value<int>("category_id");
-                                break;
+                                    res.data = item;
+                                    res.category_id = item.Value<int>("category_id");
+                                    break;
+                                }
                             }
                         }
                     }
-
-                    if (res.data == null)
-                        return default;
                 }
                 else
                 {
-                    var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null)
                         return (true, 0, null);
 
-                    if (!root.ContainsKey("data"))
-                        return default;
-
-                    res.data = root.GetValue("data");
-                    res.category_id = res.data.Value<int>("category");
+                    if (root.ContainsKey("data"))
+                    {
+                        res.data = root.GetValue("data");
+                        res.category_id = res.data.Value<int>("category");
+                    }
                 }
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, res, cacheTime(40, init: init));
+                if (res.data != null)
+                    proxyManager.Success();
+
+                if (res.data != null || (root.ContainsKey("error_info") && root.Value<string>("error_info") == "not movie"))
+                    hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40, init: init));
+                else
+                    hybridCache.Set(memKey, res, cacheTime(2, init: init));
             }
 
             return (false, res.category_id, res.data);
