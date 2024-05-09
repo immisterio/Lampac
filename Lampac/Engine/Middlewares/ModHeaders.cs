@@ -16,7 +16,8 @@ namespace Lampac.Engine.Middlewares
         {
             httpContext.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
             httpContext.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
-            httpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Accept, Origin, Content-Type, Authorization, X-Requested-With, X-Signalr-User-Agent");
+
+            httpContext.Response.Headers.Add("Access-Control-Allow-Headers", string.Join(", ", httpContext.Request.Headers.Keys));
             httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
 
             if (httpContext.Request.Headers.TryGetValue("origin", out var origin))
