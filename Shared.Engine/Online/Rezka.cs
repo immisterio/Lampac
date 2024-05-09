@@ -598,9 +598,9 @@ namespace Shared.Engine.Online
             #endregion
 
             #region Максимально доступное
-            var qualities = new List<string> { "1080p", "720p", "480p" };
+            var qualities = new List<string> { "2160p", "1440p", "1080p", "720p", "480p" };
             if (userprem)
-                qualities.InsertRange(0, new List<string> { "2160p", "1440p", "1080p Ultra" });
+                qualities.InsertRange(2, new List<string> { "1080p Ultra" });
 
             foreach (string q in qualities)
             {
@@ -655,7 +655,7 @@ namespace Shared.Engine.Online
         #region fixcdn
         public static string fixcdn(string? country, string? uacdn, string link)
         {
-            if (uacdn != null && country == "UA" && link.Contains("voidboost.") && !link.Contains("static.voidboost."))
+            if (uacdn != null && country == "UA" && !link.Contains(".vtt"))
                 return Regex.Replace(link, "https?://[^/]+", uacdn);
 
             return link;
