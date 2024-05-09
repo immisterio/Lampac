@@ -446,6 +446,9 @@ namespace Lampac.Controllers
                 if (balanser == "alloha")
                     quality = AppInit.conf.Alloha.m4s ? quality : " ~ 1080p";
 
+                if (balanser == "rezka")
+                    quality = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? quality : " ~ 720p";
+
                 if (balanser == "collaps")
                     quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
 
@@ -457,7 +460,6 @@ namespace Lampac.Controllers
                         case "filmix":
                         case "kinopub":
                         case "vokino":
-                        case "rezka":
                         case "alloha":
                         case "remux":
                         case "ashdi":

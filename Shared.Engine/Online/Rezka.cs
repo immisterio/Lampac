@@ -598,7 +598,11 @@ namespace Shared.Engine.Online
             #endregion
 
             #region Максимально доступное
-            foreach (string q in new List<string> { "2160p", "1440p", "1080p Ultra", "1080p", "720p", "480p", "360p" })
+            var qualities = new List<string> { "1080p", "720p", "480p" };
+            if (userprem)
+                qualities.InsertRange(0, new List<string> { "2160p", "1440p", "1080p Ultra" });
+
+            foreach (string q in qualities)
             {
                 string? link = null;
 
@@ -621,9 +625,24 @@ namespace Shared.Engine.Online
                 if (scheme == "http")
                     link = link.Replace("https:", "http:");
 
+                string realq = q;
+
+                switch (q)
+                {
+                    case "1080p":
+                        realq = "720p";
+                        break;
+                    case "720p":
+                        realq = "480p";
+                        break;
+                    case "480p":
+                        realq = "360p";
+                        break;
+                }
+
                 links.Add(new ApiModel()
                 {
-                    title = q,
+                    title = realq,
                     stream_url = link
                 });
             }
