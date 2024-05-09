@@ -444,10 +444,13 @@ namespace Lampac.Controllers
                     quality = AppInit.conf.Filmix.pro ? quality : " - 480p";
 
                 if (balanser == "alloha")
-                    quality = AppInit.conf.Alloha.m4s ? quality : " ~ 1080p";
+                    quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;
 
                 if (balanser == "rezka")
-                    quality = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? quality : " ~ 720p";
+                {
+                    string rezkaq = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? " ~ 2160p" : " ~ 720p";
+                    quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
+                }
 
                 if (balanser == "collaps")
                     quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
