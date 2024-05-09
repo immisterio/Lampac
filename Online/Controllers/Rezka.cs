@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
                 init.corsHost(),
                 init.scheme,
                 MaybeInHls(init.hls, init),
-                authCookie != null,
+                authCookie != null || !string.IsNullOrEmpty(init.cookie),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka"),

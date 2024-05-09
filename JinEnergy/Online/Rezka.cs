@@ -2,6 +2,7 @@
 using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Online;
 
 namespace JinEnergy.Online
 {
@@ -14,15 +15,19 @@ namespace JinEnergy.Online
         {
             bool userapn = IsApnIncluded(init);
 
+            var headers = httpHeaders(args, init, HeadersModel.Init(
+                ("X-Cookie", init.cookie ?? string.Empty)
+            ));
+
             return new RezkaInvoke
             (
                 null,
                 init.corsHost(),
                 init.scheme,
                 MaybeInHls(init.hls, init),
-                false,
-                ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init)),
-                (url, data) => JsHttpClient.Post(init.cors(url), data, httpHeaders(args, init)),
+                !string.IsNullOrEmpty(init.cookie),
+                ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
+                (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(origstream ? RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile) : streamfile, origstream)
             );
         }
