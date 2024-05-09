@@ -150,14 +150,10 @@ namespace JinEnergy.Online
             if (!isanime && arg.kinopoisk_id > 0)
                 send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
 
-            send("Rezka - 4K", "rezka", AppInit.Rezka);
-
             if (arg.kinopoisk_id > 0)
-            {
-                send("VideoDB - 1080p", "videodb", AppInit.VideoDB);
                 send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
-            }
 
+            send("Rezka - 720p", "rezka", AppInit.Rezka);
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
@@ -187,8 +183,8 @@ namespace JinEnergy.Online
                     send("Kinotochka - 720p", "kinotochka", AppInit.Kinotochka);
             }
 
-            if (!titleSearch)
-                send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
+            //if (!titleSearch)
+            //    send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
 
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 720p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
