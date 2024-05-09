@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.Alloha
+﻿namespace Lampac.Models.LITE.Alloha
 {
     public class Episode
     {

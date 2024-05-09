@@ -10,7 +10,7 @@ using Lampac.Models.LITE.Alloha;
 using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Templates;
-using System.Text.RegularExpressions;
+using Shared.Model.Online.Alloha;
 
 namespace Lampac.Controllers.LITE
 {
@@ -131,7 +131,7 @@ namespace Lampac.Controllers.LITE
             }
 
             string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}";
-            if (!hybridCache.TryGetValue(memKey, out (string m3u8, string subtitle) _cache))
+            if (!hybridCache.TryGetValue(memKey, out JToken data))
             {
                 #region url запроса
                 string uri = $"{init.linkhost}/link_file.php?secret_token={init.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
@@ -152,90 +152,78 @@ namespace Lampac.Controllers.LITE
                 if (!root.ContainsKey("data"))
                     return OnError("data");
 
-                var data = root["data"];
-                bool uhd = data.Value<bool>("4k");
-                string default_audio = data.Value<string>("default_audio");
-                string playlist_file = data.Value<string>("playlist_file");
+                proxyManager.Success();
 
-                #region subtitle
-                try
+                data = root["data"];
+                hybridCache.Set(memKey, data, cacheTime(10, init: init));
+            }
+
+            bool uhd = data.Value<bool>("4k");
+            string default_audio = data.Value<string>("default_audio");
+
+            #region subtitle
+            string subtitle = string.Empty;
+
+            try
+            {
+                var subtitles = new SubtitleTpl();
+
+                foreach (var sub in data["subtitle"])
+                    subtitles.Append(sub.Value<string>("label"), sub.Value<string>("url"));
+
+                subtitle = subtitles.ToHtml();
+            }
+            catch { }
+            #endregion
+
+            var default_streams = new List<(string link, string quality)>() { Capacity = 6 };
+            var streams = new List<(string link, string quality)>() { Capacity = 6 };
+
+            foreach (var froot in data["file"])
+            {
+                void SetVideo(List<(string link, string quality)> list)
                 {
-                    var subtitles = new SubtitleTpl();
-
-                    foreach (var sub in data["subtitle"])
-                        subtitles.Append(sub.Value<string>("label"), sub.Value<string>("url"));
-
-                    _cache.subtitle = subtitles.ToHtml();
-                }
-                catch { }
-                #endregion
-
-                bool isav1 = false;
-                foreach (var item in data["file"])
-                {
-                    string av1 = item.Value<string>("av1");
-                    string h264 = item.Value<string>("h264");
-                    string audio = item.Value<string>("audio");
-
-                    void setvideo()
+                    foreach (var file in froot["url"].ToObject<Dictionary<string, FileQ>>())
                     {
-                        if (uhd && init.m4s && !string.IsNullOrEmpty(av1))
+                        string av1 = file.Value.av1;
+                        string h264 = file.Value.h264;
+
+                        if (uhd && init.m4s && !string.IsNullOrEmpty(av1) && (file.Key is "2160p" or "1440p"))
                         {
-                            isav1 = true;
-                            _cache.m3u8 = av1;
+                            list.Add((HostStreamProxy(init, av1, proxy: proxyManager.Get(), plugin: "alloha"), file.Key));
                         }
                         else
                         {
                             string _stream = string.IsNullOrEmpty(h264) ? av1 : h264;
 
                             if (!string.IsNullOrEmpty(_stream))
-                                _cache.m3u8 = _stream;
+                                list.Add((HostStreamProxy(init, _stream, proxy: proxyManager.Get(), plugin: "alloha"), file.Key));
                         }
                     }
-
-                    if (string.IsNullOrEmpty(_cache.m3u8))
-                        setvideo();
-
-                    if (!string.IsNullOrEmpty(default_audio))
-                    {
-                        if (string.IsNullOrEmpty(audio) || !audio.ToLower().Contains(default_audio.ToLower()))
-                            continue;
-                    }
-
-                    setvideo();
-                    break;
                 }
 
-                // где 4k Лебовски?
-                if (uhd && init.m4s && !isav1)
+                if (default_streams.Count == 0)
+                    SetVideo(default_streams);
+
+                if (!string.IsNullOrEmpty(default_audio))
                 {
-                    string _m3u8 = string.Empty;
-
-                    if (playlist_file.StartsWith("http"))
-                        _m3u8 = playlist_file;
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(default_audio))
-                            _m3u8 = Regex.Match(playlist_file, $"{{{default_audio}}}(https?://[^;\t\\{{ ]+/master.m3u8)").Groups[1].Value;
-
-                        if (string.IsNullOrEmpty(_m3u8))
-                            _m3u8 = Regex.Match(playlist_file, $"(https?://[^;\t\\{{ ]+/master.m3u8) or {_cache.m3u8}").Groups[1].Value;
-                    }
-
-                    if (!string.IsNullOrEmpty(_m3u8) && _m3u8.Contains(".m3u8"))
-                        _cache.m3u8 = _m3u8.Split(".m3u8")[0] + ".m3u8";
+                    string audio = froot.Value<string>("audio");
+                    if (string.IsNullOrEmpty(audio) || audio != default_audio)
+                        continue;
                 }
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, _cache, cacheTime(10, init: init));
+                SetVideo(streams);
+                break;
             }
 
-            string m3u8 = HostStreamProxy(init, _cache.m3u8, proxy: proxyManager.Get(), plugin: "alloha");
+            if (streams.Count == 0)
+                streams = default_streams;
 
             if (play)
-                return Redirect(m3u8);
+                return Redirect(streams[0].link);
 
-            return Content("{\"method\":\"play\",\"url\":\"" + m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + _cache.subtitle + "]}", "application/json; charset=utf-8");
+            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitle + "], " + streansquality + "}", "application/json; charset=utf-8");
         }
         #endregion
 
