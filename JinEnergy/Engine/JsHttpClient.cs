@@ -1,6 +1,7 @@
 ﻿using Microsoft.JSInterop;
 using Shared.Model.Online;
 using System.Net;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -71,6 +72,15 @@ namespace JinEnergy.Engine
                     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
                     client.MaxResponseContentBufferSize = 3_000_000; // 3MB
 
+                    if (addHeaders != null)
+                    {
+                        foreach (var item in addHeaders)
+                        {
+                            if (!string.IsNullOrEmpty(item.val))
+                                client.DefaultRequestHeaders.Add(item.name, item.val);
+                        }
+                    }
+
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {
                         if (response.StatusCode != HttpStatusCode.OK)
@@ -128,6 +138,15 @@ namespace JinEnergy.Engine
                 {
                     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
                     client.MaxResponseContentBufferSize = 3_000_000; // 3MB
+
+                    if (addHeaders != null)
+                    {
+                        foreach (var item in addHeaders)
+                        {
+                            if (!string.IsNullOrEmpty(item.val))
+                                client.DefaultRequestHeaders.Add(item.name, item.val);
+                        }
+                    }
 
                     using (HttpResponseMessage response = await client.PostAsync(url, data))
                     {
