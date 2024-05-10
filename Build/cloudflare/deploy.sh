@@ -12,6 +12,7 @@ chmod +x Build/cloudflare/nightlies.sh
 
 #cat Build/cloudflare/Shared.Engine.csproj > Shared.Engine/Shared.Engine.csproj
 #cat Build/cloudflare/Shared.Model.csproj > Shared.Model/Shared.Model.csproj
+cat Build/cloudflare/net8/JinEnergy.csproj > JinEnergy/JinEnergy.csproj
 cat Build/cloudflare/net8/Shared.Engine.csproj > Shared.Engine/Shared.Engine.csproj
 cat Build/cloudflare/net8/Shared.Model.csproj > Shared.Model/Shared.Model.csproj
 
