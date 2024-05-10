@@ -7,6 +7,9 @@
     <CompressionEnabled>false</CompressionEnabled>
     <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
     <WasmEnableSIMD>false</WasmEnableSIMD>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
