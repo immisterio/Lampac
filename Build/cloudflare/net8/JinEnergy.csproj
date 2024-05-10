@@ -6,9 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WasiTrim>false</WasiTrim>
-	<EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>
+    <WasiTrim>true</WasiTrim>
     <RunAOTCompilation>false</RunAOTCompilation>
     <WasmEnableSIMD>false</WasmEnableSIMD>
   </PropertyGroup>
