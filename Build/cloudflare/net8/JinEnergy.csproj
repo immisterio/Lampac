@@ -7,11 +7,9 @@
     <CompressionEnabled>false</CompressionEnabled>
     <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
     <WasmEnableSIMD>false</WasmEnableSIMD>
-    <WasiTrim>true</WasiTrim>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <WasmSingleFileBundle>true</WasmSingleFileBundle>
   </PropertyGroup>
 
   <ItemGroup>
