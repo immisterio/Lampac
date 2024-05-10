@@ -5,10 +5,6 @@
 	<Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
-    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-    <WasiTrim>true</WasiTrim>
-    <RunAOTCompilation>false</RunAOTCompilation>
-    <WasmEnableSIMD>false</WasmEnableSIMD>
   </PropertyGroup>
 
   <ItemGroup>
