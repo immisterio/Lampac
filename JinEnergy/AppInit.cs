@@ -155,7 +155,7 @@ namespace JinEnergy
 
         public static OnlinesSettings VCDN => conf.VCDN;
 
-        public static OnlinesSettings VoKino => conf.VoKino;
+        public static VokinoSettings VoKino => conf.VoKino;
 
         public static KinoPubSettings KinoPub => conf.KinoPub;
 

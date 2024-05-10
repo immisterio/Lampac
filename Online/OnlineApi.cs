@@ -17,6 +17,7 @@ using Shared.Model.Online;
 using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using Shared.Engine.Online;
 
 namespace Lampac.Controllers
 {
@@ -295,8 +296,8 @@ namespace Lampac.Controllers
                 send("AniMedia", conf.AniMedia);
             }
 
-            if (!isanime && kinopoisk_id > 0)
-                send("VoKino", conf.VoKino);
+            if (kinopoisk_id > 0)
+                VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
 
             send("Filmix", conf.Filmix, arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             send("KinoPub", conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
@@ -409,7 +410,7 @@ namespace Lampac.Controllers
             string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
             var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
-            string res = await HttpClient.Get($"{srq}/{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
+            string res = await HttpClient.Get($"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
 
             if (string.IsNullOrEmpty(res))
                 res = string.Empty;

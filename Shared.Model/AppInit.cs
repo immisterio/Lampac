@@ -89,7 +89,7 @@ namespace Shared.Model
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { geostreamproxy = new List<string>() { "ALL" } };
 
-        public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("http://api.vokino.tv", enable: false, streamproxy: true);
+        public VokinoSettings VoKino { get; set; } = new VokinoSettings("http://api.vokino.tv", streamproxy: true);
 
         public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("https://iframe.video", "https://videoframe.space", enable: false);
 

@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.VoKino;
+﻿using Lampac.Models.LITE;
+using Shared.Model.Online.VoKino;
 using Shared.Model.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -28,6 +29,45 @@ namespace Shared.Engine.Online
             this.requesterror = requesterror;
         }
         #endregion
+
+        public static void SendOnline(VokinoSettings init, List<(string name, string url, string plugin, int index)> online)
+        {
+            var on = init.online;
+
+            void send(string name, int x)
+            {
+                string url = "{localhost}/lite/vokino?balancer=" + name.ToLower();
+                string displayname = $"{init.displayname ?? "VoKino"}";
+                if (name != "VoKino")
+                    displayname += $" ({name})";
+
+                online.Add((displayname, url, (name == "VoKino" ? "vokino" : $"vokino-{name.ToLower()}"), init.displayindex > 0 ? (init.displayindex + x) : online.Count));
+            }
+
+            if (on.vokino)
+                send("VoKino", 1);
+
+            if (on.filmix)
+                send("Filmix", 2);
+
+            if (on.alloha)
+                send("Alloha", 3);
+
+            if (on.zetflix)
+                send("Zetflix", 4);
+
+            if (on.videocdn)
+                send("VideoCDN", 5);
+
+            if (on.ashdi)
+                send("Ashdi", 6);
+
+            if (on.rhs)
+                send("RHS", 7);
+
+            if (on.collaps)
+                send("Collaps", 8);
+        }
 
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? balancer, string? t)

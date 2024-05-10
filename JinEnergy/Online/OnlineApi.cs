@@ -1,5 +1,6 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
+using Shared.Engine.Online;
 using Shared.Model.Base;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -112,7 +113,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/events")]
         public static string Events(string args)
         {
-            var online = new List<(string name, string url, int index)>(20);
+            var online = new List<(string name, string url, string plugin, int index)>(20);
 
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
@@ -128,7 +129,7 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(url))
                         url = "lite/" + plugin + arg_url;
 
-                    online.Add(($"{init.displayname ?? name}{arg_title}", url, init.displayindex));
+                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin, init.displayindex));
                 }
             }
 
@@ -147,8 +148,8 @@ namespace JinEnergy.Online
 
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
-            if (!isanime && arg.kinopoisk_id > 0)
-                send("VoKino - 4K HDR", "vokino", AppInit.VoKino);
+            if (arg.kinopoisk_id > 0)
+                VoKinoInvoke.SendOnline(AppInit.VoKino, online);
 
             if (arg.kinopoisk_id > 0)
                 send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
