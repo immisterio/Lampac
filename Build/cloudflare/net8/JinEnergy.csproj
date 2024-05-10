@@ -5,6 +5,13 @@
 	<Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasiTrim>true</WasiTrim>
+	<EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <WasmEnableSIMD>false</WasmEnableSIMD>
+	<BlazorCacheBootResources>false</BlazorCacheBootResources>
   </PropertyGroup>
 
   <ItemGroup>
