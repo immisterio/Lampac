@@ -14,5 +14,19 @@ if [ $gitver -gt $ver ]; then
     echo -n $gitver > vers.txt
     systemctl start lampac
 else
-    echo "lampac already current version $ver"
+    mver=$(cat vers-minor.txt)
+    dver=$(curl -s https://bwa.to/minor-update/$ver.txt)
+	
+    if [[ ${#dver} -eq 8 && $dver != $mver ]]; then
+        systemctl stop lampac
+        echo "update lampac to version $gitver ..."
+        rm -f update.zip
+        curl -L -o update.zip https://$dver.bwa.pages.dev/lpc/update.zip
+        unzip -o update.zip
+        rm -f update.zip
+        echo -n $dver > vers-minor.txt
+        systemctl start lampac
+    else
+        echo "lampac already current version $ver"
+    fi
 fi
