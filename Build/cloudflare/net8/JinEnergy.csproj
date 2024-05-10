@@ -8,6 +8,9 @@
     <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
     <WasmEnableSIMD>false</WasmEnableSIMD>
 	<BlazorCacheBootResources>false</BlazorCacheBootResources>
+	<WasiTrim>false</WasiTrim>
+	<RunAOTCompilation>true</RunAOTCompilation>
+	<BlazorWebAssemblyInterpreter>false</BlazorWebAssemblyInterpreter>
   </PropertyGroup>
 
   <ItemGroup>
