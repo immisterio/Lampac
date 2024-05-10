@@ -7,7 +7,6 @@
     <CompressionEnabled>false</CompressionEnabled>
     <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
     <WasmEnableSIMD>false</WasmEnableSIMD>
-	<BlazorWebAssemblyJiterpreter>false</BlazorWebAssemblyJiterpreter>
 	<BlazorCacheBootResources>false</BlazorCacheBootResources>
   </PropertyGroup>
 
