@@ -30,7 +30,7 @@ namespace Shared.Model
 
         public SisiSettings Ebalovo { get; set; } = new SisiSettings("https://www.ebalovo.pro");
 
-        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com");
+        public SisiSettings Eporner { get; set; } = new SisiSettings("https://www.eporner.com", streamproxy: true);
 
         public SisiSettings HQporner { get; set; } = new SisiSettings("https://m.hqporner.com") { geostreamproxy = new List<string>() { "ALL" } };
 

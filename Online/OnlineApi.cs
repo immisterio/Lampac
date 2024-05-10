@@ -296,7 +296,7 @@ namespace Lampac.Controllers
                 send("AniMedia", conf.AniMedia);
             }
 
-            if (kinopoisk_id > 0)
+            if (kinopoisk_id > 0 && AppInit.conf.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
 
             send("Filmix", conf.Filmix, arg_url: (source == "filmix" ? $"?postid={id}" : ""));

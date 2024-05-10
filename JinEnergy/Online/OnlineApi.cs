@@ -148,7 +148,7 @@ namespace JinEnergy.Online
 
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
-            if (arg.kinopoisk_id > 0)
+            if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online);
 
             if (arg.kinopoisk_id > 0)

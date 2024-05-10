@@ -66,6 +66,12 @@ namespace Lampac
             if (!File.Exists("passwd"))
                 File.WriteAllText("passwd", Guid.NewGuid().ToString());
 
+            if (!File.Exists("vers.txt"))
+                File.WriteAllText("vers.txt", BaseController.appversion);
+
+            if (!File.Exists("vers-minor.txt"))
+                File.WriteAllText("vers-minor.txt", "1");
+
             ThreadPool.QueueUserWorkItem(async _ => await LampaCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());

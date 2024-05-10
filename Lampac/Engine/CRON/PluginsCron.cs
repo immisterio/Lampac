@@ -46,13 +46,18 @@ namespace Lampac.Engine.CRON
                     update("https://bwa.to/plugins/prestige.js");
                     update("http://github.freebie.tom.ru/want.js");
                     update("https://nb557.github.io/plugins/reset_subs.js");
-                    update("http://95.215.8.180/plugins/mult.js");
+                    update("http://193.233.134.21/plugins/mult.js");
                     update("https://nemiroff.github.io/lampa/select_weapon.js");
                     update("https://nb557.github.io/plugins/not_mobile.js");
-                    update("https://scabrum.github.io/plugins/jackett.js");
                     update("http://cub.red/plugin/etor", path: "etor.js");
-                    update("http://95.215.8.180/checker.js");
+                    update("http://193.233.134.21/plugins/checker.js");
                     update("https://plugin.rootu.top/ts-preload.js");
+                    update("https://lampame.github.io/main/pubtorr/pubtorr.js");
+                    update("https://lampame.github.io/main/nc/nc.js");
+                    update("https://nb557.github.io/plugins/rating.js");
+                    update("https://github.freebie.tom.ru/torrents.js");
+                    update("https://nnmdd.github.io/lampa_hotkeys/hotkeys.js");
+                    update("https://bazzzilius.github.io/scripts/gold_theme.js");
                 }
                 catch { }
 
