@@ -129,7 +129,7 @@ namespace JinEnergy.Online
                     if (string.IsNullOrEmpty(url))
                         url = "lite/" + plugin + arg_url;
 
-                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin, init.displayindex));
+                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin, init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
 
@@ -196,7 +196,7 @@ namespace JinEnergy.Online
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
 
-            return $"[{string.Join(",", online.OrderByDescending(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"))}]";
+            return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"))}]";
         }
         #endregion
     }
