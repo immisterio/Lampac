@@ -206,7 +206,7 @@ namespace Lampac
             autoupdatetrackers = true, addTrackersToMagnet = true, intervalUpdateTrackers = 90
         };
 
-        public WebConf LampaWeb = new WebConf() { autoupdate = true, intervalupdate = 20, basetag = true, index = "lampa-main/index.html" };
+        public WebConf LampaWeb = new WebConf() { autoupdate = true, intervalupdate = 90, basetag = true, index = "lampa-main/index.html" };
 
         public OnlineConf online = new OnlineConf() 
         { 

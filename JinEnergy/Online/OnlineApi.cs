@@ -196,7 +196,7 @@ namespace JinEnergy.Online
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
 
-            return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\"}"))}]";
+            return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }
         #endregion
     }
