@@ -58,6 +58,7 @@ namespace Lampac.Engine.CRON
                     update("https://github.freebie.tom.ru/torrents.js");
                     update("https://nnmdd.github.io/lampa_hotkeys/hotkeys.js");
                     update("https://bazzzilius.github.io/scripts/gold_theme.js");
+                    update("https://bdvburik.github.io/rezkacomment.js");
                 }
                 catch { }
 

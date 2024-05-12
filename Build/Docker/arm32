@@ -3,7 +3,7 @@ FROM arm32v7/debian:12.5-slim
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip chromium \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L -k -o ffprobe.zip https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-linux-armhf-32.zip \
@@ -18,7 +18,7 @@ RUN curl -fSL -k -o dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/aspnetc
 RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/latest/download/publish.zip \
     && unzip -o publish.zip && rm -f publish.zip && rm -rf merchant \
     && rm -rf runtimes/os* && rm -rf runtimes/win* && rm -rf runtimes/linux-arm64 runtimes/linux-musl-arm64 runtimes/linux-musl-x64 runtimes/linux-x64 \
-    && touch isdocker
+    && touch isdocker && sed -i 's/\"System.GC.Server\"\: false/\"System.GC.Server\": true/g' Lampac.runtimeconfig.json
 
 RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-arm7 \
     && chmod +x torrserver/TorrServer-linux

@@ -629,6 +629,9 @@ namespace Shared.Engine.Online
 
                 switch (q)
                 {
+                    case "1080p Ultra":
+                        realq = "1080p";
+                        break;
                     case "1080p":
                         realq = "720p";
                         break;
