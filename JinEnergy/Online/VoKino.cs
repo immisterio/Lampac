@@ -15,6 +15,9 @@ namespace JinEnergy.Online
             string? balancer = parse_arg("balancer", args);
             string? t = parse_arg("t", args);
 
+            if (balancer is "filmix" or "zetflix" or "ashdi" or "rhs" or "collaps")
+                init.streamproxy = false;
+
             var oninvk = new VoKinoInvoke
             (
                null,

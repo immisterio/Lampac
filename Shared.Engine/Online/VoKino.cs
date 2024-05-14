@@ -30,13 +30,16 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        public static void SendOnline(VokinoSettings init, List<(string name, string url, string plugin, int index)> online)
+        public static void SendOnline(VokinoSettings init, List<(string name, string url, string plugin, int index)> online, bool bwa = false)
         {
             var on = init.online;
 
             void send(string name, int x)
             {
-                string url = "{localhost}/lite/vokino?balancer=" + name.ToLower();
+                string url = "lite/vokino?balancer=" + name.ToLower();
+                if (!bwa)
+                    url = "{localhost}/" + url;
+
                 string displayname = $"{init.displayname ?? "VoKino"}";
                 if (name != "VoKino")
                     displayname = $"{name} ({init.displayname ?? "VoKino"})";

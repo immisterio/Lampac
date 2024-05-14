@@ -46,10 +46,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string? t, int s = -1)
         {
-            var init = AppInit.conf.VoKino;
+            var init = AppInit.conf.VoKino.Clone();
 
             if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
+
+            if (balancer is "filmix" or "zetflix" or "ashdi" or "rhs" or "collaps")
+                init.streamproxy = false;
 
             var rch = new RchClient(HttpContext, host, init.rhub);
             var proxy = proxyManager.Get();

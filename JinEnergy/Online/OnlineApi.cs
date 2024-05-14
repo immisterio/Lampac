@@ -149,7 +149,7 @@ namespace JinEnergy.Online
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
-                VoKinoInvoke.SendOnline(AppInit.VoKino, online);
+                VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
             if (arg.kinopoisk_id > 0)
                 send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
