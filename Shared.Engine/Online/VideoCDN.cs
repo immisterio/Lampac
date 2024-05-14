@@ -11,7 +11,7 @@ namespace Shared.Engine.Online
     public class VideoCDNInvoke
     {
         #region VideoCDNInvoke
-        string? host;
+        string? host, scheme;
         string iframeapihost;
         string apihost;
         string? token;
@@ -32,6 +32,7 @@ namespace Shared.Engine.Online
         public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
+            this.scheme = init.scheme;
             this.iframeapihost = init.corsHost();
             this.apihost = init.cors(init.apihost);
             this.token = init!.token;
@@ -212,7 +213,7 @@ namespace Shared.Engine.Online
                         else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        streams.Insert(0, (onstream($"https:{link}"), $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
@@ -298,7 +299,7 @@ namespace Shared.Engine.Online
                                 else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                streams.Insert(0, (onstream($"https:{link}"), $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)

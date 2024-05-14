@@ -56,7 +56,7 @@ namespace Lampac.Controllers
 
         #region Version / Headers / myip / testaccsdb / personal.lampa
         [Route("/version")]
-        public ActionResult Version() => Content(appversion, contentType: "text/plain; charset=utf-8");
+        public ActionResult Version() => Content($"{appversion}.{minorversion}", contentType: "text/plain; charset=utf-8");
 
         [Route("/headers")]
         public ActionResult Headers() => Json(HttpContext.Request.Headers);

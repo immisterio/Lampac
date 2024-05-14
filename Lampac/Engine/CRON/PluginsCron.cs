@@ -67,7 +67,7 @@ namespace Lampac.Engine.CRON
                     if (File.Exists("wwwroot/bwa/_framework/blazor.boot.json"))
                     {
                         string bootapp = await HttpClient.Get("https://bwa.pages.dev/blazor.boot.json");
-                        if (bootapp != null && bootapp.Contains("JinEnergy.dll"))
+                        if (bootapp != null && bootapp.Contains("JinEnergy.wasm"))
                         {
                             string currentapp = File.ReadAllText("wwwroot/bwa/_framework/blazor.boot.json");
                             currentapp = CrypTo.md5(currentapp);

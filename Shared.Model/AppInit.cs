@@ -54,7 +54,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org") { geostreamproxy = new List<string>() { "ALL" } };
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { uacdn = "https://prx-ams.ukrtelcdn.net" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http", uacdn = "https://prx-ams.ukrtelcdn.net" };
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
 
@@ -70,7 +70,7 @@ namespace Shared.Model
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
-        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://megaoblako.com", streamproxy: true) { corseu = true, geostreamproxy = new List<string>() { "UA" } };
+        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://megaoblako.com") { corseu = true, geostreamproxy = new List<string>() { "UA" } };
 
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
 
@@ -87,7 +87,7 @@ namespace Shared.Model
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://skinny-wilderness.cdnmovies-stream.online"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/) { geostreamproxy = new List<string>() { "ALL" } };
 
 
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("https://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("http://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("http://api.vokino.tv", streamproxy: true);
 
@@ -108,7 +108,7 @@ namespace Shared.Model
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.onl", streamproxy: true, enable: false, rip: true);
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 

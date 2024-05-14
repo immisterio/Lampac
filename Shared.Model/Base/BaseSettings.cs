@@ -22,6 +22,8 @@ namespace Shared.Model.Base
 
         public string? apihost { get; set; }
 
+        public string? scheme { get; set; }
+
         public List<HeadersModel>? headers { get; set; }
 
 
