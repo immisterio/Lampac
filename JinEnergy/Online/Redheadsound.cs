@@ -12,10 +12,6 @@ namespace JinEnergy.Online
             var init = AppInit.Redheadsound.Clone();
 
             var arg = defaultArgs(args);
-            int clarification = arg.clarification;
-
-            if (arg.original_language != "en")
-                clarification = 1;
 
             if (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0)
                 return EmptyError("title");
@@ -29,7 +25,7 @@ namespace JinEnergy.Online
                streamfile => HostStreamProxy(init, streamfile)
             );
 
-            refresh: var content = await oninvk.Embed(clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year);
+            refresh: var content = await oninvk.Embed(arg.clarification == 1 ? arg.title : (arg.original_title ?? arg.title), arg.year);
 
             string html = oninvk.Html(content, arg.title);
             if (string.IsNullOrEmpty(html) && IsRefresh(init))

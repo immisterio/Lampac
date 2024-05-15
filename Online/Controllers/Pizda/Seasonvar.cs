@@ -1,13 +1,11 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Web;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
 using Online;
 using Shared.Engine.CORE;
 
@@ -23,9 +21,6 @@ namespace Lampac.Controllers.LITE
         {
             if (!AppInit.conf.Seasonvar.enable)
                 return OnError();
-
-            if (original_language != "en")
-                clarification = 1;
 
             seasonid = seasonid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), year) : seasonid;
             if (seasonid == 0)

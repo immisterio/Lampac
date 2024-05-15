@@ -14,7 +14,6 @@ namespace JinEnergy.Online
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
-            int clarification = arg.clarification;
 
             var oninvk = new KinoPubInvoke
             (
@@ -28,11 +27,8 @@ namespace JinEnergy.Online
 
             if (postid == 0)
             {
-                if (arg.original_language != "en")
-                    clarification = 1;
-
-                string memkey = $"kinopub:search:{arg.title}:{clarification}:{arg.imdb_id}";
-                refresh_similars: var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.year, clarification, arg.imdb_id, arg.kinopoisk_id));
+                string memkey = $"kinopub:search:{arg.title}:{arg.clarification}:{arg.imdb_id}";
+                refresh_similars: var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.year, arg.clarification, arg.imdb_id, arg.kinopoisk_id));
 
                 if (!string.IsNullOrEmpty(res?.similars))
                     return res.similars;

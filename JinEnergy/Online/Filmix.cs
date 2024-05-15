@@ -15,10 +15,6 @@ namespace JinEnergy.Online
             int t = int.Parse(parse_arg("t", args) ?? "0");
             int? s = parse_arg("s", args) != null ? int.Parse(parse_arg("s", args)!) : null;
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
-            int clarification = arg.clarification;
-
-            if (arg.original_language != "en")
-                clarification = 1;
 
             var oninvk = new FilmixInvoke
             (
@@ -32,10 +28,10 @@ namespace JinEnergy.Online
 
             if (postid == 0)
             {
-                string memkey = $"filmix:search:{arg.title}:{arg.original_title}:{clarification}";
+                string memkey = $"filmix:search:{arg.title}:{arg.original_title}:{arg.clarification}";
                 refresh_similars: oninvk.disableSphinxSearch = !init.corseu && !AppInit.IsAndrod;
             
-                var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, clarification, arg.year));
+                var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.clarification, arg.year));
 
                 if (res == null)
                 {

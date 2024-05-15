@@ -39,15 +39,12 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, string original_language, int year, int postid, int t, int? s = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null)
         {
             var init = AppInit.conf.Filmix.Clone();
 
             if (!init.enable)
                 return OnError();
-
-            if (original_language != "en")
-                clarification = 1;
 
             var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("filmix", init);

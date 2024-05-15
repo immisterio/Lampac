@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, string original_language, int postid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1)
         {
             var init = AppInit.conf.KinoPub;
 
@@ -80,9 +80,6 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                if (original_language != "en")
-                    clarification = 1;
-
                 var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40, init: init), proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())

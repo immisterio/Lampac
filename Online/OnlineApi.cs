@@ -281,14 +281,14 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url))
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
 
-                    if (original_language is "ru" or "ja" or "ko" or "zh" or "cn" or "zh|cn")
+                    if (original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                         url += (url.Contains("?") ? "&" : "?") + "clarification=1";
 
                     online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
 
-            if (original_language is "ja" or "ko" or "zh" or "cn" or "zh|cn")
+            if (original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
                 send("Kodik", conf.Kodik);
 
             if (serial == -1 || isanime)

@@ -12,15 +12,12 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, string original_language)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification)
         {
             var init = AppInit.conf.Redheadsound;
 
             if (!init.enable)
                 return OnError();
-
-            if (original_language != "en")
-                clarification = 1;
 
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
