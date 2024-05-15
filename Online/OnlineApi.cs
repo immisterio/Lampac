@@ -280,6 +280,9 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url))
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
 
+                    if (original_language is "ja" or "ko" or "zh")
+                        url += (url.Contains("?") ? "?" : "&") + "clarification=1";
+
                     online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }

@@ -68,9 +68,6 @@ namespace Lampac.Controllers.LITE
             var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);
 
-            if (original_language != "en")
-                clarification = 1;
-
             var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
                 return OnError(proxyManager);
