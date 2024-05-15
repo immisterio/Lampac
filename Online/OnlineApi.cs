@@ -18,7 +18,6 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
-using Lampac.Models.LITE.KinoPub;
 
 namespace Lampac.Controllers
 {
@@ -282,7 +281,11 @@ namespace Lampac.Controllers
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
 
                     if (original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
-                        url += (url.Contains("?") ? "&" : "?") + "clarification=1";
+                    {
+                        string _p = (plugin ?? name.ToLower());
+                        if (_p is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" or "alloha" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
+                            url += (url.Contains("?") ? "&" : "?") + "clarification=1";
+                    }
 
                     online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }

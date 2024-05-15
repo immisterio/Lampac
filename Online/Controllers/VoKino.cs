@@ -44,7 +44,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string? t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1)
         {
             var init = AppInit.conf.VoKino.Clone();
 

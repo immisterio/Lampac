@@ -42,9 +42,9 @@ namespace JinEnergy.Online
 
             List<Result>? content = null;
 
-            if (arg.clarification == 1 || (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id)))
+            if (arg.clarification == 1)
             {
-                if (string.IsNullOrWhiteSpace(arg.title))
+                if (string.IsNullOrEmpty(arg.title))
                     return EmptyError("title");
 
                 var res = await InvokeCache(arg.id, $"kodik:search:{arg.title}", () => oninvk.Embed(arg.title));
@@ -58,7 +58,7 @@ namespace JinEnergy.Online
             }
             else
             {
-                if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
+                if (arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id))
                     return EmptyError("kinopoisk_id / imdb_id");
 
                 content = await InvokeCache(arg.id, $"kodik:search:{arg.kinopoisk_id}:{arg.imdb_id}", () => oninvk.Embed(arg.imdb_id, arg.kinopoisk_id, s));

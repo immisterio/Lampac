@@ -130,7 +130,10 @@ namespace JinEnergy.Online
                         url = "lite/" + plugin + arg_url;
 
                     if (arg.original_language is "ru" or "ja" or "ko" or "zh" or "cn" or "zh|cn")
-                        url += (url.Contains("?") ? "&" : "?") + "clarification=1";
+                    {
+                        if (plugin is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" || (plugin == "kodik" && arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id)))
+                            url += (url.Contains("?") ? "&" : "?") + "clarification=1";
+                    }
 
                     online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin, init.displayindex > 0 ? init.displayindex : online.Count));
                 }

@@ -48,9 +48,9 @@ namespace Lampac.Controllers.LITE
             List<Result> content = null;
             var oninvk = InitKodikInvoke();
 
-            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
+            if (clarification == 1)
             {
-                if (string.IsNullOrWhiteSpace(title))
+                if (string.IsNullOrEmpty(title))
                     return OnError();
 
                 var res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title), proxyManager);
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
+                if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                     return OnError();
 
                 content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);

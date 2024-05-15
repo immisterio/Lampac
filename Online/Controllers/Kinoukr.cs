@@ -36,13 +36,12 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            string search_title = clarification == 1 ? title : original_title;
-            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{search_title}:{year}:{href}", cacheTime(40, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(search_title, year, href);
+                return await oninvk.Embed(clarification == 1 ? title : original_title, year, href);
             });
 
             return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href));
