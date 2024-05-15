@@ -10,7 +10,6 @@
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <EmccMaximumHeapSize>83886080</EmccMaximumHeapSize>
   </PropertyGroup>
 
   <ItemGroup>

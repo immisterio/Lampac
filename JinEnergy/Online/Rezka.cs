@@ -15,9 +15,10 @@ namespace JinEnergy.Online
         {
             bool userapn = IsApnIncluded(init);
 
-            var headers = httpHeaders(args, init, HeadersModel.Init(
-                ("X-Cookie", init.cookie ?? string.Empty)
-            ));
+            var headers = httpHeaders(args, init);
+
+            if (init.corseu && !string.IsNullOrEmpty(init.cookie))
+                headers.Add(new HeadersModel("X-Cookie", init.cookie));
 
             return new RezkaInvoke
             (
@@ -43,14 +44,18 @@ namespace JinEnergy.Online
             string? t = parse_arg("t", args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
             string? href = parse_arg("href", args);
+            int clarification = arg.clarification;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0))
                 return EmptyError("arg");
 
-            string memkey = $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{arg.clarification}:{href}";
-            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, arg.clarification, arg.year, href));
+            if (arg.original_language != "en")
+                clarification = 1;
 
-            string html = oninvk.Html(content, arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, arg.clarification, arg.year, s, href, false);
+            string memkey = $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{clarification}:{href}";
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, href));
+
+            string html = oninvk.Html(content, arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, clarification, arg.year, s, href, false);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);

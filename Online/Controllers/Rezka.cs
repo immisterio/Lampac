@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, string original_language, int clarification, int year, int s = -1, string href = null)
         {
             var init = AppInit.conf.Rezka;
             if (!init.enable)
@@ -67,6 +67,9 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);
+
+            if (original_language != "en")
+                clarification = 1;
 
             var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
