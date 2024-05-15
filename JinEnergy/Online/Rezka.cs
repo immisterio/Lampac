@@ -18,7 +18,7 @@ namespace JinEnergy.Online
             var headers = httpHeaders(args, init);
 
             if (init.corseu && !string.IsNullOrEmpty(init.cookie))
-                headers.Add(new HeadersModel("X-Cookie", init.cookie));
+                headers.Add(new HeadersModel("x-cookie", init.cookie));
 
             return new RezkaInvoke
             (
