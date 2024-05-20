@@ -194,7 +194,7 @@ namespace JinEnergy.Online
             //    send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
 
             if (arg.kinopoisk_id > 0)
-                send("VDBmovies - 720p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
+                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
