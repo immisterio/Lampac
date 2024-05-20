@@ -118,6 +118,8 @@ namespace Lampac
                 if (mods == null)
                     return;
 
+                List<PortableExecutableReference> references = null;
+
                 foreach (var mod in mods)
                 {
                     if (!mod.enable || mod.dll.EndsWith(".dll"))
@@ -131,13 +133,16 @@ namespace Lampac
                         foreach (string file in Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories))
                             syntaxTree.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(file)));
 
-                        var dependencyContext = DependencyContext.Default;
-                        var assemblies = dependencyContext.RuntimeLibraries
-                            .SelectMany(library => library.GetDefaultAssemblyNames(dependencyContext))
-                            .Select(Assembly.Load)
-                            .ToList();
+                        if (references == null)
+                        {
+                            var dependencyContext = DependencyContext.Default;
+                            var assemblies = dependencyContext.RuntimeLibraries
+                                .SelectMany(library => library.GetDefaultAssemblyNames(dependencyContext))
+                                .Select(Assembly.Load)
+                                .ToList();
 
-                        var references = assemblies.Select(assembly => MetadataReference.CreateFromFile(assembly.Location)).ToList();
+                            references = assemblies.Select(assembly => MetadataReference.CreateFromFile(assembly.Location)).ToList();
+                        }
 
                         CSharpCompilation compilation = CSharpCompilation.Create(Path.GetFileName(mod.dll), syntaxTree, references: references, options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
