@@ -13,16 +13,17 @@ using Lampac.Engine.CORE;
 using System.Net;
 using System;
 using Lampac.Engine;
-using PuppeteerSharp;
-using Shared.Engine;
 using Shared.Engine.CORE;
-using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
-using System.Threading.Tasks;
-using System.Threading;
+using Lampac.Models.Module;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Reflection;
 using System.IO;
-using Microsoft.AspNetCore.SignalR;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.DependencyModel;
 
 namespace Lampac
 {
@@ -100,9 +101,73 @@ namespace Lampac
                     }
                     catch (Exception ex) { Console.WriteLine(ex.Message + "\n"); }
                 }
-
-                Console.WriteLine();
             }
+
+            if (File.Exists("module/manifest.json"))
+            {
+                var jss = new JsonSerializerSettings
+                {
+                    Error = (se, ev) =>
+                    {
+                        ev.ErrorContext.Handled = true;
+                        Console.WriteLine("module/manifest.json - " + ev.ErrorContext.Error + "\n\n");
+                    }
+                };
+
+                var mods = JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json"), jss);
+                if (mods == null)
+                    return;
+
+                foreach (var mod in mods)
+                {
+                    if (!mod.enable || mod.dll.EndsWith(".dll"))
+                        continue;
+
+                    string path = File.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
+                    if (Directory.Exists(path))
+                    {
+                        var syntaxTree = new List<SyntaxTree>();
+
+                        foreach (string file in Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories))
+                            syntaxTree.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(file)));
+
+                        var dependencyContext = DependencyContext.Default;
+                        var assemblies = dependencyContext.RuntimeLibraries
+                            .SelectMany(library => library.GetDefaultAssemblyNames(dependencyContext))
+                            .Select(Assembly.Load)
+                            .ToList();
+
+                        var references = assemblies.Select(assembly => MetadataReference.CreateFromFile(assembly.Location)).ToList();
+
+                        CSharpCompilation compilation = CSharpCompilation.Create(Path.GetFileName(mod.dll), syntaxTree, references: references, options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+                        using (var ms = new MemoryStream())
+                        {
+                            var result = compilation.Emit(ms);
+
+                            if (!result.Success)
+                            {
+                                foreach (var diagnostic in result.Diagnostics)
+                                    Console.WriteLine(diagnostic);
+                            }
+                            else
+                            {
+                                ms.Seek(0, SeekOrigin.Begin);
+                                mod.assembly = Assembly.Load(ms.ToArray());
+
+                                if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
+                                    m.Invoke(null, new object[] { });
+
+                                Console.WriteLine("load module: " + mod.dll);
+                                AppInit.modules.Add(mod);
+                                mvcBuilder.AddApplicationPart(mod.assembly);
+                            }
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine();
 
             mvcBuilder.AddJsonOptions(options => {
                 //options.JsonSerializerOptions.IgnoreNullValues = true;

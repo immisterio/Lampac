@@ -33,7 +33,7 @@ namespace Lampac
             Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
             {
                 NullValueHandling = NullValueHandling.Ignore
-            }));
+            }) + "\n");
 
             if (AppInit.conf.multiaccess)
             {
