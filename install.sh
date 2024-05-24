@@ -28,6 +28,10 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/update.sh > $DE
 chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
 
+# update minor
+/bin/bash $DEST/update.sh
+cd $DEST
+
 # Create service
 echo ""
 echo "Install service to /etc/systemd/system/lampac.service ..."
