@@ -9,6 +9,7 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Model.Online.VoKino;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -30,7 +31,7 @@ namespace Lampac.Controllers.LITE
             else
             {
                 string deviceid = new string(DateTime.Now.ToBinary().ToString().Reverse().ToArray()).Substring(0, 8);
-                var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get());
+                var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get(), headers: HeadersModel.Init("user-agent", "lampac"));
 
                 if (token_request == null)
                     return Content($"нет доступа к {AppInit.conf.VoKino.corsHost()}", "text/html; charset=utf-8");

@@ -366,7 +366,8 @@ namespace Lampac.Controllers
 
             if (chos && IO.File.Exists("isdocker"))
             {
-                if ((await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", IO.File.ReadAllText("passwd")))) != appversion)
+                string version = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", IO.File.ReadAllText("passwd")));
+                if (version == null || !version.StartsWith(appversion))
                     chos = false;
             }
 
