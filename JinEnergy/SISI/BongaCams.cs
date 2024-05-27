@@ -28,6 +28,7 @@ namespace JinEnergy.SISI
             var playlist = BongaCamsTo.Playlist(html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
+                pl.bookmark = null;
                 return pl;
             });
 

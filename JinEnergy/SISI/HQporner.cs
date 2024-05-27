@@ -23,6 +23,8 @@ namespace JinEnergy.SISI
             var playlist = HQpornerTo.Playlist("hqr/vidosik", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
+                pl.bookmark = null;
+                pl.related = false;
                 return pl;
             });
 

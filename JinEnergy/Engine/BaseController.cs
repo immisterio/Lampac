@@ -95,7 +95,7 @@ namespace JinEnergy.Engine
         }
 
 
-        public static ResultModel OnResult(List<MenuItem> menu, List<PlaylistItem> playlists)
+        public static ResultModel OnResult(List<MenuItem>? menu, List<PlaylistItem> playlists)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists");

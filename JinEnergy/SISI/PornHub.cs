@@ -39,22 +39,25 @@ namespace JinEnergy.SISI
             var init = AppInit.PornHub.Clone();
 
             string? search = parse_arg("search", args);
+            string? model = parse_arg("model", args);
             string? sort = parse_arg("sort", args);
             int c = int.Parse(parse_arg("c", args) ?? "0");
             int pg = int.Parse(parse_arg("pg", args) ?? "1");
 
-            refresh: string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, headers)));
+            refresh: string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, headers)));
 
             var playlist = PornHubTo.Playlist("phub/vidosik", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
+                pl.bookmark = null;
+                pl.related = false;
                 return pl;
             });
 
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;
 
-            return OnResult(PornHubTo.Menu(null, plugin, sort, c), playlist);
+            return OnResult(string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(null, plugin, sort, c) : null, playlist);
         }
 
 

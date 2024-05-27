@@ -22,6 +22,8 @@ namespace JinEnergy.SISI
             var playlist = EbalovoTo.Playlist("elo/vidosik", html, pl =>
             {
                 pl.picture = $"https://vi.sisi.am/poster.jpg?href={pl.picture}&r=200";
+                pl.bookmark = null;
+                pl.related = false;
                 return pl;
             });
 

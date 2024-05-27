@@ -32,6 +32,8 @@ namespace JinEnergy.SISI
             var playlist = XhamsterTo.Playlist("xmr/vidosik", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
+                pl.bookmark = null;
+                pl.related = false;
                 return pl;
             });
 
