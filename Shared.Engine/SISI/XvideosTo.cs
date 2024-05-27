@@ -62,11 +62,18 @@ namespace Shared.Engine.SISI
                     img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/");
                     img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase);
 
+                    // https://cdn77-pic.xvideos-cdn.com/videos/thumbs169ll/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62-2/5a6d4f718214eebf73225ec96b670f62.27.jpg
+                    // https://cdn77-pic.xvideos-cdn.com/videos/videopreview/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62_169.mp4
+                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/");
+                    preview = Regex.Replace(preview, "/[^/]+$", "");
+                    preview = Regex.Replace(preview, "-[0-9]+$", "");
+
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
                         video = $"{uri}?uri={g[1].Value}",
                         picture = img,
+                        preview = preview + "_169.mp4",
                         quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
                         time = duration,
                         json = true,

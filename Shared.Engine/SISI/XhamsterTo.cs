@@ -97,6 +97,7 @@ namespace Shared.Engine.SISI
                         video = $"{uri}?uri={href}",
                         picture = img,
                         quality = row.Contains("-hd") ? "HD" : row.Contains("-uhd") ? "4K" : null,
+                        preview = Regex.Match(row, "data-previewvideo=\"([^\"]+)\"").Groups[1].Value,
                         time = duration?.Trim(),
                         json = true,
                         related = true,

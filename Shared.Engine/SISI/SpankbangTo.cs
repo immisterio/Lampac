@@ -55,6 +55,7 @@ namespace Shared.Engine.SISI
                         video = $"{uri}?uri={link}",
                         quality = string.IsNullOrEmpty(quality) ? null : quality,
                         picture = img,
+                        preview = Regex.Match(row, "data-preview=\"([^\"]+)\"").Groups[1].Value,
                         time = duration,
                         json = true,
                         related = true,

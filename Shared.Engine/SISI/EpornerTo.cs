@@ -65,6 +65,9 @@ namespace Shared.Engine.SISI
                     if (string.IsNullOrWhiteSpace(img))
                         img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
 
+                    string dataid = Regex.Match(row, "data-id=\"([^\"]+)\"").Groups[1].Value;
+                    string preview = Regex.Replace(img, "/[^/]+$", "") + $"/{dataid}-preview.webm";
+
                     string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>").Groups[2].Value.Trim();
 
                     var pl = new PlaylistItem()
@@ -72,6 +75,7 @@ namespace Shared.Engine.SISI
                         name = g[2].Value,
                         video = $"{uri}?uri={g[1].Value}",
                         picture = img,
+                        preview = preview,
                         quality = quality,
                         time = duration,
                         json = true,
