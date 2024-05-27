@@ -47,10 +47,12 @@ namespace SISI
                 {
                     name = pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy, plugin: plugin, sisi: true),
+                    model = pl.model,
                     picture = HostImgProxy(pl.picture, plugin: plugin),
                     preview = pl.preview,
                     time = pl.time,
                     json = pl.json,
+                    related = pl.related,
                     quality = pl.quality,
                     qualitys = pl.qualitys,
                     bookmark = pl.bookmark
@@ -67,10 +69,12 @@ namespace SISI
                 {
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
+                    model = pl.model,
                     picture = HostImgProxy(pl.picture, plugin: plugin, headers: headers),
                     preview = pl.preview,
                     time = pl.time,
                     json = pl.json,
+                    related = pl.related,
                     quality = pl.quality,
                     qualitys = pl.qualitys,
                     bookmark = pl.bookmark

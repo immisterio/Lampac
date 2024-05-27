@@ -12,7 +12,7 @@ namespace Lampac.Controllers.PornHub
     {
         [HttpGet]
         [Route("phub/vidosik")]
-        async public Task<JsonResult> Index(string vkey)
+        async public Task<JsonResult> Index(string vkey, bool related)
         {
             var init = AppInit.conf.PornHub;
 
@@ -36,6 +36,9 @@ namespace Lampac.Controllers.PornHub
                 proxyManager.Success();
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
+
+            if (related)
+                return OnResult(stream_links.recomends, null, plugin: "phub");
 
             return OnResult(stream_links, init, proxy, plugin: "phub");
         }

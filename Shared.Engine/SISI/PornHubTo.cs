@@ -1,5 +1,4 @@
 ﻿using Lampac.Models.SISI;
-using Shared.Model;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -8,13 +7,20 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string plugin, string? search, string? sort, int c, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string?> InvokeHtml(string host, string plugin, string? search, string? model, string? sort, int c, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = $"{host}/";
 
-            if (!string.IsNullOrWhiteSpace(search))
+            if (!string.IsNullOrEmpty(search))
             {
                 url += $"video/search?search={HttpUtility.UrlEncode(search)}";
+            }
+            else if (!string.IsNullOrEmpty(model))
+            {
+                if (model.StartsWith("pornstar/"))
+                    url += $"{model}/videos/upload";
+                else
+                    url += $"model/{model}/videos";
             }
             else
             {
@@ -50,7 +56,7 @@ namespace Shared.Engine.SISI
         public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
         {
             string? videoCategory = null;
-            var playlists = new List<PlaylistItem>() { Capacity = prem ? 50 : 35 };
+            var playlists = new List<PlaylistItem>() { Capacity = 50 };
 
             if (string.IsNullOrEmpty(html))
                 return playlists;
@@ -69,7 +75,7 @@ namespace Shared.Engine.SISI
             }
             else
             {
-                var videorows = Regex.Split(html, "id=\"(content-tv-container|lazyVids|videoSearchResult)\"");
+                var videorows = Regex.Split(html, "id=\"(mostRecentVideosSection|moreData|content-tv-container|lazyVids|videoSearchResult)\"");
                 if (videorows.Length > 2)
                     videoCategory = videorows[2];
             }
@@ -106,10 +112,12 @@ namespace Shared.Engine.SISI
                 {
                     name = title,
                     video = $"{uri}?vkey={vkey}",
+                    model = m("href=\"/model/([^\"]+)\"") ?? m("href=\"/(pornstar/[^\"]+)\""),
                     picture = img,
                     preview = m("data-mediabook=\"(https?://[^\"]+)\""),
                     time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<"),
                     json = true,
+                    related = true,
                     bookmark = new Bookmark()
                     {
                         site = prem ? "phubprem" : "phub",
@@ -123,8 +131,8 @@ namespace Shared.Engine.SISI
 
                 playlists.Add(pl);
 
-                if (playlists.Count == (prem ? 48 : 32))
-                    break;
+                //if (playlists.Count == (prem ? 48 : 32))
+                //    break;
             }
 
             return playlists;

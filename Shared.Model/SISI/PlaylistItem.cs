@@ -18,6 +18,10 @@ namespace Lampac.Models.SISI
 
         public bool json { get; set; }
 
+        public bool related { get; set; }
+
+        public string? model { get; set; }
+
         public Dictionary<string, string>? qualitys { get; set; }
 
         public Bookmark? bookmark { get; set; }
