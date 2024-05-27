@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Ebalovo
     {
         [HttpGet]
         [Route("elo/vidosik")]
-        async public Task<JsonResult> Index(string uri)
+        async public Task<JsonResult> Index(string uri, bool related)
         {
             var init = AppInit.conf.Ebalovo;
 
@@ -35,6 +35,9 @@ namespace Lampac.Controllers.Ebalovo
                 proxyManager.Success();
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
+
+            if (related)
+                return OnResult(stream_links?.recomends, null, plugin: "elo");
 
             return OnResult(stream_links, init, proxy, plugin: "elo");
         }

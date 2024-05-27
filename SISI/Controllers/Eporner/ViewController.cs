@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Eporner
     {
         [HttpGet]
         [Route("epr/vidosik")]
-        async public Task<JsonResult> Index(string uri)
+        async public Task<JsonResult> Index(string uri, bool related)
         {
             var init = AppInit.conf.Eporner;
 
@@ -36,7 +36,10 @@ namespace Lampac.Controllers.Eporner
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 
-            return OnResult(stream_links, init, proxy);
+            if (related)
+                return OnResult(stream_links?.recomends, null, plugin: "epr");
+
+            return OnResult(stream_links, init, proxy, plugin: "epr");
         }
     }
 }

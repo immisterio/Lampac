@@ -57,6 +57,7 @@ namespace Shared.Engine.SISI
                         picture = img,
                         time = duration,
                         json = true,
+                        related = true,
                         bookmark = new Bookmark()
                         {
                             site = "sbg",

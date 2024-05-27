@@ -40,6 +40,9 @@ namespace SISI
 
         public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null)
         {
+            if (playlists == null || playlists.Count == 0)
+                return OnError("playlists");
+
             return new JsonResult(new OnListResult()
             {
                 menu = menu,
@@ -62,6 +65,9 @@ namespace SISI
 
         public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, string plugin = null)
         {
+            if (playlists == null || playlists.Count == 0)
+                return OnError("playlists");
+
             return new JsonResult(new OnListResult()
             {
                 menu = menu,

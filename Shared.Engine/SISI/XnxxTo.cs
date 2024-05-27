@@ -43,6 +43,7 @@ namespace Shared.Engine.SISI
                         time = duration,
                         quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
                         json = true,
+                        related = true,
                         bookmark = new Bookmark()
                         {
                             site = "xnx",
@@ -110,7 +111,14 @@ namespace Shared.Engine.SISI
                             name = r.tf,
                             video = $"{uri}?uri={r.u.Remove(0, 1)}",
                             picture = r.i,
-                            json = true
+                            json = true,
+                            related = true,
+                            bookmark = new Bookmark()
+                            {
+                                site = "xnx",
+                                href = r.u.Remove(0, 1),
+                                image = r.i
+                            }
                         });
                     }
                 }

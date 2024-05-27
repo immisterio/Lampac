@@ -75,6 +75,7 @@ namespace Shared.Engine.SISI
                         quality = quality,
                         time = duration,
                         json = true,
+                        related = true,
                         bookmark = new Bookmark()
                         {
                             site = "epr",

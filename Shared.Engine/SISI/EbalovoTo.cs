@@ -68,6 +68,7 @@ namespace Shared.Engine.SISI
                         picture = img[2].Value,
                         time = duration,
                         json = true,
+                        related = true,
                         bookmark = new Bookmark()
                         {
                             site = "elo",

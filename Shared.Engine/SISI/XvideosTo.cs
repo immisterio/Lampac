@@ -70,6 +70,7 @@ namespace Shared.Engine.SISI
                         quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
                         time = duration,
                         json = true,
+                        related = true,
                         bookmark = new Bookmark()
                         {
                             site = site,
@@ -382,7 +383,14 @@ namespace Shared.Engine.SISI
                             name = r.tf,
                             video = $"{uri}?uri={r.u.Remove(0, 1)}",
                             picture = r.i,
-                            json = true
+                            json = true,
+                            related = true,
+                            bookmark = new Bookmark()
+                            {
+                                site = "xds",
+                                href = r.u.Remove(0, 1),
+                                image = r.i
+                            }
                         });
                     }
                 }

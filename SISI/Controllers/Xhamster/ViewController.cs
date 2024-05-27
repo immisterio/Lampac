@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Xhamster
     {
         [HttpGet]
         [Route("xmr/vidosik")]
-        async public Task<JsonResult> Index(string uri)
+        async public Task<JsonResult> Index(string uri, bool related)
         {
             var init = AppInit.conf.Xhamster;
 
@@ -33,6 +33,9 @@ namespace Lampac.Controllers.Xhamster
                 proxyManager.Success();
                 hybridCache.Set(memKey, stream_links, cacheTime(20));
             }
+
+            if (related)
+                return OnResult(stream_links?.recomends, null, plugin: "xmr");
 
             return OnResult(stream_links, init, proxy, plugin: "xmr");
         }

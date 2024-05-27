@@ -38,7 +38,7 @@ namespace Lampac.Controllers.PornHub
             }
 
             if (related)
-                return OnResult(stream_links.recomends, null, plugin: "phub");
+                return OnResult(stream_links?.recomends, null, plugin: "phub");
 
             return OnResult(stream_links, init, proxy, plugin: "phub");
         }

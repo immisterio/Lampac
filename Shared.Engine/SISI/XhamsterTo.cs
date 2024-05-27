@@ -99,6 +99,7 @@ namespace Shared.Engine.SISI
                         quality = row.Contains("-hd") ? "HD" : row.Contains("-uhd") ? "4K" : null,
                         time = duration?.Trim(),
                         json = true,
+                        related = true,
                         bookmark = new Bookmark()
                         {
                             site = "xmr",
