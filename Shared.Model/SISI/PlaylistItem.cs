@@ -20,7 +20,7 @@ namespace Lampac.Models.SISI
 
         public bool related { get; set; }
 
-        public string? model { get; set; }
+        public ModelItem? model { get; set; }
 
         public Dictionary<string, string>? qualitys { get; set; }
 

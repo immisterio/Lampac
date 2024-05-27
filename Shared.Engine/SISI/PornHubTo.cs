@@ -53,7 +53,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
+        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
         {
             string? videoCategory = null;
             var playlists = new List<PlaylistItem>() { Capacity = 50 };
@@ -108,11 +108,25 @@ namespace Shared.Engine.SISI
                 if (img == null)
                     continue;
 
+                ModelItem? model = null;
+                var gmodel = Regex.Match(row, "href=\"/model/([^\"]+)\"[^>]+>([^<]+)<");
+                if (string.IsNullOrEmpty(gmodel.Groups[1].Value))
+                    gmodel = Regex.Match(row, "href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<");
+
+                if (!string.IsNullOrEmpty(gmodel.Groups[1].Value))
+                {
+                    model = new ModelItem() 
+                    {
+                        name = gmodel.Groups[2].Value,
+                        uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={gmodel.Groups[1].Value}",
+                    };
+                }
+
                 var pl = new PlaylistItem()
                 {
                     name = title,
-                    video = $"{uri}?vkey={vkey}",
-                    model = m("href=\"/model/([^\"]+)\"") ?? m("href=\"/(pornstar/[^\"]+)\""),
+                    video = $"{video_uri}?vkey={vkey}",
+                    model = model,
                     picture = img,
                     preview = m("data-mediabook=\"(https?://[^\"]+)\""),
                     time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<"),
@@ -898,7 +912,7 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? vkey, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem?> StreamLinks(string video_uri, string list_uri, string host, string? vkey, Func<string, ValueTask<string?>> onresult)
         {
             if (string.IsNullOrEmpty(vkey))
                 return null;
@@ -921,7 +935,7 @@ namespace Shared.Engine.SISI
                 {
                     ["auto"] = hls.Replace("\\", "").Replace("///", "//")
                 },
-                recomends = Playlist(uri, html, related: true)
+                recomends = Playlist(video_uri, list_uri, html, related: true)
             };
         }
 
