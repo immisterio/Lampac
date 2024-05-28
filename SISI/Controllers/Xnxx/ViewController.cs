@@ -12,8 +12,11 @@ namespace Lampac.Controllers.Xnxx
     {
         [HttpGet]
         [Route("xnx/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related)
+        async public Task<JsonResult> Index(string uri, bool related, int pg = 1)
         {
+            if (pg != 1)
+                return OnError("empty");
+
             var init = AppInit.conf.Xnxx;
 
             if (!init.enable)

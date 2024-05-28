@@ -12,8 +12,11 @@ namespace Lampac.Controllers.PornHub
     {
         [HttpGet]
         [Route("phub/vidosik")]
-        async public Task<JsonResult> Index(string vkey, bool related)
+        async public Task<JsonResult> Index(string vkey, bool related, int pg = 1)
         {
+            if (pg != 1)
+                return OnError("empty");
+
             var init = AppInit.conf.PornHub;
 
             if (!init.enable)
