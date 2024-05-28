@@ -32,8 +32,6 @@ namespace JinEnergy.SISI
             var playlist = XhamsterTo.Playlist("xmr/vidosik", html, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
-                pl.bookmark = null;
-                pl.related = false;
                 return pl;
             });
 
@@ -49,10 +47,19 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Xhamster.Clone();
 
+            bool related = bool.Parse(parse_arg("related", args) ?? "false");
+            int pg = int.Parse(parse_arg("pg", args) ?? "1");
+
+            if (pg != 1)
+                return OnError();
+
             refresh: var stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;
+
+            if (related)
+                return OnResult(null, stream_links?.recomends);
 
             return OnResult(init, stream_links);
         }

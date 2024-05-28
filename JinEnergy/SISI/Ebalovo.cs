@@ -22,8 +22,6 @@ namespace JinEnergy.SISI
             var playlist = EbalovoTo.Playlist("elo/vidosik", html, pl =>
             {
                 pl.picture = $"https://vi.sisi.am/poster.jpg?href={pl.picture}&r=200";
-                pl.bookmark = null;
-                pl.related = false;
                 return pl;
             });
 
@@ -39,10 +37,19 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Ebalovo.Clone();
 
+            bool related = bool.Parse(parse_arg("related", args) ?? "false");
+            int pg = int.Parse(parse_arg("pg", args) ?? "1");
+
+            if (pg != 1)
+                return OnError();
+
             refresh: var stream_links = await EbalovoTo.StreamLinks("elo/vidosik", init.corsHost(), parse_arg("uri", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)));
 
             if (stream_links == null && IsRefresh(init, true))
                 goto refresh;
+
+            if (related)
+                return OnResult(null, stream_links?.recomends);
 
             return OnResult(init, stream_links, isebalovo: true);
         }

@@ -14,6 +14,8 @@ namespace JinEnergy.Engine
     {
         public static IJSRuntime? JSRuntime => AppInit.JSRuntime;
 
+        public static ResultModel OnError() => OnError(string.Empty);
+
         public static ResultModel OnError(string msg)
         {
             if (!string.IsNullOrEmpty(msg) && AppInit.JSRuntime != null)
@@ -32,8 +34,11 @@ namespace JinEnergy.Engine
 
         public static string? parse_arg(string name, string args)
         {
+            if (args == null || !args.Contains($"{name}="))
+                return null;
+
             string val = Regex.Match(args ?? "", $"(^|&|\\?){name}=([^&]+)").Groups[2].Value;
-            if (string.IsNullOrWhiteSpace(val))
+            if (string.IsNullOrEmpty(val))
                 return null;
 
             return HttpUtility.UrlDecode(val);
@@ -95,7 +100,7 @@ namespace JinEnergy.Engine
         }
 
 
-        public static ResultModel OnResult(List<MenuItem>? menu, List<PlaylistItem> playlists)
+        public static ResultModel OnResult(List<MenuItem>? menu, List<PlaylistItem>? playlists)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists");

@@ -33,6 +33,12 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.Eporner.Clone();
 
+            bool related = bool.Parse(parse_arg("related", args) ?? "false");
+            int pg = int.Parse(parse_arg("pg", args) ?? "1");
+
+            if (pg != 1)
+                return OnError();
+
             refresh: var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), parse_arg("uri", args), 
                             url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init)), 
                             jsonurl => JsHttpClient.Get(init.cors(jsonurl), httpHeaders(args, init)));
@@ -49,6 +55,9 @@ namespace JinEnergy.SISI
                 }
                 catch { }
             }
+
+            if (related)
+                return OnResult(null, stream_links?.recomends);
 
             return OnResult(init, stream_links);
         }
