@@ -38,7 +38,7 @@ namespace SISI
             return Json(model);
         }
 
-        public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null)
+        public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists");
@@ -46,6 +46,7 @@ namespace SISI
             return new JsonResult(new OnListResult()
             {
                 menu = menu,
+                total_pages = total_pages,
                 list = playlists.Select(pl => new PlaylistItem
                 {
                     name = pl.name,
@@ -63,7 +64,7 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, string plugin = null)
+        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, string plugin = null, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists");
@@ -71,6 +72,7 @@ namespace SISI
             return new JsonResult(new OnListResult()
             {
                 menu = menu,
+                total_pages = total_pages,
                 list = playlists.Select(pl => new PlaylistItem
                 {
                     name = pl.name,

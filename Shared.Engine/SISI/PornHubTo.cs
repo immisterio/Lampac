@@ -53,7 +53,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false)
+        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
         {
             string? videoCategory = null;
             var playlists = new List<PlaylistItem>() { Capacity = 50 };
@@ -83,6 +83,22 @@ namespace Shared.Engine.SISI
             if (videoCategory == null)
                 return playlists;
 
+            ModelItem? model = null;
+            if (IsModel_page) 
+            {
+                string name = Regex.Match(html, "<h1 itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>").Groups[2].Value.Trim();
+                string href = Regex.Match(html, "rel=\"canonical\" href=\"(https?://[^/]+)?/model/([^/]+)/").Groups[2].Value;
+
+                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(href))
+                {
+                    model = new ModelItem()
+                    {
+                        name = name,
+                        uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={href}",
+                    };
+                }
+            }
+
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : "<li data-id=";
 
             foreach (string row in videoCategory.Split("<h2>Languages</h2>")[0].Split(splitkey).Skip(1))
@@ -108,18 +124,21 @@ namespace Shared.Engine.SISI
                 if (img == null)
                     continue;
 
-                ModelItem? model = null;
-                var gmodel = Regex.Match(row, "href=\"/model/([^\"]+)\"[^>]+>([^<]+)<");
-                if (string.IsNullOrEmpty(gmodel.Groups[1].Value))
-                    gmodel = Regex.Match(row, "href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<");
-
-                if (!string.IsNullOrEmpty(gmodel.Groups[1].Value))
+                if (!IsModel_page)
                 {
-                    model = new ModelItem() 
+                    model = null;
+                    var gmodel = Regex.Match(row, "href=\"/model/([^\"]+)\"[^>]+>([^<]+)<");
+                    if (string.IsNullOrEmpty(gmodel.Groups[1].Value))
+                        gmodel = Regex.Match(row, "href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<");
+
+                    if (!string.IsNullOrEmpty(gmodel.Groups[1].Value))
                     {
-                        name = gmodel.Groups[2].Value,
-                        uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={gmodel.Groups[1].Value}",
-                    };
+                        model = new ModelItem()
+                        {
+                            name = gmodel.Groups[2].Value,
+                            uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={gmodel.Groups[1].Value}",
+                        };
+                    }
                 }
 
                 var pl = new PlaylistItem()
@@ -939,6 +958,28 @@ namespace Shared.Engine.SISI
             };
         }
 
+
+        public static int Pages(string? html)
+        { 
+            if (string.IsNullOrEmpty(html))
+                return 0;
+
+            if (!html.Contains("class=\"page_number\""))
+                return 1;
+
+            int maxpage = 0;
+            foreach (Match match in new Regex("class=\"page_number\"><a [^>]+>([0-9]+)<").Matches(html))
+            {
+                if (int.TryParse(match.Groups[1].Value, out int page) && page > maxpage)
+                    maxpage = page;
+            }
+
+            // модель 6, навигация 5
+            if (4 >= maxpage)
+                return maxpage;
+
+            return 0;
+        }
 
 
         #region getDirectLinks

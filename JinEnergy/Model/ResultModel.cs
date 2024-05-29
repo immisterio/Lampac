@@ -6,6 +6,8 @@ namespace JinEnergy.Model
     {
         public List<MenuItem>? menu { get; set; }
 
+        public int total_pages { get; set; }
+
         public List<PlaylistItem>? list { get; set; }
 
 

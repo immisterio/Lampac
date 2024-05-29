@@ -46,7 +46,7 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, headers)));
 
-            var playlist = PornHubTo.Playlist("phub/vidosik", "phub", html, pl =>
+            var playlist = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model), onplaylist: pl =>
             {
                 pl.picture = rsizehost(pl.picture);
                 return pl;
@@ -55,7 +55,7 @@ namespace JinEnergy.SISI
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;
 
-            return OnResult(string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(null, plugin, sort, c) : null, playlist);
+            return OnResult(string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(null, plugin, sort, c) : null, playlist, total_pages: PornHubTo.Pages(html));
         }
 
 
@@ -64,19 +64,13 @@ namespace JinEnergy.SISI
         {
             var init = AppInit.PornHub.Clone();
 
-            bool related = bool.Parse(parse_arg("related", args) ?? "false");
-            int pg = int.Parse(parse_arg("pg", args) ?? "1");
-
-            if (pg != 1)
-                return OnError();
-
             refresh: var stream_links = await PornHubTo.StreamLinks("phub/vidosik", "phub", init.corsHost(), parse_arg("vkey", args), url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, headers)));
 
             if (stream_links == null && IsRefresh(init))
                 goto refresh;
 
-            if (related)
-                return OnResult(null, stream_links?.recomends);
+            if (bool.Parse(parse_arg("related", args) ?? "false"))
+                return OnResult(null, stream_links?.recomends, total_pages: 1);
 
             return OnResult(init, stream_links);
         }

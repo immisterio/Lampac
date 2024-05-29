@@ -12,11 +12,8 @@ namespace Lampac.Controllers.Spankbang
     {
         [HttpGet]
         [Route("sbg/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related, int pg = 1)
+        async public Task<JsonResult> Index(string uri, bool related)
         {
-            if (pg != 1)
-                return OnError("empty");
-
             var init = AppInit.conf.Spankbang;
 
             if (!init.enable)
@@ -42,7 +39,7 @@ namespace Lampac.Controllers.Spankbang
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "sbg");
+                return OnResult(stream_links?.recomends, null, plugin: "sbg", total_pages: 1);
 
             return OnResult(stream_links, init, proxy, plugin: "sbg");
         }

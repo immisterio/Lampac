@@ -12,11 +12,8 @@ namespace Lampac.Controllers.PornHub
     {
         [HttpGet]
         [Route("phub/vidosik")]
-        async public Task<JsonResult> Index(string vkey, bool related, int pg = 1)
+        async public Task<JsonResult> Index(string vkey, bool related)
         {
-            if (pg != 1)
-                return OnError("empty");
-
             var init = AppInit.conf.PornHub;
 
             if (!init.enable)
@@ -41,7 +38,7 @@ namespace Lampac.Controllers.PornHub
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "phub");
+                return OnResult(stream_links?.recomends, null, plugin: "phub", total_pages: 1);
 
             return OnResult(stream_links, init, proxy, plugin: "phub");
         }
@@ -49,7 +46,7 @@ namespace Lampac.Controllers.PornHub
 
         [HttpGet]
         [Route("phubprem/vidosik")]
-        async public Task<JsonResult> Prem(string vkey)
+        async public Task<JsonResult> Prem(string vkey, bool related)
         {
             var init = AppInit.conf.PornHubPremium;
 
@@ -73,6 +70,9 @@ namespace Lampac.Controllers.PornHub
                 proxyManager.Success();
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
+
+            if (related)
+                return OnResult(stream_links?.recomends, null, plugin: "phubprem", total_pages: 1);
 
             return OnResult(stream_links, init, proxy, plugin: "phubprem");
         }

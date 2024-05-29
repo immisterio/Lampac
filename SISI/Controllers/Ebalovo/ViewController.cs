@@ -12,11 +12,8 @@ namespace Lampac.Controllers.Ebalovo
     {
         [HttpGet]
         [Route("elo/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related, int pg = 1)
+        async public Task<JsonResult> Index(string uri, bool related)
         {
-            if (pg != 1)
-                return OnError("empty");
-
             var init = AppInit.conf.Ebalovo;
 
             if (!init.enable)
@@ -40,7 +37,7 @@ namespace Lampac.Controllers.Ebalovo
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "elo");
+                return OnResult(stream_links?.recomends, null, plugin: "elo", total_pages: 1);
 
             return OnResult(stream_links, init, proxy, plugin: "elo");
         }

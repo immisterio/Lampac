@@ -100,12 +100,12 @@ namespace JinEnergy.Engine
         }
 
 
-        public static ResultModel OnResult(List<MenuItem>? menu, List<PlaylistItem>? playlists)
+        public static ResultModel OnResult(List<MenuItem>? menu, List<PlaylistItem>? playlists, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists");
 
-            return new ResultModel() { menu = menu, list = playlists };
+            return new ResultModel() { menu = menu, total_pages = total_pages, list = playlists };
         }
 
         public static ResultModel OnResult(Istreamproxy conf, Dictionary<string, string>? stream_links)

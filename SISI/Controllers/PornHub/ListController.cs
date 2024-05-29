@@ -48,7 +48,7 @@ namespace Lampac.Controllers.PornHub
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
             string memKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
             {
                 var proxyManager = new ProxyManager("phub", init);
                 var proxy = proxyManager.Get();
@@ -57,16 +57,17 @@ namespace Lampac.Controllers.PornHub
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = PornHubTo.Playlist($"{host}/phub/vidosik", "phub", html);
+                cache.total_pages = PornHubTo.Pages(html);
+                cache.playlists = PornHubTo.Playlist($"{host}/phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
 
-                if (playlists.Count == 0)
+                if (cache.playlists.Count == 0)
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, cache, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, sort, c) : null, plugin: "phub");
+            return OnResult(cache.playlists, string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, sort, c) : null, plugin: "phub", total_pages: cache.total_pages);
         }
 
 
@@ -80,7 +81,7 @@ namespace Lampac.Controllers.PornHub
                 return OnError("disable");
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
             {
                 var proxyManager = new ProxyManager("phubprem", init);
                 var proxy = proxyManager.Get();
@@ -89,16 +90,17 @@ namespace Lampac.Controllers.PornHub
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = PornHubTo.Playlist($"{host}/phubprem/vidosik", "phubprem", html, prem: true);
+                cache.total_pages = PornHubTo.Pages(html);
+                cache.playlists = PornHubTo.Playlist($"{host}/phubprem/vidosik", "phubprem", html, prem: true);
 
-                if (playlists.Count == 0)
+                if (cache.playlists.Count == 0)
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, cache, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, "phubprem", sort, c, hd) : null, plugin: "phubprem");
+            return OnResult(cache.playlists, string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, "phubprem", sort, c, hd) : null, plugin: "phubprem", total_pages: cache.total_pages);
         }
     }
 }

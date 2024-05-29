@@ -12,11 +12,8 @@ namespace Lampac.Controllers.Xvideos
     {
         [HttpGet]
         [Route("xds/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related, int pg = 1)
+        async public Task<JsonResult> Index(string uri, bool related)
         {
-            if (pg != 1)
-                return OnError("empty");
-
             var init = AppInit.conf.Xvideos;
 
             if (!init.enable)
@@ -38,7 +35,7 @@ namespace Lampac.Controllers.Xvideos
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "xds");
+                return OnResult(stream_links?.recomends, null, plugin: "xds", total_pages: 1);
 
             return OnResult(stream_links, init, proxy, plugin: "xds");
         }
