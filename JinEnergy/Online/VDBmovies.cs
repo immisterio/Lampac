@@ -30,14 +30,16 @@ namespace JinEnergy.Online
 
             EmbedModel? root = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.kinopoisk_id}", async () =>
             {
-                await AppInit.JSRuntime!.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
+                if (!AppInit.IsAndrod)
+                    await AppInit.JSRuntime!.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
 
                 string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", HeadersModel.Init(
                     ("Origin", "https://cdnmovies.net"),
                     ("Referer", "https://cdnmovies.net/")
                 ));
 
-                AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
+                if (!AppInit.IsAndrod)
+                    AppInit.JSRuntime?.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'no-referrer');");
 
                 string file = Regex.Match(html ?? "", "file: ?'(#[^&']+)").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))

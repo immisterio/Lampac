@@ -36,7 +36,11 @@ namespace Lampac.Controllers.LITE
                 if (token_request == null)
                     return Content($"нет доступа к {AppInit.conf.VoKino.corsHost()}", "text/html; charset=utf-8");
 
-                html = "Добавьте в init.conf<br><br>\"VoKino\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + token_request.Value<string>("authToken") + "\"<br>}";
+                string authToken = token_request.Value<string>("authToken");
+                if (string.IsNullOrEmpty(authToken))
+                    return Content(token_request.Value<string>("error") ?? "Не удалось получить токен", "text/html; charset=utf-8");
+
+                html = "Добавьте в init.conf<br><br>\"VoKino\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + authToken + "\"<br>}";
             }
 
             return Content(html, "text/html; charset=utf-8");

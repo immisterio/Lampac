@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Chaos.NaCl;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Globalization;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
@@ -29,17 +28,18 @@ namespace Lampac.Controllers.LITE
                 return Content(string.Empty);
 
             email = decodeEmail(email);
+            string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
 
-            if (memoryCache.TryGetValue($"streampay:{email}", out string pay_link))
+            if (memoryCache.TryGetValue($"streampay:{transid}", out string pay_link))
                 return Redirect(pay_link);
 
-            string transid = DateTime.Now.ToBinary().ToString().Replace("-", "");
             IO.WriteAllText($"merchant/invoice/streampay/{transid}", email);
 
             var body = new
             {
                 init.store_id,
-                external_id = $"{email}_{transid}",
+                customer = email,
+                external_id = transid,
                 description = $"Подписка на {AppInit.conf.Merchant.accessForMonths} {EndOfText("месяц", "месяца", "месяцев", AppInit.conf.Merchant.accessForMonths)}",
                 system_currency = "USDT",
                 payment_type = 2,
@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
 
                     if (!string.IsNullOrEmpty(pay_url))
                     {
-                        memoryCache.Set($"streampay:{email}", pay_url, DateTime.Now.AddHours(2));
+                        memoryCache.Set($"streampay:{transid}", pay_url, DateTime.Now.AddHours(2));
                         return Redirect(pay_url);
                     }
 
@@ -94,14 +94,13 @@ namespace Lampac.Controllers.LITE
         [Route("streampay/callback")]
         public ActionResult Callback()
         {
-            string[] externals = Request.Query["external_id"].ToString().Split("_");
-            string external_id = externals[1];
+            string transid = Request.Query["external_id"].ToString();
 
             if (Request.Query["status"] != "awaiting_payment")
-                memoryCache.Remove($"streampay:{externals[0]}");
+                memoryCache.Remove($"streampay:{transid}");
 
             var merchant = AppInit.conf.Merchant;
-            if (!merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{external_id}") || Request.Query["status"] != "success")
+            if (!merchant.Streampay.enable || !IO.Exists($"merchant/invoice/streampay/{transid}") || Request.Query["status"] != "success")
                 return Ok();
 
             var now = DateTime.UtcNow;
@@ -121,18 +120,7 @@ namespace Lampac.Controllers.LITE
 
                 if (verify)
                 {
-                    string email = IO.ReadAllText($"merchant/invoice/streampay/{external_id}");
-                    double.TryParse(Request.Query["amount"], NumberStyles.Float, CultureInfo.InvariantCulture, out double amount);
-
-                    if (amount > 0 && (merchant.accessCost > (amount + merchant.allowedDifference) || merchant.accessCost < (amount - merchant.allowedDifference)))
-                    {
-                        double cost = (double)merchant.accessCost / (double)(merchant.accessForMonths * 30);
-                        PayConfirm(email, "streampay", external_id, days: (int)(amount / cost));
-                    }
-                    else
-                    {
-                        PayConfirm(email, "streampay", external_id);
-                    }
+                    PayConfirm(IO.ReadAllText($"merchant/invoice/streampay/{transid}"), "streampay", transid);
 
                     WriteLog("streampay", log + "\nOK");
                     return Ok();
