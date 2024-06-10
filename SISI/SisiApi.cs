@@ -110,6 +110,9 @@ namespace SISI
             if (conf.Xvideos.enable)
                 channels.Add(new ChannelItem("xvideos.com", conf.Xvideos.overridehost ?? $"{host}/xds"));
 
+            if (conf.XvideosRED.enable)
+                channels.Add(new ChannelItem("xdsred", conf.XvideosRED.overridehost ?? $"{host}/xdsred"));
+
             if (conf.Xnxx.enable)
                 channels.Add(new ChannelItem("xnxx.com", conf.Xnxx.overridehost ?? $"{host}/xnx"));
 

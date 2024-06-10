@@ -51,7 +51,7 @@ namespace Shared.Engine.SISI
             foreach (string row in html.Split("<div id=\"video_").Skip(1))
             {
                 // <a href="/video.ucmdacd450a/_" title="Горничная приходит на работу в коротком платье (лесбуха любит член)">
-                var g = Regex.Match(row, "<a href=\"/(video[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                var g = Regex.Match(row, "<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
@@ -101,36 +101,13 @@ namespace Shared.Engine.SISI
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + plugin;
 
-            var menu = new List<MenuItem>()
+            var menu = new List<MenuItem>(4)
             {
                 new MenuItem()
                 {
                     title = "Поиск",
                     search_on = "search_on",
                     playlist_url = url,
-                },
-                new MenuItem()
-                {
-                    title = $"Ориентация: {(plugin == "xdsgay" ? "Геи" : plugin == "xdssml" ? "Трансы" :"Гетеро")}",
-                    playlist_url = "submenu",
-                    submenu = new List<MenuItem>()
-                    {
-                        new MenuItem()
-                        {
-                            title = "Гетеро",
-                            playlist_url = host + "xds",
-                        },
-                        new MenuItem()
-                        {
-                            title = "Геи",
-                            playlist_url = host + "xdsgay",
-                        },
-                        new MenuItem()
-                        {
-                            title = "Трансы",
-                            playlist_url = host + "xdssml",
-                        }
-                    }
                 },
                 new MenuItem()
                 {
@@ -152,7 +129,34 @@ namespace Shared.Engine.SISI
                 }
             };
 
-            if (plugin == "xds")
+            if (plugin != "xdsred")
+            {
+                menu.Add(new MenuItem()
+                {
+                    title = $"Ориентация: {(plugin == "xdsgay" ? "Геи" : plugin == "xdssml" ? "Трансы" : "Гетеро")}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                    {
+                        new MenuItem()
+                        {
+                            title = "Гетеро",
+                            playlist_url = host + "xds",
+                        },
+                        new MenuItem()
+                        {
+                            title = "Геи",
+                            playlist_url = host + "xdsgay",
+                        },
+                        new MenuItem()
+                        {
+                            title = "Трансы",
+                            playlist_url = host + "xdssml",
+                        }
+                    }
+                });
+            }
+
+            if (plugin == "xds" || plugin == "xdsred")
             {
                 var submenu = new List<MenuItem>()
                 {
@@ -364,7 +368,8 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? "", "^([^/]+)/.*", "$1/_")}");
+            //string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? "", "^([^/]+)/.*", "$1/_")}");
+            string? html = await onresult.Invoke($"{host}/{url}");
             string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html ?? "").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;

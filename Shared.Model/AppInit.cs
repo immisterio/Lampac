@@ -46,6 +46,8 @@ namespace Shared.Model
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("https://www.xvideos.com");
 
+        public SisiSettings XvideosRED { get; set; } = new SisiSettings("https://www.xvideos.red", enable: false);
+
         public SisiSettings PornHub { get; set; } = new SisiSettings("https://rt.pornhub.com");
 
         public SisiSettings PornHubPremium { get; set; } = new SisiSettings("https://rt.pornhubpremium.com", enable: false);
