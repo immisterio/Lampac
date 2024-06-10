@@ -24,7 +24,7 @@ namespace JinEnergy.SISI
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;
 
-            return OnResult(EpornerTo.Menu(null, sort, c), playlist);
+            return OnResult(EpornerTo.Menu(null, search, sort, c), playlist);
         }
 
 

@@ -55,7 +55,7 @@ namespace JinEnergy.SISI
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;
 
-            return OnResult(string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) ? PornHubTo.Menu(null, plugin, sort, c) : null, playlist, total_pages: PornHubTo.Pages(html));
+            return OnResult(string.IsNullOrEmpty(model) ? PornHubTo.Menu(null, plugin, search, sort, c) : null, playlist, total_pages: PornHubTo.Pages(html));
         }
 
 

@@ -14,6 +14,9 @@ namespace Shared.Engine.SISI
             if (!string.IsNullOrEmpty(search))
             {
                 url += $"video/search?search={HttpUtility.UrlEncode(search)}";
+
+                if (!string.IsNullOrEmpty(sort))
+                    url += $"?o={sort}";
             }
             else if (!string.IsNullOrEmpty(model))
             {
@@ -37,10 +40,10 @@ namespace Shared.Engine.SISI
                         break;
                 }
 
-                if (!string.IsNullOrWhiteSpace(sort))
+                if (!string.IsNullOrEmpty(sort))
                     url += $"?o={sort}";
 
-                if (!string.IsNullOrWhiteSpace(hd))
+                if (!string.IsNullOrEmpty(hd))
                     url += (url.Contains("?") ? "&" : "?") + $"hd={hd}";
 
                 if (c > 0)
@@ -171,7 +174,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string plugin, string? sort, int c, string? hd = null)
+        public static List<MenuItem> Menu(string? host, string plugin, string? search, string? sort, int c, string? hd = null)
         {
             #region getSortName
             string getSortName(string? sort, string emptyName)
@@ -204,6 +207,49 @@ namespace Shared.Engine.SISI
 
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + plugin;
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string encodesearch = HttpUtility.UrlEncode(search);
+
+                return new List<MenuItem>()
+                {
+                    new MenuItem()
+                    {
+                        title = "Поиск",
+                        search_on = "search_on",
+                        playlist_url = url,
+                    },
+                    new MenuItem()
+                    {
+                        title = $"Сортировка: {getSortName(sort, "Наиболее актуальное")}",
+                        playlist_url = "submenu",
+                        submenu = new List<MenuItem>()
+                        {
+                            new MenuItem()
+                            {
+                                title = "Наиболее актуальное",
+                                playlist_url = url + $"?search={encodesearch}"
+                            },
+                            new MenuItem()
+                            {
+                                title = "Новейшее",
+                                playlist_url = url + $"?search={encodesearch}&sort=mr"
+                            },
+                            new MenuItem()
+                            {
+                                title = "Лучшие",
+                                playlist_url = url + $"?search={encodesearch}&sort=tr"
+                            },
+                            new MenuItem()
+                            {
+                                title = "Больше просмотров",
+                                playlist_url = url + $"?search={encodesearch}&sort=mv"
+                            }
+                        }
+                    }
+                };
+            }
 
             var menu = new List<MenuItem>()
             {

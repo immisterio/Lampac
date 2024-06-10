@@ -24,7 +24,7 @@ namespace JinEnergy.SISI
             if (playlist.Count == 0 && IsRefresh(init))
                 goto refresh;
 
-            return OnResult(PorntrexTo.Menu(null, sort, c), playlist);
+            return OnResult(PorntrexTo.Menu(null, search, sort, c), playlist);
         }
 
 

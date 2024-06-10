@@ -41,7 +41,7 @@ namespace Lampac.Controllers.Eporner
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg, proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
-            return OnResult(cache.Value, string.IsNullOrEmpty(search) ? EpornerTo.Menu(host, sort, c) : null, plugin: "epr");
+            return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: "epr");
         }
     }
 }

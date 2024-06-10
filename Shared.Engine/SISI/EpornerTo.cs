@@ -18,6 +18,9 @@ namespace Shared.Engine.SISI
 
                 if (pg > 1)
                     url += $"{pg}/";
+
+                if (!string.IsNullOrEmpty(sort))
+                    url += $"{sort}/";
             }
             else
             {
@@ -98,7 +101,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? sort, string? c)
+        public static List<MenuItem> Menu(string? host, string? search, string? sort, string? c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + "epr";
@@ -112,6 +115,47 @@ namespace Shared.Engine.SISI
                     playlist_url = url,
                 }
             };
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string encodesearch = HttpUtility.UrlEncode(search);
+
+                menu.Add(new MenuItem()
+                {
+                    title = $"Сортировка: {(string.IsNullOrWhiteSpace(sort) ? "новинки" : sort)}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                    {
+                        new MenuItem()
+                        {
+                            title = "Новинки",
+                            playlist_url = url + $"?search={encodesearch}"
+                        },
+                        new MenuItem()
+                        {
+                            title = "Топ просмотра",
+                            playlist_url = url + $"?sort=most-viewed&search={encodesearch}"
+                        },
+                        new MenuItem()
+                        {
+                            title = "Топ рейтинга",
+                            playlist_url = url + $"?sort=top-rated&search={encodesearch}"
+                        },
+                        new MenuItem()
+                        {
+                            title = "Длинные ролики",
+                            playlist_url = url + $"?sort=longest&search={encodesearch}"
+                        },
+                        new MenuItem()
+                        {
+                            title = "Короткие ролики",
+                            playlist_url = url + $"?sort=shortest&search={encodesearch}"
+                        }
+                    }
+                });
+
+                return menu;
+            }
 
             if (string.IsNullOrEmpty(c))
             {

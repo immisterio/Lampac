@@ -13,7 +13,12 @@ namespace Shared.Engine.SISI
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url = $"{host}/search/{HttpUtility.UrlEncode(search)}/latest-updates/?from_videos={pg}";
+                url = $"{host}/search/{HttpUtility.UrlEncode(search)}/";
+
+                if (!string.IsNullOrEmpty(sort))
+                    url += $"{sort}/";
+
+                url += $"?from_videos={pg}";
             }
             else
             {
@@ -88,10 +93,48 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? sort, string? c)
+        public static List<MenuItem> Menu(string? host, string? search, string? sort, string? c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + "ptx";
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string encodesearch = HttpUtility.UrlEncode(search);
+
+                return new List<MenuItem>()
+                {
+                    new MenuItem()
+                    {
+                        title = "Поиск",
+                        search_on = "search_on",
+                        playlist_url = url,
+                    },
+                    new MenuItem()
+                    {
+                        title = $"Сортировка: {(string.IsNullOrEmpty(sort) ? "Most Relevant" : sort)}",
+                        playlist_url = "submenu",
+                        submenu = new List<MenuItem>()
+                        {
+                            new MenuItem()
+                            {
+                                title = "Most Relevant",
+                                playlist_url = url + $"?c={c}&search={encodesearch}"
+                            },
+                            new MenuItem()
+                            {
+                                title = "Новинки",
+                                playlist_url = url + $"?c={c}&sort=latest-updates&search={encodesearch}"
+                            },
+                            new MenuItem()
+                            {
+                                title = "Топ просмотров",
+                                playlist_url = url + $"?c={c}&sort=most-popular&search={encodesearch}"
+                            }
+                        }
+                    }
+                };
+            }
 
             var menu = new List<MenuItem>()
             {
@@ -103,7 +146,7 @@ namespace Shared.Engine.SISI
                 },
                 new MenuItem()
                 {
-                    title = $"Сортировка: {(string.IsNullOrWhiteSpace(sort) ? "новинки" : sort)}",
+                    title = $"Сортировка: {(string.IsNullOrEmpty(sort) ? "новинки" : sort)}",
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                     {
