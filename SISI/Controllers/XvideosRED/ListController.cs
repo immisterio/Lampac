@@ -24,7 +24,7 @@ namespace Lampac.Controllers.XvideosRED
                 return OnError("disable");
 
             string plugin = "xdsred";
-            bool ismain = string.IsNullOrWhiteSpace(search) && string.IsNullOrWhiteSpace(c);
+            bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
             string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}";
 
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
@@ -35,13 +35,17 @@ namespace Lampac.Controllers.XvideosRED
                 #region Генерируем url
                 string url;
 
-                if (!string.IsNullOrWhiteSpace(search))
+                if (!string.IsNullOrEmpty(search))
                 {
                     url = $"{init.corsHost()}/?k={HttpUtility.UrlEncode(search)}&p={pg}&premium=1";
                 }
                 else
                 {
-                    if (!string.IsNullOrEmpty(c))
+                    if (sort == "like")
+                    {
+                        url = $"{init.corsHost()}/videos-i-like/{pg-1}";
+                    }
+                    else if (!string.IsNullOrEmpty(c))
                     {
                         url = $"{init.corsHost()}/c/s:{(sort == "top" ? "rating" : "uploaddate")}/p:1/{c}/{pg}";
                     }

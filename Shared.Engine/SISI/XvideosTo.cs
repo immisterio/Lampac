@@ -108,28 +108,38 @@ namespace Shared.Engine.SISI
                     title = "Поиск",
                     search_on = "search_on",
                     playlist_url = url,
-                },
-                new MenuItem()
+                }
+            };
+
+            var menusort = new MenuItem()
+            {
+                title = $"Сортировка: {(sort == "like" ? "Понравившиеся" : sort == "top" ? "Лучшие" : "Новое")}",
+                playlist_url = "submenu",
+                submenu = new List<MenuItem>()
                 {
-                    title = $"Сортировка: {(sort == "top" ? "Лучшие" : "Новое")}",
-                    playlist_url = "submenu",
-                    submenu = new List<MenuItem>()
+                    new MenuItem()
                     {
-                        new MenuItem()
-                        {
-                            title = "Новое",
-                            playlist_url = url + $"?c={c}"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Лучшие",
-                            playlist_url = url + $"?c={c}&sort=top"
-                        }
+                        title = "Новое",
+                        playlist_url = url + $"?c={c}"
+                    },
+                    new MenuItem()
+                    {
+                        title = "Лучшие",
+                        playlist_url = url + $"?c={c}&sort=top"
                     }
                 }
             };
 
-            if (plugin != "xdsred")
+            if (plugin == "xdsred" && string.IsNullOrEmpty(c))
+            {
+                menusort.submenu.Add(new MenuItem()
+                {
+                    title = "Понравившиеся",
+                    playlist_url = url + $"?c={c}&sort=like"
+                });
+            }
+
+            if (plugin != "xdsred" && sort != "like")
             {
                 menu.Add(new MenuItem()
                 {
@@ -156,7 +166,7 @@ namespace Shared.Engine.SISI
                 });
             }
 
-            if (plugin == "xds" || plugin == "xdsred")
+            if (sort != "like" && (plugin == "xds" || plugin == "xdsred"))
             {
                 var submenu = new List<MenuItem>()
                 {
@@ -359,6 +369,8 @@ namespace Shared.Engine.SISI
                     submenu = submenu
                 });
             }
+
+            menu.Insert(1, menusort);
 
             return menu;
         }

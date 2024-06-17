@@ -18,6 +18,8 @@ namespace Lampac.Models.SISI
 
         public bool json { get; set; }
 
+        public bool hide { get; set; }
+
         public bool related { get; set; }
 
         public ModelItem? model { get; set; }
