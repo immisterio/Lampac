@@ -36,7 +36,8 @@
         Lampa.Storage.set('jackett_key','1');
         Lampa.Storage.set('parser_torrent_type','jackett');
         Lampa.Storage.set('torrserver_use_link','one');
-        Lampa.Storage.set('torrserver_url','192.168.10.140:8090');
+        Lampa.Storage.set('torrserver_url','192.168.10.140:8090'); // LAR IP
+        Lampa.Storage.set('torrserver_url_two','192.168.10.240:8090'); // UVA IP
         Lampa.Storage.set('torrserver_auth','false');
         Lampa.Storage.set('internal_torrclient','true');
         Lampa.Storage.set('background_type','complex');
