@@ -2,6 +2,7 @@
 using Shared.Model.SISI;
 using Shared.Model.SISI.Xvideos;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -41,7 +42,8 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, string site = "xds")
+
+        public static List<PlaylistItem> Playlist(string uri, string uri_star, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, string site = "xds")
         {
             var playlists = new List<PlaylistItem>() { Capacity = 40 };
 
@@ -68,6 +70,15 @@ namespace Shared.Engine.SISI
                     preview = Regex.Replace(preview, "/[^/]+$", "");
                     preview = Regex.Replace(preview, "-[0-9]+$", "");
 
+                    img = img.Replace("thumbs169l/", "thumbs169lll/").Replace("thumbs169ll/", "thumbs169lll/");
+
+                    var gm = Regex.Match(row, "href=\"/([^\"]+)\"><span class=\"name\">([^<]+)<").Groups;
+                    var model = string.IsNullOrEmpty(gm[1].Value) || string.IsNullOrEmpty(gm[2].Value) ? null : new ModelItem()
+                    {
+                        name = gm[2].Value,
+                        uri = $"{uri_star}?uri=" + (gm[1].Value.Contains("/") ? gm[1].Value : $"channels/{gm[1].Value}"),
+                    };
+
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
@@ -78,6 +89,7 @@ namespace Shared.Engine.SISI
                         time = duration,
                         json = true,
                         related = true,
+                        model = model,
                         bookmark = new Bookmark()
                         {
                             site = site,
@@ -95,6 +107,67 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+
+
+        async public static ValueTask<List<PlaylistItem>?> Pornstars(string uri_video, string uri_star, string host, string plugin, string? uri, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
+        {
+            if (string.IsNullOrEmpty(uri))
+                return null;
+
+            sort = string.IsNullOrEmpty(sort) ? "new" : sort;
+            string url = plugin == "xdsgay" ? $"{host}/{uri}/videos/{sort}/gay" : plugin == "xdssml" ? $"{host}/{uri}/videos/{sort}/shemale" : $"{host}/{uri}/videos/{sort}";
+
+            url += $"/{pg}";
+
+            string? json = await onresult.Invoke(url);
+            if (json == null)
+                return null;
+
+            var playlists = new List<PlaylistItem>() { Capacity = 40 };
+
+            try
+            {
+                foreach (var r in JsonSerializer.Deserialize<JsonObject>(json)["videos"].Deserialize<List<Related>>())
+                {
+                    if (string.IsNullOrEmpty(r.tf) || string.IsNullOrEmpty(r.u) || string.IsNullOrEmpty(r.@if))
+                        continue;
+
+                    string preview = Regex.Replace(r.@if, "/thumbs[^/]+/", "/videopreview/");
+                    preview = Regex.Replace(preview, "/[^/]+$", "");
+                    preview = Regex.Replace(preview, "-[0-9]+$", "");
+
+                    var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? null : new ModelItem()
+                    {
+                        name = r.pn,
+                        uri = $"{uri_star}?uri=" + (r.ch ? "channels/" : "pornstars/") + r.p,
+                    };
+
+                    playlists.Add(new PlaylistItem()
+                    {
+                        name = r.tf,
+                        video = $"{uri_video}?uri={r.u.Remove(0, 1)}",
+                        picture = r.@if,
+                        preview = preview + "_169.mp4",
+                        json = true,
+                        related = true,
+                        model = model,
+                        bookmark = new Bookmark()
+                        {
+                            site = "xds",
+                            href = r.u.Remove(0, 1),
+                            image = r.@if
+                        }
+                    });
+                }
+
+                return playlists;
+            }
+            catch 
+            {
+                return null;
+            }
+        }
+
 
         public static List<MenuItem> Menu(string? host, string plugin, string? sort, string? c)
         {
@@ -375,7 +448,8 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
+
+        async public static ValueTask<StreamItem?> StreamLinks(string uri, string uri_star, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
@@ -399,21 +473,33 @@ namespace Shared.Engine.SISI
                 {
                     foreach (var r in JsonSerializer.Deserialize<List<Related>>(json))
                     {
-                        if (string.IsNullOrEmpty(r.tf) || string.IsNullOrEmpty(r.u) || string.IsNullOrEmpty(r.i))
+                        if (string.IsNullOrEmpty(r.tf) || string.IsNullOrEmpty(r.u) || string.IsNullOrEmpty(r.@if))
                             continue;
+
+                        string preview = Regex.Replace(r.i, "/thumbs[^/]+/", "/videopreview/");
+                        preview = Regex.Replace(preview, "/[^/]+$", "");
+                        preview = Regex.Replace(preview, "-[0-9]+$", "");
+
+                        var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? null : new ModelItem()
+                        {
+                            name = r.pn,
+                            uri = $"{uri_star}?uri=" + (r.ch ? "channels/" : "pornstars/") + r.p,
+                        };
 
                         related.Add(new PlaylistItem()
                         {
                             name = r.tf,
                             video = $"{uri}?uri={r.u.Remove(0, 1)}",
-                            picture = r.i,
+                            picture = r.@if,
+                            preview = preview + "_169.mp4",
                             json = true,
                             related = true,
+                            model = model,
                             bookmark = new Bookmark()
                             {
                                 site = "xds",
                                 href = r.u.Remove(0, 1),
-                                image = r.i
+                                image = r.@if
                             }
                         });
                     }
