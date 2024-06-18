@@ -9,7 +9,7 @@ docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 # Установка на linux
 спасибо @nikk, @Denis
 ```
-curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 ```
 
 # Установка на Windows
