@@ -6,6 +6,7 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
 
+
 # Установка на linux
 спасибо @nikk, @Denis
 ```
