@@ -12,6 +12,12 @@ if [ $gitver -gt $ver ]; then
     unzip -o update.zip
     rm -f update.zip
     echo -n $gitver > vers.txt
+
+    # custom settings
+    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
+    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit.js > $DEST/plugins/lampainit.js
+    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
+
     systemctl start lampac
 else
     mver=$(cat vers-minor.txt)

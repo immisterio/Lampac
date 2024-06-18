@@ -22,9 +22,14 @@ wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 unzip -o publish.zip
 rm -f publish.zip
 
+# custom settings
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit.js > $DEST/plugins/lampainit.js
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
+
 # automatic updates
 curl -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
-curl -s https://raw.githubusercontent.com/immisterio/lampac/main/update.sh > $DEST/update.sh
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/update.sh > $DEST/update.sh
 chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
 

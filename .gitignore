@@ -339,3 +339,17 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+JacRed/.DS_Store
+JacRed/Models/.DS_Store
+JinEnergy/.DS_Store
+Lampac/.DS_Store
+Lampac/Engine/.DS_Store
+Shared/.DS_Store
+Shared/Engine/.DS_Store
+Shared/Models/.DS_Store
+Shared.Engine/.DS_Store
+Shared.Model/.DS_Store
+Shared.Model/Online/.DS_Store
+SISI/.DS_Store
+SISI/Controllers/.DS_Store
+.DS_Store

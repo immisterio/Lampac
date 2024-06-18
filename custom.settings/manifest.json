@@ -1,0 +1,36 @@
+[
+  {
+	"enable": false,
+	"dll": "Merchant.dll"
+  },
+  {
+	"enable": false,
+	"dll": "SISI.dll"
+  },
+  {
+	"enable": true,
+	"dll": "Online.dll"
+  },
+  {
+	"enable": false,
+	"dll": "Jackett.dll"
+  },
+  {
+	"enable": true,
+	"initspace": "Jackett.ModInit",
+	"dll": "JacRed.dll"
+  },
+  {
+	"enable": false,
+	"dll": "DLNA.dll"
+  },
+  {
+	"enable": true,
+	"dll": "Tracks.dll"
+  },
+  {
+	"enable": false,
+	"initspace": "TorrServer.ModInit",
+	"dll": "TorrServer.dll"
+  }
+]
