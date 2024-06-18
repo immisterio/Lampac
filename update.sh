@@ -25,8 +25,7 @@ if [ $gitver -gt $ver ]; then
         echo "Unknown subnet!"
     fi
 
-    curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit.js > $DEST/plugins/lampainit.js
-    curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
+    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
 
     systemctl start lampac
 else

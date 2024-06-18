@@ -23,19 +23,18 @@ unzip -o publish.zip
 rm -f publish.zip
 
 # custom settings
-curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
 if ip addr | grep 192.168.10.; then
     echo "LAR subnet detected"
-    curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_lar.js > $DEST/plugins/lampainit.js
+    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_lar.js > $DEST/plugins/lampainit.js
 elif ip addr | grep 192.168.3.; then
     echo "UVA subnet detected"
-    curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_uva.js > $DEST/plugins/lampainit.js
+    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_uva.js > $DEST/plugins/lampainit.js
 else
     echo "Unknown subnet!"
 fi
 
-curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit.js > $DEST/plugins/lampainit.js
-curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
+curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
 
 # automatic updates
 curl -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
