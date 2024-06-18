@@ -23,29 +23,25 @@ unzip -o publish.zip
 rm -f publish.zip
 
 # custom settings
-curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
+curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
 if ip addr | grep 192.168.10.; then
     echo "LAR subnet detected"
-    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_lar.js > $DEST/plugins/lampainit.js
+    curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_lar.js > $DEST/plugins/lampainit.js
 elif ip addr | grep 192.168.3.; then
     echo "UVA subnet detected"
-    curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_uva.js > $DEST/plugins/lampainit.js
+    curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_uva.js > $DEST/plugins/lampainit.js
 else
     echo "Unknown subnet!"
 fi
 
-curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit.js > $DEST/plugins/lampainit.js
-curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
+curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit.js > $DEST/plugins/lampainit.js
+curl https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/manifest.json > $DEST/module/manifest.json
 
 # automatic updates
 curl -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
 curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/update.sh > $DEST/update.sh
 chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
-
-# update minor
-/bin/bash $DEST/update.sh
-cd $DEST
 
 # Create service
 echo ""
@@ -70,6 +66,10 @@ EOF
 systemctl daemon-reload
 systemctl enable lampac
 systemctl start lampac
+
+# update minor
+/bin/bash $DEST/update.sh
+cd $DEST
 
 # iptables drop
 cat <<EOF > iptables-drop.sh
