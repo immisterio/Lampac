@@ -35,7 +35,7 @@ namespace Lampac.Controllers.Xvideos
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", html);
+                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", $"{plugin}/stars", html);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
@@ -45,6 +45,40 @@ namespace Lampac.Controllers.Xvideos
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, plugin: "xds");
+        }
+
+
+        [HttpGet]
+        [Route("xds/stars")]
+        [Route("xdsgay/stars")]
+        [Route("xdssml/stars")]
+        async public Task<JsonResult> Pornstars(string uri, string sort, int pg = 0)
+        {
+            var init = AppInit.conf.Xvideos;
+
+            if (!init.enable)
+                return OnError("disable");
+
+            string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
+
+            string memKey = $"{plugin}:stars:{uri}:{sort}:{pg}";
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            {
+                var proxyManager = new ProxyManager("xds", init);
+                var proxy = proxyManager.Get();
+
+                playlists = await XvideosTo.Pornstars($"{host}/xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
+
+                if (playlists == null || playlists.Count == 0)
+                    return OnError("playlists", proxyManager);
+
+                proxyManager.Success();
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+            }
+
+
+            // XvideosTo.PornstarsMenu(host, plugin, sort)
+            return OnResult(playlists, null, plugin: "xds");
         }
     }
 }

@@ -6,6 +6,15 @@
 
         public string? i { get; set; }
 
+        public string @if { get; set; }
+
         public string? tf { get; set; }
+
+
+        public string? pn { get; set; }
+
+        public string? p { get; set; }
+
+        public bool ch { get; set; }
     }
 }
