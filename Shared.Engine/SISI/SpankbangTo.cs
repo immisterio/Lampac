@@ -1,5 +1,4 @@
 ﻿using Lampac.Models.SISI;
-using Shared.Model;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -39,13 +38,14 @@ namespace Shared.Engine.SISI
                 if (!row.Contains("<div class=\"stats\">"))
                     continue;
 
-                string link = Regex.Match(row, "<a href=\"/([^\"]+)\"").Groups[1].Value;
-                string title = Regex.Match(row, "class=\"(n|name)\">([^<]+)<").Groups[2].Value;
+                var g = Regex.Match(row, "<a href=\"/([^\"]+)\" title=\"([^\"]+)\"").Groups;
+                string link = g[1].Value;
+                string title = g[2].Value;
 
                 if (!string.IsNullOrWhiteSpace(link) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string quality = Regex.Match(row, "<span class=\"h\">([^<]+)</span>").Groups[1].Value;
-                    string duration = Regex.Match(row, "<span class=\"l\">([^<]+)</span>").Groups[1].Value.Trim();
+                    string quality = Regex.Match(row, "<span class=\"video-badge h\">([^<]+)</span>").Groups[1].Value;
+                    string duration = Regex.Match(row, "<span class=\"video-badge l\">([^<]+)</span>").Groups[1].Value.Trim();
                     string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value;
                     img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
 

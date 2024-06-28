@@ -24,6 +24,24 @@ namespace JinEnergy
                 },
                 new
                 {
+                    title = "xvideos.com",
+                    playlist_url = AppInit.Xvideos.overridehost ?? "xds",
+                    AppInit.Xvideos.enable
+                },
+                new
+                {
+                    title = "xhamster.com",
+                    playlist_url = AppInit.Xhamster.overridehost ?? "xmr",
+                    AppInit.Xhamster.enable
+                },
+                new
+                {
+                    title = "ebalovo.porn",
+                    playlist_url = AppInit.Ebalovo.overridehost ?? "elo",
+                    AppInit.Ebalovo.enable
+                },
+                new
+                {
                     title = "hqporner.com",
                     playlist_url = AppInit.HQporner.overridehost ?? "hqr",
                     AppInit.HQporner.enable
@@ -45,24 +63,6 @@ namespace JinEnergy
                     title = "porntrex.com",
                     playlist_url = AppInit.Porntrex.overridehost ?? "ptx",
                     AppInit.Porntrex.enable
-                },
-                new
-                {
-                    title = "ebalovo.porn",
-                    playlist_url = AppInit.Ebalovo.overridehost ?? "elo",
-                    AppInit.Ebalovo.enable
-                },
-                new
-                {
-                    title = "xhamster.com",
-                    playlist_url = AppInit.Xhamster.overridehost ?? "xmr",
-                    AppInit.Xhamster.enable
-                },
-                new
-                {
-                    title = "xvideos.com",
-                    playlist_url = AppInit.Xvideos.overridehost ?? "xds",
-                    AppInit.Xvideos.enable
                 },
                 new
                 {
