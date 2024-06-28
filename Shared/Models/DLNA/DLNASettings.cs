@@ -21,5 +21,7 @@
         public int maximumDiskWriteRate { get; set; }
 
         public bool allowedEncryption { get; set; }
+
+        public int listenPort { get; set; }
     }
 }
