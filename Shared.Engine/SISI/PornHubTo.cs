@@ -1,4 +1,5 @@
-﻿using Lampac.Models.SISI;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.SISI;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -988,7 +989,29 @@ namespace Shared.Engine.SISI
 
             string? hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+urlset\\\\/master\\.m3u[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(hls))
-                hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+)\"").Groups[1].Value;
+            {
+                var qualitys = new Dictionary<string, string>();
+                string? flashvars = StringConvert.FindLastText(html, "var flashvars", "player_mp4_seek");
+
+                if (flashvars != null)
+                {
+                    foreach (string q in new string[] { "1080", "720", "480", "240" })
+                    {
+                        string video = Regex.Match(flashvars, $"\"hls\",\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
+                        if (!string.IsNullOrEmpty(video))
+                            qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
+                    }
+                }
+
+                if (qualitys.Count > 0)
+                {
+                    return new StreamItem()
+                    {
+                        qualitys = qualitys,
+                        recomends = Playlist(video_uri, list_uri, html, related: true)
+                    };
+                }
+            }
 
             if (string.IsNullOrEmpty(hls))
             {
