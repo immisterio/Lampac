@@ -42,7 +42,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 # Источники 
 * Filmix, Kinobase, Rezka, VideoCDN, VDBmovies, Collaps, HDVB, Zetflix, Kodik, Ashdi (UKR), Eneyida (UKR), KinoUKR (UKR), Kinotochka, Kinoprofi, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Alloha, KinoPub, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (UKR), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
-* PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
+* PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos, Xvideos.RED
 
 # Привязка PRO аккаунтов
 * Filmix - "http://IP:9118/lite/filmixpro" 

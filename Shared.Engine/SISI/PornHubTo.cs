@@ -988,6 +988,9 @@ namespace Shared.Engine.SISI
 
             string? hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+urlset\\\\/master\\.m3u[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(hls))
+                hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+)\"").Groups[1].Value;
+
+            if (string.IsNullOrEmpty(hls))
             {
                 hls = getDirectLinks(html);
                 if (string.IsNullOrEmpty(hls))
