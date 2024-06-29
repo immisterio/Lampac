@@ -6,6 +6,8 @@
 
         public string? i { get; set; }
 
+        public string? d { get; set; }
+
         public string @if { get; set; }
 
         public string? tf { get; set; }

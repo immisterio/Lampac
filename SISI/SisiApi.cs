@@ -89,6 +89,15 @@ namespace SISI
             if (conf.PornHub.enable)
                 channels.Add(new ChannelItem("pornhub.com", conf.PornHub.overridehost ?? $"{host}/phub"));
 
+            if (conf.Xvideos.enable)
+                channels.Add(new ChannelItem("xvideos.com", conf.Xvideos.overridehost ?? $"{host}/xds"));
+
+            if (conf.Xhamster.enable)
+                channels.Add(new ChannelItem("xhamster.com", conf.Xhamster.overridehost ?? $"{host}/xmr"));
+
+            if (conf.Ebalovo.enable)
+                channels.Add(new ChannelItem("ebalovo.porn", conf.Ebalovo.overridehost ?? $"{host}/elo"));
+
             if (conf.HQporner.enable)
                 channels.Add(new ChannelItem("hqporner.com", conf.HQporner.overridehost ?? $"{host}/hqr"));
 
@@ -100,15 +109,6 @@ namespace SISI
 
             if (conf.Porntrex.enable)
                 channels.Add(new ChannelItem("porntrex.com", conf.Porntrex.overridehost ?? $"{host}/ptx"));
-
-            if (conf.Ebalovo.enable)
-                channels.Add(new ChannelItem("ebalovo.porn", conf.Ebalovo.overridehost ?? $"{host}/elo"));
-
-            if (conf.Xhamster.enable)
-                channels.Add(new ChannelItem("xhamster.com", conf.Xhamster.overridehost ?? $"{host}/xmr"));
-
-            if (conf.Xvideos.enable)
-                channels.Add(new ChannelItem("xvideos.com", conf.Xvideos.overridehost ?? $"{host}/xds"));
 
             if (conf.XvideosRED.enable)
                 channels.Add(new ChannelItem("xdsred", conf.XvideosRED.overridehost ?? $"{host}/xdsred"));

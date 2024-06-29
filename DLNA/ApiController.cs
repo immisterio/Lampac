@@ -146,6 +146,7 @@ namespace Lampac.Controllers
                 MaximumDownloadSpeed = AppInit.conf.dlna.downloadSpeed,
                 MaximumDiskReadRate = AppInit.conf.dlna.maximumDiskReadRate,
                 MaximumDiskWriteRate = AppInit.conf.dlna.maximumDiskWriteRate,
+                ListenPort = AppInit.conf.dlna.listenPort,
 
                 AllowedEncryption = AppInit.conf.dlna.allowedEncryption ? 
                     new List<EncryptionType>() { EncryptionType.RC4Full, EncryptionType.RC4Header, EncryptionType.PlainText } : 
