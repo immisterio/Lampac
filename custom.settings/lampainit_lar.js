@@ -28,24 +28,24 @@
 	function start(){
         Lampa.Storage.set('lampac_initiale','true');
         Lampa.Storage.set('source','cub');
-        Lampa.Storage.set('proxy_tmdb','true');
-        Lampa.Storage.set('poster_size','w500');
+        Lampa.Storage.set('proxy_tmdb','true'); // проксирование постеров и описаний
+        Lampa.Storage.set('poster_size','w500'); // разрешение постеров
         
-        Lampa.Storage.set('parser_use','true');
+        Lampa.Storage.set('parser_use','true'); // использовать парсер
         Lampa.Storage.set('jackett_url','{jachost}');
         Lampa.Storage.set('jackett_key','1');
         Lampa.Storage.set('parser_torrent_type','jackett');
-        Lampa.Storage.set('torrserver_use_link','one');
+        Lampa.Storage.set('torrserver_use_link','one'); // основной адрес TS
         Lampa.Storage.set('torrserver_url','192.168.10.140:8090'); // LAR IP
         Lampa.Storage.set('torrserver_url_two','192.168.3.240:8090'); // UVA IP
         Lampa.Storage.set('torrserver_auth','false');
         Lampa.Storage.set('internal_torrclient','true');
-        Lampa.Storage.set('background_type','complex');
-        Lampa.Storage.set('video_quality_default','2160');
-        Lampa.Storage.set('Reloadbutton','true');
-        Lampa.Storage.set('screensaver','false');
+        Lampa.Storage.set('background_type','complex'); // Сложный задник
+        Lampa.Storage.set('video_quality_default','2160'); // 4К по-умолчанию
+        Lampa.Storage.set('Reloadbutton','true'); // Кнопка перезагрузки
+        Lampa.Storage.set('screensaver','false'); // Выкл скринсейвера
         Lampa.Storage.set('account_use','true');
-        Lampa.Storage.set('torrserver_preload','true');
+        Lampa.Storage.set('torrserver_preload','true'); // Использовать прелоадер TS
 
         /*
         Lampa.Storage.set('menu_sort','["Главная","Фильмы","Сериалы","Избранное","История"]');
@@ -57,10 +57,10 @@
 
         var plugins_add = [
 			{initiale},
-            {"url": "{localhost}/plugins/nc.js", "status": 1,"name": "NewCategories", "author": "x"},
-            {"url": "{localhost}/plugins/mult.js", "status": 1,"name": "Mult", "author": "x"},
-            {"url": "{localhost}/plugins/pubtorr.js", "status": 1,"name": "PublicParsers", "author": "x"},
-            {"url": "{localhost}/plugins/ts-preload.js", "status": 1,"name": "TorrPreload", "author": "x"}
+            {"url": "{localhost}/plugins/nc.js", "status": 1,"name": "NewCategories", "author": "x"}, // Плагин доп категорий
+            {"url": "{localhost}/plugins/mult.js", "status": 1,"name": "Mult", "author": "x"}, // Плагин переименования Аниме в Мультфильмы
+            {"url": "{localhost}/plugins/pubtorr.js", "status": 1,"name": "PublicParsers", "author": "x"}, // Плагин публичных парсеров
+            {"url": "{localhost}/plugins/ts-preload.js", "status": 1,"name": "TorrPreload", "author": "x"} // Плагин предзагрузки TS
         ];
 
         var plugins_push = []
