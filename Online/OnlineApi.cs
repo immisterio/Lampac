@@ -280,7 +280,7 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url))
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
 
-                    if (original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
+                    if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
                         string _p = (plugin ?? name.ToLower());
                         if (_p is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" or "alloha" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
@@ -291,7 +291,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
+            if (original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
                 send("Kodik", conf.Kodik);
 
             if (serial == -1 || isanime)
