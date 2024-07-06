@@ -22,6 +22,4 @@ RUN echo '{"listenport":80,"listenscheme":"https","KnownProxies":[{"ip":"0.0.0.0
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"}]' > /home/module/manifest.json
 
-RUN echo '{"runtimeOptions":{"tfm":"net6.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"6.0.0"},{"name":"Microsoft.AspNetCore.App","version":"6.0.0"}],"configProperties":{"System.GC.HeapHardLimit": 90000000,"System.GC.Server":true,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > /home/Lampac.runtimeconfig.json
-
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]
