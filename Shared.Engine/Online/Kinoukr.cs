@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.Eneyida;
+﻿using Lampac.Engine.CORE;
+using Shared.Model.Online.Eneyida;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
@@ -111,13 +112,18 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (!content.Contains("file:'[{"))
+            string? player = StringConvert.FindLastText(content, "new Playerjs", "</script>");
+            if (player == null)
+                return null;
+
+            if (!Regex.IsMatch(content, "file: ?'\\["))
             {
-                result.content = content;
+                result.content = player;
+                onlog?.Invoke("content: " + result.content);
             }
             else
             {
-                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
+                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
                 if (root == null || root.Count == 0)
                     return null;
 
@@ -167,15 +173,17 @@ namespace Shared.Engine.Online
             if (result.content != null)
             {
                 #region Фильм
+                onlog?.Invoke("movie");
+
                 var mtpl = new MovieTpl(title, original_title);
 
-                string hls = Regex.Match(result.content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
+                string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                     return string.Empty;
 
                 #region subtitle
                 var subtitles = new SubtitleTpl();
-                string subtitle = new Regex("\"subtitle\":\"([^\"]+)\"").Match(result.content).Groups[1].Value;
+                string subtitle = new Regex("\"subtitle\": ?\"([^\"]+)\"").Match(result.content).Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {

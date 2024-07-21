@@ -5,6 +5,7 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online.Eneyida;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -34,6 +35,7 @@ namespace Lampac.Controllers.LITE
                (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr"),
                requesterror: () => proxyManager.Refresh()
+               //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
             );
 
             var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
