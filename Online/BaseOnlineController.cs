@@ -39,7 +39,7 @@ namespace Online
 
         public ActionResult OnError() => OnError(string.Empty);
 
-        public ActionResult OnError(string msg)
+        public ActionResult OnError(string msg, bool gbcache = true)
         {
             if (!string.IsNullOrEmpty(msg))
             {
@@ -49,7 +49,7 @@ namespace Online
                 HttpContext.Response.Headers.TryAdd("emsg", msg);
             }
 
-            if (AppInit.conf.multiaccess)
+            if (AppInit.conf.multiaccess && gbcache)
             {
                 var gbc = new ResponseCache();
                 memoryCache.Set(gbc.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddMinutes(1));
