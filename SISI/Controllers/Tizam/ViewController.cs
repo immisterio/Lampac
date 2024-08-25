@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Web;
 using System.Text.RegularExpressions;
 using SISI;
 using Shared.Engine.CORE;
@@ -31,18 +30,10 @@ namespace Lampac.Controllers.Tizam
                 if (html == null)
                     return OnError("html", proxyManager);
 
-                location = Regex.Match(html, "class=\"tab-video-2\">[^<>]+ src=\"https?://[^/]+/videoapi/directplayer\\.html\\?url=(http[^\"]+\\.mp4)\"").Groups[1].Value;
-
-                if (string.IsNullOrEmpty(location))
-                    location = Regex.Match(html, "class=\"tab-video-1\">[^<>]+ src=\"https?://[^/]+/videoapi/directplayer\\.html\\?url=(http[^\"]+\\.mp4)\"").Groups[1].Value;
-
-                if (string.IsNullOrEmpty(location))
-                    location = Regex.Match(html, "src=\"https?://[^/]+/videoapi/directplayer\\.html\\?url=(http[^\"]+\\.mp4)\"").Groups[1].Value;
+                location = Regex.Match(html, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(location))
                     return OnError("location", proxyManager);
-
-                location = HttpUtility.UrlDecode(location);
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, location, cacheTime(360, init: init));
