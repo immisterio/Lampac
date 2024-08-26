@@ -48,6 +48,7 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 * Filmix - "http://IP:9118/lite/filmixpro" 
 * KinoPub - "http://IP:9118/lite/kinopubpro" 
 * VoKino - "http://IP:9118/lite/vokinotk" 
+* HDRezka - указать логин и пароль в init.conf
 
 # Плагин DLNA.js
 * Просмотр медиа файлов с папки dlna
