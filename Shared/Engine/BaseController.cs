@@ -26,7 +26,7 @@ namespace Lampac.Engine
 
         public static string appversion => "118";
 
-        public static string minorversion => "6";
+        public static string minorversion => "7";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -74,7 +74,7 @@ namespace Lampac.Engine
                 if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                string val = h.name.Replace("{account_email}", account_email).Replace("{ip}", ip);
+                string val = h.val.Replace("{account_email}", account_email).Replace("{ip}", ip);
 
                 if (val.Contains("{arg:"))
                 {
@@ -103,7 +103,7 @@ namespace Lampac.Engine
                     }
                 }
 
-                headers.Add(new HeadersModel(h.val, val));
+                headers.Add(new HeadersModel(h.name, val));
             }
 
             return headers;
