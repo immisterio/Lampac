@@ -29,6 +29,7 @@ chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
 
 # update minor
+echo -n "1" > $DEST/vers-minor.txt
 /bin/bash $DEST/update.sh
 cd $DEST
 

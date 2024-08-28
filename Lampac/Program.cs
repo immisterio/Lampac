@@ -70,7 +70,7 @@ namespace Lampac
                 File.WriteAllText("vers.txt", BaseController.appversion);
 
             if (!File.Exists("vers-minor.txt"))
-                File.WriteAllText("vers-minor.txt", BaseController.minorversion);
+                File.WriteAllText("vers-minor.txt", "1");
 
             ThreadPool.QueueUserWorkItem(async _ => await LampaCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run());
