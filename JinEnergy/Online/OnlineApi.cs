@@ -126,8 +126,12 @@ namespace JinEnergy.Online
                 if (init.enable && !init.rip)
                 {
                     string? url = init.overridehost;
+                    AppInit.log("overridehost: " + init.overridehost);
+
                     if (string.IsNullOrEmpty(url))
                         url = "lite/" + plugin + arg_url;
+
+                    AppInit.log(url);
 
                     if (arg.original_language is "ru" or "ja" or "ko" or "zh" or "cn" or "zh|cn")
                     {
