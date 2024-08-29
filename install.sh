@@ -4,11 +4,11 @@ DEST="/home/lampac"
 # Become root
 # sudo su -
 apt-get update
-apt-get install -y wget unzip ffmpeg
+apt-get install -y unzip ffmpeg curl
 apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
 
 # Install .NET
-wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh 
+curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
 chmod 755 dotnet-install.sh
 ./dotnet-install.sh --channel 6.0 --runtime aspnetcore
 #echo "export DOTNET_ROOT=\$HOME/.dotnet" >> ~/.bashrc
@@ -18,13 +18,13 @@ chmod 755 dotnet-install.sh
 # Download zip
 mkdir $DEST -p 
 cd $DEST
-wget https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
+curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 unzip -o publish.zip
 rm -f publish.zip
 
 # automatic updates
-curl -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
-curl -s https://raw.githubusercontent.com/immisterio/lampac/main/update.sh > $DEST/update.sh
+curl -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
+curl -k -s https://raw.githubusercontent.com/immisterio/lampac/main/update.sh > $DEST/update.sh
 chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
 
