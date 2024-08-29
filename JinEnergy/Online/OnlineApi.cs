@@ -126,12 +126,8 @@ namespace JinEnergy.Online
                 if (init.enable && !init.rip)
                 {
                     string? url = init.overridehost;
-                    AppInit.log("overridehost: " + init.overridehost);
-
                     if (string.IsNullOrEmpty(url))
                         url = "lite/" + plugin + arg_url;
-
-                    AppInit.log(url);
 
                     if (arg.original_language is "ru" or "ja" or "ko" or "zh" or "cn" or "zh|cn")
                     {
@@ -199,9 +195,6 @@ namespace JinEnergy.Online
 
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
-
-
-            AppInit.log("HDVB overridehost: " + AppInit.HDVB.overridehost);
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
