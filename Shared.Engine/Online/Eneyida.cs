@@ -122,17 +122,17 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (!content.Contains("file:'[{"))
+            if (Regex.IsMatch(content, "file: ?'\\["))
             {
-                result.content = content;
-            }
-            else
-            {
-                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
+                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
                 if (root == null || root.Count == 0)
                     return null;
 
                 result.serial = root;
+            }
+            else
+            {
+                result.content = content;
             }
 
             return result;
@@ -178,7 +178,7 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                string hls = Regex.Match(result.content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
+                string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                     return string.Empty;
 

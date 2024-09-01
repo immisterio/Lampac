@@ -43,7 +43,8 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(link))
             {
                 onlog?.Invoke("search start");
-                string? search = await onget.Invoke($"{apihost}/index.php?do=search&story={HttpUtility.UrlEncode(original_title)}");
+                //string? search = await onget.Invoke($"{apihost}/index.php?do=search&story={HttpUtility.UrlEncode(original_title)}");
+                string? search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
                 {
                     requesterror?.Invoke();
@@ -116,18 +117,18 @@ namespace Shared.Engine.Online
             if (player == null)
                 return null;
 
-            if (!Regex.IsMatch(content, "file: ?'\\["))
-            {
-                result.content = player;
-                onlog?.Invoke("content: " + result.content);
-            }
-            else
+            if (Regex.IsMatch(content, "file: ?'\\["))
             {
                 var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
                 if (root == null || root.Count == 0)
                     return null;
 
                 result.serial = root;
+            }
+            else
+            {
+                result.content = player;
+                onlog?.Invoke("content: " + result.content);
             }
 
             return result;
