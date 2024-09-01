@@ -17,7 +17,7 @@ namespace Shared.Engine.SISI
                 url += $"video/search?search={HttpUtility.UrlEncode(search)}";
 
                 if (!string.IsNullOrEmpty(sort))
-                    url += $"?o={sort}";
+                    url += $"&o={sort}";
             }
             else if (!string.IsNullOrEmpty(model))
             {
