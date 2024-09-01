@@ -56,7 +56,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org") { geostreamproxy = new List<string>() { "ALL" } };
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http", uacdn = "https://prx-ams.ukrtelcdn.net" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http", uacdn = "https://prx2-ams.ukrtelcdn.net" };
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
 

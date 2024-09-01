@@ -181,14 +181,14 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.FilmixPartner;
 
             if (!init.enable)
-                return OnError("disable");
+                return OnError("disable", gbcache: false);
 
             if (!HttpContext.Request.Headers.TryGetValue("low_passw", out var low_passw) || low_passw.ToString() != init.lowlevel_api_passw)
-                return OnError("lowlevel_api");
+                return OnError("lowlevel_api", gbcache: false);
 
             string XFXTOKEN = await getXFXTOKEN();
             if (string.IsNullOrWhiteSpace(XFXTOKEN))
-                return OnError("XFXTOKEN");
+                return OnError("XFXTOKEN", gbcache: false);
 
             string json = await HttpClient.Get($"{init.corsHost()}/{uri}", headers: httpHeaders(init, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
 
