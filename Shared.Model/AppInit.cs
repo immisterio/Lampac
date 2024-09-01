@@ -54,7 +54,7 @@ namespace Shared.Model
 
 
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org") { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("https://kinobase.org") { rip = true, geostreamproxy = new List<string>() { "ALL" } };
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http", uacdn = "https://prx2-ams.ukrtelcdn.net" };
 
@@ -80,7 +80,7 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
 
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "UA" } };
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false, rip: true) { geostreamproxy = new List<string>() { "UA" } };
 

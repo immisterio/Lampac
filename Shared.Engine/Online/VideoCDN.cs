@@ -129,7 +129,34 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string files = Regex.Match(content, "id=\"[^\"]+\" value='(\\{[^\n\r]+)'>").Groups[1].Value;
+            string Decode(string pass, string src)
+            {
+                int passLen = pass.Length;
+                int srcLen = src.Length;
+                byte[] passArr = new byte[passLen];
+
+                for (int i = 0; i < passLen; i++)
+                {
+                    passArr[i] = (byte)pass[i];
+                }
+
+                StringBuilder res = new StringBuilder();
+
+                for (int i = 0; i < srcLen; i += 2)
+                {
+                    string hex = src.Substring(i, 2);
+                    int code = Convert.ToInt32(hex, 16);
+                    byte secret = (byte)(passArr[(i / 2) % passLen] % 255);
+                    res.Append((char)(code ^ secret));
+                }
+
+                return res.ToString();
+            }
+
+            string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"").Groups[1].Value;
+            string sentry_id = Regex.Match(content, "id=\"sentry_id\" value=\"([^\"]+)\"").Groups[1].Value;
+
+            string files = Decode(client_id, sentry_id);
             result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
             if (result.type is "movie" or "anime")

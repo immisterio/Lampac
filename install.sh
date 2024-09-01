@@ -40,7 +40,12 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/ma
 curl -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
 curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/update.sh > $DEST/update.sh
 chmod 755 $DEST/update.sh
-crontab -l | { cat; echo "0 4 * * * /bin/bash $DEST/update.sh"; } | crontab -
+crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
+
+# update minor
+echo -n "1" > $DEST/vers-minor.txt
+/bin/bash $DEST/update.sh
+cd $DEST
 
 # Create service
 echo ""

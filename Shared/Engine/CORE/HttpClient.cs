@@ -14,7 +14,7 @@ namespace Lampac.Engine.CORE
 {
     public static class HttpClient
     {
-        public static string UserAgent => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+        public static string UserAgent => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 
         public static IHttpClientFactory httpClientFactory;
 
@@ -108,7 +108,7 @@ namespace Lampac.Engine.CORE
 
             if (setDefaultUseragent)
             {
-                client.DefaultRequestHeaders.Add("User-Agent", "UserAgent");
+                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
                 loglines += $"User-Agent: {UserAgent}\n";
             }
         }
