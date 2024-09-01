@@ -38,15 +38,22 @@ namespace Lampac.Controllers.LITE
 
                     foreach (string row in search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"").Skip(1))
                     {
+                        if (row.Contains("Новости"))
+                            continue;
+
                         var g = Regex.Match(row, "class=\"shortstory-listab-title\"><a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
 
                         if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                         {
                             string season = "0";
-                            if (!g[2].Value.Contains("сезон") || g[2].Value.Contains("1 сезон"))
-                                season = "1";
+                            if (g[2].Value.Contains("сезон"))
+                            {
+                                season = Regex.Match(g[2].Value, "([0-9]+) сезон").Groups[1].Value;
+                                if (string.IsNullOrEmpty(season))
+                                    season = "1";
+                            }
 
-                            if (g[2].Value.ToLower().Contains(title.ToLower()))
+                            //if (g[2].Value.ToLower().Contains(title.ToLower()))
                                 catalog.Add((g[2].Value, Regex.Match(row, "\">([0-9]{4})</a>").Groups[1].Value, g[1].Value, season));
                         }
                     }
@@ -85,7 +92,7 @@ namespace Lampac.Controllers.LITE
                     if (news == null)
                         return OnError(proxyManager);
 
-                    string videoList = Regex.Match(news, "var videoList = ([^\n\r]+)").Groups[1].Value;
+                    string videoList = Regex.Match(news, "var videoList ?=([^\n\r]+)").Groups[1].Value.Trim();
                     if (string.IsNullOrEmpty(videoList))
                         return OnError();
 
