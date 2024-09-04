@@ -41,7 +41,7 @@ namespace Lampac.Engine.Middlewares
                 #region decryptLink
                 ProxyLinkModel decryptLink = null;
                 string reqip = httpContext.Connection.RemoteIpAddress.ToString();
-                string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "") + httpContext.Request.QueryString.Value;
+                string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
                 string account_email = Regex.Match(httpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
 
                 if (AppInit.conf.serverproxy.encrypt)
