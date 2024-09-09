@@ -42,7 +42,7 @@ namespace Lampac.Engine.Middlewares
 
                 #region Проверки
                 Shared.Models.ProxyLinkModel decryptLink = null;
-                string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
+                string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
 
                 if (init.encrypt)
                 {

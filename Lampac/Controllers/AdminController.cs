@@ -8,7 +8,8 @@ namespace Lampac.Controllers
 {
     public class AdminController : BaseController
     {
-        #region auth
+        #region admin / auth
+        [Route("admin")]
         [Route("admin/auth")]
         public ActionResult Authorization([FromForm]string parol)
         {
@@ -226,7 +227,7 @@ namespace Lampac.Controllers
 					{
 						string initconf = IO.File.ReadAllText("init.conf");
 						if (initconf != null && initconf.StartsWith("{")) 
-							IO.File.WriteAllText("init.conf", "{\"Kodik\":{\"streamproxy\":true,\"apnstream\":true},\"iRemux\":{\"streamproxy\":true,\"apnstream\":true},\"Zetflix\":{\"streamproxy\":true,\"apnstream\":true,\"hls\":false}," + initconf.Remove(0, 1));
+							IO.File.WriteAllText("init.conf", "{\"Kodik\":{\"streamproxy\":true,\"apnstream\":true},\"iRemux\":{\"streamproxy\":true,\"apnstream\":true}," + initconf.Remove(0, 1));
                     }
 					else
 					{
@@ -244,11 +245,6 @@ namespace Lampac.Controllers
   ""iRemux"": {
 	""streamproxy"": true,
 	""apnstream"": true
-  },
-  ""Zetflix"": {
-	""streamproxy"": true,
-	""apnstream"": true,
-    ""hls"": false
   }
 }
 ");
