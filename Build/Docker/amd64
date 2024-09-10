@@ -20,7 +20,7 @@ RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/late
     && rm -rf runtimes/os* && rm -rf runtimes/win* && rm -rf runtimes/linux-arm runtimes/linux-arm64 runtimes/linux-musl-arm64 runtimes/linux-musl-x64 \
     && touch isdocker && sed -i 's/\"System.GC.Server\"\: false/\"System.GC.Server\": true/g' Lampac.runtimeconfig.json
 	
-RUN curl -L -k -o minor.zip https://github.com/immisterio/Lampac/releases/latest/download/minor.zip && unzip -o minor.zip && rm -f minor.zip
+RUN curl -k -s https://raw.githubusercontent.com/immisterio/Lampac/main/Build/Docker/update.sh | bash
 
 RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-amd64 \
     && chmod +x torrserver/TorrServer-linux

@@ -9,7 +9,7 @@ docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 # Установка на linux
 спасибо @nikk, @Denis
 ```
-curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | bash
+curl -L -k -s https://lampac.sh | bash
 ```
 
 # Установка на Windows
@@ -40,9 +40,9 @@ curl -s https://raw.githubusercontent.com/immisterio/lampac/main/install.sh | ba
 3. Основные настройки в init.conf (пример example.conf)
 
 # Источники 
-* Filmix, Kinobase, Rezka, VideoCDN, VDBmovies, Collaps, HDVB, Zetflix, Kodik, Ashdi (UKR), Eneyida (UKR), KinoUKR (UKR), Kinotochka, Kinoprofi, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Alloha, KinoPub, VoKino
+* Filmix, Rezka, VideoCDN, VDBmovies, Collaps, HDVB, Zetflix, Kodik, Ashdi (UKR), Eneyida (UKR), KinoUKR (UKR), Kinotochka, Kinoprofi, CDNmovies, Anilibria, AniMedia, AnimeGo, Animevost, Animebesst, Redheadsound, Alloha, KinoPub, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (UKR), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
-* PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos, Xvideos.RED
+* PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 
 # Привязка PRO аккаунтов
 * Filmix - "http://IP:9118/lite/filmixpro" 
