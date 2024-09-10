@@ -9,13 +9,7 @@ namespace JinEnergy
         public static Task<List<dynamic>> Index(string args)
         {
             var channels = new List<dynamic>()
-            { 
-                new
-                {
-                    title = "Закладки",
-                    playlist_url = "https://bwa-cloud.apn.monster/sisi/bookmarks",
-                    enable = true
-                },
+            {
                 new
                 {
                     title = "pornhub.com",
