@@ -80,7 +80,7 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
 
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "ALL" } };
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
 
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false, rip: true) { geostreamproxy = new List<string>() { "UA" } };
 
