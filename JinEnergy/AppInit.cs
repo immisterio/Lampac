@@ -6,6 +6,7 @@ using Microsoft.JSInterop;
 using Shared.Model.Base;
 using Shared.Model.Online.Settings;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace JinEnergy
 {
@@ -52,7 +53,6 @@ namespace JinEnergy
 
                 if (!string.IsNullOrEmpty(urlconf))
                 {
-                    IsDefaultConf = false;
                     string? json = urlconf;
                     Shared.Model.AppInit? setings = null;
 
@@ -61,6 +61,8 @@ namespace JinEnergy
 
                     if (json != null)
                     {
+                        IsDefaultConf = Regex.IsMatch(urlconf, "/settings/(web|cors|apk)\\.json");
+
                         setings = JsonSerializer.Deserialize<Shared.Model.AppInit>(json);
                         if (setings != null)
                         {
