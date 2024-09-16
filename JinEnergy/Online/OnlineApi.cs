@@ -176,7 +176,15 @@ namespace JinEnergy.Online
             }
 
             if (!titleSearch)
+            {
+                if (AppInit.IsDefaultConf)
+                    send("Collaps - 1080p", "collaps-dash", AppInit.Collaps);
+
                 send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
+            }
+
+            if (arg.kinopoisk_id > 0)
+                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             if (!AppInit.Filmix.pro)
                 send($"Filmix - {(string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
@@ -192,9 +200,6 @@ namespace JinEnergy.Online
 
             //if (!titleSearch)
             //    send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
-
-            if (arg.kinopoisk_id > 0)
-                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 

@@ -52,6 +52,7 @@ namespace JinEnergy
 
                 if (!string.IsNullOrEmpty(urlconf))
                 {
+                    IsDefaultConf = false;
                     string? json = urlconf;
                     Shared.Model.AppInit? setings = null;
 
@@ -90,6 +91,8 @@ namespace JinEnergy
 
 
         public static bool IsAndrod { get; private set; }
+
+        public static bool IsDefaultConf { get; private set; } = true;
 
         public static string? Country { get; private set; }
 
