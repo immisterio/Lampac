@@ -12,6 +12,12 @@ namespace JinEnergy
             {
                 new
                 {
+                    title = "Закладки",
+                    playlist_url = "https://bwa-cloud.apn.monster/sisi/bookmarks",
+                    enable = true
+                },
+                new
+                {
                     title = "pornhub.com",
                     playlist_url = AppInit.PornHub.overridehost ?? "phub",
                     AppInit.PornHub.enable

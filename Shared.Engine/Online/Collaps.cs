@@ -69,7 +69,7 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                string video = Regex.Match(md.content, dash ? "dash: +\"(https?://[^\"]+\\.mpd)\"" : "hls: +\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
+                string video = Regex.Match(md.content, dash ? "dash: +\"(https?://[^\"]+\\.mp[^\"]+)\"" : "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(video))
                     return string.Empty;
 

@@ -60,7 +60,7 @@ namespace Shared.Model
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
 
-        public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.delivembd.ws");
+        public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.ninsel.ws", streamproxy: true );
 
         public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("https://base.ashdi.vip");
 

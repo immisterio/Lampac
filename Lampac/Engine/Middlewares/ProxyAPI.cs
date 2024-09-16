@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Buffers;
 using Shared.Models;
 using Shared.Model.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -77,6 +78,24 @@ namespace Lampac.Engine.Middlewares
 
                 if (decryptLink == null)
                     decryptLink = new ProxyLinkModel(reqip, null, null, servUri);
+                #endregion
+
+                #region themoviedb.org
+                if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
+                {
+                    var proxyManager = new ProxyManager("proxyapi", AppInit.conf.serverproxy);
+                    string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get());
+                    if (json == null) 
+                    {
+                        proxyManager.Refresh();
+                        await httpContext.Response.WriteAsync("null", httpContext.RequestAborted);
+                        return;
+                    }
+
+                    httpContext.Response.ContentType = "application/json;charset=utf-8";
+                    await httpContext.Response.WriteAsync(json, httpContext.RequestAborted);
+                    return;
+                }
                 #endregion
 
                 if (AppInit.conf.serverproxy.showOrigUri)
@@ -494,7 +513,7 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
-            requestMessage.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36");
+            requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
             #endregion
 
             requestMessage.Headers.ConnectionClose = false;

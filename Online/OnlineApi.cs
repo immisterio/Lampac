@@ -122,7 +122,7 @@ namespace Lampac.Controllers
             async Task<string> getTabus(string imdb)
             {
                 var proxyManager = new ProxyManager("collaps", AppInit.conf.Collaps);
-                string json = await HttpClient.Get("https://api.bhcesh.me/franchise/details?token=eedefb541aeba871dcfc756e6b31c02e&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 4, proxy: proxyManager.Get());
+                string json = await HttpClient.Get("https://api.bhcesh.me/franchise/details?token=d39edcf2b6219b6421bffe15dde9f1b3&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -277,6 +277,9 @@ namespace Lampac.Controllers
                 if (init.enable && !init.rip)
                 {
                     string url = init.overridehost;
+                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+
                     if (string.IsNullOrEmpty(url))
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
 

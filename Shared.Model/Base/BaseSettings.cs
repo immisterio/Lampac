@@ -18,6 +18,8 @@ namespace Shared.Model.Base
 
         public string? overridehost { get; set; }
 
+        public string[]? overridehosts { get; set; }
+
         public string? host { get; set; }
 
         public string? apihost { get; set; }
