@@ -6,10 +6,6 @@ namespace JinEnergy.Online
 {
     public class ZetflixController : BaseController
     {
-        static bool origstream;
-
-        static string? last_check_url;
-
         [JSInvokable("lite/zetflix")]
         async public static ValueTask<string> Index(string args)
         {
@@ -27,7 +23,7 @@ namespace JinEnergy.Online
                init.corsHost(),
                MaybeInHls(init.hls, init),
                (url, head) => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, head)),
-               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+               streamfile => HostStreamProxy(init, streamfile)
                //AppInit.log
             );
 
@@ -39,15 +35,6 @@ namespace JinEnergy.Online
             int number_of_seasons = 1;
             if (content?.pl != null && !content.movie && s == -1 && arg.id > 0)
                 number_of_seasons = await InvStructCache(arg.id, $"zetfix:number_of_seasons:{arg.kinopoisk_id}", () => oninvk.number_of_seasons(arg.id));
-
-            if (content?.check_url != null && !userapn)
-            {
-                if (last_check_url != content.check_url)
-                {
-                    last_check_url = content.check_url;
-                    origstream = await IsOrigStream(content.check_url, 4);
-                }
-            }
 
             return oninvk.Html(content, number_of_seasons, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }
