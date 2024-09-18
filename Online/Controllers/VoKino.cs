@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (balancer is "filmix" or "zetflix" or "ashdi" or "rhs" or "collaps")
+            if (balancer is "filmix" or "ashdi" or "rhs")
                 init.streamproxy = false;
 
             var rch = new RchClient(HttpContext, host, init.rhub);

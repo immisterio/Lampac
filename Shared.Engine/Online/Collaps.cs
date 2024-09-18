@@ -104,7 +104,7 @@ namespace Shared.Engine.Online
                 voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
                 voicename = Regex.Replace(voicename, "[, ]+$", "");
 
-                return mtpl.ToHtml(name, onstreamfile.Invoke(stream), subtitles: subtitles, voice_name: voicename);
+                return mtpl.ToHtml(name, onstreamfile.Invoke(stream.Replace("\u0026", "&")), subtitles: subtitles, voice_name: voicename);
                 #endregion
             }
             else
@@ -157,7 +157,7 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            string file = onstreamfile.Invoke(stream);
+                            string file = onstreamfile.Invoke(stream.Replace("\u0026", "&"));
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>");
                             firstjson = false;
                         }
