@@ -64,7 +64,7 @@ namespace Shared.Model
 
         public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("https://base.ashdi.vip");
 
-        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv");
+        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv", rip: true);
 
         public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("https://kinoukr.com");
 
@@ -110,7 +110,7 @@ namespace Shared.Model
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true, enable: false);
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true, rip: true);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 
