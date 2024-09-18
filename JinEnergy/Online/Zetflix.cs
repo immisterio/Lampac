@@ -34,11 +34,7 @@ namespace JinEnergy.Online
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
             string memkey = $"zetfix:view:{arg.kinopoisk_id}:{rs}";
 
-            refresh: var content = await InvokeCache(arg.id, memkey, async () => 
-            {
-                string? html = await JsHttpClient.Get("https://bwa-cloud.apn.monster/lite/zetflix"+$"?kinopoisk_id={arg.kinopoisk_id}&serial={serial}&s={s}&origsource=true");
-                return oninvk.Embed(html);
-            });
+            var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, rs));
 
             int number_of_seasons = 1;
             if (content?.pl != null && !content.movie && s == -1 && arg.id > 0)
@@ -53,15 +49,7 @@ namespace JinEnergy.Online
                 }
             }
 
-            string html = oninvk.Html(content, number_of_seasons, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
-            if (string.IsNullOrEmpty(html))
-            {
-                IMemoryCache.Remove(memkey);
-                if (IsRefresh(init))
-                    goto refresh;
-            }
-
-            return html;
+            return oninvk.Html(content, number_of_seasons, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }
     }
 }
