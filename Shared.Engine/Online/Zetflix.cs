@@ -52,7 +52,7 @@ namespace Shared.Engine.Online
             string quality = html.Contains("1080p") ? "1080p" : html.Contains("720p") ? "720p" : "480p";
             string check_url = Regex.Match(html, "(https?://[^\\[\\|,\n\r\t ]+\\.mp4)").Groups[1].Value;
 
-            string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\]),").Groups[1].Value;
+            string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\])(,|}\\) ;)").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
             {
                 file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;

@@ -158,7 +158,7 @@ namespace JinEnergy.Online
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
             if (arg.kinopoisk_id > 0)
-                send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
+                send("Zetflix - 720p", "zetflix", AppInit.Zetflix);
 
             send("Rezka - " + (!string.IsNullOrEmpty(AppInit.Rezka.cookie) ? "2160p" : "720p"), "rezka", AppInit.Rezka);
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
