@@ -36,7 +36,7 @@ namespace JinEnergy.Online
             if (content?.pl != null && !content.movie && s == -1 && arg.id > 0)
                 number_of_seasons = await InvStructCache(arg.id, $"zetfix:number_of_seasons:{arg.kinopoisk_id}", () => oninvk.number_of_seasons(arg.id));
 
-            return oninvk.Html(content, number_of_seasons, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
+            return oninvk.Html(content, number_of_seasons, arg.kinopoisk_id, arg.title, arg.original_title, t, s, isbwa: true);
         }
     }
 }

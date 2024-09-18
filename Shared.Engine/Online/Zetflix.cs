@@ -99,7 +99,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s)
+        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -134,7 +134,9 @@ namespace Shared.Engine.Online
                         else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}\\.$2");
+                        if (isbwa)
+                            link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
+
                         streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                     }
 
@@ -216,7 +218,9 @@ namespace Shared.Engine.Online
                                 else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}\\.$2");
+                                if (isbwa)
+                                    link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
+
                                 streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                             }
 
