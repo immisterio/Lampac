@@ -10,7 +10,6 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.Zetflix.Clone();
-            bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");

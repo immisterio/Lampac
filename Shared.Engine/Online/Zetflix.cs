@@ -115,7 +115,7 @@ namespace Shared.Engine.Online
 
                 foreach (var pl in root.pl)
                 {
-                    string? name = pl.title ?? pl.comment;
+                    string? name = pl.title;
                     string? file = pl.file;
 
                     if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
@@ -179,7 +179,7 @@ namespace Shared.Engine.Online
                         if (episodes == null || episodes.Count == 0)
                             continue;
 
-                        string? perevod = episode?.title ?? episode?.comment;
+                        string? perevod = episode?.title;
                         if (perevod != null && string.IsNullOrEmpty(t))
                             t = perevod;
 

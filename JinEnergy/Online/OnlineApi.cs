@@ -157,7 +157,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
-            if (arg.kinopoisk_id > 0)
+            if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
                 send("Zetflix - 720p", "zetflix", AppInit.Zetflix);
 
             send("Rezka - " + (!string.IsNullOrEmpty(AppInit.Rezka.cookie) ? "2160p" : "720p"), "rezka", AppInit.Rezka);
