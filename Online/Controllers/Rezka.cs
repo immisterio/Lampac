@@ -23,13 +23,15 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("rezka", init);
             var proxy = proxyManager.Get();
 
-            string cookie = await getCookie(init);
-
             var headers = httpHeaders(init, HeadersModel.Init(
-                ("Cookie", cookie),
                 ("Origin", init.host),
                 ("Referer", init.host + "/")
             ));
+
+            string cookie = await getCookie(init);
+
+            if (!string.IsNullOrEmpty(cookie))
+                headers.Add(new HeadersModel("Cookie", cookie));
 
             if (init.xapp)
                 headers.Add(new HeadersModel("X-App-Hdrezka-App", "1"));
