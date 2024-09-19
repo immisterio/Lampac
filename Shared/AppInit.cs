@@ -40,7 +40,10 @@ namespace Lampac
                         Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
                     }};
 
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(File.ReadAllText("init.conf"), jss);
+                    string initfile = File.ReadAllText("init.conf");
+                    initfile = Regex.Replace(initfile, "\"weblog\":([ \t]+)?(true|false)([ \t]+)?,", "", RegexOptions.IgnoreCase);
+
+                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
                     if (cacheconf.Item1 == null)
                         cacheconf.Item1 = new AppInit();
 
@@ -176,7 +179,7 @@ namespace Lampac
 
         public bool filelog = false;
 
-        public bool weblog = false;
+        public WebLogConf weblog = new WebLogConf();
 
         public RchConf rch = new RchConf() { enable = false, keepalive = 180 };
 

@@ -146,6 +146,7 @@ namespace Lampac.Controllers.LITE
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
             {
+                return null;
                 DateTimeOffset _ym = DateTimeOffset.UtcNow;
                 return $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
             }

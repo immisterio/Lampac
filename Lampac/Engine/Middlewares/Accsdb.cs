@@ -48,7 +48,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (!AppInit.conf.weblog && !AppInit.conf.rch.enable && httpContext.Request.Path.Value.StartsWith("/ws"))
+            if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && httpContext.Request.Path.Value.StartsWith("/ws"))
                 return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
 
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|baibako|hdrezka)";
@@ -73,7 +73,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((ts|ws|headers|myip|version|rch/result)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((ts|ws|headers|myip|version|weblog|rch/result)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
                     HashSet<string> ips = null;

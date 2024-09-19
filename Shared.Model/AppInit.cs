@@ -58,13 +58,9 @@ namespace Shared.Model
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http", uacdn = "https://prx2-ams.ukrtelcdn.net" };
 
-        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
-
-        public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.ninsel.ws", streamproxy: true );
+        public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.ninsel.ws", streamproxy: true);
 
         public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("https://base.ashdi.vip");
-
-        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv", rip: true);
 
         public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("https://kinoukr.com");
 
@@ -73,8 +69,6 @@ namespace Shared.Model
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://megaoblako.com") { corseu = true, geostreamproxy = new List<string>() { "UA" } };
-
-        public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("http://filmixapp.cyou");
 
@@ -97,8 +91,6 @@ namespace Shared.Model
 
         public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("https://apivb.info", token: "5e2fe4c70bafd9a7414c4f170ee1b192");
 
-        public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("http://api.seasonvar.ru", enable: false, rip: true);
-
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("https://api.srvkp.com") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.apbugall.org", "https://torso-as.algonoew.online:9443", "", "", true, true);
@@ -110,10 +102,23 @@ namespace Shared.Model
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true, rip: true);
-
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.best");
+
+
+
+
+
+
+        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
+
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true, rip: true);
+
+        public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("http://api.seasonvar.ru", enable: false, rip: true);
+
+        public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("http://www.disneylove.ru", streamproxy: true, rip: true);
+
+        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("https://eneyida.tv", rip: true);
     }
 }
