@@ -5,7 +5,6 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online.Collaps;
-using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -13,15 +12,27 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/collaps")]
+        [Route("lite/collaps-dash")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1)
         {
-            var init = AppInit.conf.Collaps;
-
+            var init = AppInit.conf.Collaps.Clone();
             if (!init.enable)
                 return OnError();
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();
+
+            string module = HttpContext.Request.Path.Value.StartsWith("/lite/collaps-dash") ? "dash" : "hls";
+            if (module == "dash")
+                init.dash = true;
+            else if (init.two)
+                init.dash = false;
+
+            if (init.dash)
+            {
+                init.streamproxy = false;
+                init.geostreamproxy = null;
+            }
 
             var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("collaps", init);
@@ -37,7 +48,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"collaps-{module}:view:{imdb_id}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -45,7 +56,14 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(imdb_id, kinopoisk_id);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s));
+            return OnResult(cache, () => 
+            {
+                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s);
+                if (module == "dash")
+                    html = html.Replace("lite/collaps", "lite/collaps-dash");
+
+                return html;
+            });
         }
     }
 }

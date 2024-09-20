@@ -58,7 +58,7 @@ namespace Shared.Model
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http", uacdn = "https://prx2-ams.ukrtelcdn.net" };
 
-        public OnlinesSettings Collaps { get; set; } = new OnlinesSettings("https://api.ninsel.ws", streamproxy: true);
+        public CollapsSettings Collaps { get; set; } = new CollapsSettings("https://api.ninsel.ws", streamproxy: true, two: true);
 
         public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("https://base.ashdi.vip");
 

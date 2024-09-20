@@ -347,6 +347,8 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 1)
                 send("LostfilmHD", conf.Lostfilmhd);
 
+            if (AppInit.conf.Collaps.two)
+                send("Collaps", conf.Collaps, "collaps-dash");
             send("Collaps", conf.Collaps);
             send("HDVB", conf.HDVB);
 
@@ -494,6 +496,7 @@ namespace Lampac.Controllers
                         case "animego":
                         case "lostfilmhd":
                         case "vdbmovies":
+                        case "collaps-dash":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":

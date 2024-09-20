@@ -106,7 +106,7 @@ namespace Lampac.Controllers
             if (!IO.File.Exists("widgets/samsung/loader.js"))
                 return Content(string.Empty);
 
-            string wgt = $"widgets/{CrypTo.md5(overwritehost ?? host + "v2")}.wgt";
+            string wgt = $"widgets/{CrypTo.md5(overwritehost ?? host + "v3")}.wgt";
             if (IO.File.Exists(wgt))
                 return File(IO.File.OpenRead(wgt), "application/octet-stream");
 
