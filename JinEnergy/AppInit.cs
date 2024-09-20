@@ -131,7 +131,7 @@ namespace JinEnergy
 
         public static RezkaSettings Voidboost => conf.Voidboost;
 
-        public static OnlinesSettings Collaps => conf.Collaps;
+        public static CollapsSettings Collaps => conf.Collaps;
 
         public static OnlinesSettings Ashdi => conf.Ashdi;
 
