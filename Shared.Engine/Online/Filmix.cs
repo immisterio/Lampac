@@ -46,7 +46,7 @@ namespace Shared.Engine.Online
             onlog?.Invoke(uri);
             
             string? json = await onget.Invoke(uri);
-            if (json == null)
+            if (string.IsNullOrEmpty(json) || json == "[]")
                 return await Search2(title, original_title, clarification, year);
 
             List<SearchModel>? root = null;
@@ -103,16 +103,27 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("Search2");
 
-            string? html = await onpost.Invoke("https://filmix.fm/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
-                ("Origin", "https://filmix.fm"),
-                ("Referer", "https://filmix.fm/search/"),
+            var headers = HeadersModel.Init(
+                ("Origin", "https://filmix.quest"),
+                ("Referer", "https://filmix.quest/search/"),
                 ("X-Requested-With", "XMLHttpRequest"),
                 ("Sec-Fetch-Site", "same-origin"),
                 ("Sec-Fetch-Mode", "cors"),
                 ("Sec-Fetch-Dest", "empty"),
                 ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123"),
                 ("Accept-Language", "ru-RU,ru;q=0.9")
-            ));
+            );
+
+            string url = $"https://filmix.quest/engine/ajax/sphinx_search.php";
+            string? searchParams = $"scf=fx&story={HttpUtility.UrlEncode(original_title)}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1";
+
+            string? html = await onpost.Invoke(url, searchParams, headers);
+
+            if (html != null && html.Contains("ничего не найдено"))
+            {
+                searchParams = $"scf=fx&story={HttpUtility.UrlEncode(title)}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1";
+                html = await onpost.Invoke(url, searchParams, headers);
+            }
 
             if (html == null)
             {
