@@ -106,9 +106,12 @@ namespace Lampac.Controllers
             if (!IO.File.Exists("widgets/samsung/loader.js"))
                 return Content(string.Empty);
 
-            string wgt = $"widgets/{CrypTo.md5(overwritehost ?? host + "v2")}.wgt";
+            string wgt = $"widgets/{CrypTo.md5(overwritehost ?? host + "v3")}.wgt";
             if (IO.File.Exists(wgt))
                 return File(IO.File.OpenRead(wgt), "application/octet-stream");
+
+            string index = IO.File.ReadAllText("widgets/samsung/index.html");
+            IO.File.WriteAllText("widgets/samsung/publish/index.html", index.Replace("{localhost}", overwritehost ?? host));
 
             string loader = IO.File.ReadAllText("widgets/samsung/loader.js");
             IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", overwritehost ?? host));
@@ -129,6 +132,7 @@ namespace Lampac.Controllers
                 }
             }
 
+            string indexhashsha512 = gethash("widgets/samsung/publish/index.html");
             string loaderhashsha512 = gethash("widgets/samsung/publish/loader.js");
             string apphashsha512 = gethash("widgets/samsung/publish/app.js");
             string confighashsha512 = gethash("widgets/samsung/publish/config.xml");
@@ -138,14 +142,15 @@ namespace Lampac.Controllers
             string author_sigxml = IO.File.ReadAllText("widgets/samsung/author-signature.xml");
             author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
                                          .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512)
-                                         .Replace("confighashsha512", confighashsha512);
+                                         .Replace("confighashsha512", confighashsha512)
+                                         .Replace("indexhashsha512", indexhashsha512);
             IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml);
 
             string authorsignaturehashsha512 = gethash("widgets/samsung/publish/author-signature.xml");
             string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
             sigxml1 = sigxml1.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
                              .Replace("confighashsha512", confighashsha512).Replace("authorsignaturehashsha512", authorsignaturehashsha512)
-                             .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512);
+                             .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512).Replace("indexhashsha512", indexhashsha512);
             IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1);
 
             ZipFile.CreateFromDirectory("widgets/samsung/publish/", wgt);
@@ -232,6 +237,71 @@ namespace Lampac.Controllers
                 file = file.Replace("{jachost}", "redapi.cfhttp.top");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region weblog
+        [HttpGet]
+        [Route("weblog")]
+        public ActionResult WebLog(string token, string pattern)
+        {
+            if (!AppInit.conf.weblog.enable)
+                return Content("Включите weblog в init.conf\n\n\"weblog\": {\n   \"enable\": true\n}", contentType: "text/plain; charset=utf-8");
+
+            if (!string.IsNullOrEmpty(AppInit.conf.weblog.token) && token != AppInit.conf.weblog.token)
+                return Content("Используйте /weblog?token=my_key\n\n\"weblog\": {\n   \"enable\": true,\n   \"token\": \"my_key\"\n}", contentType: "text/plain; charset=utf-8");
+
+            string html = @"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>weblog</title>
+</head>
+<body style='margin: 0px;'>
+    <div id='log'></div>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js'></script>
+    <script>
+        const hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl('/ws')
+            .build();
+ 
+		function send(message)
+		{"+
+        (string.IsNullOrEmpty(pattern) ? "" : "if (message.indexOf('"+pattern+ "') === -1) return;")
+        +@"
+
+			var par = document.getElementById('log');
+			
+			let messageElement = document.createElement('hr');
+			messageElement.style.cssText = ' margin-bottom: 2.5em; margin-top: 2.5em;';
+			par.insertBefore(messageElement, par.children[0]);
+ 
+            messageElement = document.createElement('pre');
+			messageElement.style.cssText = 'padding: 10px; background: cornsilk; white-space: pre-wrap; word-wrap: break-word;';
+            messageElement.textContent = message;
+			par.insertBefore(messageElement, par.children[0]);
+		}
+ 
+		hubConnection.on('Receive', function(message, plugin) {
+            send(message);
+		});
+
+		hubConnection.onclose(function(err) {
+            send(err.toString());
+		});
+ 
+        hubConnection.start()
+            .then(function () {
+				hubConnection.invoke('RegistryWebLog', '" + token+@"');
+            })
+            .catch(function (err) {
+                send(err.toString());
+            });
+    </script>
+</body>
+</html>";
+
+            return Content(html, "text/html; charset=utf-8");
         }
         #endregion
     }

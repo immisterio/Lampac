@@ -103,9 +103,9 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("Search2");
 
-            string? html = await onpost.Invoke("https://filmix.biz/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
-                ("Origin", "https://filmix.biz"),
-                ("Referer", "https://filmix.biz/search/"),
+            string? html = await onpost.Invoke("https://filmix.fm/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
+                ("Origin", "https://filmix.fm"),
+                ("Referer", "https://filmix.fm/search/"),
                 ("X-Requested-With", "XMLHttpRequest"),
                 ("Sec-Fetch-Site", "same-origin"),
                 ("Sec-Fetch-Mode", "cors"),

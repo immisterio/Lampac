@@ -52,7 +52,7 @@ namespace Shared.Engine.Online
             string quality = html.Contains("1080p") ? "1080p" : html.Contains("720p") ? "720p" : "480p";
             string check_url = Regex.Match(html, "(https?://[^\\[\\|,\n\r\t ]+\\.mp4)").Groups[1].Value;
 
-            string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\]),").Groups[1].Value;
+            string? file = Regex.Match(html, "file:(\\[[^\n\r]+\\])(,|}\\) ;)").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
             {
                 file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;
@@ -99,7 +99,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s)
+        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -133,6 +133,9 @@ namespace Shared.Engine.Online
                             link += ":hls:manifest.m3u8";
                         else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
+
+                        if (isbwa)
+                            link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
 
                         streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                     }
@@ -214,6 +217,9 @@ namespace Shared.Engine.Online
                                     link += ":hls:manifest.m3u8";
                                 else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
+
+                                if (isbwa)
+                                    link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
 
                                 streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                             }

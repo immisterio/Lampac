@@ -63,7 +63,7 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                string file = Regex.Match(html, "file: ?'(#[^&']+)").Groups[1].Value;
+                string file = Regex.Match(Regex.Replace(html, "[\n\r]+", ""), "file:([\t ]+)?'(#[^&']+)").Groups[2].Value;
                 if (string.IsNullOrEmpty(file)) 
                     return null;
 

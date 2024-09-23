@@ -157,8 +157,8 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
-            if (arg.kinopoisk_id > 0)
-                send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
+            if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
+                send("Zetflix - 720p", "zetflix", AppInit.Zetflix);
 
             send("Rezka - " + (!string.IsNullOrEmpty(AppInit.Rezka.cookie) ? "2160p" : "720p"), "rezka", AppInit.Rezka);
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
@@ -176,7 +176,15 @@ namespace JinEnergy.Online
             }
 
             if (!titleSearch)
+            {
+                if (AppInit.IsDefaultConf)
+                    send("Collaps - 1080p", "collaps-dash", AppInit.Collaps);
+
                 send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
+            }
+
+            if (arg.kinopoisk_id > 0)
+                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             if (!AppInit.Filmix.pro)
                 send($"Filmix - {(string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
@@ -192,9 +200,6 @@ namespace JinEnergy.Online
 
             //if (!titleSearch)
             //    send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
-
-            if (arg.kinopoisk_id > 0)
-                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 

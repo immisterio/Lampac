@@ -69,8 +69,16 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                string video = Regex.Match(md.content, dash ? "dash: +\"(https?://[^\"]+\\.mpd)\"" : "hls: +\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(video))
+                string stream = Regex.Match(md.content, "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\"").Groups[1].Value;
+
+                if (dash)
+                {
+                    string _dash = Regex.Match(md.content, "dash: +\"(https?://[^\"]+\\.mp[^\"]+)\"").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(_dash))
+                        stream = _dash;
+                }
+
+                if (string.IsNullOrEmpty(stream))
                     return string.Empty;
 
                 string name = Regex.Match(md.content, "audio: +\\{\"names\":\\[\"([^\"]+)\"").Groups[1].Value;
@@ -96,7 +104,7 @@ namespace Shared.Engine.Online
                 voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
                 voicename = Regex.Replace(voicename, "[, ]+$", "");
 
-                return mtpl.ToHtml(name, onstreamfile.Invoke(video), subtitles: subtitles, voice_name: voicename);
+                return mtpl.ToHtml(name, onstreamfile.Invoke(stream.Replace("\u0026", "&")), subtitles: subtitles, voice_name: voicename);
                 #endregion
             }
             else
@@ -125,7 +133,11 @@ namespace Shared.Engine.Online
 
                         foreach (var episode in episodes)
                         {
-                            if (string.IsNullOrEmpty(dash ? episode?.dash : episode?.hls) || string.IsNullOrEmpty(episode?.episode))
+                            string? stream = episode?.hls ?? episode?.dash;
+                            if (dash && episode?.dash != null)
+                                stream = episode.dash;
+
+                            if (string.IsNullOrEmpty(stream) || string.IsNullOrEmpty(episode?.episode))
                                 continue;
 
                             #region voicename
@@ -145,7 +157,7 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            string file = onstreamfile.Invoke(dash ? episode.dash : episode.hls);
+                            string file = onstreamfile.Invoke(stream.Replace("\u0026", "&"));
                             html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>");
                             firstjson = false;
                         }

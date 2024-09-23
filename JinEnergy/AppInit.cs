@@ -6,6 +6,7 @@ using Microsoft.JSInterop;
 using Shared.Model.Base;
 using Shared.Model.Online.Settings;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace JinEnergy
 {
@@ -60,6 +61,8 @@ namespace JinEnergy
 
                     if (json != null)
                     {
+                        IsDefaultConf = Regex.IsMatch(urlconf, "/settings/(web|cors|apk)\\.json");
+
                         setings = JsonSerializer.Deserialize<Shared.Model.AppInit>(json);
                         if (setings != null)
                         {
@@ -90,6 +93,8 @@ namespace JinEnergy
 
 
         public static bool IsAndrod { get; private set; }
+
+        public static bool IsDefaultConf { get; private set; } = true;
 
         public static string? Country { get; private set; }
 
@@ -126,7 +131,7 @@ namespace JinEnergy
 
         public static RezkaSettings Voidboost => conf.Voidboost;
 
-        public static OnlinesSettings Collaps => conf.Collaps;
+        public static CollapsSettings Collaps => conf.Collaps;
 
         public static OnlinesSettings Ashdi => conf.Ashdi;
 

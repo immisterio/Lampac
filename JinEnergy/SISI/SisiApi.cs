@@ -9,7 +9,7 @@ namespace JinEnergy
         public static Task<List<dynamic>> Index(string args)
         {
             var channels = new List<dynamic>()
-            { 
+            {
                 new
                 {
                     title = "Закладки",

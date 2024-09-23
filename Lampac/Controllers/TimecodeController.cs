@@ -21,14 +21,19 @@ namespace Lampac.Controllers
         #region timecode.js
         [HttpGet]
         [Route("timecode.js")]
-        public ActionResult timecode()
+        [Route("timecode/{uid}")]
+        public ActionResult timecode(string uid)
         {
-            return Content(FileCache.ReadAllText("plugins/timecode.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            string js = FileCache.ReadAllText("plugins/timecode.js").Replace("{localhost}", host);
+            if (!string.IsNullOrEmpty(uid))
+                js = js.Replace("'profile=' + encodeURIComponent(uid)", $"'profile=' + encodeURIComponent('{uid}')");
+
+            return Content(js, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
         [Route("/timecode/all")]
-        public ActionResult Get(string card_id, long profile)
+        public ActionResult Get(string card_id, string profile)
         {
             string path = getFilePath(card_id, profile, false);
             if (!IO.File.Exists(path))
@@ -39,7 +44,7 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/timecode/add")]
-        public ActionResult Set([FromQuery]long profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
+        public ActionResult Set([FromQuery]string profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
                 return Content("{\"secuses\", false}");
@@ -62,7 +67,7 @@ namespace Lampac.Controllers
 
 
         #region getFilePath
-        string getFilePath(string card_id, long profile, bool createDirectory)
+        string getFilePath(string card_id, string profile, bool createDirectory)
         {
             string md5key = CrypTo.md5($"{card_id}:{profile}");
 
