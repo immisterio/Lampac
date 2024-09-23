@@ -181,6 +181,32 @@ namespace Shared.Engine.Online
             }
             catch { return null; }
         }
+
+        public RootObjectTV? PostTV(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            try
+            {
+                var rootMs = new RootObjectTV();
+
+                if (JsonDocument.Parse(json).RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    rootMs.Movies = JsonSerializer.Deserialize<MovieTV[]>(json);
+                }
+                else
+                {
+                    rootMs.SerialVoice = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, Season>>>(json);
+                }
+
+                return rootMs;
+            }
+            catch { return null; }
+        }
         #endregion
 
         #region Html
@@ -288,7 +314,7 @@ namespace Shared.Engine.Online
                     {
                         episodes = player_links.playlist[s.ToString()].ElementAt(t).Value.Deserialize<Dictionary<string, Movie>>();
                     }
-                    catch 
+                    catch
                     {
                         try
                         {
@@ -344,6 +370,121 @@ namespace Shared.Engine.Online
                 #endregion
             }
 
+            return html.ToString() + "</div>";
+        }
+
+        public string HtmlTV(RootObjectTV? root, bool pro, int postid, string? title, string? original_title, int t, int? s)
+        {
+            if (root == null)
+                return string.Empty;
+
+            bool firstjson = true;
+            var html = new StringBuilder();
+            html.Append("<div class=\"videos__line\">");
+
+            #region Сериал
+            if (root.SerialVoice != null)
+            {
+                string? enc_title = HttpUtility.UrlEncode(title);
+                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+                #region Перевод
+                int indexTranslate = 0;
+
+                foreach (var voiceover in root.SerialVoice)
+                {
+                    string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&t={indexTranslate}";
+                    string active = t == indexTranslate ? "active" : "";
+
+                    indexTranslate++;
+                    html.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + voiceover.Key + "</div>");
+                }
+
+                html.Append("</div><div class=\"videos__line\">");
+
+                var selectedVoiceOverIndex = t != null ? t : 0;
+                var selectedVoiceOver = root.SerialVoice.ElementAt(selectedVoiceOverIndex).Value;
+
+                if (s == null)
+                {
+                    #region Сезоны
+                    var tpl = new SeasonTpl();
+
+                    foreach (var season in selectedVoiceOver)
+                    {
+                        string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}&t={selectedVoiceOverIndex}";
+                        tpl.Append($"{season.Value.season} сезон", link);
+                    }
+
+                    return tpl.ToHtml();
+                    #endregion
+                }
+                else
+                {
+                    var selectedSeason = selectedVoiceOver.FirstOrDefault(x => x.Value.season == s);
+
+                    if (selectedSeason.Value == null)
+                    {
+                        return "<div>Сезон не найден</div>";
+                    }
+
+                    foreach (var episode in selectedSeason.Value.episodes)
+                    {
+                        var streams = new List<(string link, string quality)>() { Capacity = pro ? episode.Value.files.Count : 2 };
+
+                        var sortedFiles = episode.Value.files
+                            .Where(file => pro || file.quality <= 720)
+                            .OrderByDescending(file => file.quality);
+
+                        foreach (var file in sortedFiles)
+                        {
+                            streams.Add((onstreamfile.Invoke(file.url), $"{file.quality}p"));
+                        }
+
+                        if (streams.Count == 0)
+                            continue;
+
+                        string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+
+                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + selectedSeason.Value.season + "\" e=\"" + episode.Key.TrimStart('e') + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key.TrimStart('e')} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key.TrimStart('e')} серия" + "</div></div>");
+
+                        firstjson = false;
+                    }
+                }
+                #endregion
+            }
+            #endregion
+            #region Фильм
+            else if (root.Movies != null)
+            {
+                foreach (var item in root.Movies)
+                {
+                    var streams = new List<(string link, string quality)>() { Capacity = pro ? item.files.Count : 2 };
+
+                    foreach (var file in item.files)
+                    {
+                        if (!pro)
+                        {
+                            if (pro && file.quality > 480)
+                                continue;
+
+                            if (file.quality > 720)
+                                continue;
+                        }
+
+                        streams.Add((onstreamfile.Invoke(file.url), $"{file.quality}p"));
+                    }
+
+                    if (streams.Count == 0)
+                        continue;
+
+                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+
+                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title}" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{item.voiceover}" + "</div></div>");
+                    firstjson = false;
+                }
+            }
+            #endregion
             return html.ToString() + "</div>";
         }
         #endregion

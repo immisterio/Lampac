@@ -106,15 +106,37 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), proxyManager, inmemory: true, onget: async res =>
+            if (!string.IsNullOrEmpty(init.token_apitv))
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
+                var cache = await InvokeCache<RootObjectTV>($"filmix:post:{postid}", cacheTime(20, init: init),
+                    proxyManager, inmemory: true, onget: async res =>
+                    {
+                        if (rch.IsNotConnected())
+                            return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Post(postid);
-            });
+                        string uri = $"https://api.filmix.tv/api-fx/post/{postid}/video-links";
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s));
+                        string json = await HttpClient.Get(uri, timeoutSeconds: 8,
+                            headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
+
+                        return oninvk.PostTV(json);
+                    });
+
+                return OnResult(cache, () => oninvk.HtmlTV(cache.Value, init.pro, postid, title, original_title, t, s));
+            }
+            else
+            {
+                var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init),
+                    proxyManager, inmemory: true, onget: async res =>
+                    {
+                        if (rch.IsNotConnected())
+                            return res.Fail(rch.connectionMsg);
+
+                        return await oninvk.Post(postid);
+                    });
+
+                return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s));
+            }
         }
 
 
