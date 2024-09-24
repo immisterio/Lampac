@@ -13,6 +13,7 @@ using System.Buffers;
 using Shared.Models;
 using Shared.Model.Online;
 using Shared.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -23,10 +24,13 @@ namespace Lampac.Engine.Middlewares
 
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public ProxyAPI(RequestDelegate next, IHttpClientFactory httpClientFactory)
+        IMemoryCache memoryCache;
+
+        public ProxyAPI(RequestDelegate next, IMemoryCache memoryCache, IHttpClientFactory httpClientFactory)
         {
             _next = next;
             _httpClientFactory = httpClientFactory;
+            this.memoryCache = memoryCache;
         }
 
         static ProxyAPI()
@@ -43,10 +47,16 @@ namespace Lampac.Engine.Middlewares
 
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
-                if (!servUri.Contains(".webm")) {
+                string dashkey = Regex.Match(servUri, "^([^/]+)").Groups[1].Value;
+                if (!memoryCache.TryGetValue($"proxy-dash:{dashkey}:{(AppInit.conf.serverproxy.verifyip ? reqip : "")}", out string baseURL)) {
                     httpContext.Response.StatusCode = 403;
                     return;
                 }
+
+                servUri = servUri.Replace($"{dashkey}/", baseURL);
+
+                if (AppInit.conf.serverproxy.showOrigUri)
+                    httpContext.Response.Headers.Add("PX-Orig", servUri);
 
                 using (var client = _httpClientFactory.CreateClient("proxy"))
                 {
@@ -238,8 +248,11 @@ namespace Lampac.Engine.Middlewares
 
                                 string mpd = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
                                 string baseURL = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>").Groups[1].Value;
-                                mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{baseURL}");
-                                //mpd = Regex.Replace(mpd, baseURL, validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(baseURL, decryptLink)}", account_email));
+
+                                string dashkey = CORE.CrypTo.md5(DateTime.Now.ToBinary().ToString());
+                                memoryCache.Set($"proxy-dash:{dashkey}:{(AppInit.conf.serverproxy.verifyip ? reqip : "")}", baseURL, DateTime.Now.AddHours(8));
+
+                                mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{dashkey}/");
 
                                 httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
                                 httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
