@@ -28,12 +28,6 @@ namespace Lampac.Controllers.LITE
             else if (init.two)
                 init.dash = false;
 
-            if (init.dash)
-            {
-                //init.streamproxy = false;
-                //init.geostreamproxy = null;
-            }
-
             var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("collaps", init);
             var proxy = proxyManager.Get();
