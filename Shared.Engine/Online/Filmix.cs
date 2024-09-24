@@ -119,7 +119,7 @@ namespace Shared.Engine.Online
 
             string? html = await onpost.Invoke(url, searchParams, headers);
 
-            if (html != null && html.Contains("ничего не найдено"))
+            if (html == null || html.Contains("ничего не найдено"))
             {
                 searchParams = $"scf=fx&story={HttpUtility.UrlEncode(title)}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1";
                 html = await onpost.Invoke(url, searchParams, headers);
@@ -419,11 +419,17 @@ namespace Shared.Engine.Online
                 if (s == null)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl();
+                    var maxQuality = selectedVoiceOver
+                        .SelectMany(season => season.Value.episodes)
+                        .SelectMany(episode => episode.Value.files)
+                        .Max(file => file.quality);
+
+                    var quality = $"{maxQuality}p";
+                    var tpl = new SeasonTpl(quality);
 
                     foreach (var season in selectedVoiceOver)
                     {
-                        string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}&t={selectedVoiceOverIndex}";
+                        var link = $"{host}lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}&t={selectedVoiceOverIndex}";
                         tpl.Append($"{season.Value.season} сезон", link);
                     }
 
