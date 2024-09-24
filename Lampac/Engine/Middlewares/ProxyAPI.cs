@@ -37,13 +37,30 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
-            if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
+            string reqip = httpContext.Connection.RemoteIpAddress.ToString();
+            string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
+            string account_email = Regex.Match(httpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
+
+            if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
+            {
+                if (!servUri.Contains(".webm")) {
+                    httpContext.Response.StatusCode = 403;
+                    return;
+                }
+
+                using (var client = _httpClientFactory.CreateClient("proxy"))
+                {
+                    var request = CreateProxyHttpRequest(httpContext, null, new Uri(servUri), false);
+                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
+
+                    httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
+                    await CopyProxyHttpResponse(httpContext, response);
+                }
+            }
+            else if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
                 #region decryptLink
                 ProxyLinkModel decryptLink = null;
-                string reqip = httpContext.Connection.RemoteIpAddress.ToString();
-                string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
-                string account_email = Regex.Match(httpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
 
                 if (AppInit.conf.serverproxy.encrypt)
                 {
@@ -201,6 +218,38 @@ namespace Lampac.Engine.Middlewares
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
                                 await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                            }
+                        }
+                        #endregion
+                    }
+                    else if (httpContext.Request.Path.Value.Contains(".mpd") || (contentType != null && contentType.First().ToLower() is "application/dash+xml"))
+                    {
+                        #region dash
+                        using (HttpContent content = response.Content)
+                        {
+                            if (response.StatusCode == HttpStatusCode.OK)
+                            {
+                                if (response.Content.Headers.ContentLength > 625000)
+                                {
+                                    httpContext.Response.ContentType = "text/plain";
+                                    await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                    return;
+                                }
+
+                                string mpd = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
+                                string baseURL = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>").Groups[1].Value;
+                                mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{baseURL}");
+                                //mpd = Regex.Replace(mpd, baseURL, validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(baseURL, decryptLink)}", account_email));
+
+                                httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
+                                httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
+                                httpContext.Response.ContentLength = mpd.Length;
+                                await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                httpContext.Response.StatusCode = (int)response.StatusCode;
+                                await httpContext.Response.WriteAsync("error proxy", httpContext.RequestAborted).ConfigureAwait(false);
                             }
                         }
                         #endregion

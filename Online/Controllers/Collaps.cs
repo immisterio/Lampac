@@ -30,8 +30,8 @@ namespace Lampac.Controllers.LITE
 
             if (init.dash)
             {
-                init.streamproxy = false;
-                init.geostreamproxy = null;
+                //init.streamproxy = false;
+                //init.geostreamproxy = null;
             }
 
             var rch = new RchClient(HttpContext, host, init.rhub);
