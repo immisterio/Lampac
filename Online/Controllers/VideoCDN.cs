@@ -14,11 +14,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vcdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1)
         {
-            var init = AppInit.conf.VCDN;
+            var init = AppInit.conf.VCDN.Clone();
             if (!init.enable)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("vcdn", init);
             var proxy = proxyManager.Get();
 
@@ -50,7 +50,21 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(kinopoisk_id, imdb_id);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s));
+            if (!cache.IsSuccess)
+            {
+                if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\""))
+                    return Content(cache.ErrorMsg);
+
+                if (cache.Value == null && init.rhub && init.rhub_fallback)
+                {
+                    init.rhub = false;
+                    goto reset;
+                }
+
+                return OnError(cache.ErrorMsg);
+            }
+
+            return Content(oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
         }
     }
 }
