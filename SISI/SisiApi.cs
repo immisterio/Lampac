@@ -88,9 +88,9 @@ namespace SISI
             {
                 string url = init.overridehost;
                 if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
-                    url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
-
-                return @default;
+                    return init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                else 
+                    return @default;
             }
 
             if (conf.PornHubPremium.enable)
