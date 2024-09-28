@@ -50,21 +50,10 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(kinopoisk_id, imdb_id);
             });
 
-            if (!cache.IsSuccess)
-            {
-                if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\""))
-                    return Content(cache.ErrorMsg);
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
-                if (cache.Value == null && init.rhub && init.rhub_fallback)
-                {
-                    init.rhub = false;
-                    goto reset;
-                }
-
-                return OnError(cache.ErrorMsg);
-            }
-
-            return Content(oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s));
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/redheadsound")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification)
         {
-            var init = AppInit.conf.Redheadsound;
+            var init = AppInit.conf.Redheadsound.Clone();
 
             if (!init.enable)
                 return OnError();
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
@@ -43,6 +43,9 @@ namespace Lampac.Controllers.LITE
 
                 return await oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, title));
         }

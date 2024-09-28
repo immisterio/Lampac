@@ -17,12 +17,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1)
         {
-            var init = AppInit.conf.VDBmovies;
+            var init = AppInit.conf.VDBmovies.Clone();
 
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("vdbmovies", init);
             var proxy = proxyManager.Get();
 
@@ -84,6 +84,9 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid));
         }

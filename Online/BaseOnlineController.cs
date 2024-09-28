@@ -76,5 +76,23 @@ namespace Online
             return Content(html.Invoke(), "text/html; charset=utf-8");
         }
         #endregion
+
+
+        public bool IsRhubFallback<T>(CacheResult<T> cache, BaseSettings init)
+        {
+            if (cache.IsSuccess)
+                return false;
+
+            if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\""))
+                return false;
+
+            if (cache.Value == null && init.rhub && init.rhub_fallback)
+            {
+                init.rhub = false;
+                return true;
+            }
+
+            return false;
+        }
     }
 }

@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
             if (balancer is "filmix" or "ashdi" or "rhs")
                 init.streamproxy = false;
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxy = proxyManager.Get();
 
             var oninvk = new VoKinoInvoke
@@ -79,6 +79,9 @@ namespace Lampac.Controllers.LITE
 
                 return await oninvk.Embed(kinopoisk_id, balancer, t);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, t, s));
         }
