@@ -280,8 +280,14 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
                         url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
 
-                    if (string.IsNullOrEmpty(url))
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        if (!string.IsNullOrEmpty(account_email))
+                            url += (url.Contains("?") ? "&" : "?") + $"account_email={HttpUtility.UrlEncode(account_email)}";
+                    }
+                    else {
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
+                    }
 
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
