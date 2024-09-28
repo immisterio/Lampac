@@ -60,7 +60,9 @@ namespace Lampac.Engine.Middlewares
 
                 using (var client = _httpClientFactory.CreateClient("proxy"))
                 {
-                    var request = CreateProxyHttpRequest(httpContext, null, new Uri(servUri), false);
+                    var collaps_header = HeadersModel.Init(("Origin", "https://api.ninsel.ws"), ("Referer", $"https://api.ninsel.ws/"), ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"));
+
+                    var request = CreateProxyHttpRequest(httpContext, collaps_header, new Uri(servUri), false);
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
                     httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
@@ -575,7 +577,8 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
-            requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
+            if (!requestMessage.Headers.Contains("User-Agent"))
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
             #endregion
 
             requestMessage.Headers.ConnectionClose = false;
