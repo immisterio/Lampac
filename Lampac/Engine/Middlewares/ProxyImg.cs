@@ -112,9 +112,23 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
+                var headers = decryptLink?.headers ?? new List<HeadersModel>();
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
+                var proxy = proxyManager.Get();
 
-                var array = await Download(href, proxy: proxyManager.Get(), headers: decryptLink?.headers);
+                if (href.Contains("image.tmdb.org"))
+                {
+                    if (AppInit.conf.serverproxy.tmdb.useproxy)
+                        proxyManager = new ProxyManager("proxyimg_tmdb", AppInit.conf.serverproxy.tmdb);
+
+                    if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.IMG_IP))
+                    {
+                        headers.Add(new HeadersModel("Host", "image.tmdb.org"));
+                        href.Replace("image.tmdb.org", AppInit.conf.serverproxy.tmdb.IMG_IP);
+                    }
+                }
+
+                var array = await Download(href, proxy: proxy, headers: headers);
                 if (array == null)
                 {
                     if (cacheimg)

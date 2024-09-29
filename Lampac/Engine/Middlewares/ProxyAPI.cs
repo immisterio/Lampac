@@ -112,12 +112,20 @@ namespace Lampac.Engine.Middlewares
                 #region themoviedb.org
                 if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
                 {
-                    var proxyManager = new ProxyManager("proxyapi", AppInit.conf.serverproxy);
-                    string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get());
+                    var headers = new List<HeadersModel>();
+                    var proxyManager = new ProxyManager("proxyapi_tmdb", AppInit.conf.serverproxy.tmdb);
+
+                    if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.API_IP))
+                    {
+                        headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
+                        servUri.Replace("api.themoviedb.org", AppInit.conf.serverproxy.tmdb.API_IP);
+                    }
+
+                    string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get(), headers: headers);
                     if (json == null) 
                     {
                         proxyManager.Refresh();
-                        await httpContext.Response.WriteAsync("null", httpContext.RequestAborted);
+                        httpContext.Response.Redirect(servUri);
                         return;
                     }
 
