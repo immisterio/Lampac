@@ -24,6 +24,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             var proxyManager = new ProxyManager("kinotochka", init);
             var proxy = proxyManager.Get();
 

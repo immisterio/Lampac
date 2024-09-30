@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Alloha.enable)
                 return OnError("disable");
 
+            if (IsOverridehost(AppInit.conf.Alloha, out string overridehost))
+                return Redirect(overridehost);
+
             var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
                 return OnError("data", proxyManager, result.refresh_proxy);

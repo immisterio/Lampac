@@ -36,12 +36,15 @@ namespace Lampac.Controllers.PornHub
         [Route("phub")]
         [Route("phubgay")]
         [Route("phubsml")]
-        async public Task<JsonResult> Index(string search, string model, string sort, int c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
             var init = AppInit.conf.PornHub;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
@@ -71,12 +74,15 @@ namespace Lampac.Controllers.PornHub
 
         [HttpGet]
         [Route("phubprem")]
-        async public Task<JsonResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
+        async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
             var init = AppInit.conf.PornHubPremium;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))

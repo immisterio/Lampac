@@ -56,6 +56,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             if (balancer is "filmix" or "ashdi" or "rhs")
                 init.streamproxy = false;
 

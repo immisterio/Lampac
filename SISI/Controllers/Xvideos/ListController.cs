@@ -16,12 +16,15 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds")]
         [Route("xdsgay")]
         [Route("xdssml")]
-        async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = AppInit.conf.Xvideos;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
@@ -52,12 +55,15 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds/stars")]
         [Route("xdsgay/stars")]
         [Route("xdssml/stars")]
-        async public Task<JsonResult> Pornstars(string uri, string sort, int pg = 0)
+        async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
             var init = AppInit.conf.Xvideos;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 

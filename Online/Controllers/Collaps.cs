@@ -20,6 +20,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();
 

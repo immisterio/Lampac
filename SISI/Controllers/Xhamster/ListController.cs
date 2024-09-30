@@ -16,12 +16,15 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmr")]
         [Route("xmrgay")]
         [Route("xmrsml")]
-        async public Task<JsonResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
+        async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
             var init = AppInit.conf.Xhamster;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             pg++;
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;

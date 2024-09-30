@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             if (string.IsNullOrWhiteSpace(code))
             {
                 #region Поиск

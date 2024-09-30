@@ -15,12 +15,15 @@ namespace Lampac.Controllers.Tizam
     public class ListController : BaseSisiController
     {
         [Route("tizam")]
-        async public Task<JsonResult> Index(string search, int pg = 1)
+        async public Task<ActionResult> Index(string search, int pg = 1)
         {
             var init = AppInit.conf.Tizam;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search");

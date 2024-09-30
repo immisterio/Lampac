@@ -45,6 +45,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Kodik.enable)
                 return OnError();
 
+            if (IsOverridehost(AppInit.conf.Kodik, out string overridehost))
+                return Redirect(overridehost);
+
             List<Result> content = null;
             var oninvk = InitKodikInvoke();
 

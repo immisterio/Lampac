@@ -18,6 +18,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("ashdi", init);
             var proxy = proxyManager.Get();

@@ -64,6 +64,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
