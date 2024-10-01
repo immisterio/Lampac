@@ -18,7 +18,6 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
-using Lampac.Models.LITE.KinoPub;
 
 namespace Lampac.Controllers
 {
@@ -317,8 +316,9 @@ namespace Lampac.Controllers
                 VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
 
             send("Filmix", conf.Filmix, arg_url: (source == "filmix" ? $"?postid={id}" : ""));
-            send("KinoPub", conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
+            send("Filmix", conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             send("Filmix", conf.FilmixPartner, "fxapi", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            send("KinoPub", conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
 
             send("Alloha", conf.Alloha);
             send("Rezka", conf.Rezka);

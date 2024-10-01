@@ -75,6 +75,8 @@ namespace Shared.Model
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("http://filmixapp.cyou");
 
+        public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("https://api.filmix.tv", enable: false);
+
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("http://5.61.56.18/partner_api", enable: false);
 
         public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "ALL" }, hls = true };

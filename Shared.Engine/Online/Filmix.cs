@@ -4,6 +4,7 @@ using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -93,7 +94,63 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
+        async public ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
+        {
+            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
+                return null;
+
+            string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&limit=48";
+            onlog?.Invoke(uri);
+
+            string? json = await onget.Invoke(uri);
+            if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
+                return await Search3(title, original_title, clarification, year);
+
+            List<SearchModel>? root = null;
+
+            try
+            {
+                root = JsonNode.Parse(json)?["items"]?.Deserialize<List<SearchModel>>();
+            }
+            catch { }
+
+            if (root == null)
+                return await Search3(title, original_title, clarification, year);
+
+            var ids = new List<int>();
+            var stpl = new SimilarTpl(root.Count);
+
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            foreach (var item in root)
+            {
+                if (item == null)
+                    continue;
+
+                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+
+                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
+                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                {
+                    if (item.year == year)
+                        ids.Add(item.id);
+                }
+            }
+
+            onlog?.Invoke("ids: " + ids.Count);
+
+            if (ids.Count == 1)
+                return new SearchResult() { id = ids[0] };
+
+            return new SearchResult() { similars = stpl.ToHtml() };
+        }
+        #endregion
+
+        #region Search3
+        async ValueTask<SearchResult?> Search3(string? title, string? original_title, int clarification, int year)
         {
             if (disableSphinxSearch)
             {
@@ -101,7 +158,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            onlog?.Invoke("Search2");
+            onlog?.Invoke("Search3");
 
             string? html = await onpost.Invoke("https://filmix.fm/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
                 ("Origin", "https://filmix.fm"),
