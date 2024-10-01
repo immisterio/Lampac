@@ -16,6 +16,7 @@ namespace Shared.Engine.CORE
 {
     public class ProxyManager
     {
+        #region static
         static IMemoryCache memoryCache;
         static ConcurrentDictionary<string, ProxyManagerModel> database = new ConcurrentDictionary<string, ProxyManagerModel>();
 
@@ -23,6 +24,7 @@ namespace Shared.Engine.CORE
         {
             memoryCache = mem;
         }
+        #endregion
 
         #region ProxyManager
         string plugin;

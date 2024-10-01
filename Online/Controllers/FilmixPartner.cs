@@ -28,6 +28,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             if (postid == 0)
             {
                 var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year));

@@ -17,12 +17,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1)
         {
-            var init = AppInit.conf.VDBmovies;
+            var init = AppInit.conf.VDBmovies.Clone();
 
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("vdbmovies", init);
             var proxy = proxyManager.Get();
 
@@ -41,7 +44,6 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
 
                 string html = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, headers: HeadersModel.Init(
-                    ("Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                     ("Cache-Control", "no-cache"),
                     ("Dnt", "1"),
                     ("Origin", "https://cdnmovies.net"),
@@ -53,8 +55,7 @@ namespace Lampac.Controllers.LITE
                     ("Sec-Ch-Ua-Platform", "\"Windows\""),
                     ("Sec-Fetch-Dest", "empty"),
                     ("Sec-Fetch-Mode", "cors"),
-                    ("Sec-Fetch-Site", "cross-site"),
-                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+                    ("Sec-Fetch-Site", "cross-site")
                 ));
 
                 if (html == null)
@@ -84,6 +85,9 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid));
         }

@@ -16,12 +16,15 @@ namespace Lampac.Controllers.XvideosRED
     {
         [HttpGet]
         [Route("xdsred")]
-        async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = AppInit.conf.XvideosRED;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string plugin = "xdsred";
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);

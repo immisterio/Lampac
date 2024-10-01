@@ -29,6 +29,9 @@ namespace Lampac.Controllers.LITE
             if (data == null)
                 return OnError();
 
+            if (IsOverridehost(AppInit.conf.HDVB, out string overridehost))
+                return Redirect(overridehost);
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 

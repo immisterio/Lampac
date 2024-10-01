@@ -13,12 +13,15 @@ namespace Lampac.Controllers.Xnxx
     {
         [HttpGet]
         [Route("xnx")]
-        async public Task<JsonResult> Index(string search, int pg = 1)
+        async public Task<ActionResult> Index(string search, int pg = 1)
         {
             var init = AppInit.conf.Xnxx;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string memKey = $"xnx:list:{search}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

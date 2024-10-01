@@ -14,12 +14,15 @@ namespace Lampac.Controllers.BongaCams
     {
         [HttpGet]
         [Route("bgs")]
-        async public Task<JsonResult> Index(string search, string sort, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = AppInit.conf.BongaCams;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search");

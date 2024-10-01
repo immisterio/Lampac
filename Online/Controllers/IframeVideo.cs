@@ -26,6 +26,9 @@ namespace Lampac.Controllers.LITE
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
                 return OnError();
 
+            if (IsOverridehost(AppInit.conf.IframeVideo, out string overridehost))
+                return Redirect(overridehost);
+
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
 

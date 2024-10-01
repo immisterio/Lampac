@@ -16,12 +16,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnmovies")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1)
         {
-            var init = AppInit.conf.CDNmovies;
+            var init = AppInit.conf.CDNmovies.Clone();
 
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("cdnmovies", init);
             var proxy = proxyManager.Get();
 
@@ -44,6 +47,9 @@ namespace Lampac.Controllers.LITE
 
                 return await oninvk.Embed(kinopoisk_id);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid));
         }

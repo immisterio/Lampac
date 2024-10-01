@@ -14,11 +14,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/ashdi")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1)
         {
-            var init = AppInit.conf.Ashdi;
+            var init = AppInit.conf.Ashdi.Clone();
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("ashdi", init);
             var proxy = proxyManager.Get();
 
@@ -38,6 +41,9 @@ namespace Lampac.Controllers.LITE
 
                 return await oninvk.Embed(kinopoisk_id);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s));
         }

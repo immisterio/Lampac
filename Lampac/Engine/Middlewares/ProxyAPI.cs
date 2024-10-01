@@ -13,6 +13,7 @@ using System.Buffers;
 using Shared.Models;
 using Shared.Model.Online;
 using Shared.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -23,10 +24,13 @@ namespace Lampac.Engine.Middlewares
 
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public ProxyAPI(RequestDelegate next, IHttpClientFactory httpClientFactory)
+        IMemoryCache memoryCache;
+
+        public ProxyAPI(RequestDelegate next, IMemoryCache memoryCache, IHttpClientFactory httpClientFactory)
         {
             _next = next;
             _httpClientFactory = httpClientFactory;
+            this.memoryCache = memoryCache;
         }
 
         static ProxyAPI()
@@ -37,13 +41,38 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
-            if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
+            string reqip = httpContext.Connection.RemoteIpAddress.ToString();
+            string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
+            string account_email = Regex.Match(httpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
+
+            if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
+            {
+                string dashkey = Regex.Match(servUri, "^([^/]+)").Groups[1].Value;
+                if (!memoryCache.TryGetValue($"proxy-dash:{dashkey}:{(AppInit.conf.serverproxy.verifyip ? reqip : "")}", out string baseURL)) {
+                    httpContext.Response.StatusCode = 403;
+                    return;
+                }
+
+                servUri = servUri.Replace($"{dashkey}/", baseURL);
+
+                if (AppInit.conf.serverproxy.showOrigUri)
+                    httpContext.Response.Headers.Add("PX-Orig", servUri);
+
+                using (var client = _httpClientFactory.CreateClient("proxy"))
+                {
+                    var collaps_header = HeadersModel.Init(("Origin", "https://api.ninsel.ws"), ("Referer", $"https://api.ninsel.ws/"), ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"));
+
+                    var request = CreateProxyHttpRequest(httpContext, collaps_header, new Uri(servUri), false);
+                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
+
+                    httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
+                    await CopyProxyHttpResponse(httpContext, response);
+                }
+            }
+            else if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
                 #region decryptLink
                 ProxyLinkModel decryptLink = null;
-                string reqip = httpContext.Connection.RemoteIpAddress.ToString();
-                string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
-                string account_email = Regex.Match(httpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
 
                 if (AppInit.conf.serverproxy.encrypt)
                 {
@@ -83,12 +112,20 @@ namespace Lampac.Engine.Middlewares
                 #region themoviedb.org
                 if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
                 {
-                    var proxyManager = new ProxyManager("proxyapi", AppInit.conf.serverproxy);
-                    string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get());
+                    var headers = new List<HeadersModel>();
+                    var proxyManager = new ProxyManager("proxyapi_tmdb", AppInit.conf.serverproxy.tmdb);
+
+                    if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.API_IP))
+                    {
+                        headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
+                        servUri.Replace("api.themoviedb.org", AppInit.conf.serverproxy.tmdb.API_IP);
+                    }
+
+                    string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get(), headers: headers);
                     if (json == null) 
                     {
                         proxyManager.Refresh();
-                        await httpContext.Response.WriteAsync("null", httpContext.RequestAborted);
+                        httpContext.Response.Redirect(servUri);
                         return;
                     }
 
@@ -201,6 +238,41 @@ namespace Lampac.Engine.Middlewares
                             {
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
                                 await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                            }
+                        }
+                        #endregion
+                    }
+                    else if (httpContext.Request.Path.Value.Contains(".mpd") || (contentType != null && contentType.First().ToLower() is "application/dash+xml"))
+                    {
+                        #region dash
+                        using (HttpContent content = response.Content)
+                        {
+                            if (response.StatusCode == HttpStatusCode.OK)
+                            {
+                                if (response.Content.Headers.ContentLength > 625000)
+                                {
+                                    httpContext.Response.ContentType = "text/plain";
+                                    await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                    return;
+                                }
+
+                                string mpd = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
+                                string baseURL = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>").Groups[1].Value;
+
+                                string dashkey = CORE.CrypTo.md5(DateTime.Now.ToBinary().ToString());
+                                memoryCache.Set($"proxy-dash:{dashkey}:{(AppInit.conf.serverproxy.verifyip ? reqip : "")}", baseURL, DateTime.Now.AddHours(8));
+
+                                mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{dashkey}/");
+
+                                httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
+                                httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
+                                httpContext.Response.ContentLength = mpd.Length;
+                                await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                httpContext.Response.StatusCode = (int)response.StatusCode;
+                                await httpContext.Response.WriteAsync("error proxy", httpContext.RequestAborted).ConfigureAwait(false);
                             }
                         }
                         #endregion
@@ -513,7 +585,8 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
-            requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
+            if (!requestMessage.Headers.Contains("User-Agent"))
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
             #endregion
 
             requestMessage.Headers.ConnectionClose = false;

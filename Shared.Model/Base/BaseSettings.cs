@@ -8,6 +8,8 @@ namespace Shared.Model.Base
 
         public bool rhub { get; set; }
 
+        public bool rhub_fallback { get; set; }
+
         public bool rip { get; set; }
 
         public int cache_time { get; set; }

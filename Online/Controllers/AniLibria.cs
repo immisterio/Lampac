@@ -15,12 +15,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/anilibria")]
         async public Task<ActionResult> Index(string title, string code, int year)
         {
-            var init = AppInit.conf.AnilibriaOnline;
+            var init = AppInit.conf.AnilibriaOnline.Clone();
 
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("anilibria", init);
             var proxy = proxyManager.Get();
 
@@ -40,6 +43,9 @@ namespace Lampac.Controllers.LITE
 
                 return await oninvk.Embed(title);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year));
         }
