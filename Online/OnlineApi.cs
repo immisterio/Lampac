@@ -326,10 +326,10 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0)
             {
                 send("Zetflix", conf.Zetflix);
-                send("VDBmovies", conf.VDBmovies, "vdbmovies");
+                send("VDBmovies", conf.VDBmovies);
 
                 if (serial == -1 || serial == 0)
-                    send("FanCDN", conf.FanCDN, "fancdn");
+                    send("FanCDN", conf.FanCDN);
             }
 
             send("VideoCDN", conf.VCDN, "vcdn");
@@ -360,10 +360,15 @@ namespace Lampac.Controllers
             if (AppInit.conf.Collaps.two)
                 send("Collaps", conf.Collaps, "collaps-dash");
             send("Collaps", conf.Collaps);
-            send("HDVB", conf.HDVB);
 
             if (serial == -1 || serial == 0)
                 send("Redheadsound", conf.Redheadsound);
+
+            if (kinopoisk_id > 0)
+            {
+                send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
+                send("HDVB", conf.HDVB);
+            }
 
             send("Kinotochka", conf.Kinotochka);
 
@@ -509,6 +514,7 @@ namespace Lampac.Controllers
                         case "vdbmovies":
                         case "collaps-dash":
                         case "fancdn":
+                        case "cdnvideohub":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":
