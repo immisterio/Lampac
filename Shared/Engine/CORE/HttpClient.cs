@@ -74,8 +74,8 @@ namespace Lampac.Engine.CORE
             if (MaxResponseContentBufferSize != -1)
                 client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
 
-            client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
-            client.DefaultRequestHeaders.Add("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate, br");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5");
 
             loglines += "Accept-Encoding: gzip, deflate, br\n";
             loglines += "Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.6,en;q=0.5\n";

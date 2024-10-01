@@ -195,9 +195,16 @@ namespace Lampac
             {
                 enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
             },
-            cache = new ServerproxyCacheConf() 
+            cache = new ServerproxyCacheConf()
             {
                 img = false, img_rsize = true
+            },
+            tmdb = new ServerproxyTmdb() 
+            {
+                proxy = new ProxySettings()
+                {
+                    list = new ConcurrentBag<string>() { "socks5://127.0.0.1:9050" }
+                }
             }
         };
 

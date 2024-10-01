@@ -46,6 +46,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();

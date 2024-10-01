@@ -110,8 +110,7 @@ namespace Shared.Engine.Online
                 ("Sec-Fetch-Site", "same-origin"),
                 ("Sec-Fetch-Mode", "cors"),
                 ("Sec-Fetch-Dest", "empty"),
-                ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123"),
-                ("Accept-Language", "ru-RU,ru;q=0.9")
+                ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123")
             );
 
             string url = $"https://filmix.quest/engine/ajax/sphinx_search.php";

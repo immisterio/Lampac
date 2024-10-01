@@ -4,6 +4,7 @@ using Lampac.Models.AppConf;
 using System.Text.RegularExpressions;
 using Shared.Model.Base;
 using Shared.Model.Online.Settings;
+using Shared.Model.Online;
 
 namespace Shared.Model
 {
@@ -69,6 +70,8 @@ namespace Shared.Model
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://megaoblako.com") { corseu = true, geostreamproxy = new List<string>() { "UA" } };
+
+        public PidTorSettings PidTor { get; set; } = new PidTorSettings() { redapi = "http://redapi.cfhttp.top", min_sid = 15 };
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("http://filmixapp.cyou");
 

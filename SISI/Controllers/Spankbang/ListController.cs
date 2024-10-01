@@ -29,12 +29,15 @@ namespace Lampac.Controllers.Spankbang
 
         [HttpGet]
         [Route("sbg")]
-        async public Task<JsonResult> Index(string search, string sort, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = AppInit.conf.Spankbang;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

@@ -18,6 +18,7 @@ namespace Shared.Models.ServerProxy
 
         public ServerproxyBufferingConf buffering { get; set; } = new ServerproxyBufferingConf();
 
+        public ServerproxyTmdb tmdb { get; set; } = new ServerproxyTmdb();
 
         public bool useproxy { get; set; }
 

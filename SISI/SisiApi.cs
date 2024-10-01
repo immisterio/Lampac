@@ -12,6 +12,7 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
+using Shared.Model.Base;
 
 namespace SISI
 {
@@ -83,47 +84,56 @@ namespace SISI
                 }
             }
 
+            string gourl(BaseSettings init, string @default)
+            {
+                string url = init.overridehost;
+                if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                    return init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                else 
+                    return @default;
+            }
+
             if (conf.PornHubPremium.enable)
-                channels.Add(new ChannelItem("pornhubpremium.com", conf.PornHubPremium.overridehost ?? $"{host}/phubprem"));
+                channels.Add(new ChannelItem("pornhubpremium.com", gourl(conf.PornHubPremium, $"{host}/phubprem")));
 
             if (conf.PornHub.enable)
-                channels.Add(new ChannelItem("pornhub.com", conf.PornHub.overridehost ?? $"{host}/phub"));
+                channels.Add(new ChannelItem("pornhub.com", gourl(conf.PornHub, $"{host}/phub")));
 
             if (conf.Xvideos.enable)
-                channels.Add(new ChannelItem("xvideos.com", conf.Xvideos.overridehost ?? $"{host}/xds"));
+                channels.Add(new ChannelItem("xvideos.com", gourl(conf.Xvideos, $"{host}/xds")));
 
             if (conf.Xhamster.enable)
-                channels.Add(new ChannelItem("xhamster.com", conf.Xhamster.overridehost ?? $"{host}/xmr"));
+                channels.Add(new ChannelItem("xhamster.com", gourl(conf.Xhamster, $"{host}/xmr")));
 
             if (conf.Ebalovo.enable)
-                channels.Add(new ChannelItem("ebalovo.porn", conf.Ebalovo.overridehost ?? $"{host}/elo"));
+                channels.Add(new ChannelItem("ebalovo.porn", gourl(conf.Ebalovo, $"{host}/elo")));
 
             if (conf.HQporner.enable)
-                channels.Add(new ChannelItem("hqporner.com", conf.HQporner.overridehost ?? $"{host}/hqr"));
+                channels.Add(new ChannelItem("hqporner.com", gourl(conf.HQporner, $"{host}/hqr")));
 
             if (conf.Spankbang.enable)
-                channels.Add(new ChannelItem("spankbang.com", conf.Spankbang.overridehost ?? $"{host}/sbg"));
+                channels.Add(new ChannelItem("spankbang.com", gourl(conf.Spankbang, $"{host}/sbg")));
 
             if (conf.Eporner.enable)
-                channels.Add(new ChannelItem("eporner.com", conf.Eporner.overridehost ?? $"{host}/epr"));
+                channels.Add(new ChannelItem("eporner.com", gourl(conf.Eporner, $"{host}/epr")));
 
             if (conf.Porntrex.enable)
-                channels.Add(new ChannelItem("porntrex.com", conf.Porntrex.overridehost ?? $"{host}/ptx"));
+                channels.Add(new ChannelItem("porntrex.com", gourl(conf.Porntrex, $"{host}/ptx")));
 
             if (conf.XvideosRED.enable)
-                channels.Add(new ChannelItem("xdsred", conf.XvideosRED.overridehost ?? $"{host}/xdsred"));
+                channels.Add(new ChannelItem("xdsred", gourl(conf.XvideosRED, $"{host}/xdsred")));
 
             if (conf.Xnxx.enable)
-                channels.Add(new ChannelItem("xnxx.com", conf.Xnxx.overridehost ?? $"{host}/xnx"));
+                channels.Add(new ChannelItem("xnxx.com", gourl(conf.Xnxx, $"{host}/xnx")));
 
             if (conf.Tizam.enable)
-                channels.Add(new ChannelItem("tizam.pw", conf.Tizam.overridehost ?? $"{host}/tizam"));
+                channels.Add(new ChannelItem("tizam.pw", gourl(conf.Tizam, $"{host}/tizam")));
 
             if (conf.BongaCams.enable)
-                channels.Add(new ChannelItem("bongacams.com", conf.BongaCams.overridehost ?? $"{host}/bgs"));
+                channels.Add(new ChannelItem("bongacams.com", gourl(conf.BongaCams, $"{host}/bgs")));
 
             if (conf.Chaturbate.enable)
-                channels.Add(new ChannelItem("chaturbate.com", conf.Chaturbate.overridehost ?? $"{host}/chu"));
+                channels.Add(new ChannelItem("chaturbate.com", gourl(conf.Chaturbate, $"{host}/chu")));
 
             if (conf.sisi.xdb)
             {

@@ -18,6 +18,7 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
+using Lampac.Models.LITE.KinoPub;
 
 namespace Lampac.Controllers
 {
@@ -280,8 +281,14 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
                         url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
 
-                    if (string.IsNullOrEmpty(url))
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        if (!string.IsNullOrEmpty(account_email))
+                            url += (url.Contains("?") ? "&" : "?") + $"account_email={HttpUtility.UrlEncode(account_email)}";
+                    }
+                    else {
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
+                    }
 
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
@@ -326,7 +333,12 @@ namespace Lampac.Controllers
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
+            {
                 send("iRemux", conf.iRemux, "remux");
+
+                if (conf.PidTor.enable)
+                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidor", "pidor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+            }
 
             send("Voidboost", conf.Voidboost);
 

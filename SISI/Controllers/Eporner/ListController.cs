@@ -13,12 +13,15 @@ namespace Lampac.Controllers.Eporner
     {
         [HttpGet]
         [Route("epr")]
-        async public Task<JsonResult> Index(string search, string sort, string c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = AppInit.conf.Eporner;
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             var proxyManager = new ProxyManager("epr", init);
             var proxy = proxyManager.Get();
