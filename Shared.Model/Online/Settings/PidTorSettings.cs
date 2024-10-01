@@ -18,6 +18,8 @@
 
         public string? filter_ignore { get; set; }
 
+        public PidTorAuthTS? base_auth { get; set; }
+
         public string[]? torrs { get; set; }
 
         public List<PidTorAuthTS>? auth_torrs { get; set; }

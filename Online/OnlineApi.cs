@@ -327,6 +327,9 @@ namespace Lampac.Controllers
             {
                 send("Zetflix", conf.Zetflix);
                 send("VDBmovies", conf.VDBmovies, "vdbmovies");
+
+                if (serial == -1 || serial == 0)
+                    send("FanCDN", conf.FanCDN, "fancdn");
             }
 
             send("VideoCDN", conf.VCDN, "vcdn");
@@ -337,10 +340,11 @@ namespace Lampac.Controllers
                 send("iRemux", conf.iRemux, "remux");
 
                 if (conf.PidTor.enable)
-                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                {
+                    if ((conf.PidTor.torrs != null && conf.PidTor.torrs.Length > 0) || (conf.PidTor.auth_torrs != null && conf.PidTor.auth_torrs.Count > 0) || AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
+                        online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                }
             }
-
-            send("Voidboost", conf.Voidboost);
 
             if (kinopoisk_id > 0)
                 send("Ashdi (UKR)", conf.Ashdi, "ashdi");
@@ -352,12 +356,6 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
                 send("VideoDB", conf.VideoDB);
-
-            if (serial == -1 || serial == 1)
-                send("Seasonvar", conf.Seasonvar);
-
-            if (serial == -1 || serial == 1)
-                send("LostfilmHD", conf.Lostfilmhd);
 
             if (AppInit.conf.Collaps.two)
                 send("Collaps", conf.Collaps, "collaps-dash");
@@ -492,6 +490,7 @@ namespace Lampac.Controllers
                         case "alloha":
                         case "remux":
                         case "ashdi":
+                        case "pidtor":
                             quality = " ~ 2160p";
                             break;
                         case "videodb":
@@ -509,6 +508,7 @@ namespace Lampac.Controllers
                         case "lostfilmhd":
                         case "vdbmovies":
                         case "collaps-dash":
+                        case "fancdn":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":

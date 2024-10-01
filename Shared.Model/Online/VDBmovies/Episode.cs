@@ -7,5 +7,7 @@
         public string file { get; set; }
 
         public string? subtitle { get; set; }
+
+        public string? subtitles { get; set; }
     }
 }

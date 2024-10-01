@@ -70,7 +70,7 @@ namespace Shared.Model
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("https://megaoblako.com") { corseu = true, geostreamproxy = new List<string>() { "UA" } };
 
-        public PidTorSettings PidTor { get; set; } = new PidTorSettings() { redapi = "http://redapi.cfhttp.top", min_sid = 15 };
+        public PidTorSettings PidTor { get; set; } = new PidTorSettings() { enable = true, redapi = "http://redapi.cfhttp.top", min_sid = 15 };
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("http://filmixapp.cyou");
 
@@ -86,6 +86,7 @@ namespace Shared.Model
 
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://cdnmovies-stream.online"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/) { geostreamproxy = new List<string>() { "ALL" } };
 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("https://fancdn.net") { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("http://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 

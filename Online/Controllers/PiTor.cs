@@ -88,7 +88,7 @@ namespace Lampac.Controllers.LITE
                                         voicename += "Дубляж, ";
 
                                     if (Regex.IsMatch(name.ToLower(), "( ст| пм)", RegexOptions.IgnoreCase))
-                                        voicename += "Профессиональный многоголосый, ";
+                                        voicename += "Многоголосый, ";
 
                                     if (torrent.Tracker.ToLower() == "lostfilm")
                                     {
@@ -276,6 +276,19 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             string magnet = $"magnet:?xt=urn:btih:{id}&" + HttpContext.Request.QueryString.Value.Remove(0, 1);
+
+            #region auth_stream
+            async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd)
+            {
+                login = login.Replace("{account_email}", account_email ?? string.Empty);
+
+                var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
+                await HttpClient.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
+
+                return Redirect($"{host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index=1&play");
+            }
+            #endregion
+
             if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
                 return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index=1&play");
 
@@ -284,16 +297,13 @@ namespace Lampac.Controllers.LITE
                 var tors = init.auth_torrs.Where(i => i.enable).ToList();
                 var ts = tors[Random.Shared.Next(0, tors.Count)];
 
-                string login = ts.login;
-                login = login.Replace("{account_email}", account_email ?? string.Empty);
-
-                var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
-                await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" +magnet+ "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
-
-                return Redirect($"{ts.host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index=1&play");
+                return await auth_stream(ts.host, ts.login, ts.passwd);
             }
             else 
             {
+                if (init.base_auth != null && init.base_auth.enable)
+                    return await auth_stream(init.torrs[Random.Shared.Next(0, init.torrs.Length)], init.base_auth.login, init.base_auth.passwd);
+
                 return Redirect($"{init.torrs[Random.Shared.Next(0, init.torrs.Length)]}/stream?link={HttpUtility.UrlEncode(magnet)}&index=1&play");
             }
         }
