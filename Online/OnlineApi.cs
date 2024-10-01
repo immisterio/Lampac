@@ -337,7 +337,7 @@ namespace Lampac.Controllers
                 send("iRemux", conf.iRemux, "remux");
 
                 if (conf.PidTor.enable)
-                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidor", "pidor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
             }
 
             send("Voidboost", conf.Voidboost);

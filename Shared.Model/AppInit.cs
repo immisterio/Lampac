@@ -4,7 +4,6 @@ using Lampac.Models.AppConf;
 using System.Text.RegularExpressions;
 using Shared.Model.Base;
 using Shared.Model.Online.Settings;
-using Shared.Model.Online;
 
 namespace Shared.Model
 {

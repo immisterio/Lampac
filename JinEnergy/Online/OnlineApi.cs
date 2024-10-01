@@ -158,7 +158,7 @@ namespace JinEnergy.Online
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
             if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
-                send("Zetflix - 720p", "zetflix", AppInit.Zetflix);
+                send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
 
             send("Rezka - " + (!string.IsNullOrEmpty(AppInit.Rezka.cookie) ? "2160p" : "720p"), "rezka", AppInit.Rezka);
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
@@ -177,8 +177,8 @@ namespace JinEnergy.Online
 
             if (!titleSearch)
             {
-                if (AppInit.IsDefaultConf)
-                    send("Collaps - 1080p", "collaps-dash", AppInit.Collaps);
+                //if (AppInit.IsDefaultConf)
+                //    send("Collaps - 1080p", "collaps-dash", AppInit.Collaps);
 
                 send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
             }
