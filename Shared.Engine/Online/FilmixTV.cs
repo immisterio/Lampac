@@ -43,7 +43,7 @@ namespace Shared.Engine.Online
 
             string? json = await onget.Invoke(uri);
             if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
-                return await Search2(title, original_title, clarification, year);
+                return await Search2(title, original_title, year, clarification);
 
             List<SearchModel>? root = null;
 
@@ -53,8 +53,8 @@ namespace Shared.Engine.Online
             }
             catch { }
 
-            if (root == null)
-                return await Search2(title, original_title, clarification, year);
+            if (root == null || root.Count == 0)
+                return await Search2(title, original_title, year, clarification);
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);
@@ -89,37 +89,48 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async public ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
+        async ValueTask<SearchResult?> Search2(string? title, string? original_title, int year, int clarification)
         {
-
-            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
-                return null;
-
-            string uri = $"http://filmixapp.cyou/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
-            onlog?.Invoke(uri);
-
-            string? json = await onget.Invoke(uri);
-            if (json == null)
-                return null;
-
-            List<SearchModel>? root = null;
-
-            try
+            async ValueTask<List<SearchModel>?> gosearch(string? story)
             {
-                root = JsonSerializer.Deserialize<List<SearchModel>>(json);
-            }
-            catch { }
+                if (string.IsNullOrEmpty(story))
+                    return null;
 
-            if (root == null)
+                string uri = $"http://filmixapp.cyou/api/v2/search?story={HttpUtility.UrlEncode(story)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
+                onlog?.Invoke(uri);
+
+                string? json = await onget.Invoke(uri);
+                if (json == null)
+                    return null;
+
+                List<SearchModel>? root = null;
+
+                try
+                {
+                    root = JsonSerializer.Deserialize<List<SearchModel>>(json);
+                }
+                catch { }
+
+                if (root == null || root.Count == 0)
+                    return null;
+
+                return root;
+            }
+
+            var result = await gosearch(clarification == 1 ? original_title : title);
+            if (result == null)
+                result = await gosearch(clarification == 1 ? title : original_title);
+
+            if (result == null)
                 return null;
 
             var ids = new List<int>();
-            var stpl = new SimilarTpl(root.Count);
+            var stpl = new SimilarTpl(result.Count);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            foreach (var item in root)
+            foreach (var item in result)
             {
                 if (item == null)
                     continue;

@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"filmixtv:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
                 {
                     return await oninvk.Search(title, original_title, clarification, year);
                 });

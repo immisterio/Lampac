@@ -12,7 +12,7 @@
 
         public int min_sid { get; set; }
 
-        public int max_size { get; set; }
+        public long max_size { get; set; }
 
         public string? filter { get; set; }
 

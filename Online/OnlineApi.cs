@@ -490,6 +490,7 @@ namespace Lampac.Controllers
                     {
                         case "fxapi":
                         case "filmix":
+                        case "filmixtv":
                         case "kinopub":
                         case "vokino":
                         case "alloha":

@@ -58,7 +58,7 @@ namespace Shared.Engine.Online
             }
             catch { }
 
-            if (root == null)
+            if (root == null || root.Count == 0)
                 return await Search2(title, original_title, clarification, year);
 
             var ids = new List<int>();
@@ -94,36 +94,48 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async public ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
+        async ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
         {
-            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
-                return null;
-
-            string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&limit=48";
-            onlog?.Invoke(uri);
-
-            string? json = await onget.Invoke(uri);
-            if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
-                return await Search3(title, original_title, clarification, year);
-
-            List<SearchModel>? root = null;
-
-            try
+            async ValueTask<List<SearchModel>?> gosearch(string? story)
             {
-                root = JsonNode.Parse(json)?["items"]?.Deserialize<List<SearchModel>>();
-            }
-            catch { }
+                if (string.IsNullOrEmpty(story))
+                    return null;
 
-            if (root == null)
+                string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
+                onlog?.Invoke(uri);
+
+                string? json = await onget.Invoke(uri);
+                if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
+                    return null;
+
+                List<SearchModel>? root = null;
+
+                try
+                {
+                    root = JsonNode.Parse(json)?["items"]?.Deserialize<List<SearchModel>>();
+                }
+                catch { }
+
+                if (root == null || root.Count == 0)
+                    return null;
+
+                return root;
+            }
+
+            var result = await gosearch(clarification == 1 ? original_title : title);
+            if (result == null)
+                result = await gosearch(clarification == 1 ? title : original_title);
+
+            if (result == null)
                 return await Search3(title, original_title, clarification, year);
 
             var ids = new List<int>();
-            var stpl = new SimilarTpl(root.Count);
+            var stpl = new SimilarTpl(result.Count);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            foreach (var item in root)
+            foreach (var item in result)
             {
                 if (item == null)
                     continue;
