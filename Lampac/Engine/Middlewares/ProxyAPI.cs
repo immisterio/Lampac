@@ -377,7 +377,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 else
                 {
-                    uri = decryptLink.uri + uri;
+                    uri = hlspatch + uri;
                 }
 
                 return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", account_email);

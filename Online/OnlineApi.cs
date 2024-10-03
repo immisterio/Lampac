@@ -366,7 +366,9 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
+                if (serial == -1 || serial == 0)
+                    send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
+
                 send("HDVB", conf.HDVB);
             }
 
