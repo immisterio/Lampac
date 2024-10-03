@@ -51,12 +51,6 @@ namespace Lampac.Controllers.LITE
                         if (init.max_size > 0 && torrent.Size > init.max_size)
                             continue;
 
-                        if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch(name, init.filter, RegexOptions.IgnoreCase))
-                            continue;
-
-                        if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch(name, init.filter_ignore, RegexOptions.IgnoreCase))
-                            continue;
-
                         if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p"))
                         {
                             int sid = torrent.Seeders;
@@ -235,6 +229,12 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrWhiteSpace(tr))
                                     continue;
                                 #endregion
+
+                                if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch($"{name}:{itemtitle}", init.filter, RegexOptions.IgnoreCase))
+                                    continue;
+
+                                if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{itemtitle}", init.filter_ignore, RegexOptions.IgnoreCase))
+                                    continue;
 
                                 torrents.Add((itemtitle, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), mediainfo));
                             }
