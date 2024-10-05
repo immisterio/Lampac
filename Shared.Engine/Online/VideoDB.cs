@@ -13,29 +13,24 @@ namespace Shared.Engine.Online
         #region VideoDBInvoke
         string? host;
         string apihost;
-        bool usehls;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
 
-        public VideoDBInvoke(string? host, string? apihost, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoDBInvoke(string? host, string? apihost, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onget = onget;
-            usehls = hls;
         }
         #endregion
 
         #region Embed
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id)
         {
-            string? html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}", HeadersModel.Init(
-                ("referer", "https://www.google.com/")
-                //("cookie", "invite=a246a3f46c82fe439a45c3dbbbb24ad5")
-            ));
+            string? html = await onget.Invoke($"{apihost}/embed/AN?kinopoisk_id={kinopoisk_id}", null);
 
             if (html == null)
             {
@@ -43,27 +38,42 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (html.StartsWith("<script>(function(){"))
-                return new EmbedModel() { obfuscation = true};
-
             return Embed(html);
         }
 
         public EmbedModel? Embed(string html)
         {
-            string? file = new Regex("file:([^\n\r]+,\\])").Match(html ?? "").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(file))
+            if (string.IsNullOrEmpty(html))
                 return null;
 
-            file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
-                        .Replace("},]", "}]");
+            string? decodePlayer()
+            {
+                try
+                {
+                    string base64 = Regex.Match(html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 3);
+                    base64 = Regex.Replace(base64, "//[^=]+=", "");
+
+                    string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                    json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
+
+                    return json;
+                }
+                catch 
+                {
+                    return null;
+                }
+            }
+
+            string? file = decodePlayer();
+            if (file == null)
+                return null;
 
             var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
             if (pl == null || pl.Count == 0) 
                 return null;
 
             string quality = file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
-            return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":"), quality = quality };
+            return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };
         }
         #endregion
 
@@ -93,42 +103,39 @@ namespace Shared.Engine.Online
                     #region streams
                     var streams = new List<(string link, string quality)>() { Capacity = 4 };
 
-                    foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                    foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        if (!usehls && link.EndsWith(".m3u8"))
-                            link = link.Replace($"/{m.Groups[1].Value}.m3u8", $"/{m.Groups[1].Value}.mp4");
-
-                        streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}", $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
                         continue;
                     #endregion
 
-                    #region subtitle
+                    #region subtitle (off)
                     var subtitles = new SubtitleTpl();
 
-                    try
-                    {
-                        int subx = 1;
-                        var subs = pl.subtitle;
-                        if (subs != null)
-                        {
-                            foreach (string cc in subs.Split(","))
-                            {
-                                if (string.IsNullOrWhiteSpace(cc) || !cc.EndsWith(".srt"))
-                                    continue;
+                    //try
+                    //{
+                    //    int subx = 1;
+                    //    var subs = pl.subtitle;
+                    //    if (subs != null)
+                    //    {
+                    //        foreach (string cc in subs.Split(","))
+                    //        {
+                    //            if (string.IsNullOrWhiteSpace(cc) || !cc.EndsWith(".srt"))
+                    //                continue;
 
-                                subtitles.Append($"sub #{subx}", onstreamfile.Invoke(cc));
-                                subx++;
-                            }
-                        }
-                    }
-                    catch { }
+                    //            subtitles.Append($"sub #{subx}", onstreamfile.Invoke(cc));
+                    //            subx++;
+                    //        }
+                    //    }
+                    //}
+                    //catch { }
                     #endregion
 
                     mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
@@ -180,8 +187,9 @@ namespace Shared.Engine.Online
 
                         foreach (var pl in episodes)
                         {
-                            string? perevod = pl?.comment;
-                            if (perevod != null && string.IsNullOrEmpty(t))
+                            // MVO | LostFilm
+                            string perevod = Regex.Replace(pl?.title ?? "", "[a-zA-Z]{3} \\| ", "");
+                            if (!string.IsNullOrEmpty(perevod) && string.IsNullOrEmpty(t))
                                 t = perevod;
 
                             #region Переводы
@@ -198,6 +206,7 @@ namespace Shared.Engine.Online
                             if (perevod != t)
                                 continue;
 
+                            // 1 эпизод 
                             string? name = episode?.title;
                             string? file = pl?.file;
 
@@ -206,16 +215,13 @@ namespace Shared.Engine.Online
 
                             var streams = new List<(string link, string quality)>() { Capacity = 4 };
 
-                            foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                            foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
                             {
                                 string link = m.Groups[2].Value;
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                if (!usehls && link.EndsWith(".m3u8"))
-                                    link = link.Replace($"/{m.Groups[1].Value}.m3u8", $"/{m.Groups[1].Value}.mp4");
-
-                                streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}", $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)

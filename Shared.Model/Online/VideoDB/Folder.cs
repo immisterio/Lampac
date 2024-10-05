@@ -6,8 +6,6 @@
 
         public List<Folder> folder { get; set; }
 
-        public string comment { get; set; }
-
         public string file { get; set; }
     }
 }

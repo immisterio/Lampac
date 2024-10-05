@@ -82,7 +82,7 @@ namespace Shared.Model
 
         public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
 
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://kinoplay2.site", enable: false, rip: true) { geostreamproxy = new List<string>() { "UA" } };
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://30bf3790.obrut.watch") { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
@@ -90,7 +90,7 @@ namespace Shared.Model
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("https://fancdn.net") { geostreamproxy = new List<string>() { "ALL" } };
 
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("http://89442664434375553.svetacdn.in/0HlZgU1l1mw5", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("http://22884.annacdn.cc/nPBZWDQ5doe2", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("http://api.vokino.tv", streamproxy: true);
 

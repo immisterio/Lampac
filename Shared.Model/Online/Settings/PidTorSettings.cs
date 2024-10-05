@@ -10,6 +10,8 @@
 
         public string? redapi { get; set; }
 
+        public string? apikey { get; set; }
+
         public int min_sid { get; set; }
 
         public long max_size { get; set; }
@@ -17,6 +19,8 @@
         public string? filter { get; set; }
 
         public string? filter_ignore { get; set; }
+
+        public string? sort { get; set; }
 
         public PidTorAuthTS? base_auth { get; set; }
 

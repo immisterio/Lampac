@@ -47,7 +47,8 @@ namespace JinEnergy.Online
 
                 try
                 {
-                    return oninvk.Embed(await JSRuntime!.InvokeAsync<string?>("eval", oninvk.EvalCode(file)));
+                    //return oninvk.Embed(await JSRuntime!.InvokeAsync<string?>("eval", oninvk.EvalCode(file)));
+                    return oninvk.Embed(oninvk.DecodeEval(file));
                 }
                 catch
                 {

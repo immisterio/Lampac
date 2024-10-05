@@ -26,13 +26,13 @@ namespace Lampac.Controllers.LITE
 
             #region Кеш запроса
             string memKey = $"pidtor:{title}:{original_title}:{year}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, string mediainfo)> torrents))
+            if (!memoryCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo)> torrents))
             {
-                var root = await HttpClient.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial=1", timeoutSeconds: 8);
+                var root = await HttpClient.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial=1&apikey={init.apikey}", timeoutSeconds: 8);
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
-                torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, string mediainfo)>();
+                torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo)>();
                 var results = root?.Results;
                 if (results != null && results.Count > 0)
                 {
@@ -236,7 +236,7 @@ namespace Lampac.Controllers.LITE
                                 if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{itemtitle}", init.filter_ignore, RegexOptions.IgnoreCase))
                                     continue;
 
-                                torrents.Add((itemtitle, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), mediainfo));
+                                torrents.Add((itemtitle, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), (torrent.Size ?? 0), mediainfo));
                             }
                         }
                     }
@@ -251,7 +251,10 @@ namespace Lampac.Controllers.LITE
 
             var mtpl = new MovieTpl(title, original_title);
 
-            foreach (var torrent in torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice)).ThenByDescending(i => i.sid))
+            var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
+            movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : movies.ThenByDescending(i => i.sid);
+
+            foreach (var torrent in movies)
             {
                 if (!string.IsNullOrWhiteSpace(qtype) && !torrent.name.Contains(qtype))
                     continue;

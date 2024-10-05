@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CRON
@@ -43,7 +44,6 @@ namespace Lampac.Engine.CRON
                     }
 
                     update("https://nb557.github.io/plugins/online_mod.js");
-                    update("https://bwa.to/plugins/prestige.js");
                     update("http://github.freebie.tom.ru/want.js");
                     update("https://nb557.github.io/plugins/reset_subs.js");
                     update("http://193.233.134.21/plugins/mult.js");
@@ -59,6 +59,7 @@ namespace Lampac.Engine.CRON
                     update("https://nnmdd.github.io/lampa_hotkeys/hotkeys.js");
                     update("https://bazzzilius.github.io/scripts/gold_theme.js");
                     update("https://bdvburik.github.io/rezkacomment.js");
+                    update("https://lampame.github.io/main/Shikimori/Shikimori.js");
                 }
                 catch { }
 
@@ -66,15 +67,17 @@ namespace Lampac.Engine.CRON
                 {
                     if (File.Exists("wwwroot/bwa/_framework/blazor.boot.json"))
                     {
-                        string bootapp = await HttpClient.Get("https://bwa.pages.dev/blazor.boot.json");
+                        string bwajs = await HttpClient.Get("https://bwa.to/f");
+                        string framework = Regex.Match(bwajs, "framework = '([^']+)'").Groups[1].Value;
+
+                        string bootapp = await HttpClient.Get($"{framework}/blazor.boot.json");
                         if (bootapp != null && bootapp.Contains("JinEnergy.wasm"))
                         {
                             string currentapp = File.ReadAllText("wwwroot/bwa/_framework/blazor.boot.json");
-                            currentapp = CrypTo.md5(currentapp);
 
-                            if (CrypTo.md5(bootapp) != currentapp)
+                            if (CrypTo.md5(bootapp) != CrypTo.md5(currentapp))
                             {
-                                byte[] array = await HttpClient.Download("https://bwa.pages.dev/latest.zip", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
+                                byte[] array = await HttpClient.Download($"{framework}/latest.zip", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
                                 if (array != null)
                                 {
                                     await File.WriteAllBytesAsync("wwwroot/bwa/latest.zip", array);
