@@ -83,6 +83,9 @@ namespace Shared.Engine.Online
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
 
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
             bool firstjson = true;
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
@@ -109,7 +112,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}", $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&title={enc_title}&original_title={enc_original_title}", $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
@@ -138,7 +141,7 @@ namespace Shared.Engine.Online
                     //catch { }
                     #endregion
 
-                    mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(name, streams[0].link, "call", $"{streams[0].link}&play=true", subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                 }
 
                 return mtpl.ToHtml();
@@ -147,9 +150,6 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
-
                 if (s == -1)
                 {
                     var tpl = new SeasonTpl(root.quality);
@@ -188,7 +188,7 @@ namespace Shared.Engine.Online
                         foreach (var pl in episodes)
                         {
                             // MVO | LostFilm
-                            string perevod = Regex.Replace(pl?.title ?? "", "[a-zA-Z]{3} \\| ", "");
+                            string perevod = Regex.Replace(pl?.title ?? "", "^[a-zA-Z]{3} \\| ", "");
                             if (!string.IsNullOrEmpty(perevod) && string.IsNullOrEmpty(t))
                                 t = perevod;
 
@@ -221,7 +221,7 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}", $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&title={enc_title}&original_title={enc_original_title}", $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)
@@ -229,7 +229,9 @@ namespace Shared.Engine.Online
 
                             string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
 
-                            htmlepisodes.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({name})" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
+                            string streamlink = ",\"stream\":\"" + $"{streams[0].link}&play=true" + "\"";
+
+                            htmlepisodes.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({name})" + "\", " + streansquality + streamlink + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
                             firstjson = false;
                         }
                     }

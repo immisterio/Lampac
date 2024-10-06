@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
 
                 string uri = $"{init.corsHost()}/ember/{kinopoisk_id}";
 
-                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy));
+                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, referer: "https://fanserialstv.net"));
             });
 
             if (IsRhubFallback(cache, init))

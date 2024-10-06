@@ -5,10 +5,8 @@ using Shared.Model.Online;
 using System.Text.RegularExpressions;
 using Shared.Model.Online.VDBmovies;
 using Lampac.Engine.CORE;
-using Shared.Engine;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
-using PuppeteerSharp.BrowserData;
 
 namespace Lampac.Controllers.LITE
 {
@@ -44,14 +42,19 @@ namespace Lampac.Controllers.LITE
 
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
 
+                /////////
+                // https://spider-man-lordfilm.cam/
+                // https://torrent-film.online
+                // http://kinozadrot.lol
+                /////////
                 string html = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, httpversion: 2, headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
-                    ("origin", "https://cdnmovies.net"),
+                    ("origin", "https://torrent-film.online"),
                     ("pragma", "no-cache"),
                     ("priority", "u=1, i"),
-                    ("referer", "https://cdnmovies.net/"),
+                    ("referer", "https://torrent-film.online/"),
                     ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\""),
