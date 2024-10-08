@@ -34,8 +34,8 @@ namespace JinEnergy.Online
                     await AppInit.JSRuntime!.InvokeAsync<object>("eval", "$('head meta[name=\"referrer\"]').attr('content', 'origin');");
 
                 string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", HeadersModel.Init(
-                    ("Origin", "https://cdnmovies.net"),
-                    ("Referer", "https://cdnmovies.net/")
+                    ("Origin", "https://torrent-film.online"),
+                    ("Referer", "https://torrent-film.online/")
                 ));
 
                 if (!AppInit.IsAndrod)
@@ -47,7 +47,8 @@ namespace JinEnergy.Online
 
                 try
                 {
-                    return oninvk.Embed(await JSRuntime!.InvokeAsync<string?>("eval", oninvk.EvalCode(file)));
+                    //return oninvk.Embed(await JSRuntime!.InvokeAsync<string?>("eval", oninvk.EvalCode(file)));
+                    return oninvk.Embed(oninvk.DecodeEval(file));
                 }
                 catch
                 {

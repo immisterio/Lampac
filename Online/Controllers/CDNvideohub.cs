@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
                 if (embed == null)
                     return OnError(proxyManager);
 
-                file = Regex.Match(embed, "'file': ?'([^']+)'").Groups[1].Value;
+                file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
                     return OnError();
 

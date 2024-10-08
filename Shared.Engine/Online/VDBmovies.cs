@@ -1,5 +1,6 @@
 ﻿using Shared.Model.Online.VDBmovies;
 using Shared.Model.Templates;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -56,6 +57,46 @@ namespace Shared.Engine.Online
             ";
         }
         #endregion
+
+        public string DecodeEval(string file)
+        {
+            Func<string, string> enc = str =>
+            {
+                var bytes = Encoding.UTF8.GetBytes(str);
+                return Convert.ToBase64String(bytes);
+            };
+
+            Func<string, string> dec = str =>
+            {
+                var bytes = Convert.FromBase64String(str);
+                return Encoding.UTF8.GetString(bytes);
+            };
+
+            List<string> trashList = new List<string>
+            {
+                "wNp2wBTNcPRQvTC0_CpxCsq_8T1u9Q",
+                "md-Od2G9RWOgSa5HoBSSbWrCyIqQyY",
+                "kzuOYQqB_QSOL-xzN_Kz3kkgkHhHit",
+                "6-xQWMh7ertLp8t_M9huUDk1M0VrYJ",
+                "RyTwtf15_GLEsXxnpU4Ljjd0ReY-VH"
+            };
+
+            string x = file.Substring(2);
+
+            foreach (var trash in trashList)
+                x = x.Replace("//" + enc(trash), "");
+
+            try
+            {
+                x = dec(x);
+            }
+            catch
+            {
+                x = string.Empty;
+            }
+
+            return x;
+        }
 
         #region Embed
         public EmbedModel? Embed(string? json)

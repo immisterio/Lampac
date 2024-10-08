@@ -38,9 +38,9 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string uri = $"{init.corsHost()}/ember/{kinopoisk_id}";
+                string uri = $"{init.corsHost()}/video/{kinopoisk_id}";
 
-                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy));
+                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, referer: "https://fanserialstv.net"));
             });
 
             if (IsRhubFallback(cache, init))

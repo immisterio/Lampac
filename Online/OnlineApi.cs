@@ -325,8 +325,9 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                send("Zetflix", conf.Zetflix);
                 send("VDBmovies", conf.VDBmovies);
+                send("VideoDB", conf.VideoDB);
+                send("Zetflix", conf.Zetflix);
 
                 if (serial == -1 || serial == 0)
                     send("FanCDN", conf.FanCDN);
@@ -353,9 +354,6 @@ namespace Lampac.Controllers
 
             if (!isanime)
                 send("Kinoukr (UKR)", conf.Kinoukr, "kinoukr");
-
-            if (kinopoisk_id > 0)
-                send("VideoDB", conf.VideoDB);
 
             if (AppInit.conf.Collaps.two)
                 send("Collaps", conf.Collaps, "collaps-dash");
