@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool rjson = false)
         {
             if (!AppInit.conf.Alloha.enable)
                 return OnError("disable");
@@ -34,6 +34,9 @@ namespace Lampac.Controllers.LITE
 
             if (result.data == null)
                 return Ok();
+
+            if (rjson)
+                return Json(result.data);
 
             JToken data = result.data;
 

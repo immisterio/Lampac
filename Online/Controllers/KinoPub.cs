@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.KinoPub;
 
@@ -108,7 +108,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Post(postid);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s));
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s), rjson: rjson);
         }
     }
 }

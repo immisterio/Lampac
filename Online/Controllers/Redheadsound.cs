@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool rjson = false)
         {
             var init = AppInit.conf.Redheadsound.Clone();
 
@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title));
+            return OnResult(cache, () => oninvk.Html(cache.Value, title), rjson: rjson);
         }
     }
 }

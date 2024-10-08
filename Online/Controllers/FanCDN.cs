@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id)
+        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool rjson = false)
         {
             var init = AppInit.conf.FanCDN.Clone();
 
@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title));
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title), rjson: rjson);
         }
     }
 }
