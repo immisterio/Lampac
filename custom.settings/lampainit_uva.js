@@ -41,7 +41,7 @@
         Lampa.Storage.set('torrserver_auth','false');
         Lampa.Storage.set('internal_torrclient','true');
         Lampa.Storage.set('background_type','complex'); // Сложный задник
-        Lampa.Storage.set('video_quality_default','2160'); // 4К по-умолчанию
+        Lampa.Storage.set('video_quality_default','1080'); // FullHD по-умолчанию
         Lampa.Storage.set('Reloadbutton','true'); // Кнопка перезагрузки
         Lampa.Storage.set('screensaver','false'); // Выкл скринсейвера
         Lampa.Storage.set('account_use','true');
