@@ -322,6 +322,7 @@ namespace Lampac.Controllers
 
             send("Alloha", conf.Alloha);
             send("Rezka", conf.Rezka);
+            send("HDRezka", conf.RezkaPrem, "rhsprem");
 
             if (kinopoisk_id > 0)
             {
@@ -495,6 +496,7 @@ namespace Lampac.Controllers
                         case "remux":
                         case "ashdi":
                         case "pidtor":
+                        case "rhsprem":
                             quality = " ~ 2160p";
                             break;
                         case "videodb":
