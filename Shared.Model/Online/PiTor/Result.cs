@@ -8,5 +8,7 @@
         public int Seeders { get; set; }
         public string MagnetUri { get; set; }
         public Info info { get; set; }
+
+        public DateTime PublishDate { get; set; }
     }
 }

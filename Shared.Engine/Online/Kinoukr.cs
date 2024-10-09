@@ -44,7 +44,9 @@ namespace Shared.Engine.Online
             {
                 onlog?.Invoke("search start");
                 //string? search = await onget.Invoke($"{apihost}/index.php?do=search&story={HttpUtility.UrlEncode(original_title)}");
-                string? search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
+
+                // $"{apihost}/index.php?do=search"
+                string? search = await onpost.Invoke(apihost, $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
                 {
                     requesterror?.Invoke();

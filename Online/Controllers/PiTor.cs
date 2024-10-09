@@ -11,6 +11,8 @@ using Online;
 using Shared.Model.Online.PiTor;
 using Shared.Model.Templates;
 using Shared.Model.Online;
+using System.Data;
+using System.IO;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +20,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/pidtor")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string qtype, string account_email)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string account_email, string original_language, int serial, int s = -1)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -26,13 +28,13 @@ namespace Lampac.Controllers.LITE
 
             #region Кеш запроса
             string memKey = $"pidtor:{title}:{original_title}:{year}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo)> torrents))
+            if (!memoryCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
             {
-                var root = await HttpClient.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial=1&apikey={init.apikey}", timeoutSeconds: 8);
+                var root = await HttpClient.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}&apikey={init.apikey}", timeoutSeconds: 8);
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
-                torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo)>();
+                torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)>();
                 var results = root?.Results;
                 if (results != null && results.Count > 0)
                 {
@@ -51,7 +53,7 @@ namespace Lampac.Controllers.LITE
                         if (init.max_size > 0 && torrent.Size > init.max_size)
                             continue;
 
-                        if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p"))
+                        if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
                         {
                             int sid = torrent.Seeders;
                             long? size = torrent.Size;
@@ -62,21 +64,16 @@ namespace Lampac.Controllers.LITE
                                 if (!string.IsNullOrEmpty(mediainfo))
                                     mediainfo += " / ";
 
-                                string itemtitle = string.Empty;
-
                                 #region Перевод
                                 string voicename = string.Empty;
 
                                 var voices = torrent.info?.voices;
                                 if (voices != null && voices.Count > 0)
-                                {
-                                    itemtitle = string.Join(", ", voices);
-                                    voicename = itemtitle;
-                                }
+                                    voicename = string.Join(", ", voices);
                                 #endregion
 
                                 #region Перевод 2
-                                if (string.IsNullOrWhiteSpace(itemtitle))
+                                if (string.IsNullOrWhiteSpace(voicename))
                                 {
                                     if (Regex.IsMatch(name.ToLower(), "( дб| d|дубляж)", RegexOptions.IgnoreCase))
                                         voicename += "Дубляж, ";
@@ -190,11 +187,10 @@ namespace Lampac.Controllers.LITE
                                     }
 
                                     voicename = Regex.Replace(voicename, ", +$", "");
-                                    itemtitle = voicename;
                                 }
                                 #endregion
 
-                                if (string.IsNullOrWhiteSpace(itemtitle))
+                                if (string.IsNullOrWhiteSpace(voicename))
                                     continue;
 
                                 #region HDR / HEVC / Dolby Vision
@@ -230,13 +226,13 @@ namespace Lampac.Controllers.LITE
                                     continue;
                                 #endregion
 
-                                if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch($"{name}:{itemtitle}", init.filter, RegexOptions.IgnoreCase))
+                                if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch($"{name}:{voicename}", init.filter, RegexOptions.IgnoreCase))
                                     continue;
 
-                                if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{itemtitle}", init.filter_ignore, RegexOptions.IgnoreCase))
+                                if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{voicename}", init.filter_ignore, RegexOptions.IgnoreCase))
                                     continue;
 
-                                torrents.Add((itemtitle, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), (torrent.Size ?? 0), mediainfo));
+                                torrents.Add((name, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), (torrent.Size ?? 0), mediainfo, torrent));
                             }
                         }
                     }
@@ -248,37 +244,164 @@ namespace Lampac.Controllers.LITE
             if (torrents.Count == 0)
                 return Content(string.Empty);
             #endregion
-
-            var mtpl = new MovieTpl(title, original_title);
+             
+            string en_title = HttpUtility.UrlEncode(title);
+            string en_original_title = HttpUtility.UrlEncode(original_title);
+            string en_account_email = HttpUtility.UrlEncode(account_email);
 
             var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
-            movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : movies.ThenByDescending(i => i.sid);
+            movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) : movies.ThenByDescending(i => i.torrent.PublishDate);
 
-            foreach (var torrent in movies)
+            if (serial == 1)
             {
-                if (!string.IsNullOrWhiteSpace(qtype) && !torrent.name.Contains(qtype))
-                    continue;
+                if (s == -1)
+                {
+                    HashSet<int> seasons = new HashSet<int>();
 
-                string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
-                if (string.IsNullOrWhiteSpace(hashmagnet))
-                    continue;
+                    var tpl = new SeasonTpl(quality: movies.FirstOrDefault
+                    (
+                        i => Regex.IsMatch(i.name, "(4k|uhd)( |\\]|,|$)", RegexOptions.IgnoreCase) || i.name.Contains("2160p")).name != null ? "2160p" :
+                             movies.FirstOrDefault(i => i.name.Contains("1080p")).name != null ? "1080p" : "720p"
+                    ); 
 
-                string uri = $"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}&account_email={HttpUtility.UrlEncode(account_email)}";
-                mtpl.Append(torrent.name, uri, voice_name: torrent.quality + " / " +torrent.mediainfo, quality: torrent.quality.Replace("p", ""));
+                    foreach (var t in movies)
+                    {
+                        if (t.torrent?.info?.seasons == null || t.torrent.info.seasons.Count == 0)
+                            continue;
+
+                        foreach (var item in t.torrent.info.seasons)
+                            seasons.Add(item);
+                    }
+
+                    foreach (int season in seasons.OrderBy(i => i))
+                        tpl.Append($"{season} сезон", $"{host}/lite/pidtor?title={en_title}&original_title={en_original_title}&year={year}&original_language={original_language}&serial=1&s={season}");
+
+                    return Content(tpl.ToHtml(), "text/html; charset=utf-8");
+                }
+                else
+                {
+                    var stpl = new SimilarTpl();
+
+                    foreach (var torrent in movies)
+                    {
+                        if (torrent.torrent?.info?.seasons == null || torrent.torrent.info.seasons.Count == 0)
+                            continue;
+
+                        if (!torrent.torrent.info.seasons.Contains(s) || torrent.torrent.info.seasons.Count != 1) // многосезонный 
+                            continue;
+
+                        string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
+                        if (string.IsNullOrWhiteSpace(hashmagnet))
+                            continue;
+
+                        stpl.Append(torrent.voice, null, $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", $"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&title={en_title}&original_title={en_original_title}&s={s}");
+                    }
+
+                    return Content(stpl.ToHtml(), "text/html; charset=utf-8");
+                }
             }
+            else
+            {
+                var mtpl = new MovieTpl(title, original_title);
 
-            return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
+                foreach (var torrent in movies)
+                {
+                    string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
+                    if (string.IsNullOrWhiteSpace(hashmagnet))
+                        continue;
+
+                    mtpl.Append(torrent.voice, $"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}&account_email={en_account_email}", voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
+                }
+
+                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
+            }
         }
 
+
         [HttpGet]
-        [Route("lite/pidtor/s{id}")]
-        async public Task<ActionResult> Stream(string id, string account_email)
+        [Route("lite/pidtor/serial/{id}")]
+        async public Task<ActionResult> Serial(string id, string title, string original_title, string account_email, int s)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
                 return OnError();
 
-            string magnet = $"magnet:?xt=urn:btih:{id}&" + HttpContext.Request.QueryString.Value.Remove(0, 1);
+            string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(title|account_email|original_title)=[^&]+", "");
+            string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
+
+            (List<HeadersModel> header, string host) gots()
+            {
+                if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
+                    return (null, $"{host}/ts");
+
+                if (init.auth_torrs != null && init.auth_torrs.Count > 0)
+                {
+                    var ts = init.auth_torrs.First();
+                    return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{ts.login}:{ts.passwd}")}"), ts.host);
+                }
+                else
+                {
+                    if (init.base_auth != null && init.base_auth.enable)
+                    {
+                        var ts = init.auth_torrs.First();
+                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{init.base_auth.login}:{init.base_auth.passwd}")}"), ts.host);
+                    }
+
+                    return (null, init.torrs.First());
+                }
+            }
+
+            var ts = gots();
+
+            string hash = await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
+            if (hash == null)
+                return OnError();
+
+            hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+            if (string.IsNullOrEmpty(hash))
+                return OnError();
+
+            Stat stat = null;
+            DateTime startGotInfoTime = DateTime.Now;
+
+            resetgotingo: stat = await HttpClient.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
+            if (stat?.file_stats == null || stat.file_stats.Count == 0)
+            {
+                if (DateTime.Now > startGotInfoTime.AddSeconds(20))
+                {
+                    _ = await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 2, headers: ts.header);
+                    return OnError();
+                }
+
+                await Task.Delay(250);
+                goto resetgotingo;
+            }
+
+
+            var mtpl = new EpisodeTpl();
+
+            foreach (var torrent in stat.file_stats)
+            {
+                if (Path.GetExtension(torrent.Path) is ".srt" or ".txt" or ".jpg" or ".png")
+                    continue;
+
+                mtpl.Append(Path.GetFileName(torrent.Path), (title ?? original_title), s.ToString(), torrent.Id.ToString(), $"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}&account_email={HttpUtility.UrlEncode(account_email)}");
+            }
+
+            return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
+        }
+
+
+        [HttpGet]
+        [Route("lite/pidtor/s{id}")]
+        async public Task<ActionResult> Stream(string id, int tsid = -1, string account_email = null)
+        {
+            var init = AppInit.conf.PidTor;
+            if (!init.enable)
+                return OnError();
+
+            int index = tsid != -1 ? tsid : 1;
+            string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|tsid)=[^&]+", "");
 
             #region auth_stream
             async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd)
@@ -288,12 +411,12 @@ namespace Lampac.Controllers.LITE
                 var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
                 await HttpClient.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
 
-                return Redirect($"{host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index=1&play");
+                return Redirect($"{host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index={index}&play");
             }
             #endregion
 
             if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
-                return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index=1&play");
+                return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");
 
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
@@ -307,7 +430,7 @@ namespace Lampac.Controllers.LITE
                 if (init.base_auth != null && init.base_auth.enable)
                     return await auth_stream(init.torrs[Random.Shared.Next(0, init.torrs.Length)], init.base_auth.login, init.base_auth.passwd);
 
-                return Redirect($"{init.torrs[Random.Shared.Next(0, init.torrs.Length)]}/stream?link={HttpUtility.UrlEncode(magnet)}&index=1&play");
+                return Redirect($"{init.torrs[Random.Shared.Next(0, init.torrs.Length)]}/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");
             }
         }
     }
