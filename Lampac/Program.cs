@@ -35,10 +35,10 @@ namespace Lampac
                 NullValueHandling = NullValueHandling.Ignore
             }) + "\n");
 
-            if (AppInit.conf.multiaccess)
+            
             {
                 ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-                ThreadPool.SetMinThreads(Math.Max(200, workerThreads), Math.Max(20, completionPortThreads));
+                ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
             }
 
             #region puppeteer

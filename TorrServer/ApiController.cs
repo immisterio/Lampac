@@ -7,12 +7,10 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Net.Http;
-using System.Threading;
 using System.Net.Http.Headers;
 using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
-using System.Diagnostics;
 using Shared.Engine;
 
 namespace Lampac.Controllers
@@ -35,9 +33,6 @@ namespace Lampac.Controllers
         {
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
-
-            if (!pathRequest.Contains(".js") && await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
-                return StatusCode(500);
 
             string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, headers: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
 
@@ -131,12 +126,6 @@ namespace Lampac.Controllers
 
         async public Task TorAPI()
         {
-            if (await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
-            {
-                await HttpContext.Response.WriteAsync("application failed to start", HttpContext.RequestAborted);
-                return;
-            }
-
             #region settings
             if (HttpContext.Request.Path.Value.StartsWith("/ts/settings"))
             {
@@ -151,7 +140,7 @@ namespace Lampac.Controllers
                 await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted);
                 string requestJson = Encoding.UTF8.GetString(mem.ToArray());
 
-                using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
+                using (HttpClient client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
                     client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
@@ -176,117 +165,14 @@ namespace Lampac.Controllers
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
-            using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
+            using (var client = new HttpClient())
             {
                 var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted);
 
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 await CopyProxyHttpResponse(HttpContext, response);
             }
             #endregion
-        }
-        #endregion
-
-
-        #region Start
-        async static public ValueTask<bool> Start(string clientip)
-        {
-            if (ModInit.tsprocess == null)
-            {
-                #region Запускаем TorrServer
-                var thread = new Thread(() =>
-                {
-                    try
-                    {
-                        ModInit.taskCompletionSource = new TaskCompletionSource<bool>();
-
-                        ModInit.tsprocess = new Process();
-                        ModInit.tsprocess.StartInfo.UseShellExecute = false;
-                        ModInit.tsprocess.StartInfo.RedirectStandardOutput = true;
-                        ModInit.tsprocess.StartInfo.RedirectStandardError = true;
-                        ModInit.tsprocess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                        ModInit.tsprocess.StartInfo.FileName = ModInit.tspath;
-                        ModInit.tsprocess.StartInfo.Arguments = $"--httpauth -p {ModInit.tsport} -d {ModInit.homedir}";
-                        ModInit.tsprocess.Start();
-                        ModInit.tsprocess.StandardOutput.ReadToEnd();
-                        ModInit.tsprocess.WaitForExit();
-                    }
-                    catch { }
-
-                    ModInit.tsprocess?.Dispose();
-                    ModInit.tsprocess = null;
-                });
-
-                thread.Start();
-                #endregion
-
-                #region Проверяем доступность сервера
-                if (await CheckPort(ModInit.tsport) == false)
-                {
-                    ModInit.tsprocess?.Dispose();
-                    ModInit.tsprocess = null;
-                    return false;
-                }
-                #endregion
-
-                ModInit.taskCompletionSource.SetResult(true);
-                ModInit.taskCompletionSource = null;
-            }
-
-            if (ModInit.taskCompletionSource != null)
-                await ModInit.taskCompletionSource.Task;
-
-            if (ModInit.tsprocess == null)
-                return false;
-
-            ModInit.lastActve = DateTime.Now;
-
-            if (!string.IsNullOrEmpty(clientip))
-                ModInit.clientIps.Add(clientip);
-
-            return true;
-        }
-        #endregion
-
-        #region CheckPort
-        async static public ValueTask<bool> CheckPort(int port)
-        {
-            try
-            {
-                bool servIsWork = false;
-                DateTime excheck = DateTime.Now.AddSeconds(8);
-
-                while (excheck > DateTime.Now)
-                {
-                    await Task.Delay(50);
-
-                    try
-                    {
-                        using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
-                        {
-                            client.Timeout = TimeSpan.FromSeconds(1);
-
-                            var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo");
-                            if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                            {
-                                string echo = await response.Content.ReadAsStringAsync();
-                                if (echo != null && echo.StartsWith("MatriX."))
-                                {
-                                    servIsWork = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    catch { }
-                }
-
-                return servIsWork;
-            }
-            catch
-            {
-                return false;
-            }
         }
         #endregion
 
@@ -313,7 +199,6 @@ namespace Lampac.Controllers
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
 
-            requestMessage.Headers.ConnectionClose = false;
             requestMessage.Headers.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
             requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listenhost) ? context.Request.Host.Value : AppInit.conf.listenhost;
             requestMessage.RequestUri = uri;
@@ -372,11 +257,8 @@ namespace Lampac.Controllers
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted)) != 0)
-                    {
-                        ModInit.lastActve = DateTime.Now;
-                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted);
-                    }
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
                 }
                 finally
                 {

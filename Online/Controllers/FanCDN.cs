@@ -38,9 +38,9 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string uri = $"{init.corsHost()}/video/{kinopoisk_id}";
+                string uri = $"{init.corsHost()}/video/{kinopoisk_id}?token={init.token}";
 
-                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, referer: "https://fanserialstv.net"));
+                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, referer: "https://m1.fanserialstv.net/97258-deadpool-wolverine.html"));
             });
 
             if (IsRhubFallback(cache, init))

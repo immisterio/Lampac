@@ -333,10 +333,15 @@ namespace Lampac.Controllers.LITE
             {
                 if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
                 {
-                    if (AppInit.conf.accsdb.enable)
-                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{account_email}:ts")}"), $"{host}/ts");
+                    if (System.IO.File.Exists("torrserver/accs.db"))
+                    {
+                        string accs = System.IO.File.ReadAllText("torrserver/accs.db");
+                        string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                    return (null, $"{host}/ts");
+                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.localhost}:9080");
+                    }
+
+                    return (null, $"http://{AppInit.conf.localhost}:9080");
                 }
 
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
@@ -409,19 +414,29 @@ namespace Lampac.Controllers.LITE
             string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|tsid)=[^&]+", "");
 
             #region auth_stream
-            async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd)
+            async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd, string uhost = null)
             {
                 login = login.Replace("{account_email}", account_email ?? string.Empty);
 
                 var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
                 await HttpClient.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
 
-                return Redirect($"{host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index={index}&play");
+                return Redirect($"{uhost ?? host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index={index}&play");
             }
             #endregion
 
             if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
-                return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play&account_email={account_email}");
+            {
+                if (System.IO.File.Exists("torrserver/accs.db"))
+                {
+                    string accs = System.IO.File.ReadAllText("torrserver/accs.db");
+                    string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
+
+                    return await auth_stream($"http://{AppInit.conf.localhost}:9080", "ts", passwd, uhost: $"{host}/ts");
+                }
+
+                return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");
+            }
 
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
