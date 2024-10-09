@@ -332,7 +332,12 @@ namespace Lampac.Controllers.LITE
             (List<HeadersModel> header, string host) gots()
             {
                 if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
+                {
+                    if (AppInit.conf.accsdb.enable)
+                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{account_email}:ts")}"), $"{host}/ts");
+
                     return (null, $"{host}/ts");
+                }
 
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                 {
@@ -416,7 +421,7 @@ namespace Lampac.Controllers.LITE
             #endregion
 
             if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
-                return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");
+                return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play&account_email={account_email}");
 
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
