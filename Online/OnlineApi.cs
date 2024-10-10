@@ -326,9 +326,13 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                send("VDBmovies", conf.VDBmovies);
                 send("VideoDB", conf.VideoDB);
-                send("Zetflix", conf.Zetflix);
+
+                if (AppInit.conf.puppeteer.enable)
+                {
+                    send("VDBmovies", conf.VDBmovies);
+                    send("Zetflix", conf.Zetflix);
+                }
 
                 if (serial == -1 || serial == 0)
                     send("FanCDN", conf.FanCDN);

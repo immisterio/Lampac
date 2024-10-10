@@ -109,7 +109,7 @@ namespace Lampac.Controllers
 
                 if (HttpContext.Request.Path.Value.StartsWith("/ts/echo"))
                 {
-                    await HttpContext.Response.WriteAsync("MatriX.API", HttpContext.RequestAborted);
+                    await HttpContext.Response.WriteAsync("MatriX.API", HttpContext.RequestAborted).ConfigureAwait(false);
                     return;
                 }
 
@@ -132,7 +132,7 @@ namespace Lampac.Controllers
                 if (HttpContext.Request.Method != "POST")
                 {
                     HttpContext.Response.StatusCode = 404;
-                    await HttpContext.Response.WriteAsync("404 page not found", HttpContext.RequestAborted);
+                    await HttpContext.Response.WriteAsync("404 page not found", HttpContext.RequestAborted).ConfigureAwait(false);
                     return;
                 }
 
@@ -140,23 +140,23 @@ namespace Lampac.Controllers
                 await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted);
                 string requestJson = Encoding.UTF8.GetString(mem.ToArray());
 
-                using (HttpClient client = new HttpClient())
+                using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
                     client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
 
                     if (requestJson.Contains("\"get\""))
                     {
-                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
+                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                     }
                     else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
-                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
+                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                     }
                 }
 
-                await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted);
+                await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
             #endregion
@@ -165,7 +165,7 @@ namespace Lampac.Controllers
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
-            using (var client = new HttpClient())
+            using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
             {
                 var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
 
@@ -252,7 +252,7 @@ namespace Lampac.Controllers
                 if (!response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnwritableStream");
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(response.ContentLength > 0 ? (5000000 > response.ContentLength ? (int)response.ContentLength : (int)Math.Min((long)response.ContentLength, 512000)) : 4096);
 
                 try
                 {

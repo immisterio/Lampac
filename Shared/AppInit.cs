@@ -181,7 +181,7 @@ namespace Lampac
 
         public WebLogConf weblog = new WebLogConf();
 
-        public RchConf rch = new RchConf() { enable = false, keepalive = 180 };
+        public RchConf rch = new RchConf() { enable = true, keepalive = 45 };
 
         public string anticaptchakey;
 

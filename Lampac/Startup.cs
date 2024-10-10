@@ -24,6 +24,8 @@ using System.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyModel;
+using Microsoft.Extensions.Hosting;
+using Shared.Engine;
 
 namespace Lampac
 {
@@ -183,7 +185,7 @@ namespace Lampac
         #endregion
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, System.Net.Http.IHttpClientFactory httpClientFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, System.Net.Http.IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime)
         {
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
@@ -192,6 +194,7 @@ namespace Lampac
             HttpClient.httpClientFactory = httpClientFactory;
 
             app.UseDeveloperExceptionPage();
+            applicationLifetime.ApplicationStopping.Register(OnShutdown);
 
             #region UseForwardedHeaders
             var forwarded = new ForwardedHeadersOptions
@@ -245,6 +248,12 @@ namespace Lampac
                 endpoints.MapHub<soks>("/ws");
                 endpoints.MapControllers();
             });
+        }
+
+
+        private void OnShutdown()
+        {
+            PuppeteerTo.FullDispose();
         }
     }
 }

@@ -1,12 +1,15 @@
-﻿using Lampac.Engine.CORE;
+﻿using Lampac;
+using Lampac.Engine.CORE;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace TorrServer
 {
@@ -90,7 +93,34 @@ namespace TorrServer
                 tspath = $"{homedir}/TorrServer-windows-amd64.exe";
             #endregion
 
+            #region update accs.db
             File.WriteAllText($"{homedir}/accs.db", $"{{\"ts\":\"{tspass}\"}}");
+
+            //ThreadPool.QueueUserWorkItem(async _ =>
+            //{
+            //    while (true)
+            //    {
+            //        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+
+            //        try
+            //        {
+            //            if (AppInit.conf.accsdb.enable)
+            //            {
+            //                Dictionary<string, string> accs = new Dictionary<string, string>()
+            //                {
+            //                    ["ts"] = tspass
+            //                };
+
+            //                foreach (var user in AppInit.conf.accsdb.accounts)
+            //                    accs.TryAdd(user.Key, conf.defaultPasswd);
+
+            //                File.WriteAllText($"{homedir}/accs.db", JsonConvert.SerializeObject(accs));
+            //            }
+            //        }
+            //        catch { }
+            //    }
+            //});
+            #endregion
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
@@ -136,7 +166,7 @@ namespace TorrServer
                     }
                 }
                 catch { }
-            #endregion
+                #endregion
 
                 reset: try
                 {
@@ -154,10 +184,11 @@ namespace TorrServer
 
                     tsprocess.BeginOutputReadLine();
                     tsprocess.BeginErrorReadLine();
-                    await tsprocess.WaitForExitAsync();
+                    await tsprocess.WaitForExitAsync().ConfigureAwait(false);
                 }
                 catch { }
 
+                await Task.Delay(5_000).ConfigureAwait(false);
                 goto reset;
             });
         }
