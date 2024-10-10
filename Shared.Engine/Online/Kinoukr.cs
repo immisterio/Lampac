@@ -99,7 +99,7 @@ namespace Shared.Engine.Online
 
             result.quel = Regex.Match(news, "class=\"m-meta m-qual\">([^<]+)<").Groups[1].Value;
 
-            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.wtf/[^\"]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(iframeUri))
             {
                 iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;

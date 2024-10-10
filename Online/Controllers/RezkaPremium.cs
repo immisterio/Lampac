@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)
-                return OnError();
+                return OnError("cookie");
 
             var proxyManager = new ProxyManager("rhsprem", init);
 
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)
-                return OnError();
+                return OnError("cookie");
 
             var proxyManager = new ProxyManager("rhsprem", init);
 
@@ -144,7 +144,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)
-                return OnError();
+                return OnError("cookie");
 
             var proxyManager = new ProxyManager("rhsprem", init);
 

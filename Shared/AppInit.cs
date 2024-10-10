@@ -171,7 +171,7 @@ namespace Lampac
 
         public bool pirate_store = true;
 
-        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true, headless = true };
+        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
 
         public string apikey = null;
 
