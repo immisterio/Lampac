@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id)
+        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool rjson = false)
         {
             var init = AppInit.conf.FanCDN.Clone();
 
@@ -38,15 +38,15 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string uri = $"{init.corsHost()}/video/{kinopoisk_id}";
+                string uri = $"{init.corsHost()}/video/{kinopoisk_id}?token={init.token}";
 
-                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, referer: "https://fanserialstv.net"));
+                return oninvk.Embed(init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, proxy: proxy, referer: "https://m1.fanserialstv.net/97258-deadpool-wolverine.html"));
             });
 
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title));
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title), rjson: rjson);
         }
     }
 }

@@ -69,10 +69,13 @@ namespace Online
             return Content(cache.Value, "text/html; charset=utf-8");
         }
 
-        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html)
+        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool rjson = false)
         {
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);
+
+            if (rjson && cache.Value != null)
+                return Json(cache.Value);
 
             return Content(html.Invoke(), "text/html; charset=utf-8");
         }

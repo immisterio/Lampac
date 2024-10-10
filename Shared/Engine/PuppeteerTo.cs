@@ -2,7 +2,6 @@
 using PuppeteerSharp;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +15,7 @@ namespace Shared.Engine
 
         static DateTime exLifetime = default;
 
-        static bool isdev = File.Exists(@"C:\ProgramData\lampac\disablesync");
+        static bool shutdown = false;
 
         public static bool IsKeepOpen => AppInit.conf.multiaccess || AppInit.conf.puppeteer.keepopen;
 
@@ -24,9 +23,9 @@ namespace Shared.Engine
         {
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                while (true)
+                while (!shutdown)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(2));
+                    await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
                     try
                     {
@@ -67,6 +66,9 @@ namespace Shared.Engine
 
         async public static ValueTask<PuppeteerTo> Browser()
         {
+            if (shutdown)
+                return null;
+
             if (IsKeepOpen && browser_keepopen == null)
                 LaunchKeepOpen();
 
@@ -78,15 +80,15 @@ namespace Shared.Engine
 
         static Task<IBrowser> Launch()
         {
-            if (!AppInit.conf.puppeteer.enable)
+            if (!AppInit.conf.puppeteer.enable || shutdown)
                 return null;
 
             try
             {
                 var option = new LaunchOptions()
                 {
-                    Headless = !isdev, /*false*/
-                    Devtools = isdev,
+                    Headless = true,
+                    Devtools = false,
                     IgnoreHTTPSErrors = true,
                     Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
                     Timeout = 12_000
@@ -187,6 +189,21 @@ namespace Shared.Engine
                     page.CloseAsync();
                     page.Dispose();
                 }
+            }
+            catch { }
+        }
+
+        public static void FullDispose()
+        {
+            if (browser_keepopen == null)
+                return;
+
+            shutdown = true;
+
+            try
+            {
+                browser_keepopen.CloseAsync().Wait();
+                browser_keepopen.Dispose();
             }
             catch { }
         }

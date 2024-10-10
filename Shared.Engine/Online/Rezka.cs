@@ -32,6 +32,18 @@ namespace Shared.Engine.Online
             usehls = hls;
             this.userprem = userprem;
             this.requesterror = requesterror;
+
+            if (this.apihost.Contains("="))
+            {
+                char[] buffer = this.apihost.ToCharArray();
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    char letter = buffer[i];
+                    letter = (char)(letter - 3);
+                    buffer[i] = letter;
+                }
+                this.apihost = new string(buffer);
+            }
         }
         #endregion
 

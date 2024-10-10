@@ -16,11 +16,11 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/zetflix")]
-        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool origsource = false)
+        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Zetflix;
 
-            if (!init.enable || kinopoisk_id == 0)
+            if (!init.enable || kinopoisk_id == 0 || init.rhub)
                 return OnError();
 
             if (IsOverridehost(init, out string overridehost))
@@ -91,6 +91,9 @@ namespace Lampac.Controllers.LITE
             var content = oninvk.Embed(html);
             if (content.pl == null)
                 return OnError();
+
+            if (rjson)
+                return Json(content);
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)

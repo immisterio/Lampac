@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool rjson = false)
         {
             var init = AppInit.conf.VideoDB;
 
@@ -45,6 +45,9 @@ namespace Lampac.Controllers.LITE
             var content = await InvokeCache($"videodb:view:{kinopoisk_id}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id));
             if (content?.pl == null)
                 return OnError();
+
+            if (rjson)
+                return Json(content);
 
             return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
         }

@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool rjson = false)
         {
             var init = AppInit.conf.Filmix.Clone();
 
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Post(postid);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s));
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s), rjson: rjson);
         }
 
 

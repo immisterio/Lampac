@@ -322,12 +322,17 @@ namespace Lampac.Controllers
 
             send("Alloha", conf.Alloha);
             send("Rezka", conf.Rezka);
+            send("HDRezka", conf.RezkaPrem, "rhsprem");
 
             if (kinopoisk_id > 0)
             {
-                send("VDBmovies", conf.VDBmovies);
                 send("VideoDB", conf.VideoDB);
-                send("Zetflix", conf.Zetflix);
+
+                if (AppInit.conf.puppeteer.enable)
+                {
+                    send("VDBmovies", conf.VDBmovies);
+                    send("Zetflix", conf.Zetflix);
+                }
 
                 if (serial == -1 || serial == 0)
                     send("FanCDN", conf.FanCDN);
@@ -337,14 +342,12 @@ namespace Lampac.Controllers
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
-            {
                 send("iRemux", conf.iRemux, "remux");
 
-                if (conf.PidTor.enable)
-                {
-                    if ((conf.PidTor.torrs != null && conf.PidTor.torrs.Length > 0) || (conf.PidTor.auth_torrs != null && conf.PidTor.auth_torrs.Count > 0) || AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
-                        online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
-                }
+            if (conf.PidTor.enable)
+            {
+                if ((conf.PidTor.torrs != null && conf.PidTor.torrs.Length > 0) || (conf.PidTor.auth_torrs != null && conf.PidTor.auth_torrs.Count > 0) || AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
+                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
             }
 
             if (kinopoisk_id > 0)
@@ -497,6 +500,7 @@ namespace Lampac.Controllers
                         case "remux":
                         case "ashdi":
                         case "pidtor":
+                        case "rhsprem":
                             quality = " ~ 2160p";
                             break;
                         case "videodb":

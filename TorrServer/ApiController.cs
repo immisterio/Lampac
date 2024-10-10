@@ -7,12 +7,10 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Net.Http;
-using System.Threading;
 using System.Net.Http.Headers;
 using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
-using System.Diagnostics;
 using Shared.Engine;
 
 namespace Lampac.Controllers
@@ -35,9 +33,6 @@ namespace Lampac.Controllers
         {
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
-
-            if (!pathRequest.Contains(".js") && await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
-                return StatusCode(500);
 
             string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, headers: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
 
@@ -114,7 +109,7 @@ namespace Lampac.Controllers
 
                 if (HttpContext.Request.Path.Value.StartsWith("/ts/echo"))
                 {
-                    await HttpContext.Response.WriteAsync("MatriX.API", HttpContext.RequestAborted);
+                    await HttpContext.Response.WriteAsync("MatriX.API", HttpContext.RequestAborted).ConfigureAwait(false);
                     return;
                 }
 
@@ -131,19 +126,13 @@ namespace Lampac.Controllers
 
         async public Task TorAPI()
         {
-            if (await Start(HttpContext.Connection.RemoteIpAddress.ToString()) == false)
-            {
-                await HttpContext.Response.WriteAsync("application failed to start", HttpContext.RequestAborted);
-                return;
-            }
-
             #region settings
             if (HttpContext.Request.Path.Value.StartsWith("/ts/settings"))
             {
                 if (HttpContext.Request.Method != "POST")
                 {
                     HttpContext.Response.StatusCode = 404;
-                    await HttpContext.Response.WriteAsync("404 page not found", HttpContext.RequestAborted);
+                    await HttpContext.Response.WriteAsync("404 page not found", HttpContext.RequestAborted).ConfigureAwait(false);
                     return;
                 }
 
@@ -158,16 +147,16 @@ namespace Lampac.Controllers
 
                     if (requestJson.Contains("\"get\""))
                     {
-                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
+                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                     }
                     else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
                     {
-                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"), HttpContext.RequestAborted);
+                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                     }
                 }
 
-                await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted);
+                await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
             #endregion
@@ -179,114 +168,11 @@ namespace Lampac.Controllers
             using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
             {
                 var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted);
 
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 await CopyProxyHttpResponse(HttpContext, response);
             }
             #endregion
-        }
-        #endregion
-
-
-        #region Start
-        async static public ValueTask<bool> Start(string clientip)
-        {
-            if (ModInit.tsprocess == null)
-            {
-                #region Запускаем TorrServer
-                var thread = new Thread(() =>
-                {
-                    try
-                    {
-                        ModInit.taskCompletionSource = new TaskCompletionSource<bool>();
-
-                        ModInit.tsprocess = new Process();
-                        ModInit.tsprocess.StartInfo.UseShellExecute = false;
-                        ModInit.tsprocess.StartInfo.RedirectStandardOutput = true;
-                        ModInit.tsprocess.StartInfo.RedirectStandardError = true;
-                        ModInit.tsprocess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                        ModInit.tsprocess.StartInfo.FileName = ModInit.tspath;
-                        ModInit.tsprocess.StartInfo.Arguments = $"--httpauth -p {ModInit.tsport} -d {ModInit.homedir}";
-                        ModInit.tsprocess.Start();
-                        ModInit.tsprocess.StandardOutput.ReadToEnd();
-                        ModInit.tsprocess.WaitForExit();
-                    }
-                    catch { }
-
-                    ModInit.tsprocess?.Dispose();
-                    ModInit.tsprocess = null;
-                });
-
-                thread.Start();
-                #endregion
-
-                #region Проверяем доступность сервера
-                if (await CheckPort(ModInit.tsport) == false)
-                {
-                    ModInit.tsprocess?.Dispose();
-                    ModInit.tsprocess = null;
-                    return false;
-                }
-                #endregion
-
-                ModInit.taskCompletionSource.SetResult(true);
-                ModInit.taskCompletionSource = null;
-            }
-
-            if (ModInit.taskCompletionSource != null)
-                await ModInit.taskCompletionSource.Task;
-
-            if (ModInit.tsprocess == null)
-                return false;
-
-            ModInit.lastActve = DateTime.Now;
-
-            if (!string.IsNullOrEmpty(clientip))
-                ModInit.clientIps.Add(clientip);
-
-            return true;
-        }
-        #endregion
-
-        #region CheckPort
-        async static public ValueTask<bool> CheckPort(int port)
-        {
-            try
-            {
-                bool servIsWork = false;
-                DateTime excheck = DateTime.Now.AddSeconds(8);
-
-                while (excheck > DateTime.Now)
-                {
-                    await Task.Delay(50);
-
-                    try
-                    {
-                        using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
-                        {
-                            client.Timeout = TimeSpan.FromSeconds(1);
-
-                            var response = await client.GetAsync($"http://{AppInit.conf.localhost}:{port}/echo");
-                            if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                            {
-                                string echo = await response.Content.ReadAsStringAsync();
-                                if (echo != null && echo.StartsWith("MatriX."))
-                                {
-                                    servIsWork = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    catch { }
-                }
-
-                return servIsWork;
-            }
-            catch
-            {
-                return false;
-            }
         }
         #endregion
 
@@ -313,7 +199,6 @@ namespace Lampac.Controllers
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
 
-            requestMessage.Headers.ConnectionClose = false;
             requestMessage.Headers.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
             requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listenhost) ? context.Request.Host.Value : AppInit.conf.listenhost;
             requestMessage.RequestUri = uri;
@@ -367,16 +252,13 @@ namespace Lampac.Controllers
                 if (!response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnwritableStream");
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(response.ContentLength > 0 ? (5000000 > response.ContentLength ? (int)response.ContentLength : (int)Math.Min((long)response.ContentLength, 512000)) : 4096);
 
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted)) != 0)
-                    {
-                        ModInit.lastActve = DateTime.Now;
-                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted);
-                    }
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
                 }
                 finally
                 {
