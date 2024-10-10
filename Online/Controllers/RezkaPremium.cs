@@ -10,6 +10,7 @@ using Shared.Model.Online;
 using System.Collections.Generic;
 using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -44,11 +45,15 @@ namespace Lampac.Controllers.LITE
                 }
             }
 
+            string cookie = await getCookie(init);
+            if (string.IsNullOrEmpty(cookie))
+                return null;
+
             var headers = httpHeaders(init, HeadersModel.Init(
                ("X-Lampac-App", "1"),
                ("X-Lampac-Version", $"{appversion}.{minorversion}"),
-               ("X-Lampac-Device-Id", uid),
-               ("Cookie", await getCookie(init)),
+               ("X-Lampac-Device-Id", Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()),
+               ("Cookie", cookie),
                ("User-Agent", HttpContext.Request.Headers.UserAgent)
             ));
             #endregion
@@ -85,6 +90,9 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var oninvk = await InitRezkaInvoke();
+            if (oninvk == null)
+                return OnError();
+
             var proxyManager = new ProxyManager("rhsprem", init);
 
             var content = await InvokeCache($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
@@ -108,6 +116,9 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var oninvk = await InitRezkaInvoke();
+            if (oninvk == null)
+                return OnError();
+
             var proxyManager = new ProxyManager("rhsprem", init);
 
             Episodes root = await InvokeCache($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
@@ -132,6 +143,9 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var oninvk = await InitRezkaInvoke();
+            if (oninvk == null)
+                return OnError();
+
             var proxyManager = new ProxyManager("rhsprem", init);
 
             var md = await InvokeCache($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);

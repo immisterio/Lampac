@@ -347,14 +347,18 @@ namespace Lampac.Controllers.LITE
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                 {
                     var ts = init.auth_torrs.First();
-                    return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{ts.login}:{ts.passwd}")}"), ts.host);
+                    string login = ts.login.Replace("{account_email}", account_email ?? string.Empty);
+
+                    return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}"), ts.host);
                 }
                 else
                 {
                     if (init.base_auth != null && init.base_auth.enable)
                     {
                         var ts = init.auth_torrs.First();
-                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{init.base_auth.login}:{init.base_auth.passwd}")}"), ts.host);
+                        string login = init.base_auth.login.Replace("{account_email}", account_email ?? string.Empty);
+
+                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}"), ts.host);
                     }
 
                     return (null, init.torrs.First());

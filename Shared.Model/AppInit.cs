@@ -58,7 +58,7 @@ namespace Shared.Model
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("https://hdrezka.me") { scheme = "http" };
 
-        public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("https://standby-rezka.tv") { scheme = "http" };
+        public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("https://standby-rezka.tv") { enable = false, scheme = "http" };
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("https://api.ninsel.ws", streamproxy: true, two: true);
 

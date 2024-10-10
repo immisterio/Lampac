@@ -88,7 +88,7 @@ namespace Shared.Engine
                 var option = new LaunchOptions()
                 {
                     Headless = AppInit.conf.puppeteer.headless,
-                    Devtools = AppInit.conf.puppeteer.headless,
+                    Devtools = AppInit.conf.puppeteer.devtools,
                     IgnoreHTTPSErrors = true,
                     Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
                     Timeout = 12_000
