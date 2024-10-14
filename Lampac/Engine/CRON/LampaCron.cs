@@ -26,7 +26,7 @@ namespace Lampac.Engine.CRON
                         if (!File.Exists("wwwroot/lampa-main/app.min.js"))
                             return true;
 
-                        string gitapp = await HttpClient.Get("https://raw.githubusercontent.com/yumata/lampa/main/app.min.js");
+                        string gitapp = await HttpClient.Get("https://raw.githubusercontent.com/yumata/lampa/main/app.min.js", weblog: false);
                         if (gitapp == null || !gitapp.Contains("author: 'Yumata'"))
                             return false;
 

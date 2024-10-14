@@ -44,6 +44,7 @@ namespace Lampac.Controllers.LITE
                     System.IO.File.WriteAllText("cache/uid", uid);
                 }
             }
+            #endregion
 
             string cookie = await getCookie(init);
             if (string.IsNullOrEmpty(cookie))
@@ -56,7 +57,6 @@ namespace Lampac.Controllers.LITE
                ("Cookie", cookie),
                ("User-Agent", HttpContext.Request.Headers.UserAgent)
             ));
-            #endregion
 
             if (init.xrealip)
                 headers.Add(new HeadersModel("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));

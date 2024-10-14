@@ -333,10 +333,10 @@ namespace Lampac.Controllers
                     send("VDBmovies", conf.VDBmovies);
                     send("Zetflix", conf.Zetflix);
                 }
-
-                if (serial == -1 || serial == 0)
-                    send("FanCDN", conf.FanCDN);
             }
+
+            if (serial == -1 || serial == 0)
+                send("FanCDN", conf.FanCDN);
 
             send("VideoCDN", conf.VCDN, "vcdn");
             send("Kinobase", conf.Kinobase);

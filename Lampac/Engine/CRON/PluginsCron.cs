@@ -28,7 +28,7 @@ namespace Lampac.Engine.CRON
                     {
                         try
                         {
-                            string js = await HttpClient.Get(url, Encoding.UTF8);
+                            string js = await HttpClient.Get(url, Encoding.UTF8, weblog: false);
                             if (js != null && js.Contains(checkcode))
                             {
                                 if (path == null)
@@ -67,10 +67,10 @@ namespace Lampac.Engine.CRON
                 {
                     if (File.Exists("wwwroot/bwa/_framework/blazor.boot.json"))
                     {
-                        string bwajs = await HttpClient.Get("https://bwa.to/f");
+                        string bwajs = await HttpClient.Get("https://bwa.to/f", weblog: false);
                         string framework = Regex.Match(bwajs, "framework = '([^']+)'").Groups[1].Value;
 
-                        string bootapp = await HttpClient.Get($"{framework}/blazor.boot.json");
+                        string bootapp = await HttpClient.Get($"{framework}/blazor.boot.json", weblog: false);
                         if (bootapp != null && bootapp.Contains("JinEnergy.wasm"))
                         {
                             string currentapp = File.ReadAllText("wwwroot/bwa/_framework/blazor.boot.json");

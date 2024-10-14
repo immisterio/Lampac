@@ -2,6 +2,7 @@
 using Shared.Model.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Engine.Online
 {
@@ -9,24 +10,50 @@ namespace Shared.Engine.Online
     {
         #region FanCDNInvoke
         string? host;
+        string apihost;
+        Func<string, ValueTask<string?>> onget;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public FanCDNInvoke(string? host, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public FanCDNInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
-            this.host = host != null ? $"{host}/" : null;
+            this.host = host != null ? $"{host}/" : null; this.apihost = apihost;
+            this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
         }
         #endregion
 
         #region Embed
-        public List<Episode>? Embed(string? html)
+        async public ValueTask<List<Episode>?> Embed(string title, string original_title, int year)
         {
+            string? search = await onget($"{apihost}/index.php?do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(original_title)}&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=title&resorder=asc&showposts=0&catlist%5B%5D=10");
+            if (string.IsNullOrEmpty(search))
+                return null;
+
+            string? itemsearch = search.Split("item-search-serial")?[1]?.Split("torrent-link")?[0];
+            if (string.IsNullOrEmpty(itemsearch) || !itemsearch.Contains($"({year}") || !itemsearch.Contains(title))
+                return null;
+
+            string href = Regex.Match(itemsearch, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+            if (string.IsNullOrEmpty(href))
+                return null;
+
+            string? html = await onget(href);
             if (string.IsNullOrEmpty(html))
                 return null;
 
-            string playlist = Regex.Match(html, "var playlist ?= ?(\\[[^\n\r]+\\]);").Groups[1].Value;
+            string iframe_url = Regex.Match(html, "id=\"iframe-player\" src=\"([^\"]+)\"").Groups[1].Value;
+            if (string.IsNullOrEmpty(iframe_url))
+                return null;
+
+            string? iframe = await onget(iframe_url);
+            if (string.IsNullOrEmpty(iframe))
+                return null;
+
+            iframe = Regex.Replace(iframe, "[\n\r\t]+", "").Replace("var ", "\n");
+
+            string playlist = Regex.Match(iframe, "playlist ?= ?(\\[[^\n\r]+\\]);").Groups[1].Value;
             if (string.IsNullOrEmpty(playlist))
                 return null;
 
