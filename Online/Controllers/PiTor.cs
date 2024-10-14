@@ -50,8 +50,24 @@ namespace Lampac.Controllers.LITE
                         if (tracker == "selezen")
                             continue;
 
-                        if (init.max_size > 0 && torrent.Size > init.max_size)
-                            continue;
+                        if (init.max_serial_size > 0 && init.max_size > 0)
+                        {
+                            if (serial == 1)
+                            {
+                                if (torrent.Size > init.max_serial_size)
+                                    continue;
+                            }
+                            else
+                            {
+                                if (torrent.Size > init.max_size)
+                                    continue;
+                            }
+                        }
+                        else
+                        {
+                            if (init.max_size > 0 && torrent.Size > init.max_size)
+                                continue;
+                        }
 
                         if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
                         {

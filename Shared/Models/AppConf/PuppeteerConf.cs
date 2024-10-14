@@ -6,6 +6,8 @@
 
         public bool keepopen { get; set; }
 
+        public bool Headless { get; set; } = true;
+
         public string executablePath { get; set; }
     }
 }

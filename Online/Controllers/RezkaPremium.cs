@@ -119,8 +119,6 @@ namespace Lampac.Controllers.LITE
             if (oninvk == null)
                 return OnError("cookie");
 
-            var proxyManager = new ProxyManager("rhsprem", init);
-
             Episodes root = await InvokeCache($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
             if (root == null)
                 return OnError();

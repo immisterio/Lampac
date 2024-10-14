@@ -16,6 +16,8 @@
 
         public long max_size { get; set; }
 
+        public long max_serial_size { get; set; }
+
         public string? filter { get; set; }
 
         public string? filter_ignore { get; set; }
