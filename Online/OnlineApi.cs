@@ -333,10 +333,10 @@ namespace Lampac.Controllers
                     send("VDBmovies", conf.VDBmovies);
                     send("Zetflix", conf.Zetflix);
                 }
-
-                if (serial == -1 || serial == 0)
-                    send("FanCDN", conf.FanCDN);
             }
+
+            if (serial == -1 || serial == 0)
+                send("FanCDN", conf.FanCDN);
 
             send("VideoCDN", conf.VCDN, "vcdn");
             send("Kinobase", conf.Kinobase);
@@ -473,7 +473,10 @@ namespace Lampac.Controllers
                     quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
 
                 if (balanser == "filmix")
-                    quality = AppInit.conf.Filmix.pro ? quality : " - 480p";
+                {
+                    if (!AppInit.conf.Filmix.pro)
+                        quality = string.IsNullOrEmpty(AppInit.conf.Filmix.token) ? " - 480p" : " - 720p";
+                }
 
                 if (balanser == "alloha")
                     quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;

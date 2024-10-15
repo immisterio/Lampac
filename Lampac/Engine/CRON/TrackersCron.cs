@@ -39,7 +39,7 @@ namespace Lampac.Engine.CRON
                             "https://newtrackon.com/api/all"
                         })
                         {
-                            string plain = await HttpClient.Get(uri);
+                            string plain = await HttpClient.Get(uri, weblog: false);
                             if (plain == null)
                                 continue;
 

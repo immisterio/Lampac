@@ -1,10 +1,8 @@
-﻿using Lampac;
-using Lampac.Engine.CORE;
+﻿using Lampac.Engine.CORE;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -155,8 +153,8 @@ namespace TorrServer
                         }
                         else
                         {
-                            string uname = await Bash.Run("uname -m");
-                            string arch = uname.Contains("i386") || uname.Contains("i686") ? "386" : uname.Contains("x86_64") ? "amd64" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : null;
+                            string uname = (await Bash.Run("uname -m")) ?? string.Empty;
+                            string arch = uname.Contains("i386") || uname.Contains("i686") ? "386" : uname.Contains("x86_64") ? "amd64" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : "amd64";
 
                             tsprocess?.Dispose();
                             await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch, tspath);

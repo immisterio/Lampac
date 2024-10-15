@@ -87,8 +87,8 @@ namespace Shared.Engine
             {
                 var option = new LaunchOptions()
                 {
-                    Headless = true,
-                    Devtools = false,
+                    Headless = AppInit.conf.puppeteer.Headless,
+                    Devtools = !AppInit.conf.puppeteer.Headless,
                     IgnoreHTTPSErrors = true,
                     Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
                     Timeout = 12_000
@@ -173,7 +173,7 @@ namespace Shared.Engine
 
         public void Dispose()
         {
-            if (browser == null)
+            if (browser == null || !AppInit.conf.puppeteer.Headless)
                 return;
 
             try

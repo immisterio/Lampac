@@ -1,5 +1,6 @@
 ﻿using Lampac;
 using Lampac.Engine;
+using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -28,25 +29,30 @@ namespace Online
         #endregion
 
         #region OnError
-        public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true) => OnError(string.Empty, proxyManager, refresh_proxy);
+        public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
 
-        public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true)
+        public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
         {
             if (refresh_proxy)
                 proxyManager?.Refresh();
 
-            return OnError(msg);
+            return OnError(msg, weblog: weblog);
         }
 
         public ActionResult OnError() => OnError(string.Empty);
 
-        public ActionResult OnError(string msg, bool gbcache = true)
+        public ActionResult OnError(string msg, bool gbcache = true, string weblog = null)
         {
             if (!string.IsNullOrEmpty(msg))
             {
                 if (msg.StartsWith("{\"rch\""))
                     return Content(msg);
 
+                string log = $"{HttpContext.Request.Path.Value}\n{msg}";
+                if (!string.IsNullOrEmpty(weblog))
+                    log += $"\n\n===================\n\n\n{weblog}";
+
+                HttpClient.onlog?.Invoke(null, log);
                 HttpContext.Response.Headers.TryAdd("emsg", msg);
             }
 
