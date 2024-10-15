@@ -473,7 +473,10 @@ namespace Lampac.Controllers
                     quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
 
                 if (balanser == "filmix")
-                    quality = AppInit.conf.Filmix.pro ? quality : " - 480p";
+                {
+                    if (!AppInit.conf.Filmix.pro)
+                        quality = string.IsNullOrEmpty(AppInit.conf.Filmix.token) ? " - 480p" : " - 720p";
+                }
 
                 if (balanser == "alloha")
                     quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;

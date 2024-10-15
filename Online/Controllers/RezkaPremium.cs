@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
@@ -46,7 +47,7 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            string cookie = await getCookie(init);
+            string cookie = await getCookie(init, proxy);
             if (string.IsNullOrEmpty(cookie))
                 return null;
 
@@ -83,21 +84,21 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null)
         {
             var init = AppInit.conf.RezkaPrem;
-            if (!init.enable)
-                return OnError();
+            if (!init.enable || init.rip)
+                return OnError("disabled");
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
-                return OnError();
+                return OnError("href/title = null");
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)
-                return OnError("cookie");
+                return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
 
             var content = await InvokeCache($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
-                return OnError(proxyManager);
+                return OnError("content = null", proxyManager, weblog: oninvk.requestlog);
 
             return Content(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true).Replace("/rezka", "/rhsprem"), "text/html; charset=utf-8");
         }
@@ -109,23 +110,23 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1)
         {
             var init = AppInit.conf.RezkaPrem;
-            if (!init.enable)
-                return OnError();
+            if (!init.enable || init.rip)
+                return OnError("disabled");
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
-                return OnError();
+                return OnError("href/title = null");
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)
-                return OnError("cookie");
+                return OnError("authorization error ;(");
 
             Episodes root = await InvokeCache($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
             if (root == null)
-                return OnError();
+                return OnError("root = null", weblog: oninvk.requestlog);
 
             var content = await InvokeCache($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
-                return OnError();
+                return OnError("content = null", weblog: oninvk.requestlog);
 
             return Content(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true).Replace("/rezka", "/rhsprem"), "text/html; charset=utf-8");
         }
@@ -137,22 +138,22 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = AppInit.conf.RezkaPrem;
-            if (!init.enable)
-                return OnError();
+            if (!init.enable || init.rip)
+                return OnError("disabled");
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)
-                return OnError("cookie");
+                return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
 
             var md = await InvokeCache($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
-                return OnError();
+                return OnError("md == null", weblog: oninvk.requestlog);
 
             string result = oninvk.Movie(md, title, original_title, play);
             if (result == null)
-                return OnError();
+                return OnError("result = null", weblog: oninvk.requestlog);
 
             if (play)
                 return Redirect(result);
@@ -165,7 +166,7 @@ namespace Lampac.Controllers.LITE
         #region getCookie
         static string authCookie = null;
 
-        async ValueTask<string> getCookie(RezkaSettings init)
+        async ValueTask<string> getCookie(RezkaSettings init, WebProxy proxy = null)
         {
             if (authCookie != null)
                 return authCookie;
@@ -187,6 +188,12 @@ namespace Lampac.Controllers.LITE
                 {
                     AllowAutoRedirect = false
                 };
+
+                if (proxy != null)
+                {
+                    clientHandler.UseProxy = true;
+                    clientHandler.Proxy = proxy;
+                }
 
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))

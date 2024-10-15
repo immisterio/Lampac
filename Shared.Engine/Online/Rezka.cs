@@ -20,6 +20,13 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
+        public string requestlog = string.Empty;
+
+        void log(string msg)
+        {
+            requestlog += $"{msg}\n\n===========================================\n\n\n";
+        }
+
         public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
@@ -65,9 +72,12 @@ namespace Shared.Engine.Online
                 string? search = await onget($"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}");
                 if (search == null)
                 {
+                    log("search error");
                     requesterror?.Invoke();
                     return null;
                 }
+
+                log("search OK");
 
                 foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
                 {
@@ -104,6 +114,7 @@ namespace Shared.Engine.Online
                         if (search.Contains("Результаты поиска"))
                             return new EmbedModel() { IsEmpty = true };
 
+                        log("link null");
                         return null;
                     }
 
@@ -118,9 +129,11 @@ namespace Shared.Engine.Online
                 if (result.content == null)
                     requesterror?.Invoke();
 
+                log($"content {link}\nNullOrEmpty");
                 return null;
             }
 
+            log($"content {link}\nOK");
             return result;
         }
         #endregion
@@ -350,6 +363,7 @@ namespace Shared.Engine.Online
                 string? json = await onpost(uri, data);
                 if (json == null)
                 {
+                    log("json null");
                     requesterror?.Invoke();
                     return null;
                 }
@@ -359,11 +373,19 @@ namespace Shared.Engine.Online
             catch { }
 
             if (root == null)
+            {
+                log("root null");
                 return null;
+            }
+
+            log("root OK");
 
             string? episodes = root.episodes;
             if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
+            {
+                log("episodes null");
                 return null;
+            }
 
             return root;
         }
@@ -472,9 +494,12 @@ namespace Shared.Engine.Online
             string? json = await onpost(uri, data);
             if (string.IsNullOrEmpty(json))
             {
+                log("json null");
                 requesterror?.Invoke();
                 return null;
             }
+
+            log("json OK");
 
             Dictionary<string, object>? root = null;
 
@@ -484,6 +509,7 @@ namespace Shared.Engine.Online
             }
             catch
             {
+                log("Deserialize error");
                 requesterror?.Invoke();
                 return null;
             }
@@ -491,13 +517,17 @@ namespace Shared.Engine.Online
             string? url = root?["url"]?.ToString();
             if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
             {
+                log("url null");
                 requesterror?.Invoke();
                 return null;
             }
 
             var links = getStreamLink(url);
             if (links.Count == 0)
+            {
+                log("links null");
                 return null;
+            }
 
             string? subtitlehtml = null;
 
