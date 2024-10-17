@@ -94,6 +94,7 @@ namespace Lampac.Controllers
             async Task<string> getAlloha(string imdb)
             {
                 var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
+                // e4740218af5a5ca67c6210f7fe3842
                 string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
