@@ -55,7 +55,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init))
+                if (IsRefresh(init, NotUseDefaultApn: true))
                     goto refresh;
             }
 
@@ -85,7 +85,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.RemoveAll("rezka:serial");
-                if (IsRefresh(init))
+                if (IsRefresh(init, NotUseDefaultApn: true))
                     goto refresh;
             }
 
@@ -112,7 +112,7 @@ namespace JinEnergy.Online
             {
                 IMemoryCache.Remove(memkey);
 
-                if (IsRefresh(init))
+                if (IsRefresh(init, NotUseDefaultApn: true))
                     goto refresh;
 
                 return EmptyError("md");

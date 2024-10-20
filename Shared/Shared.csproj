@@ -13,6 +13,7 @@
     <PackageReference Include="MonoTorrent" Version="2.0.7" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="PuppeteerSharp" Version="14.0.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
