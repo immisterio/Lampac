@@ -94,15 +94,26 @@ namespace Lampac.Controllers.LITE
                 if (page == null)
                     return null;
 
-                await page.GoToAsync(uri);
-
-                var response = await page.GoToAsync($"view-source:{uri}");
+                var response = await page.GoToAsync(uri);
                 string html = await response.TextAsync();
-
                 if (!html.StartsWith("new Playerjs"))
                 {
+                    await Task.Delay(400);
                     response = await page.GoToAsync($"view-source:{uri}");
                     html = await response.TextAsync();
+
+                    if (!html.StartsWith("new Playerjs"))
+                    {
+                        await Task.Delay(200);
+                        response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
+
+                        if (!html.StartsWith("new Playerjs"))
+                        {
+                            response = await page.GoToAsync($"view-source:{uri}");
+                            html = await response.TextAsync();
+                        }
+                    }
                 }
 
                 if (!html.Contains("new Playerjs"))

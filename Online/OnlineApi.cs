@@ -367,12 +367,7 @@ namespace Lampac.Controllers
                 send("Redheadsound", conf.Redheadsound);
 
             if (kinopoisk_id > 0)
-            {
-                if (serial == -1 || serial == 0)
-                    send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
-
                 send("HDVB", conf.HDVB);
-            }
 
             send("Kinotochka", conf.Kinotochka);
 
@@ -381,6 +376,9 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
                 send("IframeVideo", conf.IframeVideo);
+
+            if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
+                send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
 
             if (!life && conf.litejac)
                 online.Add(("Jackett", "{localhost}/lite/jac", "jac", online.Count));

@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(clarification == 1 ? title : original_title, year, href);
+                return await oninvk.EmbedKurwa(clarification == 1 ? title : original_title, year);
             });
 
             if (IsRhubFallback(cache, init))
