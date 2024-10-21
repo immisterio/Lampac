@@ -145,7 +145,7 @@ namespace Shared.Engine.Online
 
             var result = new EmbedModel();
 
-            string? json = await onget.Invoke($"http://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
+            string? json = await onget.Invoke($"https://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
             if (json == null)
                 return null;
 
