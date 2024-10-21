@@ -84,13 +84,19 @@ namespace Shared.Model
 
         public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("https://zetfix.online") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
 
+        /// <summary>
+        /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
+        /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://30bf3790.obrut.watch") { geostreamproxy = new List<string>() { "ALL" } };
 
+        /// <summary>
+        /// aHR0cHM6Ly9jb2xkZmlsbS5pbmsv
+        /// </summary>
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://cdnmovies-stream.online"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/) { geostreamproxy = new List<string>() { "ALL" } };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("https://s2.fanserialstv.net") { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("https://s2.fanserialstv.net", enable: false) { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("http://22884.annacdn.cc/nPBZWDQ5doe2", "https://videocdn.tv", token: "3i40G5TSECmLF77oAqnEgbx61ZWaOYaE") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 

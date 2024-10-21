@@ -137,6 +137,64 @@ namespace Shared.Engine.Online
         }
         #endregion
 
+        #region EmbedKurwa
+        public async ValueTask<EmbedModel?> EmbedKurwa(string? original_title, int year)
+        {
+            if (string.IsNullOrWhiteSpace(original_title) || year == 0)
+                return null;
+
+            var result = new EmbedModel();
+
+            string? json = await onget.Invoke($"https://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
+            if (json == null)
+                return null;
+
+            BobrKurwa? kurwa = null;
+
+            foreach (var item in JsonSerializer.Deserialize<List<BobrKurwa>>(json)) 
+            {
+                if (item.year == year.ToString())
+                {
+                    kurwa = item;
+                    break;
+                }
+            }
+
+            if (kurwa == null)
+                return null;
+
+            string iframeUri = kurwa.tortuga ?? kurwa.ashdi;
+
+            onlog?.Invoke("iframeUri: " + iframeUri);
+            string? content = await onget.Invoke(iframeUri);
+            if (content == null || !content.Contains("file:"))
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            string? player = StringConvert.FindLastText(content, "new Playerjs", "</script>");
+            if (player == null)
+                return null;
+
+            if (Regex.IsMatch(content, "file: ?'\\["))
+            {
+                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                if (root == null || root.Count == 0)
+                    return null;
+
+                result.serial = root;
+            }
+            else
+            {
+                result.content = player;
+                onlog?.Invoke("content: " + result.content);
+            }
+
+            return result;
+        }
+        #endregion
+
         #region Html
         public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href)
         {

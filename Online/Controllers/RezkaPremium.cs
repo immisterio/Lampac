@@ -12,12 +12,15 @@ using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using System.Net;
+using System.Management;
 
 namespace Lampac.Controllers.LITE
 {
     public class RezkaPremium : BaseOnlineController
     {
         #region InitRezkaInvoke
+        static string uid = null, typeuid = null;
+
         async public ValueTask<RezkaInvoke> InitRezkaInvoke()
         {
             var init = AppInit.conf.RezkaPrem;
@@ -26,23 +29,44 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             #region uid
-            string uid = null;
-
-            try
+            if (uid == null)
             {
-                uid = System.IO.File.ReadAllText("/etc/machine-id");
-            }
-            catch { }
-
-            if (string.IsNullOrEmpty(uid))
-            {
-                if (System.IO.File.Exists("cache/uid")) {
-                    uid = System.IO.File.ReadAllText("cache/uid");
-                }
-                else
+                try
                 {
-                    uid = CrypTo.SHA256(DateTime.Now.ToBinary().ToString());
-                    System.IO.File.WriteAllText("cache/uid", uid);
+                    uid = System.IO.File.ReadAllText("/etc/machine-id");
+                    typeuid = "machine-id";
+                }
+                catch
+                {
+                    if (AppInit.Win32NT)
+                    {
+                        try
+                        {
+                            using (var searcher = new ManagementObjectSearcher("select ProcessorId from Win32_Processor"))
+                            {
+                                foreach (var item in searcher.Get())
+                                    uid = item["ProcessorId"].ToString();
+                            }
+
+                            typeuid = "ProcessorId";
+                        }
+                        catch { }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(uid))
+                {
+                    if (System.IO.File.Exists("cache/uid"))
+                    {
+                        uid = System.IO.File.ReadAllText("cache/uid");
+                    }
+                    else
+                    {
+                        uid = CrypTo.SHA256(DateTime.Now.ToBinary().ToString());
+                        System.IO.File.WriteAllText("cache/uid", uid);
+                    }
+
+                    typeuid = "generate";
                 }
             }
             #endregion
@@ -51,18 +75,23 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(cookie))
                 return null;
 
+            string user_id = Regex.Match(cookie, "dle_user_id=([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+
             var headers = httpHeaders(init, HeadersModel.Init(
                ("X-Lampac-App", "1"),
                ("X-Lampac-Version", $"{appversion}.{minorversion}"),
-               ("X-Lampac-Device-Id", Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()),
+               ("X-Lampac-Device-Id", $"lampac:user_id/{user_id}:{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
                ("Cookie", cookie),
                ("User-Agent", HttpContext.Request.Headers.UserAgent)
             ));
 
-            if (init.xrealip)
+            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+
+            if (country != null)
                 headers.Add(new HeadersModel("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
 
-            string country = init.forceua ? "UA" : GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+            if (init.forceua)
+                country = "UA";
 
             return new RezkaInvoke
             (

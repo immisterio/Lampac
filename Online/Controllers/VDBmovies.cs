@@ -79,10 +79,10 @@ namespace Lampac.Controllers.LITE
                     ["accept"] = "*/*",
                     ["cache-control"] = "no-cache",
                     ["dnt"] = "1",
-                    ["origin"] = "https://torrentfilmov.net",
+                    ["origin"] = "http://kinozadrot.lol",
                     ["pragma"] = "no-cache",
                     ["priority"] = "u=1, i",
-                    ["referer"] = "https://torrentfilmov.net/",
+                    ["referer"] = "http://kinozadrot.lol/",
                     ["sec-ch-ua"] = "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\"",
                     ["sec-ch-ua-mobile"] = "?0",
                     ["sec-ch-ua-platform"] = "\"Windows\"",
@@ -94,15 +94,26 @@ namespace Lampac.Controllers.LITE
                 if (page == null)
                     return null;
 
-                await page.GoToAsync(uri);
-
-                var response = await page.GoToAsync($"view-source:{uri}");
+                var response = await page.GoToAsync(uri);
                 string html = await response.TextAsync();
-
                 if (!html.StartsWith("new Playerjs"))
                 {
+                    await Task.Delay(400);
                     response = await page.GoToAsync($"view-source:{uri}");
                     html = await response.TextAsync();
+
+                    if (!html.StartsWith("new Playerjs"))
+                    {
+                        await Task.Delay(200);
+                        response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
+
+                        if (!html.StartsWith("new Playerjs"))
+                        {
+                            response = await page.GoToAsync($"view-source:{uri}");
+                            html = await response.TextAsync();
+                        }
+                    }
                 }
 
                 if (!html.Contains("new Playerjs"))

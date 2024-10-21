@@ -94,6 +94,7 @@ namespace Lampac.Controllers
             async Task<string> getAlloha(string imdb)
             {
                 var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
+                // e4740218af5a5ca67c6210f7fe3842
                 string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
@@ -366,12 +367,7 @@ namespace Lampac.Controllers
                 send("Redheadsound", conf.Redheadsound);
 
             if (kinopoisk_id > 0)
-            {
-                if (serial == -1 || serial == 0)
-                    send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
-
                 send("HDVB", conf.HDVB);
-            }
 
             send("Kinotochka", conf.Kinotochka);
 
@@ -380,6 +376,9 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
                 send("IframeVideo", conf.IframeVideo);
+
+            if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
+                send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
 
             if (!life && conf.litejac)
                 online.Add(("Jackett", "{localhost}/lite/jac", "jac", online.Count));

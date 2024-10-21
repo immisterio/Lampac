@@ -27,7 +27,7 @@ namespace JinEnergy.Online
             );
 
             string memkey = string.IsNullOrEmpty(href) ? $"kinoukr:{arg.original_title}:{arg.year}:{arg.clarification}" : $"kinoukr:{href}";
-            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.clarification == 1 ? arg.title : arg.original_title, arg.year, href));
+            refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.EmbedKurwa(arg.clarification == 1 ? arg.title : arg.original_title, arg.year));
 
             string html = oninvk.Html(content, arg.clarification, arg.title, arg.original_title, arg.year, t, s, href);
             if (string.IsNullOrEmpty(html))
