@@ -18,6 +18,7 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
+using System.ComponentModel;
 
 namespace Lampac.Controllers
 {
@@ -249,7 +250,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, bool islite = false, string account_email = null)
         {
             var online = new List<(string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
@@ -287,7 +288,10 @@ namespace Lampac.Controllers
                             url += (url.Contains("?") ? "&" : "?") + $"account_email={HttpUtility.UrlEncode(account_email)}";
 
                         if (plugin == "collaps-dash")
+                        {
+                            name = name.Replace("- 720p", "- 1080p");
                             url = url.Replace("/collaps", "/collaps-dash");
+                        }
                     }
                     else {
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
@@ -428,7 +432,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name.Split(" ~ ")[0].Split(" - ")[0] + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
+            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + (islite ? i.name.Split(" ~ ")[0].Split(" - ")[0] : i.name) + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
             return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
