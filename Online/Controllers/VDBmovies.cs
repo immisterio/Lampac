@@ -69,20 +69,15 @@ namespace Lampac.Controllers.LITE
         {
             using (var browser = await PuppeteerTo.Browser())
             {
-                /////////
-                // https://spider-man-lordfilm.cam/
-                // https://torrent-film.online
-                // http://kinozadrot.lol
-                /////////
                 var page = await browser.Page(new Dictionary<string, string>()
                 {
                     ["accept"] = "*/*",
                     ["cache-control"] = "no-cache",
                     ["dnt"] = "1",
-                    ["origin"] = "http://kinozadrot.lol",
+                    ["origin"] = "https://spider-man-lordfilm.cam",
                     ["pragma"] = "no-cache",
                     ["priority"] = "u=1, i",
-                    ["referer"] = "http://kinozadrot.lol/",
+                    ["referer"] = "https://spider-man-lordfilm.cam/",
                     ["sec-ch-ua"] = "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\"",
                     ["sec-ch-ua-mobile"] = "?0",
                     ["sec-ch-ua-platform"] = "\"Windows\"",
@@ -96,6 +91,9 @@ namespace Lampac.Controllers.LITE
 
                 var response = await page.GoToAsync(uri);
                 string html = await response.TextAsync();
+                if (html.Contains("<title>Just a moment...</title>") || html.Contains("<title>Attention Required! | Cloudflare</title>"))
+                    return null;
+
                 if (!html.StartsWith("new Playerjs"))
                 {
                     await Task.Delay(400);
