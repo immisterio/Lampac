@@ -16,13 +16,16 @@ namespace JinEnergy.Online
             string rhsHost = init.corsHost();
             var headers = httpHeaders(args, init);
 
+            if (!string.IsNullOrEmpty(init.cookie))
+                headers.Add(new HeadersModel("cookie", init.cookie));
+
             if (init.premium)
             {
                 rhsHost = "kwws=22odps1df";
                 headers = httpHeaders(args, init, HeadersModel.Init(
                    ("X-Lampac-App", "1"),
                    ("X-Lampac-Version", "bwajs"),
-                   ("X-Lampac-Device-Id", "devtest")
+                   ("X-Lampac-Device-Id", AppInit.KitUid)
                 ));
             }
 

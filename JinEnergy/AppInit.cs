@@ -4,11 +4,9 @@ using Lampac.Models.LITE;
 using Lampac.Models.SISI;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
-using Shared.Model.Online;
 using Shared.Model.Online.Settings;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Web;
 
 namespace JinEnergy
 {
@@ -17,6 +15,8 @@ namespace JinEnergy
         #region OnInit
         [JSInvokable("initial")]
         public static bool IsInitial() { return true; }
+
+        public static string KitUid = "null";
 
 
         /// <param name="type">
@@ -55,6 +55,8 @@ namespace JinEnergy
 
                 if (!string.IsNullOrEmpty(urlconf))
                 {
+                    KitUid = Regex.Match(urlconf, "&uid=([^&]+)").Groups[1].Value;
+
                     string? json = urlconf;
                     Shared.Model.AppInit? setings = null;
 
@@ -72,16 +74,6 @@ namespace JinEnergy
 
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
-
-                            if (!string.IsNullOrEmpty(conf.Rezka.login) && !string.IsNullOrEmpty(conf.Rezka.passwd))
-                            {
-                                string rhsHost = conf.Rezka.premium ? "https://lamp.ac" : conf.Rezka.corsHost();
-                                await JsHttpClient.Post($"{rhsHost}/ajax/login/", $"login_name={HttpUtility.UrlEncode(conf.Rezka.login)}&login_password={HttpUtility.UrlEncode(conf.Rezka.passwd)}&login_not_save=0", addHeaders: !conf.Rezka.premium ? null : HeadersModel.Init(
-                                   ("X-Lampac-App", "1"),
-                                   ("X-Lampac-Version", "bwajs"),
-                                   ("X-Lampac-Device-Id", "devtest")
-                                ));
-                            }
                         }
                     }
                 }
