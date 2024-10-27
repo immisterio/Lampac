@@ -21,7 +21,7 @@ namespace JinEnergy.Online
 
             if (init.premium)
             {
-                rhsHost = "kwws=22odps1df";
+                rhsHost = "kwwsv=22odps1df";
                 headers = httpHeaders(args, init, HeadersModel.Init(
                    ("X-Lampac-App", "1"),
                    ("X-Lampac-Version", "bwajs"),
