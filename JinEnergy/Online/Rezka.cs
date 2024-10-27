@@ -13,23 +13,32 @@ namespace JinEnergy.Online
 
         static RezkaInvoke rezkaInvoke(string args, RezkaSettings init)
         {
-            bool userapn = IsApnIncluded(init);
-
+            string rhsHost = init.corsHost();
             var headers = httpHeaders(args, init);
 
-            if (init.corseu && !string.IsNullOrEmpty(init.cookie))
-                headers.Add(new HeadersModel("x-cookie", init.cookie));
+            if (!string.IsNullOrEmpty(init.login) && !string.IsNullOrEmpty(init.passwd))
+            {
+                rhsHost = "kwws=22odps1df";
+                headers = httpHeaders(args, init, HeadersModel.Init(
+                   ("X-Lampac-App", "1"),
+                   ("X-Lampac-Version", "122.7"),
+                   ("X-Lampac-Device-Id", "bwajs")
+                ));
+            }
+
+            //bool userapn = IsApnIncluded(init);
 
             return new RezkaInvoke
             (
                 null,
-                init.corsHost(),
+                rhsHost,
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 !string.IsNullOrEmpty(init.cookie),
                 ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
                 (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
-                streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(origstream ? RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile) : streamfile, origstream)
+                streamfile => HostStreamProxy(init, streamfile)
+                //streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
             );
         }
         #endregion
@@ -118,8 +127,8 @@ namespace JinEnergy.Online
                 return EmptyError("md");
             }
 
-            if (!IsApnIncluded(AppInit.Rezka))
-                origstream = await IsOrigStream(RezkaInvoke.fixcdn(AppInit.Country, AppInit.Rezka.uacdn, md.links[0].stream_url!));
+            //if (!IsApnIncluded(AppInit.Rezka))
+            //    origstream = await IsOrigStream(md.links[0].stream_url!);
 
             return oninvk.Movie(md, arg.title, arg.original_title, false);
         }

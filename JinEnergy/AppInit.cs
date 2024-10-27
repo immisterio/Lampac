@@ -4,9 +4,11 @@ using Lampac.Models.LITE;
 using Lampac.Models.SISI;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Model.Online.Settings;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Web;
 
 namespace JinEnergy
 {
@@ -70,6 +72,15 @@ namespace JinEnergy
 
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
+
+                            if (!string.IsNullOrEmpty(conf.Rezka.login) && !string.IsNullOrEmpty(conf.Rezka.passwd))
+                            {
+                                await JsHttpClient.Post("https://lamp.ac/ajax/login/", $"login_name={HttpUtility.UrlEncode(conf.Rezka.login)}&login_password={HttpUtility.UrlEncode(conf.Rezka.passwd)}&login_not_save=0", addHeaders: HeadersModel.Init(
+                                   ("X-Lampac-App", "1"),
+                                   ("X-Lampac-Version", "122.7"),
+                                   ("X-Lampac-Device-Id", "bwajs")
+                                ));
+                            }
                         }
                     }
                 }

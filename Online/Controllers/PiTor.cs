@@ -13,6 +13,7 @@ using Shared.Model.Templates;
 using Shared.Model.Online;
 using System.Data;
 using System.IO;
+using Shared.Model.Online.Settings;
 
 namespace Lampac.Controllers.LITE
 {
@@ -381,7 +382,13 @@ namespace Lampac.Controllers.LITE
                 }
             }
 
-            var ts = gots();
+
+            string tskey = $"pidtor:ts:{id}:{HttpContext.Connection.RemoteIpAddress}";
+            if (!memoryCache.TryGetValue(tskey, out (List<HeadersModel> header, string host) ts))
+            {
+                ts = gots();
+                memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
+            }
 
             string hash = await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
             if (hash == null)
@@ -460,17 +467,38 @@ namespace Lampac.Controllers.LITE
 
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
-                var tors = init.auth_torrs.Where(i => i.enable).ToList();
-                var ts = tors[Random.Shared.Next(0, tors.Count)];
+                string tskey = $"pidtor:ts2:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                if (!memoryCache.TryGetValue(tskey, out PidTorAuthTS ts))
+                {
+                    var tors = init.auth_torrs.Where(i => i.enable).ToList();
+                    ts = tors[Random.Shared.Next(0, tors.Count)];
+                    memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
+                }
 
                 return await auth_stream(ts.host, ts.login, ts.passwd);
             }
             else 
             {
                 if (init.base_auth != null && init.base_auth.enable)
-                    return await auth_stream(init.torrs[Random.Shared.Next(0, init.torrs.Length)], init.base_auth.login, init.base_auth.passwd);
+                {
+                    string tskey = $"pidtor:ts3:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                    if (!memoryCache.TryGetValue(tskey, out string ts))
+                    {
+                        ts = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
+                        memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
+                    }
 
-                return Redirect($"{init.torrs[Random.Shared.Next(0, init.torrs.Length)]}/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");
+                    return await auth_stream(ts, init.base_auth.login, init.base_auth.passwd);
+                }
+
+                string key = $"pidtor:ts4:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                if (!memoryCache.TryGetValue(key, out string tshost))
+                {
+                    tshost = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
+                    memoryCache.Set(key, tshost, DateTime.Now.AddHours(4));
+                }
+
+                return Redirect($"{tshost}/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");
             }
         }
     }

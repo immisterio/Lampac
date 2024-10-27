@@ -18,7 +18,6 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
-using System.ComponentModel;
 
 namespace Lampac.Controllers
 {
@@ -282,6 +281,8 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
                         url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
 
+                    string displayname = init.displayname ?? name;
+
                     if (!string.IsNullOrEmpty(url))
                     {
                         if (!string.IsNullOrEmpty(account_email))
@@ -289,7 +290,7 @@ namespace Lampac.Controllers
 
                         if (plugin == "collaps-dash")
                         {
-                            name = name.Replace("- 720p", "- 1080p");
+                            displayname = displayname.Replace("- 720p", "- 1080p");
                             url = url.Replace("/collaps", "/collaps-dash");
                         }
                     }
@@ -304,7 +305,7 @@ namespace Lampac.Controllers
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
-                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
+                    online.Add(($"{displayname}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
 
