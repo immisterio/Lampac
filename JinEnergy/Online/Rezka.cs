@@ -16,9 +16,6 @@ namespace JinEnergy.Online
             string rhsHost = init.corsHost();
             var headers = httpHeaders(args, init);
 
-            if (!string.IsNullOrEmpty(init.cookie))
-                headers.Add(new HeadersModel("cookie", init.cookie));
-
             if (init.premium)
             {
                 rhsHost = "kwwsv=22odps1df";
@@ -28,6 +25,9 @@ namespace JinEnergy.Online
                    ("X-Lampac-Device-Id", AppInit.KitUid)
                 ));
             }
+
+            if (!string.IsNullOrEmpty(init.cookie))
+                headers.Add(new HeadersModel("cookie", init.cookie));
 
             //bool userapn = IsApnIncluded(init);
 
