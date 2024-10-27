@@ -76,7 +76,7 @@ namespace JinEnergy
                             if (!string.IsNullOrEmpty(conf.Rezka.login) && !string.IsNullOrEmpty(conf.Rezka.passwd))
                             {
                                 string rhsHost = conf.Rezka.premium ? "https://lamp.ac" : conf.Rezka.corsHost();
-                                await JsHttpClient.Post($"{rhsHost}/ajax/login/", $"login_name={HttpUtility.UrlEncode(conf.Rezka.login)}&login_password={HttpUtility.UrlEncode(conf.Rezka.passwd)}&login_not_save=0", addHeaders: HeadersModel.Init(
+                                await JsHttpClient.Post($"{rhsHost}/ajax/login/", $"login_name={HttpUtility.UrlEncode(conf.Rezka.login)}&login_password={HttpUtility.UrlEncode(conf.Rezka.passwd)}&login_not_save=0", addHeaders: !conf.Rezka.premium ? null : HeadersModel.Init(
                                    ("X-Lampac-App", "1"),
                                    ("X-Lampac-Version", "bwajs"),
                                    ("X-Lampac-Device-Id", "devtest")
