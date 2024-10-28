@@ -6,7 +6,6 @@ using Online;
 using System.Collections.Generic;
 using Shared.Model.Online;
 using Shared.Engine.CORE;
-using MaxMind.GeoIP2.Model;
 
 namespace Lampac.Controllers.LITE
 {
@@ -29,7 +28,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VideoDB;
 
@@ -51,10 +50,10 @@ namespace Lampac.Controllers.LITE
             if (content?.pl == null)
                 return OnError();
 
-            if (rjson)
+            if (origsource)
                 return Json(content);
 
-            return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid, rjson));
         }
 
 

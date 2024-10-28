@@ -75,15 +75,22 @@ namespace Online
             return Content(cache.Value, "text/html; charset=utf-8");
         }
 
-        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool rjson = false)
+        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool origsource = false)
         {
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);
 
-            if (rjson && cache.Value != null)
+            if (origsource && cache.Value != null)
                 return Json(cache.Value);
 
-            return Content(html.Invoke(), "text/html; charset=utf-8");
+            return ContentTo(html.Invoke());
+        }
+        #endregion
+
+        #region ContentTo
+        public ActionResult ContentTo(string html)
+        {
+            return Content(html, ((html.StartsWith("{") || html.StartsWith("[")) ? "application/json; charset=utf-8" : "text/html; charset=utf-8"));
         }
         #endregion
 

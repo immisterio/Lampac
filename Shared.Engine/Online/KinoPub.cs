@@ -35,7 +35,7 @@ namespace Shared.Engine.Online
         /// 0 - Данные не получены
         /// 1 - Нет нужного контента 
         /// </returns>
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id, bool rjson = false)
         {
             string? searchtitle = clarification == 1 ? title : (original_title ?? title);
             if (string.IsNullOrWhiteSpace(searchtitle))
@@ -78,7 +78,7 @@ namespace Shared.Engine.Online
                         if (ids.Count == 1)
                             return new SearchResult() { id = ids[0] };
 
-                        return new SearchResult() { similars = stpl.ToHtml() };
+                        return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
                     }
                     else
                     {
@@ -124,7 +124,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1)
+        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -196,7 +196,7 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

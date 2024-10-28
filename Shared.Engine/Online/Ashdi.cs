@@ -67,7 +67,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s)
+        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s, bool rjson = false)
         {
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;
@@ -102,7 +102,9 @@ namespace Shared.Engine.Online
                 }
                 #endregion
 
-                return mtpl.ToHtml("По умолчанию", onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+                mtpl.Append("По умолчанию", onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

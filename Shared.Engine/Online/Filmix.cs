@@ -23,8 +23,9 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Action? requesterror;
+        bool rjson;
 
-        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -34,6 +35,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.requesterror = requesterror;
+            this.rjson = rjson;
         }
         #endregion
 
@@ -89,7 +91,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = stpl.ToHtml() };
+            return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
         }
         #endregion
 
@@ -157,7 +159,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = stpl.ToHtml() };
+            return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
         }
         #endregion
 
@@ -221,7 +223,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = stpl.ToHtml() };
+            return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
         }
         #endregion
 
@@ -306,7 +308,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(v.translation, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

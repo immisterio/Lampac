@@ -3,6 +3,7 @@ using Shared.Model.Online.VideoDB;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -52,9 +53,8 @@ namespace Shared.Engine.Online
                 {
                     string base64 = Regex.Match(html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 3);
                     base64 = Regex.Replace(base64, "//[^=]+=", "");
-
                     string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
-                    json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
+                    //json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
 
                     return json;
                 }
@@ -68,7 +68,7 @@ namespace Shared.Engine.Online
             if (file == null)
                 return null;
 
-            var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
+            List<RootObject>? pl = JsonNode.Parse(file)?["file"]?.Deserialize<List<RootObject>>();
             if (pl == null || pl.Count == 0) 
                 return null;
 
@@ -78,7 +78,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid)
+        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -144,7 +144,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, streams[0].link, "call", $"{streams[0].link}&play=true", subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else
@@ -164,7 +164,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append(name, host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
+                        tpl.Append(name, host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
                     }
 
                     return tpl.ToHtml();
@@ -196,7 +196,7 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                string link = host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
+                                string link = host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
                                 string active = t == perevod ? "active" : "";
 
                                 htmlvoices.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>");

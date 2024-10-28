@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Episode>? movies, string? title, string? original_title)
+        public string Html(List<Episode>? movies, string? title, string? original_title, bool rjson = false)
         {
             if (movies == null)
                 return string.Empty;
@@ -104,7 +104,7 @@ namespace Shared.Engine.Online
                 mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles);
             }
 
-            return mtpl.ToHtml();
+            return rjson ? mtpl.ToJson() : mtpl.ToHtml();
         }
         #endregion
     }

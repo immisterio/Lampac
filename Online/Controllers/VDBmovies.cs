@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vdbmovies")]
-        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VDBmovies.Clone();
 
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 return oninvk.Embed(oninvk.DecodeEval(file));
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid), rjson: rjson);
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, rjson: rjson), origsource: origsource);
         }
 
 

@@ -196,7 +196,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href)
+        public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -222,7 +222,7 @@ namespace Shared.Engine.Online
                         stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
 
-                    return stpl.ToHtml();
+                    return rjson ? stpl.ToJson() : stpl.ToHtml();
                 }
 
                 return string.Empty;
@@ -257,7 +257,9 @@ namespace Shared.Engine.Online
                 }
                 #endregion
 
-                return mtpl.ToHtml((string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel), onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+                mtpl.Append(string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel, onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

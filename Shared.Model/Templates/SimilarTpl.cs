@@ -1,4 +1,9 @@
-﻿using System.Text;
+﻿using Lampac.Models.LITE.KinoPub;
+using Shared.Model.Online.VoKino;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Model.Templates
 {
@@ -40,6 +45,25 @@ namespace Shared.Model.Templates
             }
 
             return html.ToString() + "</div>";
+        }
+
+
+        public string ToJson()
+        {
+            if (data.Count == 0)
+                return "[]";
+
+            return JsonSerializer.Serialize(new 
+            {
+                type = "similar",
+                data = data.Select(i => new 
+                {
+                    url = i.link,
+                    i.details,
+                    i.title,
+                    year = string.IsNullOrEmpty(i.year) || !int.TryParse(i.year, out int _) ? 0 : int.Parse(i.year)
+                })
+            });
         }
     }
 }

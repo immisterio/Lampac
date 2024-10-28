@@ -23,5 +23,13 @@
 
             return string.Join(",", data.Select(s => $"\"{s.quality}\":\"{s.link}\""));
         }
+
+        public string MaxQuality()
+        {
+            if (data.Count == 0)
+                return string.Empty;
+
+            return data[0].quality;
+        }
     }
 }

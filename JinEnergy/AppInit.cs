@@ -88,6 +88,7 @@ namespace JinEnergy
                                 conf.Porntrex.corseu = true;
                                 conf.Eporner.corseu = true;
                                 conf.Chaturbate.corseu = true;
+                                conf.Kinotochka.corseu = true;
                             }
                         }
                     }

@@ -1,6 +1,7 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Templates;
 
 namespace JinEnergy.Online
 {
@@ -28,9 +29,9 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id == 0 && string.IsNullOrWhiteSpace(arg.imdb_id))
             {
                 string similar_memkey = $"videocdn:search:{arg.title}:{arg.original_title}";
-                similar_refresh: string? similars = await InvokeCache(arg.id, similar_memkey, () => oninvk.Search(arg.title!, arg.original_title, serial));
+                similar_refresh: SimilarTpl? similars = await InvokeCache(arg.id, similar_memkey, () => oninvk.Search(arg.title!, arg.original_title, serial));
 
-                if (string.IsNullOrEmpty(similars))
+                if (similars == null)
                 {
                     IMemoryCache.Remove(similar_memkey);
                     if (IsRefresh(init, true))
@@ -39,7 +40,7 @@ namespace JinEnergy.Online
                     return EmptyError("similars");
                 }
 
-                return similars;
+                return similars.ToHtml();
             }
             #endregion
 
