@@ -126,7 +126,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid)
+        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -168,7 +168,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(m.title, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

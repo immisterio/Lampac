@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/zetflix")]
-        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Zetflix;
 
@@ -85,21 +85,21 @@ namespace Lampac.Controllers.LITE
             if (html == null)
                 return OnError();
 
-            if (origsource)
+            if (orightml)
                 return Content(html, "text/plain; charset=utf-8");
 
             var content = oninvk.Embed(html);
             if (content.pl == null)
                 return OnError();
 
-            if (rjson)
+            if (origsource)
                 return Json(content);
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)
                 number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(120, init: init), () => oninvk.number_of_seasons(id));
 
-            return Content(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, rjson: rjson));
         }
 
 

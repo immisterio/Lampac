@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.KinoPub;
 
@@ -88,14 +88,14 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id);
+                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id, rjson: rjson);
                 });
 
                 if (!search.IsSuccess)
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.similars != null)
-                    return Content(search.Value.similars, "text/html; charset=utf-8");
+                    return ContentTo(search.Value.similars);
 
                 postid = search.Value.id;
             }
@@ -108,7 +108,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Post(postid);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s), rjson: rjson);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, rjson: rjson), origsource: origsource);
         }
     }
 }

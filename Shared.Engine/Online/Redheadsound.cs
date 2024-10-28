@@ -96,7 +96,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? content, string? title)
+        public string Html(EmbedModel? content, string? title, bool rjson = false)
         {
             if (content == null || content.IsEmpty)
                 return string.Empty;
@@ -123,7 +123,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            return mtpl.ToHtml();
+            return rjson ? mtpl.ToJson() : mtpl.ToHtml();
         }
         #endregion
     }

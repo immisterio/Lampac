@@ -96,7 +96,7 @@ namespace Lampac.Controllers.LITE
             return new RezkaInvoke
             (
                 host,
-                "kwws=22odps1df",
+                "kwwsv=22odps1df",
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 true,

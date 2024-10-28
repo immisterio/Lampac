@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Filmix.Clone();
 
@@ -87,7 +87,8 @@ namespace Lampac.Controllers.LITE
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data, head) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => proxyManager.Refresh(),
+               rjson: rjson
             );
 
             if (postid == 0)
@@ -104,7 +105,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.id == 0)
-                    return Content(search.Value.similars);
+                    return ContentTo(search.Value.similars);
 
                 postid = search.Value.id;
             }
@@ -117,7 +118,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Post(postid);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s), rjson: rjson);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s), origsource: origsource);
         }
 
 

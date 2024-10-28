@@ -99,7 +99,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false)
+        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false, bool rjson = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -146,7 +146,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

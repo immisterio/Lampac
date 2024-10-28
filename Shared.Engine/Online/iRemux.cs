@@ -99,7 +99,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? title, string? original_title, int year)
+        public string Html(EmbedModel? result, string? title, string? original_title, int year, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -121,7 +121,7 @@ namespace Shared.Engine.Online
                         stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
 
-                    return stpl.ToHtml();
+                    return rjson ? stpl.ToJson() : stpl.ToHtml();
                 }
 
                 return string.Empty;
@@ -147,7 +147,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            return mtpl.ToHtml(reverse: true);
+            return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
         }
         #endregion
 

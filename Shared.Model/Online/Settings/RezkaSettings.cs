@@ -16,6 +16,8 @@ namespace Lampac.Models.LITE
 
         public string? passwd { get; set; }
 
+        public bool premium { get; set; }
+
         public string? cookie { get; set; }
 
         public string? uacdn { get; set; }

@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/cdnvideohub")]
-        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.CDNvideohub;
             if (!init.enable)
@@ -36,10 +36,13 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, file.Replace("u0026", "&").Replace("\\", ""), cacheTime(20, init: init));
             }
 
-            if (rjson)
+            if (origsource)
                 return Json(new { file });
 
-            return Content(new MovieTpl(title, original_title).ToHtml("По умолчанию", HostStreamProxy(init, file, proxy: proxy)), "text/html; charset=utf-8");
+            var mtpl = new MovieTpl(title, original_title);
+            mtpl.Append("По умолчанию", HostStreamProxy(init, file, proxy: proxy));
+
+            return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
         }
     }
 }

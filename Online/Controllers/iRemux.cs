@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/remux")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string href)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
         {
             var init = AppInit.conf.iRemux;
 
@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError();
 
-            return Content(oninvk.Html(content, title, original_title, year), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, title, original_title, year, rjson: rjson));
         }
 
 

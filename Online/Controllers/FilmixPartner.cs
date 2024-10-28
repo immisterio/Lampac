@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year));
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year, rjson));
                 postid = res.id;
 
                 // платный поиск
@@ -41,7 +41,7 @@ namespace Lampac.Controllers.LITE
                     postid = await search(kinopoisk_id);
 
                 if (postid == 0 && res.similars != null)
-                    return Content(res.similars);
+                    return ContentTo(res.similars);
             }
 
             if (postid == 0)
@@ -94,7 +94,7 @@ namespace Lampac.Controllers.LITE
                     mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
+                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
             }
             else
@@ -229,7 +229,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async public ValueTask<(int id, string similars)> Search(string title, string original_title, int year)
+        async ValueTask<(int id, string similars)> Search(string title, string original_title, int year, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return (0, null);
@@ -276,7 +276,7 @@ namespace Lampac.Controllers.LITE
             if (ids.Count == 1)
                 return (ids[0], null);
 
-            return (0, stpl.ToHtml());
+            return (0, rjson ? stpl.ToJson() : stpl.ToHtml());
         }
         #endregion
 

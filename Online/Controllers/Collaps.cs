@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/collaps")]
         [Route("lite/collaps-dash")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Collaps.Clone();
             if (!init.enable)
@@ -58,13 +58,13 @@ namespace Lampac.Controllers.LITE
 
             return OnResult(cache, () => 
             {
-                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s);
+                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s, rjson: rjson);
                 if (module == "dash")
                     html = html.Replace("lite/collaps", "lite/collaps-dash");
 
                 return html;
 
-            }, rjson: rjson);
+            }, origsource: origsource);
         }
     }
 }

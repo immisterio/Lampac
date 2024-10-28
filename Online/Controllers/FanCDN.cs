@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.FanCDN.Clone();
 
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(title, original_title, year);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title), rjson: rjson);
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title, rjson: rjson), origsource: origsource);
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinoukr")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Kinoukr.Clone();
 
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href), rjson: rjson);
+            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href, rjson: rjson), origsource: origsource);
         }
     }
 }

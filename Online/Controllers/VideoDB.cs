@@ -5,6 +5,7 @@ using Shared.Engine.Online;
 using Online;
 using System.Collections.Generic;
 using Shared.Model.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -27,18 +28,21 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VideoDB;
 
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            var proxyManager = new ProxyManager("videodb", init);
+            var proxy = proxyManager.Get();
+
             var oninvk = new VideoDBInvoke
             (
                host,
                init.corsHost(),
-               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init, baseheader), httpversion: 2),
+               (url, head) => HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init, baseheader), proxy: proxy, httpversion: 2),
                streamfile => streamfile
             );
 
@@ -46,10 +50,10 @@ namespace Lampac.Controllers.LITE
             if (content?.pl == null)
                 return OnError();
 
-            if (rjson)
+            if (origsource)
                 return Json(content);
 
-            return Content(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid, rjson));
         }
 
 
@@ -62,11 +66,14 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrEmpty(link))
                 return OnError();
 
-            string location = await HttpClient.GetLocation(link, httpversion: 2, headers: httpHeaders(init, baseheader));
+            var proxyManager = new ProxyManager("videodb", init);
+            var proxy = proxyManager.Get();
+
+            string location = await HttpClient.GetLocation(link, httpversion: 2, proxy: proxy, headers: httpHeaders(init, baseheader));
             if (string.IsNullOrEmpty(location) || link == location)
                 return OnError();
 
-            string m3u8 = HostStreamProxy(init, location, plugin: "videodb");
+            string m3u8 = HostStreamProxy(init, location, proxy: proxy, plugin: "videodb");
             if (play)
                 return Redirect(m3u8);
 

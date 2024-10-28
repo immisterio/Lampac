@@ -45,7 +45,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<string?> Search(string title, string? original_title, int serial)
+        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -93,7 +93,7 @@ namespace Shared.Engine.Online
                 stpl.Append(name, year, details, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
             }
 
-            return stpl.ToHtml();
+            return stpl;
         }
         #endregion
 
@@ -159,7 +159,10 @@ namespace Shared.Engine.Online
             //string files = Decode(client_id, sentry_id);
 
 
-            string files = Regex.Match(content, "value='(\\{[^\']+)'").Groups[1].Value;
+            string files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'").Groups[1].Value;
+            if (string.IsNullOrEmpty(files))
+                return null;
+
             result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
             if (result.type is "movie" or "anime")
@@ -202,7 +205,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s)
+        public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
         {
             if (result == null)
                 return string.Empty;
@@ -252,7 +255,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else

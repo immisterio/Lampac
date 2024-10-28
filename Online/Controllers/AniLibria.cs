@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/anilibria")]
-        async public Task<ActionResult> Index(string title, string code, int year, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string code, int year, bool origsource = false)
         {
             var init = AppInit.conf.AnilibriaOnline.Clone();
 
@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year), rjson: rjson);
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year), origsource: origsource);
         }
     }
 }

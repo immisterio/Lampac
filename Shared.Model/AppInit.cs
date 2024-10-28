@@ -68,7 +68,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinovibe.co", streamproxy: true);
 
-        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("https://player.cdnvideohub.com", streamproxy: true);
+        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("https://player.cdnvideohub.com", streamproxy: true, enable: false);
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 
@@ -86,6 +86,7 @@ namespace Shared.Model
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
+        /// a2lub2dvLm1lZGlh
         /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("https://30bf3790.obrut.watch") { geostreamproxy = new List<string>() { "ALL" } };
 
@@ -94,7 +95,7 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("https://coldcdn.xyz");
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://cdnmovies-stream.online"/*, token: "02d56099082ad5ad586d7fe4e2493dd9"*/) { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("https://cdnmovies-stream.online", rip: true) { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("https://s2.fanserialstv.net", enable: false) { geostreamproxy = new List<string>() { "ALL" } };
 

@@ -249,7 +249,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, string account_email = null)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, bool islite = false, string account_email = null)
         {
             var online = new List<(string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
@@ -281,10 +281,18 @@ namespace Lampac.Controllers
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
                         url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
 
+                    string displayname = init.displayname ?? name;
+
                     if (!string.IsNullOrEmpty(url))
                     {
                         if (!string.IsNullOrEmpty(account_email))
                             url += (url.Contains("?") ? "&" : "?") + $"account_email={HttpUtility.UrlEncode(account_email)}";
+
+                        if (plugin == "collaps-dash")
+                        {
+                            displayname = displayname.Replace("- 720p", "- 1080p");
+                            url = url.Replace("/collaps", "/collaps-dash");
+                        }
                     }
                     else {
                         url = "{localhost}/lite/" + (plugin ?? name.ToLower()) + arg_url;
@@ -297,7 +305,7 @@ namespace Lampac.Controllers
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
-                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
+                    online.Add(($"{displayname}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
 
@@ -381,7 +389,7 @@ namespace Lampac.Controllers
                 send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
 
             if (!life && conf.litejac)
-                online.Add(("Jackett", "{localhost}/lite/jac", "jac", online.Count));
+                online.Add(("Торренты", "{localhost}/lite/jac", "jac", online.Count));
 
             #region checkOnlineSearch
             bool chos = conf.online.checkOnlineSearch && id > 0;
@@ -425,7 +433,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
+            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + (islite ? i.name.Split(" ~ ")[0].Split(" - ")[0] : i.name) + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
             return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
