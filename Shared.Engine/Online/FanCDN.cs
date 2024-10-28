@@ -31,11 +31,18 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(search))
                 return null;
 
-            string? itemsearch = search.Split("item-search-serial")?[1]?.Split("torrent-link")?[0];
-            if (string.IsNullOrEmpty(itemsearch) || !itemsearch.Contains($"({year}") || !itemsearch.Contains(title))
-                return null;
+            string? href = null;
 
-            string href = Regex.Match(itemsearch, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+            foreach (string itemsearch in search.Split("item-search-serial"))
+            {
+                string? info = itemsearch.Split("torrent-link")?[0];
+                if (string.IsNullOrEmpty(info) || !info.Contains($"({year}") || !info.Contains(title))
+                    continue;
+
+                href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                break;
+            }
+
             if (string.IsNullOrEmpty(href))
                 return null;
 

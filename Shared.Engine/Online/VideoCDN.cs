@@ -160,6 +160,9 @@ namespace Shared.Engine.Online
 
 
             string files = Regex.Match(content, "value='(\\{[^\']+)'").Groups[1].Value;
+            if (string.IsNullOrEmpty(files))
+                files = HttpUtility.HtmlDecode(Regex.Match(content, "value=\"(\\{[^\"]+)\"").Groups[1].Value);
+
             result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
             if (result.type is "movie" or "anime")
