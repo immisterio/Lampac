@@ -53,27 +53,8 @@ namespace JinEnergy
                 if (geo != null)
                     Country = geo;
 
-                if (string.IsNullOrEmpty(urlconf))
+                if (!string.IsNullOrEmpty(urlconf))
                 {
-                    if (geo == "RU")
-                    {
-                        conf.Rezka.enable = false;
-                        conf.BongaCams.enable = false;
-                        conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/elo";
-                        conf.Xnxx.overridehost = "https://bwa-cloud.apn.monster/xnx";
-                        conf.Ebalovo.overridehost = "https://bwa-cloud.apn.monster/elo";
-                        conf.HQporner.overridehost = "https://bwa-cloud.apn.monster/hqr";
-                        conf.Spankbang.overridehost = "https://bwa-cloud.apn.monster/sbg";
-                        conf.Xhamster.corseu = true;
-                        conf.Porntrex.corseu = true;
-                        conf.Eporner.corseu = true;
-                        conf.Chaturbate.corseu = true;
-                    }
-                }
-                else
-                {
-                    KitUid = Regex.Match(urlconf, "&uid=([^&]+)").Groups[1].Value;
-
                     string? json = urlconf;
                     Shared.Model.AppInit? setings = null;
 
@@ -83,6 +64,8 @@ namespace JinEnergy
                     if (json != null)
                     {
                         IsDefaultConf = Regex.IsMatch(urlconf, "/settings/(web|cors|apk)\\.json");
+                        if (!IsDefaultConf)
+                            KitUid = Regex.Match(urlconf, "&uid=([^&]+)").Groups[1].Value;
 
                         setings = JsonSerializer.Deserialize<Shared.Model.AppInit>(json);
                         if (setings != null)
@@ -91,6 +74,21 @@ namespace JinEnergy
 
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
+
+                            if (IsDefaultConf && geo == "RU")
+                            {
+                                conf.Rezka.enable = false;
+                                conf.BongaCams.enable = false;
+                                conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/elo";
+                                conf.Xnxx.overridehost = "https://bwa-cloud.apn.monster/xnx";
+                                conf.Ebalovo.overridehost = "https://bwa-cloud.apn.monster/elo";
+                                conf.HQporner.overridehost = "https://bwa-cloud.apn.monster/hqr";
+                                conf.Spankbang.overridehost = "https://bwa-cloud.apn.monster/sbg";
+                                conf.Xhamster.corseu = true;
+                                conf.Porntrex.corseu = true;
+                                conf.Eporner.corseu = true;
+                                conf.Chaturbate.corseu = true;
+                            }
                         }
                     }
                 }
