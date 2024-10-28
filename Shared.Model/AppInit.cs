@@ -68,7 +68,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("https://kinovibe.co", streamproxy: true);
 
-        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("https://player.cdnvideohub.com", streamproxy: true);
+        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("https://player.cdnvideohub.com", streamproxy: true, enable: false);
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("https://redheadsound.studio");
 

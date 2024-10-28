@@ -159,7 +159,7 @@ namespace Shared.Engine.Online
             //string files = Decode(client_id, sentry_id);
 
 
-            string files = Regex.Match(content.Split("downloadBtn")?[1]??"", "value='(\\{[^\']+)'").Groups[1].Value;
+            string files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'").Groups[1].Value;
             if (string.IsNullOrEmpty(files))
                 return null;
 
