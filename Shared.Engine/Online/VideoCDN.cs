@@ -101,7 +101,7 @@ namespace Shared.Engine.Online
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
         {
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.biz/82065-pchelovod.html");
+            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.ec/109184-djedpul-i-rossomaha-2024.html");
             if (content == null)
             {
                 requesterror?.Invoke();
@@ -210,10 +210,6 @@ namespace Shared.Engine.Online
             if (result == null)
                 return string.Empty;
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             if (result.type is "movie" or "anime")
             {
                 #region Фильм
@@ -283,15 +279,17 @@ namespace Shared.Engine.Online
 
                         foreach (int id in seasons.OrderBy(s => s))
                         {
-                            string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={id}";
-                            tpl.Append($"{id} сезон", link);
+                            string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={id}";
+                            tpl.Append($"{id} сезон", link, id);
                         }
 
-                        return tpl.ToHtml();
+                        return rjson ? tpl.ToJson() : tpl.ToHtml();
                     }
                     else
                     {
                         #region Перевод
+                        var vtpl = new VoiceTpl();
+
                         foreach (var voice in result.voiceSeasons)
                         {
                             if (!voice.Value.Contains(s))
@@ -302,13 +300,9 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(t))
                                     t = voice.Key;
 
-                                string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.Key}";
-
-                                html.Append("<div class=\"videos__button selector " + (t == voice.Key ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
+                                vtpl.Append(name, t == voice.Key, host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.Key}");
                             }
                         }
-
-                        html.Append("</div><div class=\"videos__line\">");
                         #endregion
 
                         if (string.IsNullOrEmpty(t))
@@ -317,6 +311,8 @@ namespace Shared.Engine.Online
                         var season = result.serial[t].First(i => i.id == s);
                         if (season.folder == null)
                             return string.Empty;
+
+                        var etpl = new EpisodeTpl();
 
                         foreach (var episode in season.folder)
                         {
@@ -338,12 +334,15 @@ namespace Shared.Engine.Online
                             if (streams.Count == 0)
                                 continue;
 
-                            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
                             string e = episode.id.Split("_")[1];
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + e + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({e} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{e} серия" + "</div></div>");
-                            firstjson = false;
+
+                            etpl.Append($"{e} серия", $"{title ?? original_title} ({e} серия)", s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
+
+                        if (rjson)
+                            return etpl.ToJson(vtpl);
+
+                        return vtpl.ToHtml() + etpl.ToHtml();
                     }
                 }
                 catch
@@ -352,8 +351,6 @@ namespace Shared.Engine.Online
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

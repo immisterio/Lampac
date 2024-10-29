@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Shared.Model.Templates
 {
@@ -28,6 +29,19 @@ namespace Shared.Model.Templates
                 html.Append("<div class=\"videos__button selector " + (i.active ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + i.link + "\"}'>" + i.name + "</div>");
 
             return html.ToString() + "</div>";
+        }
+
+        public string ToJson()
+        {
+            if (data.Count == 0)
+                return "[]";
+
+            var html = new StringBuilder();
+
+            foreach (var i in data)
+                html.Append($"{{\"method\":\"link\", \"url\":\"{i.link}\", \"active\": {i.active.ToString().ToLower()}, \"name\":\"{i.name.Replace("\"", "%22")?.Replace("'", "%27")}\"}},");
+
+            return "[" + Regex.Replace(html.ToString(), ",$", "") + "]";
         }
     }
 }

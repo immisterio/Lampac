@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 
 namespace Shared.Model.Templates
 {
@@ -12,14 +13,14 @@ namespace Shared.Model.Templates
         public SeasonTpl(string? quality) { this.quality = quality; }
         #endregion
 
-        List<(string name, string link)> data = new List<(string, string)>();
+        List<(string name, string link, int? id)> data = new List<(string, string, int?)>();
 
         public SeasonTpl(int capacity) { data.Capacity = capacity; }
 
-        public void Append(string? name, string link)
+        public void Append(string? name, string link, int? id = null)
         {
             if (!string.IsNullOrEmpty(name))
-                data.Add((name, link));
+                data.Add((name, link, id));
         }
 
         public string ToHtml()
@@ -41,6 +42,24 @@ namespace Shared.Model.Templates
             }
 
             return html.ToString() + "</div>";
+        }
+
+        public string ToJson()
+        {
+            if (data.Count == 0)
+                return "[]";
+
+            return JsonSerializer.Serialize(new
+            {
+                type = "season",
+                maxquality = quality,
+                data = data.Select(i => new
+                {
+                    i.id,
+                    url = i.link,
+                    i.name
+                })
+            });
         }
     }
 }

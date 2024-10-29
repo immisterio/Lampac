@@ -14,6 +14,7 @@ using Shared.Model.Templates;
 using System.Text.Json;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
+using System.Security.Cryptography;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,7 +22,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -54,7 +55,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"fxapi:{postid}:{HttpContext.Connection.RemoteIpAddress}";
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
-                string XFXTOKEN = await getXFXTOKEN();
+                string XFXTOKEN = await getXFXTOKEN(account_email);
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return OnError();
 
@@ -281,11 +282,11 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region getXFXTOKEN
-        static int userid = 1;
+        static long userid = 1;
 
         static string serverip = null;
 
-        async ValueTask<string> getXFXTOKEN()
+        async ValueTask<string> getXFXTOKEN(string account_email = null)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -301,6 +302,19 @@ namespace Lampac.Controllers.LITE
             if (userid > 20_000)
                 userid = 1;
             userid++;
+
+            if (account_email != null)
+            {
+                using (SHA256 sha256Hash = SHA256.Create())
+                {
+                    // Преобразуем строку в байты и вычисляем хэш
+                    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(account_email));
+
+                    // Преобразуем первые 8 байт хэша в число
+                    long result = BitConverter.ToInt64(bytes, 0);
+                    userid = Math.Abs(result); // Возвращаем положительное значение
+                }
+            }
 
             string XNICK = ReverseString(DateTime.Now.ToString("HHmm")) + DateTime.Now.ToString("yyyyMMdd");
             string XSAM = ReverseString(serverip.Replace(".", "")) + DateTime.Now.ToString("HHmm");
