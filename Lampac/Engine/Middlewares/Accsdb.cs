@@ -4,7 +4,6 @@ using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -12,6 +11,11 @@ namespace Lampac.Engine.Middlewares
 {
     public class Accsdb
     {
+        static Accsdb() 
+        {
+            Directory.CreateDirectory("cache/logs/accsdb");
+        }
+
         private readonly RequestDelegate _next;
         IMemoryCache memoryCache;
 
@@ -119,27 +123,47 @@ namespace Lampac.Engine.Middlewares
 
 
         #region IsLock
+        static string logsLock = string.Empty;
+
         bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock, out HashSet<string> ips)
         {
+            #region setLogs
+            void setLogs(string name)
+            {
+                string logFile = $"cache/logs/accsdb/{DateTime.Now:dd-mm-yyyy}.lock.txt";
+                if (logsLock != string.Empty && !File.Exists(logFile))
+                    logsLock = string.Empty;
+
+                string line = $"{name} / {account_email}";
+
+                if (!logsLock.Contains(line))
+                {
+                    logsLock += $"{DateTime.Now}: {line}\n";
+                    File.WriteAllText(logFile, logsLock);
+                }
+            }
+            #endregion
+
             #region countlock_day
             int countlock_day(bool update)
             {
                 string key = $"Accsdb:lock_day:{account_email}:{DateTime.Now.Day}";
 
-                if (memoryCache.TryGetValue(key, out int countlock))
+                if (memoryCache.TryGetValue(key, out HashSet<int> lockhour))
                 {
                     if (update)
                     {
-                        countlock = countlock + 1;
-                        memoryCache.Set(key, countlock, DateTime.Now.AddDays(1));
+                        lockhour.Add(DateTime.Now.Hour);
+                        memoryCache.Set(key, lockhour, DateTime.Now.AddDays(1));
                     }
 
-                    return countlock;
+                    return lockhour.Count;
                 }
                 else if (update)
                 {
-                    memoryCache.Set(key, 1, DateTime.Now.AddDays(1));
-                    return 1;
+                    lockhour = new HashSet<int>() { DateTime.Now.Hour };
+                    memoryCache.Set(key, lockhour, DateTime.Now.AddDays(1));
+                    return lockhour.Count;
                 }
 
                 return 0;
@@ -148,21 +172,24 @@ namespace Lampac.Engine.Middlewares
 
             if (IsLockIpHour(account_email, userip, out islock, out ips) || IsLockReqHour(account_email, uri, out islock))
             {
+                setLogs("lock_hour");
                 countlock_day(update: true);
                 return islock;
             }
 
-            if (countlock_day(update: false) >= AppInit.conf.accsdb.maxlock_day)
+            if (countlock_day(update: false) > AppInit.conf.accsdb.maxlock_day)
             {
                 if (AppInit.conf.accsdb.blocked_hour != -1)
                     memoryCache.Set($"Accsdb:blocked_hour:{account_email}", 0, DateTime.Now.AddHours(AppInit.conf.accsdb.blocked_hour));
 
+                setLogs("lock_day");
                 islock = true;
                 return islock;
             }
 
             if (memoryCache.TryGetValue($"Accsdb:blocked_hour:{account_email}", out _))
             {
+                setLogs("blocked");
                 islock = true;
                 return islock;
             }
