@@ -4,6 +4,7 @@ using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -198,6 +199,12 @@ namespace Lampac.Engine.Middlewares
 
         bool IsLockReqHour(string account_email, string uri, out bool islock)
         {
+            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids)"))
+            {
+                islock = false;
+                return islock;
+            }
+
             string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}";
 
             if (memoryCache.TryGetValue(memKeyLocIP, out HashSet<string> urls))
