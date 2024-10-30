@@ -9,7 +9,13 @@ namespace Lampac.Models.AppConf
 
         public string whitepattern { get; set; }
 
-        public int maxiptohour { get; set; }
+        public int maxip_hour { get; set; }
+
+        public int maxrequest_hour { get; set; }
+
+        public int maxlock_day { get; set; }
+
+        public int blocked_hour { get; set; }
 
         public string authMesage { get; set; }
 

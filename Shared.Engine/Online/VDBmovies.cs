@@ -188,10 +188,10 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append($"{season} сезон", host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
+                        tpl.Append($"{season} сезон", host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                     #endregion
                 }
                 else
@@ -215,7 +215,7 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                vtpl.Append(perevod, t == perevod, host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}");
+                                vtpl.Append(perevod, t == perevod, host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}");
                             }
 
                             if (perevod != t)
@@ -234,6 +234,9 @@ namespace Shared.Engine.Online
                             etpl.Append($"{ename} cерия", $"{title ?? original_title} ({ename} cерия)", s.ToString(), ename, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
                     }
+
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
 
                     return vtpl.ToHtml() + etpl.ToHtml();
                     #endregion

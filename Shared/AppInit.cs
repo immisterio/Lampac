@@ -224,7 +224,7 @@ namespace Lampac
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", version = true
         };
 
-        public AccsConf accsdb = new AccsConf() { authMesage = "Войдите в аккаунт cub.red", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", maxiptohour = 15 };
+        public AccsConf accsdb = new AccsConf() { authMesage = "Войдите в аккаунт cub.red", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", maxip_hour = 15, maxrequest_hour = 300, maxlock_day = 3, blocked_hour = 24 };
 
         public MerchantsModel Merchant = new MerchantsModel();
 
