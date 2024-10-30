@@ -24,7 +24,7 @@ namespace Shared.Model
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("https://ru2.bongacams.com");
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("https://ee.bongacams.com");
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("https://chaturbate.com");
 

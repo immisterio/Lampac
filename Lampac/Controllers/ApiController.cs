@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers
 {
@@ -54,12 +55,28 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region Version / Headers / myip / testaccsdb / personal.lampa
+        #region Version / Headers / geo / myip / testaccsdb / personal.lampa
         [Route("/version")]
         public ActionResult Version() => Content($"{appversion}.{minorversion}", contentType: "text/plain; charset=utf-8");
 
         [Route("/headers")]
         public ActionResult Headers() => Json(HttpContext.Request.Headers);
+
+        [Route("/geo")]
+        public ActionResult Geo(string select)
+        {
+            if (select == "ip")
+                return Content(HttpContext.Connection.RemoteIpAddress.ToString());
+
+            if (select == "country")
+                return Content(GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()));
+
+            return Json(new 
+            { 
+                ip = HttpContext.Connection.RemoteIpAddress.ToString(),
+                country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()) 
+            });
+        }
 
         [Route("/myip")]
         public ActionResult MyIP() => Content(HttpContext.Connection.RemoteIpAddress.ToString());
