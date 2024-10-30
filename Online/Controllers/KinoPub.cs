@@ -88,7 +88,7 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id, rjson: rjson);
+                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id);
                 });
 
                 if (!search.IsSuccess)
