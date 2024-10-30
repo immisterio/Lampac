@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string title, int year, string uri, int s, string account_email)
+        async public Task<ActionResult> Index(string title, int year, string uri, int s, string account_email, bool rjson = false)
         {
             var init = AppInit.conf.Animevost;
 
@@ -65,22 +65,19 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect($"/lite/animevost?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
                     stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
 
-                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
+                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion
             }
             else 
             {
                 #region Серии
-                bool firstjson = true;
-                string html = "<div class=\"videos__line\">";
-
                 string memKey = $"animevost:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string id)> links))
                 {
@@ -109,15 +106,15 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memKey, links, cacheTime(30, init: init));
                 }
 
+                var etpl = new EpisodeTpl();
+
                 foreach (var l in links)
                 {
                     string link = $"{host}/lite/animevost/video?id={l.id}&account_email={HttpUtility.UrlEncode(account_email)}";
-
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.episode})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.episode + "</div></div>";
-                    firstjson = true;
+                    etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link);
                 }
 
-                return Content(html + "</div>", "text/html; charset=utf-8");
+                return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
                 #endregion
             }
         }

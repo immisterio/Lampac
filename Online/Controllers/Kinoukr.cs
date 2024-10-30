@@ -5,6 +5,8 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online.Eneyida;
+using Shared.Model.Online;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -34,7 +36,30 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: url.Contains("bobr-kurwa") ? httpHeaders(init) : httpHeaders(init, HeadersModel.Init
+               (
+                    ("cache-control", "no-cache"),
+                    ("cookie", $"PHPSESSID={CrypTo.md5(DateTime.Now.ToBinary().ToString())}; legit_user=1;"),
+                    ("dnt", "1"),
+                    ("origin", init.host),
+                    ("pragma", "no-cache"),
+                    ("priority", "u=0, i"),
+                    ("referer", $"{init.host}/{CrypTo.unic(4, true)}-{CrypTo.unic(Random.Shared.Next(4, 8))}-{CrypTo.unic(Random.Shared.Next(5, 10))}.html"),
+                    ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not ? A_Brand\";v=\"99\""),
+                    ("sec-ch-ua-arch", "\"x86\""),
+                    ("sec-ch-ua-bitness", "\"64\""),
+                    ("sec-ch-ua-full-version", "\"130.0.6723.70\""),
+                    ("sec-ch-ua-full-version-list", "\"Chromium\";v=\"130.0.6723.70\", \"Google Chrome\";v=\"130.0.6723.70\", \"Not ? A_Brand\";v=\"99.0.0.0\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-model", "\"\""),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-ch-ua-platform-version", "\"10.0.0\""),
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("sec-fetch-user", "?1"),
+                    ("upgrade-insecure-requests", "1")
+               ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr"),
                requesterror: () => proxyManager.Refresh()
                //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
@@ -45,7 +70,7 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.EmbedKurwa(clarification == 1 ? title : original_title, year);
+                return await oninvk.Embed(clarification == 1 ? title : original_title, year, href);
             });
 
             if (IsRhubFallback(cache, init))

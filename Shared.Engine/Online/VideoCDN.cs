@@ -2,7 +2,6 @@
 using System.Web;
 using System.Text.Json;
 using Shared.Model.Online.VideoCDN;
-using System.Text;
 using Shared.Model.Templates;
 using Lampac.Models.LITE;
 
@@ -336,7 +335,7 @@ namespace Shared.Engine.Online
 
                             string e = episode.id.Split("_")[1];
 
-                            etpl.Append($"{e} серия", $"{title ?? original_title} ({e} серия)", s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
 
                         if (rjson)

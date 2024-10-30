@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using System.Linq;
@@ -34,7 +33,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year, rjson));
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year));
                 postid = res.id;
 
                 // платный поиск
@@ -42,7 +41,7 @@ namespace Lampac.Controllers.LITE
                     postid = await search(kinopoisk_id);
 
                 if (postid == 0 && res.similars != null)
-                    return ContentTo(res.similars);
+                    return ContentTo(rjson ? res.similars.ToJson() : res.similars.ToHtml());
             }
 
             if (postid == 0)
@@ -72,9 +71,6 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
             if (root.First.ToObject<JObject>().ContainsKey("files"))
             {
                 #region Фильм
@@ -101,11 +97,12 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Сериал
-                firstjson = true;
-
                 if (s == -1)
                 {
                     #region Сезоны
+                    var tpl = new SeasonTpl(root.Count);
+                    var temp_season = new HashSet<int>();
+
                     foreach (var translation in root)
                     {
                         foreach (var season in translation.Value<JArray>("seasons"))
@@ -113,21 +110,23 @@ namespace Lampac.Controllers.LITE
                             int sid = season.Value<int>("season");
                             string sname = $"{sid} сезон";
 
-                            if (!html.Contains(sname))
+                            if (!temp_season.Contains(sid))
                             {
-                                string link = $"{host}/lite/fxapi?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={sid}";
-
-                                html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + sname + "</div></div></div>";
-                                firstjson = false;
+                                temp_season.Add(sid);
+                                string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={sid}";
+                                tpl.Append(sname, link, sid);
                             }
                         }
                     }
+
+                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
                     #endregion
                 }
                 else
                 {
                     #region Перевод
                     int indexTranslate = 0;
+                    var vtpl = new VoiceTpl();
 
                     foreach (var translation in root)
                     {
@@ -135,23 +134,22 @@ namespace Lampac.Controllers.LITE
                         {
                             if (season.Value<int>("season") == s)
                             {
-                                string link = $"{host}/lite/fxapi?postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
-                                string active = t == indexTranslate ? "active" : "";
+                                string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
+                                bool active = t == indexTranslate;
 
                                 indexTranslate++;
-                                html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value<string>("name") + "</div>";
+                                vtpl.Append(translation.Value<string>("name"), active, link);
                                 break;
                             }
                         }
                     }
-
-                    html += "</div><div class=\"videos__line\">";
                     #endregion
 
                     #region Серии
+                    var etpl = new EpisodeTpl();
+
                     foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
                     {
-                        string streansquality = string.Empty;
                         List<(string link, string quality)> streams = new List<(string, string)>();
 
                         foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
@@ -160,21 +158,20 @@ namespace Lampac.Controllers.LITE
                             string l = HostStreamProxy(init, file.Value<string>("url"));
 
                             streams.Add((l, $"{q}p"));
-                            streansquality += $"\"{$"{q}p"}\":\"" + l + "\",";
                         }
 
-                        streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
-
                         int e = episode.Value<int>("episode");
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + e + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({e} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{e} серия" + "</div></div>";
-                        firstjson = false;
+                        etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams));
                     }
                     #endregion
+
+                    if (rjson)
+                        return ContentTo(etpl.ToJson(vtpl));
+
+                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                 }
                 #endregion
             }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
 
@@ -230,7 +227,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async ValueTask<(int id, string similars)> Search(string title, string original_title, int year, bool rjson = false)
+        async ValueTask<(int id, SimilarTpl similars)> Search(string title, string original_title, int year)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return (0, null);
@@ -277,7 +274,7 @@ namespace Lampac.Controllers.LITE
             if (ids.Count == 1)
                 return (ids[0], null);
 
-            return (0, rjson ? stpl.ToJson() : stpl.ToHtml());
+            return (0, stpl);
         }
         #endregion
 

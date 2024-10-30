@@ -31,5 +31,18 @@ namespace Shared.Model.Templates
 
             return Regex.Replace(build.ToString(), ",$", "");
         }
+
+        public object ToObject()
+        {
+            if (data.Count == 0)
+                return new List<string>();
+
+            return data.Select(i => new
+            {
+                method = "link",
+                i.url,
+                i.label
+            });
+        }
     }
 }

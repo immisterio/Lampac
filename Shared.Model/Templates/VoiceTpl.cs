@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace Shared.Model.Templates
 {
@@ -33,15 +33,21 @@ namespace Shared.Model.Templates
 
         public string ToJson()
         {
+            return JsonSerializer.Serialize(ToObject());
+        }
+
+        public object ToObject()
+        {
             if (data.Count == 0)
-                return "[]";
+                return new List<string>();
 
-            var html = new StringBuilder();
-
-            foreach (var i in data)
-                html.Append($"{{\"method\":\"link\", \"url\":\"{i.link}\", \"active\": {i.active.ToString().ToLower()}, \"name\":\"{i.name.Replace("\"", "%22")?.Replace("'", "%27")}\"}},");
-
-            return "[" + Regex.Replace(html.ToString(), ",$", "") + "]";
+            return data.Select(i => new 
+            {
+                method = "link",
+                url = i.link,
+                i.active,
+                i.name
+            });
         }
     }
 }

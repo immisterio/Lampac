@@ -24,6 +24,11 @@
             return string.Join(",", data.Select(s => $"\"{s.quality}\":\"{s.link}\""));
         }
 
+        public Dictionary<string, string> ToObject()
+        {
+            return data.ToDictionary(k => k.quality, v => v.link);
+        }
+
         public string MaxQuality()
         {
             if (data.Count == 0)

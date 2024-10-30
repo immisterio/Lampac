@@ -193,7 +193,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -211,21 +211,17 @@ namespace Shared.Engine.Online
 
                     foreach (var similar in result.similar)
                     {
-                        string link = host + $"lite/rezka?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+                        string link = host + $"lite/rezka?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
                         stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
 
-                    return stpl.ToHtml();
+                    return rjson ? stpl.ToJson() : stpl.ToHtml();
                 }
 
                 return string.Empty;
             }
             #endregion
-
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
 
             if (!result.content.Contains("data-season_id="))
             {
@@ -270,7 +266,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(links[0].title, onstreamfile(links[0].stream_url!), streamquality: streamquality);
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else
@@ -281,6 +277,8 @@ namespace Shared.Engine.Online
                     return string.Empty;
 
                 #region Перевод
+                var vtpl = new VoiceTpl();
+
                 if (result.content.Contains("data-translator_id="))
                 {
                     var match = new Regex("<li [^>]+ data-translator_id=\"([0-9]+)\">([^<]+)(<img title=\"([^\"]+)\" [^>]+/>)?").Match(result.content);
@@ -293,18 +291,19 @@ namespace Shared.Engine.Online
                         }
 
                         string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                        string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
+                        string link = host + $"lite/rezka/serial?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups[1].Value}";
 
-                        html.Append("<div class=\"videos__button selector " + (match.Groups[1].Value == trs ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
+                        vtpl.Append(name, match.Groups[1].Value == trs, link);
 
                         match = match.NextMatch();
                     }
-
-                    html.Append("</div><div class=\"videos__line\">");
                 }
                 #endregion
 
+                var tpl = new SeasonTpl();
+                var etpl = new EpisodeTpl();
                 HashSet<string> eshash = new HashSet<string>();
+
                 var m = Regex.Match(result.content, "data-cdn_url=\"([^\"]+)\" [^>]+ data-season_id=\"([0-9]+)\" data-episode_id=\"([0-9]+)\">([^>]+)</li>");
                 while (m.Success)
                 {
@@ -315,10 +314,9 @@ namespace Shared.Engine.Online
                         if (!string.IsNullOrEmpty(m.Groups[2].Value) && !eshash.Contains(sname))
                         {
                             eshash.Add(sname);
-                            string link = host + $"lite/rezka?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&t={trs}&s={m.Groups[2].Value}";
+                            string link = host + $"lite/rezka?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&t={trs}&s={m.Groups[2].Value}";
 
-                            html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + sname + "</div></div></div>");
-                            firstjson = false;
+                            tpl.Append(sname, link, m.Groups[2].Value);
                         }
                         #endregion
                     }
@@ -330,22 +328,23 @@ namespace Shared.Engine.Online
                             eshash.Add(m.Groups[4].Value);
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups[3].Value}";
 
-                            string streamlink = string.Empty;
-                            if (showstream)
-                                streamlink = ",\"stream\":\"" + $"{link}&play=true" + "\"";
-
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[3].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"" + streamlink + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[4].Value + "</div></div>");
-                            firstjson = false;
+                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: (showstream ? $"{link}&play=true" : null));
                         }
                         #endregion
                     }
 
                     m = m.NextMatch();
                 }
+
+                if (rjson)
+                    return s == -1 ? tpl.ToJson(vtpl) : etpl.ToJson(vtpl);
+
+                if (s == -1)
+                    return vtpl.ToHtml() + tpl.ToHtml();
+
+                return vtpl.ToHtml() + etpl.ToHtml();
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
 
@@ -390,19 +389,18 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream)
+        public string Serial(Episodes? root, EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream, bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
-
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
             string? enc_href = HttpUtility.UrlEncode(href);
 
             #region Перевод
+            var vtpl = new VoiceTpl();
+
             {
                 if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                     return string.Empty;
@@ -421,14 +419,12 @@ namespace Shared.Engine.Online
                             }
 
                             string name = match.Groups[2].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups[4].Value) ? "" : $" ({match.Groups[4].Value})");
-                            string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={match.Groups[1].Value}";
+                            string link = host + $"lite/rezka/serial?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={match.Groups[1].Value}";
 
-                            html += "<div class=\"videos__button selector " + (match.Groups[1].Value == t.ToString() ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>";
+                            vtpl.Append(name, match.Groups[1].Value == t.ToString(), link);
 
                             match = match.NextMatch();
                         }
-
-                        html += "</div><div class=\"videos__line\">";
                     }
                 }
             }
@@ -437,42 +433,44 @@ namespace Shared.Engine.Online
             if (s == -1)
             {
                 #region Сезоны
+                var tpl = new SeasonTpl(root.seasons.Length);
+
                 var match = new Regex("data-tab_id=\"([0-9]+)\">([^<]+)</li>").Match(root.seasons);
                 while (match.Success)
                 {
-                    string link = host + $"lite/rezka/serial?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={t}&s={match.Groups[1].Value}";
+                    string link = host + $"lite/rezka/serial?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={t}&s={match.Groups[1].Value}";
 
-                    html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{match.Groups[1].Value} сезон" + "</div></div></div>";
-                    firstjson = false;
+                    tpl.Append($"{match.Groups[1].Value} сезон", link, match.Groups[1].Value);
 
                     match = match.NextMatch();
                 }
+
+                return rjson ? tpl.ToJson(vtpl) : tpl.ToHtml(vtpl);
                 #endregion
             }
             else
             {
                 #region Серии
+                var etpl = new EpisodeTpl();
+
                 var m = new Regex($"data-season_id=\"{s}\" data-episode_id=\"([0-9]+)\">([^<]+)</li>").Match(root.episodes);
                 while (m.Success)
                 {
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups[1].Value}";
-
-                        string streamlink = string.Empty;
-                        if (showstream)
-                            streamlink = ",\"stream\":\"" + $"{link}&play=true" + "\"";
-
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + m.Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\"" + streamlink + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + m.Groups[2].Value + "</div></div>";
-                        firstjson = false;
+                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? $"{link}&play=true" : null));
                     }
 
                     m = m.NextMatch();
                 }
+
+                if (rjson)
+                    return etpl.ToJson(vtpl);
+
+                return vtpl.ToHtml() + etpl.ToHtml();
                 #endregion
             }
-
-            return html + "</div>";
         }
         #endregion
 

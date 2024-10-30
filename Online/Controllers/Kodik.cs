@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
             if (!AppInit.conf.Kodik.enable)
                 return OnError();
@@ -64,7 +64,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (string.IsNullOrEmpty(pick))
-                    return Content(res.html ?? string.Empty, "text/html; charset=utf-8");
+                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.ToJson() : res.stpl.ToHtml()));
 
                 content = oninvk.Embed(res.result, pick);
             }
@@ -81,7 +81,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
             }
 
-            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
         }
 
         #region Video - API

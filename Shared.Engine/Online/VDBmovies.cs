@@ -58,6 +58,7 @@ namespace Shared.Engine.Online
         }
         #endregion
 
+        #region DecodeEval
         public string DecodeEval(string file)
         {
             Func<string, string> enc = str =>
@@ -97,6 +98,7 @@ namespace Shared.Engine.Online
 
             return x;
         }
+        #endregion
 
         #region Embed
         public EmbedModel? Embed(string? json)
@@ -188,7 +190,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append($"{season} сезон", host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
+                        tpl.Append($"{season} сезон", host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
                     }
 
                     return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -231,7 +233,7 @@ namespace Shared.Engine.Online
                                 streams.Insert(0, (onstreamfile.Invoke(link), mf.Groups[1].Value));
                             }
 
-                            etpl.Append($"{ename} cерия", $"{title ?? original_title} ({ename} cерия)", s.ToString(), ename, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append($"{ename} cерия", title ?? original_title, s.ToString(), ename, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
                     }
 

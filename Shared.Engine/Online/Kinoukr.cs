@@ -10,6 +10,21 @@ namespace Shared.Engine.Online
 {
     public class KinoukrInvoke
     {
+        #region unic
+        static string ArrayList => "qwertyuioplkjhgfdsazxcvbnm";
+        static string ArrayListToNumber => "1234567890";
+        public static string unic(int size = 8, bool IsNumberCode = false)
+        {
+            StringBuilder array = new StringBuilder();
+            for (int i = 0; i < size; i++)
+            {
+                array.Append(IsNumberCode ? ArrayListToNumber[Random.Shared.Next(0, ArrayListToNumber.Length)] : ArrayList[Random.Shared.Next(0, ArrayList.Length)]);
+            }
+
+            return array.ToString();
+        }
+        #endregion
+
         #region KinoukrInvoke
         string? host;
         string apihost;
@@ -42,11 +57,15 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrWhiteSpace(link))
             {
+                EmbedModel? kurwa = await EmbedKurwa(original_title, year);
+                if (kurwa != null)
+                    return kurwa;
+
                 onlog?.Invoke("search start");
-                string? search = await onget.Invoke($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
+                //string? search = await onget.Invoke($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
 
                 // $"{apihost}/index.php?do=search"
-                //string? search = await onpost.Invoke(apihost, $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
+                string? search = await onpost.Invoke($"{apihost}/{unic(4, true)}-{unic(Random.Shared.Next(4, 8))}-{unic(Random.Shared.Next(5, 10))}.html", $"do=search&subaction=search&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
                 {
                     requesterror?.Invoke();
@@ -201,10 +220,6 @@ namespace Shared.Engine.Online
             if (result == null || result.IsEmpty)
                 return string.Empty;
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
@@ -217,7 +232,7 @@ namespace Shared.Engine.Online
 
                     foreach (var similar in result.similars)
                     {
-                        string link = host + $"lite/kinoukr?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
+                        string link = host + $"lite/kinoukr?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
                         stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
@@ -272,6 +287,7 @@ namespace Shared.Engine.Online
                     if (s == -1)
                     {
                         #region Сезоны
+                        var tpl = new SeasonTpl(result.serial.Count);
                         var hashseason = new HashSet<string>();
 
                         foreach (var voice in result.serial)
@@ -286,17 +302,20 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(numberseason)) 
                                     continue;
 
-                                string link = host + $"lite/kinoukr?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
+                                string link = host + $"lite/kinoukr?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
 
-                                html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>");
-                                firstjson = false;
+                                tpl.Append(season.title, link, numberseason);
                             }
                         }
+
+                        return rjson ? tpl.ToJson() : tpl.ToHtml();
                         #endregion
                     }
                     else
                     {
                         #region Перевод
+                        var vtpl = new VoiceTpl();
+
                         for (int i = 0; i < result.serial.Count; i++)
                         {
                             if (result.serial[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
@@ -305,13 +324,12 @@ namespace Shared.Engine.Online
                             if (t == -1)
                                 t = i;
 
-                            string link = host + $"lite/kinoukr?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
-
-                            html.Append("<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + result.serial[i].title + "</div>");
+                            string link = host + $"lite/kinoukr?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
+                            vtpl.Append(result.serial[i].title, t == i, link);
                         }
-
-                        html.Append("</div><div class=\"videos__line\">");
                         #endregion
+
+                        var etpl = new EpisodeTpl();
 
                         foreach (var episode in result.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
                         {
@@ -330,9 +348,13 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles.ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
-                            firstjson = false;
+                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles);
                         }
+
+                        if (rjson)
+                            return etpl.ToJson(vtpl);
+
+                        return vtpl.ToHtml() + etpl.ToHtml();
                     }
                 }
                 catch
@@ -341,8 +363,6 @@ namespace Shared.Engine.Online
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

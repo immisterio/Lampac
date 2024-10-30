@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
             if (kinopoisk_id == 0 || !AppInit.conf.HDVB.enable)
                 return OnError();
@@ -31,9 +31,6 @@ namespace Lampac.Controllers.LITE
 
             if (IsOverridehost(AppInit.conf.HDVB, out string overridehost))
                 return Redirect(overridehost);
-
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
 
             if (data.First.Value<string>("type") == "movie")
             {
@@ -47,7 +44,7 @@ namespace Lampac.Controllers.LITE
                     mtpl.Append(m.Value<string>("translator"), link, "call", $"{link.Replace("/video", "/video.m3u8")}&play=true");
                 }
 
-                return Content(mtpl.ToHtml(), "text/html; charset=utf-8");
+                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
             }
             else
@@ -55,24 +52,31 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 if (s == -1)
                 {
+                    var tpl = new SeasonTpl(data.Count);
+                    var tmp_season = new HashSet<string>();
+
                     foreach (var voice in data)
                     {
                         foreach (var season in voice.Value<JArray>("serial_episodes"))
                         {
                             string season_name = $"{season.Value<int>("season_number")} сезон";
-                            if (html.Contains(season_name))
+                            if (tmp_season.Contains(season_name))
                                 continue;
 
-                            string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Value<int>("season_number")}";
+                            tmp_season.Add(season_name);
 
-                            html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season_name + "</div></div></div>";
-                            firstjson = false;
+                            string link = $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={season.Value<int>("season_number")}";
+                            tpl.Append(season_name, link, season.Value<int>("season_number"));
                         }
                     }
+
+                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
                 }
                 else
                 {
                     #region Перевод
+                    var vtpl = new VoiceTpl();
+
                     for (int i = 0; i < data.Count; i++)
                     {
                         if (data[i].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s) == null)
@@ -81,14 +85,12 @@ namespace Lampac.Controllers.LITE
                         if (t == -1)
                             t = i;
 
-                        string link = $"{host}/lite/hdvb?serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={i}";
-
-                        html += "<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + data[i].Value<string>("translator") + "</div>";
+                        string link = $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={i}";
+                        vtpl.Append(data[i].Value<string>("translator"), t == i, link);
                     }
-
-                    html += "</div><div class=\"videos__line\">";
                     #endregion
 
+                    var etpl = new EpisodeTpl();
                     string iframe = HttpUtility.UrlEncode(data[t].Value<string>("iframe_url"));
                     string translator = HttpUtility.UrlEncode(data[t].Value<string>("translator"));
 
@@ -97,14 +99,16 @@ namespace Lampac.Controllers.LITE
                         string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={s}&e={episode}";
                         string streamlink = $"{link.Replace("/serial", "/serial.m3u8")}&play=true";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode} серия" + "</div></div>";
-                        firstjson = false;
+                        etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
                     }
+
+                    if (rjson)
+                        return ContentTo(etpl.ToJson(vtpl));
+
+                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                 }
                 #endregion
             }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
 

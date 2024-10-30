@@ -1,9 +1,11 @@
-﻿namespace Shared.Model.Online.Filmix
+﻿using Shared.Model.Templates;
+
+namespace Shared.Model.Online.Filmix
 {
     public class SearchResult
     {
         public int id { get; set; }
 
-        public string? similars { get; set; }
+        public SimilarTpl? similars { get; set; }
     }
 }

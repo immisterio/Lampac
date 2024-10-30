@@ -1,7 +1,6 @@
 ﻿using Lampac.Models.LITE.Collaps;
 using Shared.Model.Online.Collaps;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -60,10 +59,6 @@ namespace Shared.Engine.Online
             if (md == null)
                 return string.Empty;
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             if (md.content != null)
             {
                 #region Фильм
@@ -119,19 +114,23 @@ namespace Shared.Engine.Online
                 {
                     if (s == -1)
                     {
+                        var tpl = new SeasonTpl(md.serial.Count);
+
                         foreach (var season in md.serial.OrderBy(i => i.season))
                         {
-                            string link = host + $"lite/collaps?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season.season}";
-
-                            html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.season} сезон" + "</div></div></div>");
-                            firstjson = false;
+                            string link = host + $"lite/collaps?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season.season}";
+                            tpl.Append($"{season.season} сезон", link, season.season);
                         }
+
+                        return rjson ? tpl.ToJson() : tpl.ToHtml();
                     }
                     else
                     {
                         var episodes = md.serial.First(i => i.season == s).episodes;
                         if (episodes == null)
                             return string.Empty;
+
+                        var etpl = new EpisodeTpl();
 
                         foreach (var episode in episodes)
                         {
@@ -160,9 +159,10 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(stream.Replace("\u0026", "&"));
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.episode} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.episode} серия" + "</div></div>");
-                            firstjson = false;
+                            etpl.Append($"{episode.episode} серия", title ?? original_title, s.ToString(), episode.episode, file, subtitles: subtitles, voice_name: voicename);
                         }
+
+                        return rjson ? etpl.ToJson() : etpl.ToHtml();
                     }
                 }
                 catch
@@ -171,8 +171,6 @@ namespace Shared.Engine.Online
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

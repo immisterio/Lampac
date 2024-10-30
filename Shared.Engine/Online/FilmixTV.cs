@@ -2,7 +2,6 @@
 using Shared.Model.Online.Filmix;
 using Shared.Model.Online.FilmixTV;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Web;
@@ -19,8 +18,9 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Action? requesterror;
+        bool rjson;
 
-        public FilmixTVInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public FilmixTVInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -29,6 +29,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.requesterror = requesterror;
+            this.rjson = rjson;
         }
         #endregion
 
@@ -84,7 +85,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = stpl.ToHtml() };
+            return new SearchResult() { similars = stpl };
         }
         #endregion
 
@@ -152,7 +153,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = stpl.ToHtml() };
+            return new SearchResult() { similars = stpl };
         }
         #endregion
 
@@ -190,10 +191,6 @@ namespace Shared.Engine.Online
             if (root == null)
                 return string.Empty;
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             #region Сериал
             if (root.SerialVoice != null)
             {
@@ -201,17 +198,16 @@ namespace Shared.Engine.Online
                 string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 int indexTranslate = 0;
+                var vtpl = new VoiceTpl();
 
                 foreach (var voiceover in root.SerialVoice)
                 {
-                    string link = host + $"lite/filmixtv?postid={postid}&title={enc_title}&original_title={enc_original_title}&t={indexTranslate}";
-                    string active = t == indexTranslate ? "active" : "";
+                    string link = host + $"lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&t={indexTranslate}";
+                    bool active = t == indexTranslate;
 
                     indexTranslate++;
-                    html.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + voiceover.Key + "</div>");
+                    vtpl.Append(voiceover.Key, active, link);
                 }
-
-                html.Append("</div><div class=\"videos__line\">");
 
                 var selectedVoiceOverIndex = t != null ? t : 0;
                 var selectedVoiceOver = root.SerialVoice.ElementAt(selectedVoiceOverIndex).Value;
@@ -229,11 +225,11 @@ namespace Shared.Engine.Online
 
                     foreach (var season in selectedVoiceOver)
                     {
-                        var link = $"{host}lite/filmixtv?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}&t={selectedVoiceOverIndex}";
-                        tpl.Append($"{season.Value.season} сезон", link);
+                        var link = $"{host}lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}&t={selectedVoiceOverIndex}";
+                        tpl.Append($"{season.Value.season} сезон", link, season.Value.season);
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson(vtpl) : tpl.ToHtml(vtpl);
                     #endregion
                 }
                 else
@@ -244,6 +240,8 @@ namespace Shared.Engine.Online
                     {
                         return "<div>Сезон не найден</div>";
                     }
+
+                    var etpl = new EpisodeTpl();
 
                     foreach (var episode in selectedSeason.Value.episodes)
                     {
@@ -261,12 +259,13 @@ namespace Shared.Engine.Online
                         if (streams.Count == 0)
                             continue;
 
-                        string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + selectedSeason.Value.season + "\" e=\"" + episode.Key.TrimStart('e') + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key.TrimStart('e')} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key.TrimStart('e')} серия" + "</div></div>");
-
-                        firstjson = false;
+                        etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), streams[0].link, streamquality: new StreamQualityTpl(streams));
                     }
+
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
+
+                    return vtpl.ToHtml() + etpl.ToHtml();
                 }
             }
             #endregion
@@ -274,6 +273,8 @@ namespace Shared.Engine.Online
             #region Фильм
             else if (root.Movies != null)
             {
+                var mtpl = new MovieTpl(title, original_title, root.Movies.Length);
+
                 foreach (var item in root.Movies)
                 {
                     var streams = new List<(string link, string quality)>() { Capacity = pro ? item.files.Count : 2 };
@@ -295,15 +296,14 @@ namespace Shared.Engine.Online
                     if (streams.Count == 0)
                         continue;
 
-                    string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title}" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{item.voiceover}" + "</div></div>");
-                    firstjson = false;
+                    mtpl.Append(item.voiceover, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
+
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
             }
             #endregion
 
-            return html.ToString() + "</div>";
+            return string.Empty;
         }
         #endregion
     }

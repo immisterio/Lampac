@@ -1,5 +1,6 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace Shared.Model.Templates
 {
@@ -41,9 +42,29 @@ namespace Shared.Model.Templates
             if (reverse)
                 data.Reverse();
 
+            string? fixName(string? _v) => _v?.Replace("\"", "%22")?.Replace("'", "%27");
+
             foreach (var i in data) 
             {
-                var datajson = getDataJson(i);
+                var datajson = new StringBuilder();
+
+                if (!string.IsNullOrEmpty(i.stream))
+                    datajson.Append(",\"stream\":\"" + i.stream + "\"");
+
+                if (i.streamquality != null && !i.streamquality.IsEmpty())
+                    datajson.Append(",\"quality\": {" + i.streamquality.ToHtml() + "}");
+
+                if (i.subtitles != null && !i.subtitles.IsEmpty())
+                    datajson.Append(",\"subtitles\": [" + i.subtitles.ToHtml() + "]");
+
+                if (!string.IsNullOrEmpty(i.voice_name))
+                    datajson.Append(",\"voice_name\":\"" + fixName(i.voice_name) + "\"");
+
+                if (!string.IsNullOrEmpty(i.details))
+                    datajson.Append(",\"details\":\"" + fixName(i.details) + "\"");
+
+                if (!string.IsNullOrEmpty(i.year))
+                    datajson.Append(",\"year\":\"" + i.year + "\"");
 
                 html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\""+i.method+"\",\"url\":\""+i.link+"\",\"title\":\""+$"{fixName(title ?? original_title)} ({fixName(i.voiceOrQuality)})"+"\""+datajson.ToString()+"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">"+i.voiceOrQuality+"</div></div>");
                 firstjson = false;
@@ -55,55 +76,32 @@ namespace Shared.Model.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson(bool reverse = false)
+        public string ToJson(bool reverse = false, VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return "[]";
 
-            var html = new StringBuilder();
-            html.Append("{\"type\":\"movie\",\"data\":[");
-
             if (reverse)
                 data.Reverse();
 
-            foreach (var i in data)
+            return JsonSerializer.Serialize(new
             {
-                var datajson = getDataJson(i);
-                string maxquality = i.streamquality?.MaxQuality() ?? string.Empty;
-
-                html.Append("{\"method\":\"" + i.method + "\",\"url\":\"" + i.link + "\",\"title\":\"" + $"{fixName(title ?? original_title)} ({fixName(i.voiceOrQuality)})" + "\"" + datajson.ToString() + ", \"translate\":\"" + fixName(i.voiceOrQuality) + "\", \"maxquality\": \"" + maxquality + "\"},");
-            }
-
-            return Regex.Replace(html.ToString(), ",$", "") + "]}";
-        }
-
-
-
-        static string? fixName(string? _v) => _v?.Replace("\"", "%22")?.Replace("'", "%27");
-
-        static StringBuilder getDataJson((string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality) i)
-        {
-            var datajson = new StringBuilder();
-
-            if (!string.IsNullOrEmpty(i.stream))
-                datajson.Append(",\"stream\":\"" + i.stream + "\"");
-
-            if (i.streamquality != null && !i.streamquality.IsEmpty())
-                datajson.Append(",\"quality\": {" + i.streamquality.ToHtml() + "}");
-
-            if (i.subtitles != null && !i.subtitles.IsEmpty())
-                datajson.Append(",\"subtitles\": [" + i.subtitles.ToHtml() + "]");
-
-            if (!string.IsNullOrEmpty(i.voice_name))
-                datajson.Append(",\"voice_name\":\"" + fixName(i.voice_name) + "\"");
-
-            if (!string.IsNullOrEmpty(i.details))
-                datajson.Append(",\"details\":\"" + fixName(i.details) + "\"");
-
-            if (!string.IsNullOrEmpty(i.year))
-                datajson.Append(",\"year\":\"" + i.year + "\"");
-
-            return datajson;
+                type = "movie",
+                voice = vtpl?.ToObject(),
+                data = data.Select(i => new
+                {
+                    i.method,
+                    url = i.link,
+                    i.stream,
+                    quality = i.streamquality?.ToObject(),
+                    subtitles = i.subtitles?.ToObject(),
+                    translate = i.voiceOrQuality,
+                    maxquality = i.streamquality?.MaxQuality() ?? i.quality,
+                    details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
+                    year = int.TryParse(i.year, out _) ? int.Parse(i.year) : 0,
+                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
+                })
+            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
         }
     }
 }

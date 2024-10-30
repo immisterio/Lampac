@@ -91,7 +91,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
+            return new SearchResult() { similars = stpl };
         }
         #endregion
 
@@ -159,7 +159,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
+            return new SearchResult() { similars = stpl };
         }
         #endregion
 
@@ -223,7 +223,7 @@ namespace Shared.Engine.Online
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
+            return new SearchResult() { similars = stpl };
         }
         #endregion
 
@@ -261,10 +261,6 @@ namespace Shared.Engine.Online
                 return string.Empty;
 
             onlog?.Invoke("html reder");
-
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
 
             int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
             bool hidefree720 = string.IsNullOrEmpty(token) /*&& filmixservtime >= 19 && filmixservtime <= 23*/;
@@ -327,28 +323,27 @@ namespace Shared.Engine.Online
 
                     foreach (var season in player_links.playlist)
                     {
-                        string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
-                        tpl.Append($"{season.Key.Replace("-1", "1")} сезон", link);
+                        string link = host + $"lite/filmix?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
+                        tpl.Append($"{season.Key.Replace("-1", "1")} сезон", link, season.Key);
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                     #endregion
                 }
                 else
                 {
                     #region Перевод
                     int indexTranslate = 0;
+                    var vtpl = new VoiceTpl();
 
                     foreach (var translation in player_links.playlist[s.ToString()])
                     {
-                        string link = host + $"lite/filmix?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
-                        string active = t == indexTranslate ? "active" : "";
+                        string link = host + $"lite/filmix?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
+                        bool active = t == indexTranslate;
 
                         indexTranslate++;
-                        html.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Key + "</div>");
+                        vtpl.Append(translation.Key, active, link);
                     }
-
-                    html.Append("</div><div class=\"videos__line\">");
                     #endregion
 
                     #region Deserialize
@@ -380,6 +375,7 @@ namespace Shared.Engine.Online
 
                     #region Серии
                     onlog?.Invoke("episodes: " + episodes.Count);
+                    var etpl = new EpisodeTpl();
 
                     foreach (var episode in episodes)
                     {
@@ -405,16 +401,19 @@ namespace Shared.Engine.Online
 
                         string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
 
-                        int? fis = s == -1 ? 1 : s;
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + fis + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>");
-                        firstjson = false;
+                        int fis = s == -1 ? 1 : (s ?? 1);
+
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, fis.ToString(), episode.Key, streams[0].link, streamquality: new StreamQualityTpl(streams));
                     }
                     #endregion
+
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
+
+                    return vtpl.ToHtml() + etpl.ToHtml();
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

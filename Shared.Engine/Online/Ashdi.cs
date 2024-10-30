@@ -72,10 +72,6 @@ namespace Shared.Engine.Online
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             string fixStream(string _l) => _l.Replace("0yql3tj", "oyql3tj");
 
             if (md.content != null)
@@ -117,6 +113,7 @@ namespace Shared.Engine.Online
                 {
                     if (s == -1)
                     {
+                        var tpl = new SeasonTpl(md.serial.Count);
                         var hashseason = new HashSet<string>();
 
                         foreach (var voice in md.serial)
@@ -131,16 +128,19 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(numberseason))
                                     continue;
 
-                                string link = host + $"lite/ashdi?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={numberseason}";
+                                string link = host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={numberseason}";
 
-                                html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + season.title + "</div></div></div>");
-                                firstjson = false;
+                                tpl.Append(season.title, link, numberseason);
                             }
                         }
+
+                        return rjson ? tpl.ToJson() : tpl.ToHtml();
                     }
                     else
                     {
                         #region Перевод
+                        var vtpl = new VoiceTpl();
+
                         for (int i = 0; i < md.serial.Count; i++)
                         {
                             if (md.serial[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
@@ -149,13 +149,13 @@ namespace Shared.Engine.Online
                             if (t == -1)
                                 t = i;
 
-                            string link = host + $"lite/ashdi?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={i}";
+                            string link = host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={i}";
 
-                            html.Append("<div class=\"videos__button selector " + (t == i ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + md.serial[i].title + "</div>");
+                            vtpl.Append(md.serial[i].title, t == i, link);
                         }
-
-                        html.Append("</div><div class=\"videos__line\">");
                         #endregion
+
+                        var etpl = new EpisodeTpl();
 
                         foreach (var episode in md.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
                         {
@@ -174,9 +174,13 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + file + "\",\"title\":\"" + $"{title ?? original_title} ({episode.title})" + "\", \"subtitles\": [" + subtitles.ToHtml() + "]}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + episode.title + "</div></div>");
-                            firstjson = false;
+                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles);
                         }
+
+                        if (rjson)
+                            return etpl.ToJson(vtpl);
+
+                        return vtpl.ToHtml() + etpl.ToHtml();
                     }
                 }
                 catch
@@ -185,8 +189,6 @@ namespace Shared.Engine.Online
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

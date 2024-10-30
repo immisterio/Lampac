@@ -52,7 +52,7 @@ namespace JinEnergy.Online
                     return EmptyError("content");
 
                 if (string.IsNullOrEmpty(pick))
-                    return res.html ?? string.Empty;
+                    return res.stpl == null ? string.Empty : res.stpl.ToHtml();
 
                 content = oninvk.Embed(res.result, pick);
             }
@@ -66,7 +66,7 @@ namespace JinEnergy.Online
                     return EmptyError("content");
             }
 
-            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false);
+            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false, false);
         }
 
 

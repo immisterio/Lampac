@@ -110,7 +110,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
         {
             var init = AppInit.conf.RezkaPrem;
             if (!init.enable || init.rip)
@@ -129,14 +129,14 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError("content = null", proxyManager, weblog: oninvk.requestlog);
 
-            return Content(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true).Replace("/rezka", "/rhsprem"), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson).Replace("/rezka", "/rhsprem"));
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rhsprem/serial")]
-        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.RezkaPrem;
             if (!init.enable || init.rip)
@@ -157,7 +157,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError("content = null", weblog: oninvk.requestlog);
 
-            return Content(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true).Replace("/rezka", "/rhsprem"), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson).Replace("/rezka", "/rhsprem"));
         }
         #endregion
 

@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Kinotochka;
 
@@ -33,9 +33,6 @@ namespace Lampac.Controllers.LITE
             // enable 720p
             string cookie = init.cookie;
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
-
             if (serial == 1)
             {
                 // https://kinovibe.co/embed.html
@@ -44,13 +41,13 @@ namespace Lampac.Controllers.LITE
                 {
                     #region Сезоны
                     string memKey = $"kinotochka:seasons:{title}";
-                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
+                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
                     {
                         string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (search == null)
                             return OnError(proxyManager);
 
-                        links = new List<(string, string)>();
+                        links = new List<(string, string, string)>();
 
                         foreach (string row in search.Split("sres-wrap clearfix").Skip(1).Reverse())
                         {
@@ -62,7 +59,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrWhiteSpace(uri))
                                     continue;
 
-                                links.Add((gname[2].Value.ToLower(), $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}"));
+                                links.Add((gname[2].Value.ToLower(), $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}", gname[3].Value));
                             }
                         }
 
@@ -76,11 +73,12 @@ namespace Lampac.Controllers.LITE
                     if (links.Count == 0)
                         return OnError();
 
+                    var tpl = new SeasonTpl();
+
                     foreach (var l in links)
-                    {
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + l.uri + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + l.name + "</div></div></div>";
-                        firstjson = false;
-                    }
+                        tpl.Append(l.name, l.uri, l.season);
+
+                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
                     #endregion
                 }
                 else
@@ -127,12 +125,12 @@ namespace Lampac.Controllers.LITE
                         hybridCache.Set(memKey, links, cacheTime(30, init: init));
                     }
 
+                    var etpl = new EpisodeTpl();
+
                     foreach (var l in links)
-                    {
-                        string link = HostStreamProxy(init, l.uri, proxy: proxy);
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
-                        firstjson = true;
-                    }
+                        etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy));
+
+                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
                     #endregion
                 }
             }
@@ -166,11 +164,12 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memKey, file, cacheTime(30, init: init));
                 }
 
-                return Content(new MovieTpl(title).ToHtml("По умолчанию", HostStreamProxy(init, file, proxy: proxy)), "text/html; charset=utf-8");
+                var mtpl = new MovieTpl(title);
+                mtpl.Append("По умолчанию", HostStreamProxy(init, file, proxy: proxy));
+
+                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
             }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
         }
     }
 }

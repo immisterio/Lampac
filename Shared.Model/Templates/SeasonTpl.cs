@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Shared.Model.Templates
 {
@@ -17,19 +18,29 @@ namespace Shared.Model.Templates
 
         public SeasonTpl(int capacity) { data.Capacity = capacity; }
 
-        public void Append(string? name, string link, int? id = null)
+        public void Append(string? name, string link, string? id)
+        {
+            int.TryParse(id, out int sid);
+            Append(name, link, sid);
+        }
+
+        public void Append(string? name, string link, int? id)
         {
             if (!string.IsNullOrEmpty(name))
                 data.Add((name, link, id));
         }
 
-        public string ToHtml()
+        public string ToHtml(VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return string.Empty;
 
             bool firstjson = true;
             var html = new StringBuilder();
+
+            if (vtpl != null)
+                html.Append(vtpl.ToHtml());
+
             html.Append("<div class=\"videos__line\">");
 
             if (!string.IsNullOrEmpty(quality))
@@ -44,7 +55,7 @@ namespace Shared.Model.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson()
+        public string ToJson(VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return "[]";
@@ -53,13 +64,15 @@ namespace Shared.Model.Templates
             {
                 type = "season",
                 maxquality = quality,
+                voice = vtpl?.ToObject(),
                 data = data.Select(i => new
                 {
                     i.id,
+                    method = "link",
                     url = i.link,
                     i.name
                 })
-            });
+            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
         }
     }
 }
