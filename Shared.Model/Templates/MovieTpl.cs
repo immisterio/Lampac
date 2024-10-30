@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Web;
 
 namespace Shared.Model.Templates
 {
@@ -42,31 +43,25 @@ namespace Shared.Model.Templates
             if (reverse)
                 data.Reverse();
 
-            string? fixName(string? _v) => _v?.Replace("\"", "%22")?.Replace("'", "%27");
-
             foreach (var i in data) 
             {
-                var datajson = new StringBuilder();
+                string datajson = JsonSerializer.Serialize(new
+                {
+                    i.method,
+                    url = i.link,
+                    i.stream,
+                    quality = i.streamquality?.ToObject(),
+                    subtitles = i.subtitles?.ToObject(),
+                    translate = i.voiceOrQuality,
+                    maxquality = i.streamquality?.MaxQuality() ?? i.quality,
+                    i.voice_name,
+                    i.details,
+                    year = int.TryParse(i.year, out int _year) ? _year : 0,
+                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
 
-                if (!string.IsNullOrEmpty(i.stream))
-                    datajson.Append(",\"stream\":\"" + i.stream + "\"");
+                }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
-                if (i.streamquality != null && !i.streamquality.IsEmpty())
-                    datajson.Append(",\"quality\": {" + i.streamquality.ToHtml() + "}");
-
-                if (i.subtitles != null && !i.subtitles.IsEmpty())
-                    datajson.Append(",\"subtitles\": [" + i.subtitles.ToHtml() + "]");
-
-                if (!string.IsNullOrEmpty(i.voice_name))
-                    datajson.Append(",\"voice_name\":\"" + fixName(i.voice_name) + "\"");
-
-                if (!string.IsNullOrEmpty(i.details))
-                    datajson.Append(",\"details\":\"" + fixName(i.details) + "\"");
-
-                if (!string.IsNullOrEmpty(i.year))
-                    datajson.Append(",\"year\":\"" + i.year + "\"");
-
-                html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" data-json='{\"method\":\""+i.method+"\",\"url\":\""+i.link+"\",\"title\":\""+$"{fixName(title ?? original_title)} ({fixName(i.voiceOrQuality)})"+"\""+datajson.ToString()+"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">"+i.voiceOrQuality+"</div></div>");
+                html.Append($"<div class=\"videos__item videos__movie selector {(firstjson ? "focused" : "")}\" media=\"\" data-json='{datajson}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">{HttpUtility.HtmlEncode(i.voiceOrQuality)}</div></div>");
                 firstjson = false;
 
                 if (!string.IsNullOrEmpty(i.quality))
@@ -98,10 +93,10 @@ namespace Shared.Model.Templates
                     translate = i.voiceOrQuality,
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
-                    year = int.TryParse(i.year, out _) ? int.Parse(i.year) : 0,
+                    year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})",
                 })
-            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
+            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }
     }
 }

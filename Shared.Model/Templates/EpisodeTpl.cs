@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
 
 namespace Shared.Model.Templates
 {
@@ -18,8 +19,6 @@ namespace Shared.Model.Templates
                 data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name));
         }
 
-        static string? fixName(string? _v) => _v?.Replace("\"", "%22")?.Replace("'", "%27");
-
         public string ToHtml()
         {
             if (data.Count == 0)
@@ -31,21 +30,19 @@ namespace Shared.Model.Templates
 
             foreach (var i in data) 
             {
-                var datajson = new StringBuilder();
+                string datajson = JsonSerializer.Serialize(new
+                {
+                    i.method,
+                    url = i.link,
+                    i.title,
+                    stream = i.streamlink,
+                    quality = i.streamquality?.ToObject(),
+                    subtitles = i.subtitles?.ToObject(),
+                    i.voice_name
 
-                if (i.streamlink != null)
-                    datajson.Append($",\"stream\": \"{i.streamlink}\"");
+                }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
-                if (i.streamquality != null && !i.streamquality.IsEmpty())
-                    datajson.Append(",\"quality\": {" + i.streamquality.ToHtml() + "}");
-
-                if(!string.IsNullOrEmpty(i.voice_name))
-                    datajson.Append(",\"voice_name\":\"" + fixName(i.voice_name) + "\"");
-
-                if (i.subtitles != null && !i.subtitles.IsEmpty())
-                    datajson.Append(",\"subtitles\": [" + i.subtitles.ToHtml() + "]");
-
-                html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + i.s + "\" e=\"" + i.e + "\" data-json='{\"method\":\"" + i.method + "\",\"url\":\"" + i.link + "\",\"title\":\"" + fixName(i.title) + "\""+datajson.ToString()+"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + i.name + "</div></div>");
+                html.Append($"<div class=\"videos__item videos__movie selector {(firstjson ? "focused" : "")}\" media=\"\" s=\"{i.s}\" e=\"{i.e}\" data-json='{datajson}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">{HttpUtility.HtmlEncode(i.name)}</div></div>");
                 firstjson = false;
             }
 
@@ -68,8 +65,8 @@ namespace Shared.Model.Templates
                     stream = i.streamlink,
                     quality = i.streamquality?.ToObject(),
                     subtitles = i.subtitles?.ToObject(),
-                    s = int.TryParse(i.s, out _) ? int.Parse(i.s) : 0,
-                    e = int.TryParse(i.e, out _) ? int.Parse(i.e) : 0,
+                    s = int.TryParse(i.s, out int _s) ? _s : 0,
+                    e = int.TryParse(i.e, out int _e) ? _e : 0,
                     details = i.voice_name,
                     i.name,
                     i.title

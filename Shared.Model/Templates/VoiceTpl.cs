@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Web;
 
 namespace Shared.Model.Templates
 {
@@ -26,15 +27,12 @@ namespace Shared.Model.Templates
             html.Append("<div class=\"videos__line\">");
 
             foreach (var i in data)
-                html.Append("<div class=\"videos__button selector " + (i.active ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + i.link + "\"}'>" + i.name + "</div>");
+                html.Append("<div class=\"videos__button selector " + (i.active ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + i.link + "\"}'>" + HttpUtility.HtmlEncode(i.name) + "</div>");
 
             return html.ToString() + "</div>";
         }
 
-        public string ToJson()
-        {
-            return JsonSerializer.Serialize(ToObject());
-        }
+        public string ToJson() => JsonSerializer.Serialize(ToObject());
 
         public object ToObject()
         {

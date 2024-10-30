@@ -1,4 +1,6 @@
-﻿namespace Shared.Model.Templates
+﻿using System.Text.Json;
+
+namespace Shared.Model.Templates
 {
     public class StreamQualityTpl
     {
@@ -16,13 +18,7 @@
                 data.Add((link, quality));
         }
 
-        public string ToHtml()
-        {
-            if (data.Count == 0)
-                return string.Empty;
-
-            return string.Join(",", data.Select(s => $"\"{s.quality}\":\"{s.link}\""));
-        }
+        public string ToJson() => JsonSerializer.Serialize(ToObject());
 
         public Dictionary<string, string> ToObject()
         {

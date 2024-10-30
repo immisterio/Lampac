@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.Json;
 
 namespace Shared.Model.Templates
 {
@@ -19,18 +18,7 @@ namespace Shared.Model.Templates
                 data.Add((label, url));
         }
 
-        public string ToHtml()
-        {
-            if (data.Count == 0)
-                return string.Empty;
-
-            var build = new StringBuilder();
-
-            foreach (var i in data)
-                build.Append("{\"label\": \"" + i.label?.Replace("\"", "%22")?.Replace("'", "%27") + "\",\"url\": \"" + i.url + "\"},");
-
-            return Regex.Replace(build.ToString(), ",$", "");
-        }
+        public string ToJson() => JsonSerializer.Serialize(ToObject());
 
         public object ToObject()
         {

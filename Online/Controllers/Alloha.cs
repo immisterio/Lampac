@@ -170,16 +170,12 @@ namespace Lampac.Controllers.LITE
             string default_audio = data.Value<string>("default_audio");
 
             #region subtitle
-            string subtitle = string.Empty;
+            var subtitles = new SubtitleTpl();
 
             try
             {
-                var subtitles = new SubtitleTpl();
-
                 foreach (var sub in data["subtitle"])
                     subtitles.Append(sub.Value<string>("label"), sub.Value<string>("url"));
-
-                subtitle = subtitles.ToHtml();
             }
             catch { }
             #endregion
@@ -231,7 +227,7 @@ namespace Lampac.Controllers.LITE
                 return Redirect(streams[0].link);
 
             string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitle + "], " + streansquality + "}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\":" + subtitles.ToJson() + ", " + streansquality + "}", "application/json; charset=utf-8");
         }
         #endregion
 
