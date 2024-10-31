@@ -315,6 +315,7 @@ namespace Lampac.Controllers
             if (serial == -1 || isanime)
             {
                 send("Anilibria", conf.AnilibriaOnline);
+                send("AnimeLib", conf.AnimeLib);
                 send("Animevost", conf.Animevost);
                 send("Animebesst", conf.Animebesst);
                 send("AnimeGo", conf.AnimeGo);
@@ -511,6 +512,7 @@ namespace Lampac.Controllers
                         case "ashdi":
                         case "pidtor":
                         case "rhsprem":
+                        case "animelib":
                             quality = " ~ 2160p";
                             break;
                         case "videodb":

@@ -122,6 +122,10 @@ namespace Shared.Model
 
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.best");
 
+        /// <summary>
+        /// aHR0cHM6Ly9hbmlsaWIubWU=
+        /// </summary>
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("https://api.mangalib.me");
 
 
 
