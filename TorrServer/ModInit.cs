@@ -154,12 +154,14 @@ namespace TorrServer
                         else
                         {
                             string uname = (await Bash.Run("uname -m")) ?? string.Empty;
-                            string arch = uname.Contains("i386") || uname.Contains("i686") ? "386" : uname.Contains("x86_64") ? "amd64" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : "amd64";
+                            string arch = uname.Contains("x86_64") ? "amd64" : (uname.Contains("i386") || uname.Contains("i686")) ? "386" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : "amd64";
 
                             tsprocess?.Dispose();
-                            await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch, tspath);
-
-                            await Bash.Run($"chmod +x {tspath}");
+                            bool success = await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch, tspath);
+                            if (success)
+                                await Bash.Run($"chmod +x {tspath}");
+                            else
+                                await Bash.Run($"rm -f {tspath}");
                         }
                     }
                 }
