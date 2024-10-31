@@ -20,8 +20,11 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.Zetflix;
 
-            if (!init.enable || kinopoisk_id == 0 || init.rhub)
+            if (!init.enable || kinopoisk_id == 0)
                 return OnError();
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);

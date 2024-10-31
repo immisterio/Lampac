@@ -116,6 +116,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || init.rip)
                 return OnError("disabled");
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
 

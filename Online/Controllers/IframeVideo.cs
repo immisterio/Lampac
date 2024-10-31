@@ -22,6 +22,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.IframeVideo.enable)
                 return OnError();
 
+            if (AppInit.conf.IframeVideo.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             var frame = await iframe(imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
                 return OnError();

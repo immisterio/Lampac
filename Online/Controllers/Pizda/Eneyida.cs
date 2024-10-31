@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.Eneyida;
 
-            if (!init.enable)
+            if (!init.enable || init.rip)
                 return OnError();
 
             if (IsOverridehost(init, out string overridehost))

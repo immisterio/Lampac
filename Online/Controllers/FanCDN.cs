@@ -18,8 +18,11 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.FanCDN.Clone();
 
-            if (!init.enable || string.IsNullOrEmpty(init.cookie) || init.rhub || string.IsNullOrEmpty(original_title) || year == 0)
+            if (!init.enable || string.IsNullOrEmpty(init.cookie) || string.IsNullOrEmpty(original_title) || year == 0)
                 return OnError();
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             var baseheader = HeadersModel.Init(
                 ("cache-control", "no-cache"),

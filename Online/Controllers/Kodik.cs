@@ -45,6 +45,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Kodik.enable)
                 return OnError();
 
+            if (AppInit.conf.Kodik.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(AppInit.conf.Kodik, out string overridehost))
                 return Redirect(overridehost);
 

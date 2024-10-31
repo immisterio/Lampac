@@ -28,6 +28,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrEmpty(init.user_apitv))
                 return OnError();
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             var proxyManager = new ProxyManager("filmixtv", init);
             var proxy = proxyManager.Get();
 

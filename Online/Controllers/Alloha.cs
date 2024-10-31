@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Alloha.enable)
                 return OnError("disable");
 
+            if (AppInit.conf.Alloha.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(AppInit.conf.Alloha, out string overridehost))
                 return Redirect(overridehost);
 

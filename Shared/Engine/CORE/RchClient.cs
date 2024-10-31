@@ -11,6 +11,8 @@ namespace Lampac.Engine.CORE
     public class RchClient
     {
         #region static
+        public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
+
         public static EventHandler<(string connectionId, string rchId, string url, string data)> hub = null;
 
         static ConcurrentDictionary<string, string> clients = new ConcurrentDictionary<string, string>();

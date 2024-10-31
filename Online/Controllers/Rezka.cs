@@ -64,6 +64,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 

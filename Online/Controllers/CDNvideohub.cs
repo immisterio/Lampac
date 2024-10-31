@@ -18,6 +18,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             var proxyManager = new ProxyManager("cdnvideohub", init);
             var proxy = proxyManager.Get();
 

@@ -35,6 +35,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 

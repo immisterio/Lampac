@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || !AppInit.conf.HDVB.enable)
                 return OnError();
 
+            if (AppInit.conf.HDVB.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             JArray data = await search(kinopoisk_id);
             if (data == null)
                 return OnError();

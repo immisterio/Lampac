@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/seasonvar")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, string original_language, int seasonid, string t, int s = -1)
         {
-            if (!AppInit.conf.Seasonvar.enable)
+            if (!AppInit.conf.Seasonvar.enable || AppInit.conf.Seasonvar.rip)
                 return OnError();
 
             seasonid = seasonid == 0 ? await search(clarification == 1 ? title : (original_title ?? title), year) : seasonid;

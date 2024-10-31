@@ -21,6 +21,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
+            if (init.rhub && !AppInit.conf.rch.enable)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 

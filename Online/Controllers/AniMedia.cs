@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 

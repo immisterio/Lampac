@@ -6,6 +6,7 @@ using Shared.Engine.Online;
 using Shared.Engine;
 using System.Collections.Generic;
 using Shared.Model.Online.VDBmovies;
+using Lampac.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,11 +18,14 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.VDBmovies.Clone();
 
-            if (!init.enable || kinopoisk_id == 0 || init.rhub)
+            if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             var oninvk = new VDBmoviesInvoke
             (
