@@ -69,6 +69,9 @@ namespace Lampac.Engine.Middlewares
 
             if (AppInit.conf.accsdb.enable)
             {
+                if (!string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern) && !Regex.IsMatch(httpContext.Request.Path.Value, AppInit.conf.accsdb.premium_pattern, RegexOptions.IgnoreCase))
+                    return _next(httpContext);
+
                 if (!string.IsNullOrEmpty(AppInit.conf.accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, AppInit.conf.accsdb.whitepattern, RegexOptions.IgnoreCase))
                     return _next(httpContext);
 
