@@ -40,5 +40,7 @@
         public string? login { get; set; }
 
         public string? passwd { get; set; }
+
+        public string? country { get; set; }
     }
 }

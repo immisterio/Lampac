@@ -14,6 +14,7 @@ using Shared.Model.Online;
 using System.Data;
 using System.IO;
 using Shared.Model.Online.Settings;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -437,6 +438,8 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+
             int index = tsid != -1 ? tsid : 1;
             string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|tsid)=[^&]+", "");
 
@@ -470,7 +473,7 @@ namespace Lampac.Controllers.LITE
                 string tskey = $"pidtor:ts2:{id}:{HttpContext.Connection.RemoteIpAddress}";
                 if (!memoryCache.TryGetValue(tskey, out PidTorAuthTS ts))
                 {
-                    var tors = init.auth_torrs.Where(i => i.enable).ToList();
+                    var tors = init.auth_torrs.Where(i => i.enable).Where(i => i.country == null || i.country == country).ToList();
                     ts = tors[Random.Shared.Next(0, tors.Count)];
                     memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                 }
