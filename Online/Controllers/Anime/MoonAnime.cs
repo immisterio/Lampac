@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Shared.Model.Online;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -20,7 +21,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/moonanime")]
-        async public Task<ActionResult> Index(string imdb_id, string title, string uri, long animeid, string t, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, string imdb_id, string title, string original_title, string uri, long animeid, string t, bool rjson = false)
         {
             var init = AppInit.conf.MoonAnime;
 
@@ -36,11 +37,26 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
-                string memkey = $"moonanime:search:{imdb_id}";
+                string memkey = $"moonanime:search:{imdb_id}:{title}:{original_title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, long id)> catalog))
                 {
-                    var search = await HttpClient.Get<JObject>($"{init.corsHost()}/api/2.0/titles?imdbid={imdb_id}&api_key={init.token}&limit=20", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
-                    if (search == null || !search.ContainsKey("anime_list"))
+                    async ValueTask<JObject> goSearch(string arg)
+                    {
+                        if (string.IsNullOrEmpty(arg.Split("=")?[1]))
+                            return null;
+
+                        var search = await HttpClient.Get<JObject>($"{init.corsHost()}/api/2.0/titles?api_key={init.token}&limit=20" + arg, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        if (search == null || !search.ContainsKey("anime_list"))
+                            return null;
+
+                        if (search["anime_list"].Count() == 0)
+                            return null;
+
+                        return search;
+                    }
+
+                    JObject search = await goSearch($"&imdbid={imdb_id}") ?? await goSearch($"&japanese_title={HttpUtility.UrlEncode(original_title)}") ?? await goSearch($"&title={HttpUtility.UrlEncode(title)}");
+                    if (search == null)
                         return OnError(proxyManager);
 
                     catalog = new List<(string title, string year, string uri, long)>();
@@ -63,6 +79,9 @@ namespace Lampac.Controllers.LITE
                     proxyManager.Success();
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
+
+                if (catalog.Count == 1)
+                    return LocalRedirect($"/lite/moonanime?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&animeid={catalog[0].id}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 var stpl = new SimilarTpl(catalog.Count);
 
