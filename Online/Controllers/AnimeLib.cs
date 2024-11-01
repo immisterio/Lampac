@@ -211,7 +211,8 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(href))
                             continue;
 
-                        _streams.Add(("https://video1.anilib.me/.%D0%B0s/" + href, $"{item.Value<int>("quality")}p"));
+                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), plugin: "animelib");
+                        _streams.Add((file, $"{item.Value<int>("quality")}p"));
                     }
 
                     break;

@@ -317,6 +317,7 @@ namespace Lampac.Controllers
                 send("Anilibria", conf.AnilibriaOnline);
                 send("AnimeLib", conf.AnimeLib);
                 send("Animevost", conf.Animevost);
+                send("MoonAnime (Украинский)", conf.MoonAnime, "moonanime");
                 send("Animebesst", conf.Animebesst);
                 send("AnimeGo", conf.AnimeGo);
                 send("AniMedia", conf.AniMedia);
@@ -361,12 +362,12 @@ namespace Lampac.Controllers
             }
 
             if (kinopoisk_id > 0)
-                send("Ashdi (UKR)", conf.Ashdi, "ashdi");
+                send("Ashdi (Украинский)", conf.Ashdi, "ashdi");
 
-            send("Eneyida (UKR)", conf.Eneyida, "eneyida");
+            send("Eneyida (Украинский)", conf.Eneyida, "eneyida");
 
             if (!isanime)
-                send("Kinoukr (UKR)", conf.Kinoukr, "kinoukr");
+                send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr");
 
             if (AppInit.conf.Collaps.two)
                 send("Collaps", conf.Collaps, "collaps-dash");
@@ -532,6 +533,7 @@ namespace Lampac.Controllers
                         case "collaps-dash":
                         case "fancdn":
                         case "cdnvideohub":
+                        case "moonanime":
                             quality = " ~ 1080p";
                             break;
                         case "voidboost":
