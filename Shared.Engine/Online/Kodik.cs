@@ -68,11 +68,17 @@ namespace Shared.Engine.Online
         }
 
 
-        public async ValueTask<EmbedModel?> Embed(string title)
+        public async ValueTask<EmbedModel?> Embed(string title, string original_title)
         {
             try
             {
+                if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
+                    return null;
+
                 string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(title)}&with_episodes=true";
+
+                if (!string.IsNullOrEmpty(original_title))
+                    url += $"&title_orig={HttpUtility.UrlEncode(original_title)}";
 
                 string? json = await onget(url, null);
                 if (json == null)
