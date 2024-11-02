@@ -192,6 +192,8 @@ namespace JinEnergy
 
         public static OnlinesSettings AniMedia => conf.AniMedia;
 
+        public static OnlinesSettings MoonAnime => conf.MoonAnime;
+
         public static OnlinesSettings HDVB => conf.HDVB;
     }
 }
