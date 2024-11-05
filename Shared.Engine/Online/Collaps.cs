@@ -45,9 +45,15 @@ namespace Shared.Engine.Online
             if (!content.Contains("seasons:"))
                 return new EmbedModel() { content = content };
 
-            var root = JsonSerializer.Deserialize<List<RootObject>>(Regex.Match(content, "seasons:([^\n\r]+)").Groups[1].Value);
-            if (root == null || root.Count == 0)
-                return null;
+            List<RootObject>? root = null;
+
+            try
+            {
+                root = JsonSerializer.Deserialize<List<RootObject>>(Regex.Match(content, "seasons:([^\n\r]+)").Groups[1].Value);
+                if (root == null || root.Count == 0)
+                    return null;
+            }
+            catch { return null; }
 
             return new EmbedModel() { serial = root };
         }

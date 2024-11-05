@@ -61,6 +61,8 @@ namespace Shared.Engine.Online
                 if (kurwa != null)
                     return kurwa;
 
+                return kurwa;
+
                 onlog?.Invoke("search start");
                 //string? search = await onget.Invoke($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
 
@@ -140,9 +142,15 @@ namespace Shared.Engine.Online
 
             if (Regex.IsMatch(content, "file: ?'\\["))
             {
-                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                if (root == null || root.Count == 0)
-                    return null;
+                List<Lampac.Models.LITE.Ashdi.Voice>? root = null;
+
+                try
+                {
+                    root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    if (root == null || root.Count == 0)
+                        return null;
+                }
+                catch { return null; }
 
                 result.serial = root;
             }
@@ -166,21 +174,28 @@ namespace Shared.Engine.Online
 
             string? json = await onget.Invoke($"https://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
             if (json == null)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             BobrKurwa? kurwa = null;
 
-            foreach (var item in JsonSerializer.Deserialize<List<BobrKurwa>>(json)) 
+            try
             {
-                if (item.year == year.ToString())
+                foreach (var item in JsonSerializer.Deserialize<List<BobrKurwa>>(json))
                 {
-                    kurwa = item;
-                    break;
+                    if (item.year == year.ToString())
+                    {
+                        kurwa = item;
+                        break;
+                    }
                 }
             }
+            catch { }
 
             if (kurwa == null)
-                return null;
+                return new EmbedModel() {  IsEmpty = true };
 
             string iframeUri = kurwa.tortuga ?? kurwa.ashdi;
 
@@ -198,9 +213,15 @@ namespace Shared.Engine.Online
 
             if (Regex.IsMatch(content, "file: ?'\\["))
             {
-                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                if (root == null || root.Count == 0)
-                    return null;
+                List<Lampac.Models.LITE.Ashdi.Voice>? root = null;
+
+                try
+                {
+                    root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    if (root == null || root.Count == 0)
+                        return null;
+                }
+                catch { return null; }
 
                 result.serial = root;
             }

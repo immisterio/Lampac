@@ -64,9 +64,15 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(playlist))
                 return null;
 
-            var movies = JsonSerializer.Deserialize<List<Episode>>(playlist);
-            if (movies == null || movies.Count == 0)
-                return null;
+            List<Episode>? movies = null;
+
+            try
+            {
+                movies = JsonSerializer.Deserialize<List<Episode>>(playlist);
+                if (movies == null || movies.Count == 0)
+                    return null;
+            }
+            catch { return null; }
 
             return movies;
         }

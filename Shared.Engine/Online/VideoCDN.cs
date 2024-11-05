@@ -59,9 +59,15 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var root = JsonSerializer.Deserialize<SearchRoot>(json);
-            if (root?.data == null || root.data.Count == 0)
-                return null;
+            SearchRoot? root = null;
+
+            try
+            {
+                root = JsonSerializer.Deserialize<SearchRoot>(json);
+                if (root?.data == null || root.data.Count == 0)
+                    return null;
+            }
+            catch { return null; }
 
             var stpl = new SimilarTpl(root.data.Count);
 
@@ -186,40 +192,44 @@ namespace Shared.Engine.Online
 
             result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
-            if (result.type is "movie" or "anime")
+            try
             {
-                result.movie = JsonSerializer.Deserialize<Dictionary<string, string>>(files);
-                if (result.movie == null)
-                    return null;
-            }
-            else
-            {
-                result.serial = JsonSerializer.Deserialize<Dictionary<string, List<Season>>>(files);
-                if (result.serial == null)
-                    return null;
-
-                #region voiceSeasons
-                result.voiceSeasons = new Dictionary<string, HashSet<int>>();
-
-                foreach (var voice in result.serial.OrderByDescending(k => k.Key == "0"))
+                if (result.type is "movie" or "anime")
                 {
-                    if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
+                    result.movie = JsonSerializer.Deserialize<Dictionary<string, string>>(files);
+                    if (result.movie == null)
+                        return null;
+                }
+                else
+                {
+                    result.serial = JsonSerializer.Deserialize<Dictionary<string, List<Season>>>(files);
+                    if (result.serial == null)
+                        return null;
+
+                    #region voiceSeasons
+                    result.voiceSeasons = new Dictionary<string, HashSet<int>>();
+
+                    foreach (var voice in result.serial.OrderByDescending(k => k.Key == "0"))
                     {
-                        foreach (var season in voice.Value)
+                        if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
                         {
-                            if (result.voiceSeasons.TryGetValue(voice.Key, out HashSet<int> _s))
+                            foreach (var season in voice.Value)
                             {
-                                _s.Add(season.id);
-                            }
-                            else
-                            {
-                                result.voiceSeasons.TryAdd(voice.Key, new HashSet<int>() { season.id });
+                                if (result.voiceSeasons.TryGetValue(voice.Key, out HashSet<int> _s))
+                                {
+                                    _s.Add(season.id);
+                                }
+                                else
+                                {
+                                    result.voiceSeasons.TryAdd(voice.Key, new HashSet<int>() { season.id });
+                                }
                             }
                         }
                     }
+                    #endregion
                 }
-                #endregion
             }
+            catch { return null; }
 
             return result;
         }

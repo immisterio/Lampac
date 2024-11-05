@@ -64,9 +64,15 @@ namespace Shared.Engine.Online
             file = Regex.Replace(file.Trim(), "(\\{|, )([a-z]+): ?", "$1\"$2\":")
                         .Replace("},]", "}]");
 
-            var pl = JsonSerializer.Deserialize<List<RootObject>>(file);
-            if (pl == null || pl.Count == 0)
-                return null;
+            List<RootObject>? pl = null;
+
+            try
+            {
+                pl = JsonSerializer.Deserialize<List<RootObject>>(file);
+                if (pl == null || pl.Count == 0)
+                    return null;
+            }
+            catch { return null; }
 
             return new EmbedModel() { pl = pl, movie = !file.Contains("\"comment\":"), quality = quality, check_url = check_url };
         }

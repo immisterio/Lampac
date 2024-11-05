@@ -247,9 +247,15 @@ namespace Lampac.Controllers.LITE
                 return (0, null);
             }
 
-            var root = JsonSerializer.Deserialize<List<SearchModel>>(json);
-            if (root == null || root.Count == 0)
-                return (0, null);
+            List<SearchModel>? root;
+
+            try
+            {
+                root = JsonSerializer.Deserialize<List<SearchModel>>(json);
+                if (root == null || root.Count == 0)
+                    return (0, null);
+            }
+            catch { return (0, null); }
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);

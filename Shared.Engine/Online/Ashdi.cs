@@ -58,9 +58,15 @@ namespace Shared.Engine.Online
             if (!content.Contains("file:'[{"))
                 return new EmbedModel() { content = content };
 
-            var root = JsonSerializer.Deserialize<List<Voice>>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
-            if (root == null || root.Count == 0)
-                return null;
+            List<Voice>? root = null;
+
+            try
+            {
+                root = JsonSerializer.Deserialize<List<Voice>>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
+                if (root == null || root.Count == 0)
+                    return null;
+            }
+            catch { return null; }
 
             return new EmbedModel() { serial = root };
         }
