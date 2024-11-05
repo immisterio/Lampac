@@ -1,5 +1,6 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Web;
 
 namespace Shared.Model.Templates
 {
@@ -26,22 +27,25 @@ namespace Shared.Model.Templates
             html.Append("<div class=\"videos__line\">");
 
             foreach (var i in data)
-                html.Append("<div class=\"videos__button selector " + (i.active ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + i.link + "\"}'>" + i.name + "</div>");
+                html.Append("<div class=\"videos__button selector " + (i.active ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + i.link + "\"}'>" + HttpUtility.HtmlEncode(i.name) + "</div>");
 
             return html.ToString() + "</div>";
         }
 
-        public string ToJson()
+        public string ToJson() => JsonSerializer.Serialize(ToObject());
+
+        public object ToObject()
         {
             if (data.Count == 0)
-                return "[]";
+                return new List<string>();
 
-            var html = new StringBuilder();
-
-            foreach (var i in data)
-                html.Append($"{{\"method\":\"link\", \"url\":\"{i.link}\", \"active\": {i.active.ToString().ToLower()}, \"name\":\"{i.name.Replace("\"", "%22")?.Replace("'", "%27")}\"}},");
-
-            return "[" + Regex.Replace(html.ToString(), ",$", "") + "]";
+            return data.Select(i => new 
+            {
+                method = "link",
+                url = i.link,
+                i.active,
+                i.name
+            });
         }
     }
 }

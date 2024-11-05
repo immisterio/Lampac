@@ -18,12 +18,15 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, string account_email = null)
+        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, string account_email = null, bool rjson = false)
         {
             var init = AppInit.conf.AniMedia;
 
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -59,26 +62,23 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect($"/lite/animedia?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
                     stpl.Append(res.title, string.Empty, string.Empty, $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}");
 
-                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
+                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion
             }
             else 
             {
-                bool firstjson = true;
-                string html = "<div class=\"videos__line\">";
-
                 if (s == -1)
                 {
                     #region Сезоны
                     string memKey = $"animedia:seasons:{code}";
-                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
+                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
                     {
                         string news = await HttpClient.Get($"{init.corsHost()}/anime/{code}/1/1", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                         if (news == null)
@@ -88,13 +88,13 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(entryid))
                             return OnError();
 
-                        links = new List<(string, string)>();
+                        links = new List<(string, string, string)>();
 
                         var match = Regex.Match(news, $"<a href=\"/anime/{code}/([0-9]+)/1\" class=\"item\">([^<]+)</a>");
                         while (match.Success)
                         {
                             if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                                links.Add((match.Groups[2].Value.ToLower(), $"lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}"));
+                                links.Add((match.Groups[2].Value.ToLower(), $"lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}", match.Groups[1].Value));
 
                             match = match.NextMatch();
                         }
@@ -106,16 +106,18 @@ namespace Lampac.Controllers.LITE
                         hybridCache.Set(memKey, links, cacheTime(30, init: init));
                     }
 
+                    var tpl = new SeasonTpl(links.Count);
+
                     foreach (var l in links)
-                    {
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + $"{host}/{l.uri}" + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + l.name + "</div></div></div>";
-                        firstjson = false;
-                    }
+                        tpl.Append(l.name, $"{host}/{l.uri}", l.season);
+
+                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
                     #endregion
                 }
                 else
                 {
                     #region Серии
+                    var etpl = new EpisodeTpl();
                     var proxy = proxyManager.Get();
 
                     string memKey = $"animedia:playlist:{entry_id}:{s}";
@@ -145,13 +147,12 @@ namespace Lampac.Controllers.LITE
                     foreach (var l in links)
                     {
                         string link = HostStreamProxy(init, l.uri, proxy: proxy, plugin: "animedia");
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(l.name, "([0-9]+)$").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} ({l.name.ToLower()})" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + l.name + "</div></div>";
-                        firstjson = true;
+                        etpl.Append(l.name, $"{title} / {l.name.ToLower()}", s.ToString(), Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link);
                     }
+
+                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
                     #endregion
                 }
-
-                return Content(html + "</div>", "text/html; charset=utf-8");
             }
         }
     }

@@ -1,7 +1,5 @@
 ﻿using Lampac.Models.LITE.AniLibria;
 using Shared.Model.Templates;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
@@ -47,7 +45,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject>? result, string title, string? code, int year)
+        public string Html(List<RootObject>? result, string title, string? code, int year, bool rjson = false)
         {
             if (result == null || result.Count == 0)
                 return string.Empty;
@@ -55,26 +53,22 @@ namespace Shared.Engine.Online
             if (!string.IsNullOrWhiteSpace(code) || (result.Count == 1 && result[0].season.year == year && result[0].names.ru?.ToLower() == title.ToLower()))
             {
                 #region Серии
-                bool firstjson = true;
-                var html = new StringBuilder();
-                html.Append("<div class=\"videos__line\">");
+                var etpl = new EpisodeTpl();
 
                 var root = string.IsNullOrWhiteSpace(code) ? result[0] : result.Find(i => i.code == code);
 
                 foreach (var episode in root.player.playlist.Select(i => i.Value))
                 {
                     #region streansquality
-                    string streansquality = string.Empty;
+                    var streams = new List<(string link, string quality)>() { Capacity = 5 };
 
                     foreach (var f in new List<(string quality, string? url)> { ("1080p", episode.hls.fhd), ("720p", episode.hls.hd), ("480p", episode.hls.sd) })
                     {
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
 
-                        streansquality += $"\"{f.quality}\":\"" + onstreamfile($"https://{root.player.host}{f.url}") + "\",";
+                        streams.Add((onstreamfile($"https://{root.player.host}{f.url}"), f.quality));
                     }
-
-                    streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                     #endregion
 
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
@@ -82,11 +76,10 @@ namespace Shared.Engine.Online
 
                     string season = string.IsNullOrWhiteSpace(code) || (root.names.ru?.ToLower() == title.ToLower()) ? "1" : "0";
 
-                    html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + season + "\" e=\"" + episode.serie + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({episode.serie} серия)" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.serie} серия" + "</div></div>");
-                    firstjson = false;
+                    etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), hls, streamquality: new StreamQualityTpl(streams));
                 }
 
-                return html.ToString() + "</div>";
+                return rjson ? etpl.ToJson() : etpl.ToHtml();
                 #endregion
             }
             else
@@ -102,7 +95,7 @@ namespace Shared.Engine.Online
                     stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}");
                 }
 
-                return stpl.ToHtml();
+                return rjson ? stpl.ToJson() : stpl.ToHtml();
                 #endregion
             }
         }

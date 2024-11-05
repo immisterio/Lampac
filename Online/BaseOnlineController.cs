@@ -95,6 +95,8 @@ namespace Online
         #endregion
 
 
+        public ActionResult ShowError(string msg) => Json(new { accsdb = true, msg });
+
         public bool IsRhubFallback<T>(CacheResult<T> cache, BaseSettings init)
         {
             if (cache.IsSuccess)

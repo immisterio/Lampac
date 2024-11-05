@@ -17,12 +17,15 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string title, string uri, int s, string account_email)
+        async public Task<ActionResult> Index(string title, string uri, int s, string account_email, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst;
 
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -72,22 +75,19 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
                     stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
 
-                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
+                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion
             }
             else 
             {
                 #region Серии
-                bool firstjson = true;
-                string html = "<div class=\"videos__line\">";
-
                 string memKey = $"animebesst:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
@@ -116,6 +116,8 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memKey, links, cacheTime(30, init: init));
                 }
 
+                var etpl = new EpisodeTpl();
+
                 foreach (var l in links)
                 {
                     string name = string.IsNullOrEmpty(l.name) ? $"{l.episode} серия" : $"{l.episode} {l.name}";
@@ -123,11 +125,10 @@ namespace Lampac.Controllers.LITE
 
                     string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&account_email={HttpUtility.UrlEncode(account_email)}";
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + $"{title} / {name}" + "\",\"voice_name\":\"" + voice_name + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>";
-                    firstjson = true;
+                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, voice_name: voice_name);
                 }
 
-                return Content(html + "</div>", "text/html; charset=utf-8");
+                return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
                 #endregion
             }
         }

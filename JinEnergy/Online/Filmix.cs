@@ -44,7 +44,7 @@ namespace JinEnergy.Online
                 }
 
                 if (res.id == 0)
-                    return res?.similars ?? string.Empty;
+                    return res?.similars == null ? string.Empty : res.similars.ToHtml();
 
                 postid = res.id;
             }

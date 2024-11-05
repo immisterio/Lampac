@@ -2,9 +2,9 @@
 using System.Web;
 using System.Text.Json;
 using Shared.Model.Online.VideoCDN;
-using System.Text;
 using Shared.Model.Templates;
 using Lampac.Models.LITE;
+using System.Text;
 
 namespace Shared.Engine.Online
 {
@@ -101,7 +101,7 @@ namespace Shared.Engine.Online
         public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
         {
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.ec/109184-djedpul-i-rossomaha-2024.html");
+            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.ec/113447-venom-3-poslednij-tanec.html");
             if (content == null)
             {
                 requesterror?.Invoke();
@@ -129,39 +129,60 @@ namespace Shared.Engine.Online
                 }
             }
 
-            //string Decode(string pass, string src)
-            //{
-            //    int passLen = pass.Length;
-            //    int srcLen = src.Length;
-            //    byte[] passArr = new byte[passLen];
+            string? Decode(string pass, string src)
+            {
+                try
+                {
+                    int passLen = pass.Length;
+                    int srcLen = src.Length;
+                    byte[] passArr = new byte[passLen];
 
-            //    for (int i = 0; i < passLen; i++)
-            //    {
-            //        passArr[i] = (byte)pass[i];
-            //    }
+                    for (int i = 0; i < passLen; i++)
+                    {
+                        passArr[i] = (byte)pass[i];
+                    }
 
-            //    StringBuilder res = new StringBuilder();
+                    StringBuilder res = new StringBuilder();
 
-            //    for (int i = 0; i < srcLen; i += 2)
-            //    {
-            //        string hex = src.Substring(i, 2);
-            //        int code = Convert.ToInt32(hex, 16);
-            //        byte secret = (byte)(passArr[(i / 2) % passLen] % 255);
-            //        res.Append((char)(code ^ secret));
-            //    }
+                    for (int i = 0; i < srcLen; i += 2)
+                    {
+                        string hex = src.Substring(i, 2);
+                        int code = Convert.ToInt32(hex, 16);
+                        byte secret = (byte)(passArr[(i / 2) % passLen] % 255);
+                        res.Append((char)(code ^ secret));
+                    }
 
-            //    return res.ToString();
-            //}
+                    return res.ToString();
+                }
+                catch { return null; }
+            }
 
-            //string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"").Groups[1].Value;
-            //string sentry_id = Regex.Match(content, "id=\"sentry_id\" value=\"([^\"]+)\"").Groups[1].Value;
+            string? files = null;
+            string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"").Groups[1].Value;
 
-            //string files = Decode(client_id, sentry_id);
+            var m = Regex.Match(content, "<input type=\"hidden\" id=\"[^\"]+\" value=('|\")([^\"']+)");
+            while (m.Success)
+            {
+                string sentry_id = m.Groups[2].Value;
+                if (200 > sentry_id.Length || sentry_id.StartsWith("{"))
+                {
+                    m = m.NextMatch();
+                    continue;
+                }
 
+                files = Decode(client_id, sentry_id);
+                if (!string.IsNullOrEmpty(files))
+                    break;
 
-            string files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'").Groups[1].Value;
+                m = m.NextMatch();
+            }
+
             if (string.IsNullOrEmpty(files))
-                return null;
+            {
+                files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'").Groups[1].Value;
+                if (string.IsNullOrEmpty(files))
+                    return null;
+            }    
 
             result.quality = files.Contains("1080p") ? "1080p" : files.Contains("720p") ? "720p" : "480p";
 
@@ -336,7 +357,7 @@ namespace Shared.Engine.Online
 
                             string e = episode.id.Split("_")[1];
 
-                            etpl.Append($"{e} серия", $"{title ?? original_title} ({e} серия)", s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
 
                         if (rjson)

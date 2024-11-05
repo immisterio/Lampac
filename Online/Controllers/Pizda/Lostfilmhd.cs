@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lostfilmhd")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
-            if (!AppInit.conf.Lostfilmhd.enable)
+            if (!AppInit.conf.Lostfilmhd.enable || AppInit.conf.Lostfilmhd.rip)
                 return OnError();
 
             if (year == 0 || string.IsNullOrWhiteSpace(title))

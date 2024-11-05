@@ -30,8 +30,8 @@ namespace JinEnergy.Online
                 string memkey = $"kinopub:search:{arg.title}:{arg.clarification}:{arg.imdb_id}";
                 refresh_similars: var res = await InvokeCache(arg.id, memkey, () => oninvk.Search(arg.title, arg.original_title, arg.year, arg.clarification, arg.imdb_id, arg.kinopoisk_id));
 
-                if (!string.IsNullOrEmpty(res?.similars))
-                    return res.similars;
+                if (res?.similars != null)
+                    return res.similars.ToHtml();
 
                 postid = res == null ? 0 : res.id;
 

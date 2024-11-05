@@ -58,11 +58,14 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
         {
             var init = AppInit.conf.Rezka;
             if (!init.enable)
                 return OnError();
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -77,14 +80,14 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return Content(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson));
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Rezka;
             if (!init.enable)
@@ -104,7 +107,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError();
 
-            return Content(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Serial(root, content, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson));
         }
         #endregion
 

@@ -18,6 +18,12 @@ namespace JinEnergy.SISI
 
             refresh: string? html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, HeadersModel.Init(
                 ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
                 ("referer", init.host!),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
@@ -25,7 +31,7 @@ namespace JinEnergy.SISI
                 ("x-requested-with", "XMLHttpRequest")
             ))));
 
-            var playlist = BongaCamsTo.Playlist(html, pl =>
+            var playlist = BongaCamsTo.Playlist(html, out int total_pages, pl =>
             {
                 pl.picture = rsizehost(pl.picture);
                 pl.bookmark = null;
@@ -35,7 +41,7 @@ namespace JinEnergy.SISI
             if (playlist.Count == 0 && IsRefresh(init, true))
                 goto refresh;
 
-            return OnResult(BongaCamsTo.Menu(null, sort), playlist);
+            return OnResult(BongaCamsTo.Menu(null, sort), playlist, total_pages: total_pages);
         }
     }
 }

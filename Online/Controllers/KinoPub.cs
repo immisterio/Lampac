@@ -61,6 +61,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (init.rhub && !AppInit.conf.rch.enable)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
@@ -88,14 +91,14 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id, rjson: rjson);
+                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id);
                 });
 
                 if (!search.IsSuccess)
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.similars != null)
-                    return ContentTo(search.Value.similars);
+                    return ContentTo(rjson ? search.Value.similars.ToJson() : search.Value.similars.ToHtml());
 
                 postid = search.Value.id;
             }

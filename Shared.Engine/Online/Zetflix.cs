@@ -1,7 +1,6 @@
 ﻿using Shared.Model.Online;
 using Shared.Model.Online.Zetflix;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -104,10 +103,6 @@ namespace Shared.Engine.Online
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             if (root.movie)
             {
                 #region Фильм
@@ -161,17 +156,17 @@ namespace Shared.Engine.Online
 
                     for (int i = 1; i <= number_of_seasons; i++)
                     {
-                        string link = host + $"lite/zetflix?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={i}";
-                        tpl.Append($"{i} сезон", link);
+                        string link = host + $"lite/zetflix?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={i}";
+                        tpl.Append($"{i} сезон", link, i);
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                 }
                 else
                 {
+                    var vtpl = new VoiceTpl();
+                    var etpl = new EpisodeTpl();
                     var hashvoices = new HashSet<string>();
-                    var htmlvoices = new StringBuilder();
-                    var htmlepisodes = new StringBuilder();
 
                     foreach (var episode in root.pl.AsEnumerable().Reverse())
                     {
@@ -184,13 +179,12 @@ namespace Shared.Engine.Online
                             t = perevod;
 
                         #region Переводы
-                        if (!hashvoices.Contains(perevod))
+                        if (perevod != null && !hashvoices.Contains(perevod))
                         {
                             hashvoices.Add(perevod);
-                            string link = host + $"lite/zetflix?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
-                            string active = t == perevod ? "active" : "";
+                            string link = host + $"lite/zetflix?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={HttpUtility.UrlEncode(perevod)}";
 
-                            htmlvoices.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>");
+                            vtpl.Append(perevod, t == perevod, link);
                         }
                         #endregion
 
@@ -227,19 +221,17 @@ namespace Shared.Engine.Online
                             if (streams.Count == 0)
                                 continue;
 
-                            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
-                            htmlepisodes.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({name})" + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                            firstjson = false;
+                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
                     }
 
-                    html.Append(htmlvoices.ToString() + "</div><div class=\"videos__line\">" + htmlepisodes.ToString());
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
+
+                    return vtpl.ToHtml() + etpl.ToHtml();
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

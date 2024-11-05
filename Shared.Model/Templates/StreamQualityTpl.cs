@@ -1,4 +1,6 @@
-﻿namespace Shared.Model.Templates
+﻿using System.Text.Json;
+
+namespace Shared.Model.Templates
 {
     public class StreamQualityTpl
     {
@@ -16,12 +18,11 @@
                 data.Add((link, quality));
         }
 
-        public string ToHtml()
-        {
-            if (data.Count == 0)
-                return string.Empty;
+        public string ToJson() => JsonSerializer.Serialize(ToObject());
 
-            return string.Join(",", data.Select(s => $"\"{s.quality}\":\"{s.link}\""));
+        public Dictionary<string, string> ToObject()
+        {
+            return data.ToDictionary(k => k.quality, v => v.link);
         }
 
         public string MaxQuality()

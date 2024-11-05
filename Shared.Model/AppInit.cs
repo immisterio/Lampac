@@ -24,7 +24,7 @@ namespace Shared.Model
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("https://ru2.bongacams.com");
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("https://ee.bongacams.com");
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("https://chaturbate.com");
 
@@ -111,25 +111,32 @@ namespace Shared.Model
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("https://api.apbugall.org", "https://torso-as.allarknow.online", "", "", true, true);
 
+
+
         public KodikSettings Kodik { get; set; } = new KodikSettings("https://kodikapi.com", "http://kodik.info", "71d163b40d50397a86ca54c366f33b72", "", true) { geostreamproxy = new List<string>() { "UA" } };
 
-
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("https://api.anilibria.tv");
+
+        /// <summary>
+        /// aHR0cHM6Ly9hbmlsaWIubWU=
+        /// </summary>
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("https://api.mangalib.me");
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("https://online.animedia.tv", streamproxy: true);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("https://animevost.org", streamproxy: true);
 
+        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("https://api.moonanime.art", enable: false);
+
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("https://anime1.best");
 
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true, enable: false);
 
 
 
 
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("https://voidboost.net", streamproxy: true) { enable = false, rip = true };
-
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("https://animego.org", streamproxy: true, rip: true);
 
         public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("http://api.seasonvar.ru", enable: false, rip: true);
 

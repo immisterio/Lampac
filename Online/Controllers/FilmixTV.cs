@@ -21,12 +21,15 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/filmixtv")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.FilmixTV.Clone();
 
             if (!init.enable || string.IsNullOrEmpty(init.user_apitv))
                 return OnError();
+
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             var proxyManager = new ProxyManager("filmixtv", init);
             var proxy = proxyManager.Get();
@@ -61,7 +64,8 @@ namespace Lampac.Controllers.LITE
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => proxyManager.Refresh(),
+               rjson: rjson
             );
 
             if (postid == 0)
@@ -75,7 +79,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.id == 0)
-                    return Content(search.Value.similars);
+                    return ContentTo(rjson ? search.Value.similars.ToJson() : search.Value.similars.ToHtml());
 
                 postid = search.Value.id;
             }

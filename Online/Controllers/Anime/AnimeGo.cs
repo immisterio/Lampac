@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.AnimeGo;
 
-            if (!init.enable || string.IsNullOrWhiteSpace(title))
+            if (!init.enable || init.rip || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             if (IsOverridehost(init, out string overridehost))

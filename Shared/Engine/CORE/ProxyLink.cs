@@ -59,6 +59,10 @@ namespace Lampac.Engine.CORE
                 hash += ".aac";
             else if (uri.Contains(".jpg") || uri.Contains(".jpeg") || uri.Contains(".png") || uri.Contains(".webp"))
                 hash += ".jpg";
+            else if (uri.Contains(".vtt"))
+                hash += ".vtt";
+            else if (uri.Contains(".srt"))
+                hash += ".srt";
 
             if (!links.ContainsKey(hash))
             {

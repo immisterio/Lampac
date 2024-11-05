@@ -25,6 +25,9 @@ namespace Lampac.Controllers.LITE
             if (!AppInit.conf.Alloha.enable)
                 return OnError("disable");
 
+            if (AppInit.conf.Alloha.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(AppInit.conf.Alloha, out string overridehost))
                 return Redirect(overridehost);
 
@@ -40,8 +43,6 @@ namespace Lampac.Controllers.LITE
 
             JToken data = result.data;
 
-            bool firstjson = true;
-            string html = "<div class=\"videos__line\">";
             string defaultargs = $"&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&serial={serial}&year={year}&original_language={original_language}";
 
             if (result.category_id is 1 or 3)
@@ -55,7 +56,7 @@ namespace Lampac.Controllers.LITE
                     string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
                     bool uhd = translation.Value["uhd"].ToString() == "True" && AppInit.conf.Alloha.m4s;
-                    mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" :translation.Value["quality"].ToString());
+                    mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -66,37 +67,39 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 if (s == -1)
                 {
-                    foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
-                    {
-                        string link = $"{host}/lite/alloha?s={season.Key}" + defaultargs;
+                    var tpl = new SeasonTpl(result.data.Value<bool>("uhd") && AppInit.conf.Alloha.m4s ? "2160p" : null);
 
-                        html += "<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season.Key} сезон" + "</div></div></div>";
-                        firstjson = false;
-                    }
+                    foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
+                        tpl.Append($"{season.Key} сезон", $"{host}/lite/alloha?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
+
+                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
                 }
                 else
                 {
                     #region Перевод
+                    var vtpl = new VoiceTpl();
+                    var temp_translation = new HashSet<string>();
+
                     string activTranslate = t;
 
                     foreach (var episodes in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Select(i => i.Value.translation))
                     {
                         foreach (var translation in episodes)
                         {
-                            if (html.Contains(translation.Value.translation) || translation.Value.translation.ToLower().Contains("субтитры"))
+                            if (temp_translation.Contains(translation.Value.translation) || translation.Value.translation.ToLower().Contains("субтитры"))
                                 continue;
+
+                            temp_translation.Add(translation.Value.translation);
 
                             if (string.IsNullOrWhiteSpace(activTranslate))
                                 activTranslate = translation.Key;
 
-                            string link = $"{host}/lite/alloha?s={s}&t={translation.Key}" + defaultargs;
-
-                            html += "<div class=\"videos__button selector " + (activTranslate == translation.Key ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.Value.translation + "</div>";
+                            vtpl.Append(translation.Value.translation, activTranslate == translation.Key, $"{host}/lite/alloha?rjson={rjson}&s={s}&t={translation.Key}{defaultargs}");
                         }
                     }
-
-                    html += "</div><div class=\"videos__line\">";
                     #endregion
+
+                    var etpl = new EpisodeTpl();
 
                     foreach (var episode in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Reverse())
                     {
@@ -106,14 +109,16 @@ namespace Lampac.Controllers.LITE
                         string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}" + defaultargs;
                         string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
 
-                        html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + link + "\",\"stream\":\"" + streamlink + "\",\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>";
-                        firstjson = false;
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", streamlink: streamlink);
                     }
+
+                    if (rjson)
+                        return ContentTo(etpl.ToJson(vtpl));
+
+                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                 }
                 #endregion
             }
-
-            return Content(html + "</div>", "text/html; charset=utf-8");
         }
 
 
@@ -168,16 +173,12 @@ namespace Lampac.Controllers.LITE
             string default_audio = data.Value<string>("default_audio");
 
             #region subtitle
-            string subtitle = string.Empty;
+            var subtitles = new SubtitleTpl();
 
             try
             {
-                var subtitles = new SubtitleTpl();
-
                 foreach (var sub in data["subtitle"])
                     subtitles.Append(sub.Value<string>("label"), sub.Value<string>("url"));
-
-                subtitle = subtitles.ToHtml();
             }
             catch { }
             #endregion
@@ -229,7 +230,7 @@ namespace Lampac.Controllers.LITE
                 return Redirect(streams[0].link);
 
             string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\": [" + subtitle + "], " + streansquality + "}", "application/json; charset=utf-8");
+            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\":" + subtitles.ToJson() + ", " + streansquality + "}", "application/json; charset=utf-8");
         }
         #endregion
 

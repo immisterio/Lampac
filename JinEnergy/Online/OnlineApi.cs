@@ -145,6 +145,7 @@ namespace JinEnergy.Online
             if (isanime)
             {
                 send("Anilibria - 1080p", "anilibria", AppInit.AnilibriaOnline);
+                send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
                 send("Animevost - 720p", "animevost", AppInit.Animevost);
                 send("AniMedia - 1080p", "animedia", AppInit.AniMedia);
             }
@@ -167,12 +168,12 @@ namespace JinEnergy.Online
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
                 if (arg.kinopoisk_id > 0)
-                    send("Ashdi (UKR) - 4K", "ashdi", AppInit.Ashdi);
+                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
 
-                send("Eneyida (UKR) - 1080p", "eneyida", AppInit.Eneyida);
+                send("Eneyida (Украинский) - 1080p", "eneyida", AppInit.Eneyida);
 
                 if (!isanime)
-                    send("Kinoukr (UKR) - 1080p", "kinoukr", AppInit.Kinoukr);
+                    send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
             }
 
             if (!titleSearch)

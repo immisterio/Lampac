@@ -86,10 +86,6 @@ namespace Shared.Engine.Online
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             if (root.movie)
             {
                 #region Фильм
@@ -164,10 +160,10 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append(name, host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}");
+                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                 }
                 else
                 {
@@ -175,9 +171,10 @@ namespace Shared.Engine.Online
                     if (season == null)
                         return string.Empty;
 
+                    var vtpl = new VoiceTpl();
+                    var etpl = new EpisodeTpl();
+
                     var hashvoices = new HashSet<string>();
-                    var htmlvoices = new StringBuilder();
-                    var htmlepisodes = new StringBuilder();
 
                     foreach (var episode in season)
                     {
@@ -196,10 +193,9 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                string link = host + $"lite/videodb?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
-                                string active = t == perevod ? "active" : "";
+                                string link = host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
 
-                                htmlvoices.Append("<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + perevod + "</div>");
+                                vtpl.Append(perevod, t == perevod, link);
                             }
                             #endregion
 
@@ -227,21 +223,17 @@ namespace Shared.Engine.Online
                             if (streams.Count == 0)
                                 continue;
 
-                            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-
-                            string streamlink = ",\"stream\":\"" + $"{streams[0].link}&play=true" + "\"";
-
-                            htmlepisodes.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + Regex.Match(name, "^([0-9]+)").Groups[1].Value + "\" data-json='{\"method\":\"call\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + $"{title ?? original_title} ({name})" + "\", " + streansquality + streamlink + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + name + "</div></div>");
-                            firstjson = false;
+                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, "call", streamlink: $"{streams[0].link}&play=true", streamquality: new StreamQualityTpl(streams));
                         }
                     }
 
-                    html.Append(htmlvoices.ToString() + "</div><div class=\"videos__line\">" + htmlepisodes.ToString());
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
+
+                    return vtpl.ToHtml() + etpl.ToHtml();
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

@@ -141,7 +141,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -156,12 +156,12 @@ namespace Shared.Engine.Online
 
                 foreach (var similar in result.similars)
                 {
-                    string link = host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&balancer={similar.balancer}";
+                    string link = host + $"lite/vokino?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&balancer={similar.balancer}";
 
                     stpl.Append(similar.title, string.Empty, string.Empty, link);
                 }
 
-                return stpl.ToHtml();
+                return rjson ? stpl.ToJson() : stpl.ToHtml();
             }
             #endregion
 
@@ -178,7 +178,7 @@ namespace Shared.Engine.Online
                     if (translation.playlist_url != null && translation.playlist_url.Contains("?"))
                     {
                         string _t = HttpUtility.UrlEncode(translation.playlist_url.Split("?")[1]);
-                        vtpl.Append(translation.title, translation.selected, host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}");
+                        vtpl.Append(translation.title, translation.selected, host + $"lite/vokino?rjson={rjson}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}");
                     }
                 }
             }
@@ -196,10 +196,10 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(sname))
                             sname = Regex.Match(ch.title, "([0-9]+)$").Groups[1].Value;
 
-                        tpl.Append(ch.title, host + $"lite/vokino?kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}");
+                        tpl.Append(ch.title, host + $"lite/vokino?rjson={rjson}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}", sname);
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                 }
                 else
                 {
@@ -208,8 +208,11 @@ namespace Shared.Engine.Online
                     foreach (var e in result.channels.First(i => i.title.StartsWith($"{s} ") || i.title.EndsWith($" {s}")).submenu)
                     {
                         string ename = Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value;
-                        tpl.Append(e.title, $"{title ?? original_title} ({e.title})", s.ToString(), ename, onstreamfile(e.stream_url));
+                        tpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url));
                     }
+
+                    if (rjson)
+                        return tpl.ToJson(vtpl);
 
                     return vtpl.ToHtml() + tpl.ToHtml();
                 }
@@ -231,6 +234,9 @@ namespace Shared.Engine.Online
 
                     mtpl.Append(name, onstreamfile(ch.stream_url));
                 }
+
+                if (rjson)
+                    return mtpl.ToJson(vtpl: vtpl);
 
                 return vtpl.ToHtml() + mtpl.ToHtml();
             }

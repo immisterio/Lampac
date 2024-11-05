@@ -40,10 +40,13 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1)
+        async public Task<ActionResult> Index(string account_email, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
             if (!AppInit.conf.Kodik.enable)
                 return OnError();
+
+            if (AppInit.conf.Kodik.rhub)
+                return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(AppInit.conf.Kodik, out string overridehost))
                 return Redirect(overridehost);
@@ -51,37 +54,43 @@ namespace Lampac.Controllers.LITE
             List<Result> content = null;
             var oninvk = InitKodikInvoke();
 
-            if (clarification == 1)
+            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
-                if (string.IsNullOrEmpty(title))
+                if (string.IsNullOrEmpty(title ?? original_title))
                     return OnError();
 
-                var res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title), proxyManager);
-                if (res?.result == null)
-                    return OnError();
+                EmbedModel res = null;
 
-                if (res.result.Count == 0)
-                    return OnError();
+                //if (clarification == 1)
+                {
+                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title, null), proxyManager);
+                    if (res?.result == null || res.result.Count == 0)
+                        return OnError();
+                }
+                //else
+                //{
+                //    res = await InvokeCache($"kodik:search:{original_title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title: null, original_title), proxyManager);
+                //    if (res?.result == null || res.result.Count == 0)
+                //    {
+                //        res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title, null), proxyManager);
+                //        if (res?.result == null || res.result.Count == 0)
+                //            return OnError();
+                //    }
+                //}
 
                 if (string.IsNullOrEmpty(pick))
-                    return Content(res.html ?? string.Empty, "text/html; charset=utf-8");
+                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.ToJson() : res.stpl.ToHtml()));
 
                 content = oninvk.Embed(res.result, pick);
             }
             else
             {
-                if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
-                    return OnError();
-
                 content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);
-                if (content == null)
-                    return OnError();
-
-                if (content.Count == 0)
-                    return OnError();
+                if (content == null || content.Count == 0)
+                    return LocalRedirect($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&account_email={HttpUtility.UrlEncode(account_email)}");
             }
 
-            return Content(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true), "text/html; charset=utf-8");
+            return ContentTo(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
         }
 
         #region Video - API

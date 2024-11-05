@@ -65,7 +65,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t)
         {
             var init = AppInit.conf.Voidboost;
-            if (!init.enable)
+            if (!init.enable || init.rip)
                 return OnError();
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))

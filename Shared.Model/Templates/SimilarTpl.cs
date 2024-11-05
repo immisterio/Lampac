@@ -1,8 +1,6 @@
-﻿using Lampac.Models.LITE.KinoPub;
-using Shared.Model.Online.VoKino;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using System.Web;
 
 namespace Shared.Model.Templates
@@ -34,13 +32,19 @@ namespace Shared.Model.Templates
             var html = new StringBuilder();
             html.Append("<div class=\"videos__line\">");
 
-            string? fixName(string? _v) => _v?.Replace("\"", "%22")?.Replace("'", "%27");
-
             foreach (var i in data) 
             {
-                string year = string.IsNullOrEmpty(i.year) || !int.TryParse(i.year, out int _) ? "0" : i.year;
+                string datajson = JsonSerializer.Serialize(new
+                {
+                    method = "link",
+                    url = i.link,
+                    similar = true,
+                    year = int.TryParse(i.year, out int _year) ? _year : 0,
+                    i.details
 
-                html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\""+i.link+"\",\"similar\":true,\"year\":"+year+",\"details\":\""+fixName(i.details)+"\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">"+i.title+"</div></div></div>");
+                }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+
+                html.Append($"<div class=\"videos__item videos__season selector {(firstjson ? "focused" : "")}\" data-json='{datajson}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">{HttpUtility.HtmlEncode(i.title)}</div></div></div>");
                 firstjson = false;
             }
 
@@ -61,9 +65,9 @@ namespace Shared.Model.Templates
                     url = i.link,
                     i.details,
                     i.title,
-                    year = string.IsNullOrEmpty(i.year) || !int.TryParse(i.year, out int _) ? 0 : int.Parse(i.year)
+                    year = int.TryParse(i.year, out int _year) ? _year : 0
                 })
-            });
+            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }
     }
 }

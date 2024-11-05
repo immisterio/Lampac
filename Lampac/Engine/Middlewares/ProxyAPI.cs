@@ -558,6 +558,7 @@ namespace Lampac.Engine.Middlewares
             var request = context.Request;
 
             var requestMessage = new HttpRequestMessage();
+
             var requestMethod = request.Method;
             if (HttpMethods.IsPost(requestMethod))
             {
@@ -595,6 +596,7 @@ namespace Lampac.Engine.Middlewares
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
+            requestMessage.Version = new Version(2, 0);
 
             return requestMessage;
         }

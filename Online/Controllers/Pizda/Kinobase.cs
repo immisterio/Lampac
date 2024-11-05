@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.Kinobase;
 
-            if (!init.enable)
+            if (!init.enable || init.rip)
                 return OnError();
 
             if (string.IsNullOrEmpty(title) || year == 0)

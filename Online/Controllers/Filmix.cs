@@ -46,6 +46,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (init.rhub && !AppInit.conf.rch.enable)
+                return ShowError(RchClient.ErrorMsg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
@@ -105,7 +108,7 @@ namespace Lampac.Controllers.LITE
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.id == 0)
-                    return ContentTo(search.Value.similars);
+                    return ContentTo(rjson ? search.Value.similars.ToJson() : search.Value.similars.ToHtml());
 
                 postid = search.Value.id;
             }

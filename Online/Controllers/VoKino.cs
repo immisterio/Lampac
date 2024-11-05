@@ -49,12 +49,15 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.VoKino.Clone();
 
             if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
+
+            if (init.rhub && !AppInit.conf.rch.enable)
+                return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -86,7 +89,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, t, s));
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, t, s, rjson));
         }
     }
 }

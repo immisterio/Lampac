@@ -1,7 +1,6 @@
 ﻿using Lampac.Models.LITE.KinoPub;
 using Shared.Model.Online.KinoPub;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -35,69 +34,88 @@ namespace Shared.Engine.Online
         /// 0 - Данные не получены
         /// 1 - Нет нужного контента 
         /// </returns>
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id, bool rjson = false)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
         {
-            string? searchtitle = clarification == 1 ? title : (original_title ?? title);
-            if (string.IsNullOrWhiteSpace(searchtitle))
+            if (string.IsNullOrEmpty(original_title) || string.IsNullOrEmpty(title))
                 return null;
 
-            string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(searchtitle)}&access_token={token}&field=title&perpage=200");
-            if (json == null)
+            async ValueTask<SearchResult?> goSearch(string q, bool sendrequesterror)
             {
-                requesterror?.Invoke();
-                return null;
-            }
+                if (string.IsNullOrEmpty(q))
+                    return null;
 
-            try
-            {
-                var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
-                if (items != null)
+                string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(q)}&access_token={token}&field=title&perpage=200");
+                if (json == null)
                 {
-                    if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                    if (sendrequesterror)
+                        requesterror?.Invoke();
+                    return null;
+                }
+
+                try
+                {
+                    var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
+                    if (items != null)
                     {
-                        var ids = new List<int>();
-                        var stpl = new SimilarTpl(items.Count);
-
-                        string? enc_title = HttpUtility.UrlEncode(title);
-                        string? enc_original_title = HttpUtility.UrlEncode(original_title);
-
-                        foreach (var item in items)
+                        if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                         {
-                            if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
+                            var ids = new List<int>();
+                            var stpl = new SimilarTpl(items.Count);
+
+                            string? enc_title = HttpUtility.UrlEncode(title);
+                            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+                            foreach (var item in items)
                             {
-                                stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+                                if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
+                                {
+                                    stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
 
-                                string _t = item.title.ToLower();
-                                string _s = searchtitle.ToLower();
+                                    string _t = item.title.ToLower();
+                                    string _s = q.ToLower();
 
-                                if (item.year == year && (_t.StartsWith(_s) || _t.EndsWith(_s)))
-                                    ids.Add(item.id);
+                                    if (item.year == year && (_t.StartsWith(_s) || _t.EndsWith(_s)))
+                                        ids.Add(item.id);
+                                }
                             }
+
+                            if (ids.Count == 1)
+                                return new SearchResult() { id = ids[0] };
+
+                            return new SearchResult() { similars = stpl };
                         }
-
-                        if (ids.Count == 1)
-                            return new SearchResult() { id = ids[0] };
-
-                        return new SearchResult() { similars = rjson ? stpl.ToJson() : stpl.ToHtml() };
-                    }
-                    else
-                    {
-                        foreach (var item in items)
+                        else
                         {
-                            if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
-                                return new SearchResult() { id = item.id };
+                            foreach (var item in items)
+                            {
+                                if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
+                                    return new SearchResult() { id = item.id };
 
-                            if ($"tt{item.imdb}" == imdb_id)
-                                return new SearchResult() { id = item.id };
+                                if ($"tt{item.imdb}" == imdb_id)
+                                    return new SearchResult() { id = item.id };
+                            }
+
+                            return null;
                         }
-
-                        return null;
                     }
                 }
-            }
-            catch { }
+                catch { }
 
-            return null;
+                return null;
+            }
+
+            if (clarification == 1)
+            {
+                if (string.IsNullOrEmpty(title))
+                    return null;
+
+                return await goSearch(title, true);
+            }
+
+            if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(original_title))
+                return await goSearch(original_title ?? title, true);
+
+            return (await goSearch(original_title, false)) ?? (await goSearch(title, true));
         }
         #endregion
 
@@ -128,10 +146,6 @@ namespace Shared.Engine.Online
         {
             if (root == null)
                 return string.Empty;
-
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
 
             if (root?.item?.videos != null)
             {
@@ -215,16 +229,18 @@ namespace Shared.Engine.Online
 
                     foreach (var season in root.item.seasons)
                     {
-                        string link = host + $"lite/kinopub?postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.number}";
-                        tpl.Append($"{season.number} сезон", link);
+                        string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.number}";
+                        tpl.Append($"{season.number} сезон", link, season.number);
                     }
 
-                    return tpl.ToHtml();
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                     #endregion
                 }
                 else
                 {
                     #region Серии
+                    var etpl = new EpisodeTpl();
+
                     foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
                     {
                         #region voicename
@@ -247,9 +263,8 @@ namespace Shared.Engine.Online
                         {
                             if (episode.files[0].url.hls4 == null)
                                 continue;
-
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + onstreamfile(episode.files[0].url.hls4, null) + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"voice_name\":\"" + voicename + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
-                            firstjson = false;
+                    
+                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename);
                         }
                         else
                         {
@@ -269,33 +284,26 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            #region streansquality
-                            string streansquality = string.Empty;
+                            #region streams
+                            var streams = new List<(string link, string quality)>() { Capacity = episode.files.Count };
 
                             foreach (var f in episode.files)
                             {
                                 if (f.url.http != null)
-                                {
-                                    string l = onstreamfile(f.url.http, f.file);
-                                    streansquality += $"\"{f.quality}\":\"" + l + "\",";
-                                }
+                                    streams.Add((onstreamfile(f.url.http, f.file), f.quality));
                             }
-
-                            streansquality = "\"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}";
                             #endregion
 
                             string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
-
-                            html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.number + "\" data-json='{\"method\":\"play\",\"url\":\"" + mp4 + "\",\"title\":\"" + $"{title ?? original_title} ({episode.number} серия)" + "\", \"subtitles\": [" + subtitles.ToHtml() + "], \"voice_name\":\"" + voicename + "\", " + streansquality + "}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.number} серия" + "</div></div>");
-                            firstjson = false;
+                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams));
                         }
                     }
+
+                    return rjson ? etpl.ToJson() : etpl.ToHtml();
                     #endregion
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
     }

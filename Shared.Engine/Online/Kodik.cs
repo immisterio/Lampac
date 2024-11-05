@@ -68,11 +68,17 @@ namespace Shared.Engine.Online
         }
 
 
-        public async ValueTask<EmbedModel?> Embed(string title)
+        public async ValueTask<EmbedModel?> Embed(string title, string original_title)
         {
             try
             {
+                if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
+                    return null;
+
                 string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(title)}&with_episodes=true";
+
+                if (!string.IsNullOrEmpty(original_title))
+                    url += $"&title_orig={HttpUtility.UrlEncode(original_title)}";
 
                 string? json = await onget(url, null);
                 if (json == null)
@@ -111,7 +117,7 @@ namespace Shared.Engine.Online
 
                 return new EmbedModel()
                 {
-                    html = stpl.ToHtml(),
+                    stpl = stpl,
                     result = root.results
                 };
             }
@@ -135,12 +141,8 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream)
+        public string Html(List<Result> results, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream, bool rjson)
         {
-            bool firstjson = true;
-            var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
-
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
@@ -160,7 +162,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(data.translation.title, url, "call", streamlink);
                 }
 
-                return mtpl.ToHtml();
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
             }
             else
@@ -170,24 +172,27 @@ namespace Shared.Engine.Online
 
                 if (s == -1)
                 {
+                    var tpl = new SeasonTpl(results.Count);
                     var hash = new HashSet<int>();
 
                     foreach (var item in results.AsEnumerable().Reverse())
                     {
                         int season = item.last_season;
-                        string link = host + $"lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={season}";
+                        string link = host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={season}";
 
                         if (hash.Contains(season))
                             continue;
 
                         hash.Add(season);
-                        html.Append("<div class=\"videos__item videos__season selector " + (firstjson ? "focused" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">" + $"{season} сезон" + "</div></div></div>");
-                        firstjson = false;
+                        tpl.Append($"{season} сезон", link, season);
                     }
+
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                 }
                 else
                 {
                     #region Перевод
+                    var vtpl = new VoiceTpl();
                     HashSet<string> hash = new HashSet<string>();
 
                     foreach (var item in results)
@@ -205,30 +210,28 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrWhiteSpace(kid))
                             kid = id;
 
-                        string link = host + $"lite/kodik?imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}";
+                        string link = host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}";
 
-                        html.Append("<div class=\"videos__button selector " + (kid == id ? "active" : "") + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + name + "</div>");
+                        vtpl.Append(name, kid == id, link);
                     }
-
-                    html.Append("</div><div class=\"videos__line\">");
                     #endregion
+
+                    var etpl = new EpisodeTpl();
 
                     foreach (var episode in results.First(i => i.id == kid).seasons[s.ToString()].episodes)
                     {
                         string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
 
-                        string streamlink = string.Empty;
-                        if (showstream)
-                            streamlink = "\"stream\":\"" + $"{url.Replace("/video", "/video.m3u8")}&play=true" + "\",";
-
-                        html.Append("<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + episode.Key + "\" data-json='{\"method\":\"call\",\"url\":\"" + url + "\"," + streamlink + "\"title\":\"" + $"{title ?? original_title} ({episode.Key} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{episode.Key} серия" + "</div></div>");
-                        firstjson = false;
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, url, "call", streamlink: (showstream ? $"{url.Replace("/video", "/video.m3u8")}&play=true" : null));
                     }
+
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
+
+                    return vtpl.ToHtml() + etpl.ToHtml();
                 }
                 #endregion
             }
-
-            return html.ToString() + "</div>";
         }
         #endregion
 
