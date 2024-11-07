@@ -247,18 +247,19 @@ namespace Shared.Engine.CORE
                         }
                     }
 
-                    foreach (string proxy in list)
+                    foreach (string proxy in list.Take(p.actions_attempts))
                     {
                         bool isok = true;
+                        proxyip = proxy;
 
                         foreach (var action in p.actions)
                         {
                             string result = string.Empty;
 
                             if (!string.IsNullOrEmpty(action.data))
-                                result = await HttpClient.Post(action.url, action.data, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy));
+                                result = await HttpClient.Post(action.url, action.data, httpversion: 2, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy));
                             else
-                                result = await HttpClient.Get(action.url, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy));
+                                result = await HttpClient.Get(action.url, httpversion: 2, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy));
 
                             if (result == null || !result.Contains(action.contains))
                             {
@@ -268,18 +269,12 @@ namespace Shared.Engine.CORE
                         }
 
                         if (isok)
-                        {
-                            proxyip = proxy;
                             break;
-                        }
                     }
 
-                    if (proxyip != null)
-                    {
-                        var val = new ProxyManagerModel();
-                        val.proxyip = proxyip;
-                        database.AddOrUpdate(key, val, (k, v) => val);
-                    }
+                    var val = new ProxyManagerModel();
+                    val.proxyip = proxyip;
+                    database.AddOrUpdate(key, val, (k, v) => val);
                 }
                 catch { }
 
