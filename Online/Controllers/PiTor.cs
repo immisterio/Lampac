@@ -473,7 +473,11 @@ namespace Lampac.Controllers.LITE
                 string tskey = $"pidtor:ts2:{id}:{HttpContext.Connection.RemoteIpAddress}";
                 if (!memoryCache.TryGetValue(tskey, out PidTorAuthTS ts))
                 {
-                    var tors = init.auth_torrs.Where(i => i.enable).Where(i => i.country == null || i.country == country).ToList();
+                    var tors = init.auth_torrs.Where(i => i.enable).ToList();
+
+                    if (country != null)
+                        tors = tors.Where(i => i.country == null || i.country.Contains(country)).Where(i => i.no_country == null || !i.no_country.Contains(country)).ToList();
+
                     ts = tors[Random.Shared.Next(0, tors.Count)];
                     memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                 }

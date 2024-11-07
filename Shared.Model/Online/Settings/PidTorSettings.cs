@@ -42,5 +42,7 @@
         public string? passwd { get; set; }
 
         public string? country { get; set; }
+
+        public string? no_country { get; set; }
     }
 }
