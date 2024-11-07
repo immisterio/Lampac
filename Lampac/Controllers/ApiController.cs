@@ -276,14 +276,14 @@ namespace Lampac.Controllers
 </head>
 <body style='margin: 0px;'>
     <div id='log'></div>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.25/signalr.min.js'></script>
     <script>
         const hubConnection = new signalR.HubConnectionBuilder()
             .withUrl('/ws')
             .build();
  
 		function send(message)
-		{"+
+		{" +
         (string.IsNullOrEmpty(pattern) ? "" : "if (message.indexOf('"+pattern+ "') === -1) return;")
         +@"
 
