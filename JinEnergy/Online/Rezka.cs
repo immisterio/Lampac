@@ -40,7 +40,7 @@ namespace JinEnergy.Online
                 !string.IsNullOrEmpty(init.cookie),
                 ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
                 (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
-                streamfile => HostStreamProxy(init, streamfile)
+                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
                 //streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
             );
         }
