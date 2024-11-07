@@ -124,9 +124,15 @@ namespace Shared.Engine.Online
 
             if (Regex.IsMatch(content, "file: ?'\\["))
             {
-                var root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                if (root == null || root.Count == 0)
-                    return null;
+                List<Lampac.Models.LITE.Ashdi.Voice>? root = null;
+
+                try
+                {
+                    root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Ashdi.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    if (root == null || root.Count == 0)
+                        return null;
+                }
+                catch { return null; }
 
                 result.serial = root;
             }

@@ -242,7 +242,7 @@ namespace Lampac.Engine.Middlewares
                 return islock;
             }
 
-            string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}";
+            string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}";
 
             if (memoryCache.TryGetValue(memKeyLocIP, out HashSet<string> urls))
             {

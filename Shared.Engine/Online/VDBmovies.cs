@@ -108,22 +108,26 @@ namespace Shared.Engine.Online
 
             string quality = json.Contains("1080p") ? "1080p" : json.Contains("720p") ? "720p" : json.Contains("480p") ? "480p" : "360p";
 
-            if (json.Contains("\"folder\""))
+            try
             {
-                var serial = JsonSerializer.Deserialize<List<Lampac.Models.LITE.CDNmovies.Voice>>(json);
-                if (serial == null || serial.Count == 0)
-                    return null;
+                if (json.Contains("\"folder\""))
+                {
+                    var serial = JsonSerializer.Deserialize<List<Lampac.Models.LITE.CDNmovies.Voice>>(json);
+                    if (serial == null || serial.Count == 0)
+                        return null;
 
-                return new EmbedModel() { serial = serial, quality = quality };
-            }
-            else
-            {
-                var movies = JsonSerializer.Deserialize<List<Episode>>(json);
-                if (movies == null || movies.Count == 0)
-                    return null;
+                    return new EmbedModel() { serial = serial, quality = quality };
+                }
+                else
+                {
+                    var movies = JsonSerializer.Deserialize<List<Episode>>(json);
+                    if (movies == null || movies.Count == 0)
+                        return null;
 
-                return new EmbedModel() { movies = movies, quality = quality };
+                    return new EmbedModel() { movies = movies, quality = quality };
+                }
             }
+            catch { return null; }
         }
         #endregion
 
