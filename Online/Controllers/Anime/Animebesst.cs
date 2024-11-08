@@ -125,7 +125,7 @@ namespace Lampac.Controllers.LITE
 
                     string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&account_email={HttpUtility.UrlEncode(account_email)}";
 
-                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, voice_name: voice_name);
+                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, voice_name: Regex.Unescape(voice_name));
                 }
 
                 return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
