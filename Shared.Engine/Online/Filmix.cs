@@ -2,7 +2,6 @@
 using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -319,7 +318,7 @@ namespace Shared.Engine.Online
                 if (s == null)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(!string.IsNullOrEmpty(root?.quality) ? $"{root.quality}p" : null);
+                    var tpl = new SeasonTpl(!string.IsNullOrEmpty(root?.quality) ? $"{root.quality.Replace("+", "")}p" : null);
 
                     foreach (var season in player_links.playlist)
                     {
