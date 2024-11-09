@@ -108,7 +108,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&title={enc_title}&original_title={enc_original_title}", $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}", $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
@@ -137,7 +137,7 @@ namespace Shared.Engine.Online
                     //catch { }
                     #endregion
 
-                    mtpl.Append(name, streams[0].link, "call", $"{streams[0].link}&play=true", subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -217,13 +217,13 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&title={enc_title}&original_title={enc_original_title}", $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}", $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)
                                 continue;
 
-                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, "call", streamlink: $"{streams[0].link}&play=true", streamquality: new StreamQualityTpl(streams));
+                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
                     }
 

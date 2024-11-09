@@ -62,7 +62,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videodb/manifest.m3u8")]
-        async public Task<ActionResult> Manifest(string link, string title, string original_title, bool play = false)
+        async public Task<ActionResult> Manifest(string link)
         {
             var init = AppInit.conf.VideoDB;
 
@@ -76,11 +76,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(location) || link == location)
                 return OnError();
 
-            string m3u8 = HostStreamProxy(init, location, proxy: proxy, plugin: "videodb");
-            if (play)
-                return Redirect(m3u8);
-
-            return Content("{\"method\":\"play\",\"url\":\"" + m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Redirect(HostStreamProxy(init, location, proxy: proxy, plugin: "videodb"));
         }
 
 
