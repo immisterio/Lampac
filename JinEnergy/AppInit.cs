@@ -75,6 +75,12 @@ namespace JinEnergy
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
 
+                            if (conf.Kodik.token != null)
+                                conf.Kodik.token = conf.Kodik.token.Contains(":") ? conf.Kodik.Decrypt(conf.Kodik.token)! : conf.Kodik.token;
+
+                            if (conf.VCDN.token != null)
+                                conf.VCDN.token = conf.VCDN.token.Contains(":") ? conf.VCDN.Decrypt(conf.VCDN.token)! : conf.VCDN.token;
+
                             if (IsDefaultConf && geo == "RU")
                             {
                                 conf.Rezka.enable = false;

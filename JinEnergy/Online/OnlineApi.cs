@@ -19,7 +19,7 @@ namespace JinEnergy.Online
             if (kpid != null && kpid.StartsWith("KP_"))
             {
                 kpid = kpid.Replace("KP_", "");
-                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&kinopoisk_id=" + kpid, timeoutSeconds: 5);
+                string? json = await JsHttpClient.Get($"{AppInit.VCDN.corsHost()}/api/short?api_token={AppInit.VCDN.token}&kinopoisk_id=" + kpid, timeoutSeconds: 5);
                 return JsonSerializer.Serialize(new { imdb_id = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value, kinopoisk_id = kpid });
             }
 
@@ -46,7 +46,7 @@ namespace JinEnergy.Online
 
             async Task<string?> getVSDN(string imdb)
             {
-                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 4);
+                string? json = await JsHttpClient.Get($"{AppInit.VCDN.corsHost()}/api/short?api_token={AppInit.VCDN.token}&imdb_id={imdb}", timeoutSeconds: 4);
                 if (json == null)
                     return null;
 

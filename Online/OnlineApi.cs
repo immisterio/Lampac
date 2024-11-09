@@ -73,9 +73,18 @@ namespace Lampac.Controllers
         static Dictionary<string, string> externalids = null;
 
         [Route("externalids")]
-        async public Task<ActionResult> Externalids(long id, string imdb_id, long kinopoisk_id, int serial)
+        async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
-            if (id == 0)
+            if (id == null || id == "0")
+                return Content("{}");
+
+            if (id.StartsWith("KP_"))
+            {
+                string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                return Json(new { imdb_id = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value, kinopoisk_id = id.Replace("KP_", "") });
+            }
+
+            if (!long.TryParse(id, out _))
                 return Content("{}");
 
             if (externalids == null && IO.File.Exists("cache/externalids/master.json"))
@@ -109,7 +118,7 @@ namespace Lampac.Controllers
             async Task<string> getVSDN(string imdb)
             {
                 var proxyManager = new ProxyManager("vcdn", AppInit.conf.VCDN);
-                string json = await HttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
+                string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
