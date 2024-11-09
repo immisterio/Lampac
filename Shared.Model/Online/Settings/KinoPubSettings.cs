@@ -6,7 +6,8 @@ namespace Lampac.Models.LITE
     {
         public KinoPubSettings(string? host = null)
         {
-            this.host = host;
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
         public string? token { get; set; }

@@ -6,14 +6,15 @@ namespace Lampac.Models.LITE
     {
         public KodikSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool enable = true, bool hls = true, bool streamproxy = false)
         {
-            this.apihost = apihost;
-            this.linkhost = linkhost;
-            this.token = token;
             this.secret_token = secret_token;
             this.localip = localip;
             this.enable = enable;
             this.hls = hls;
             this.streamproxy = streamproxy;
+
+            this.linkhost = linkhost.StartsWith("http") ? linkhost : Decrypt(linkhost)!;
+            this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
+            this.token = token.Contains(":") ? Decrypt(token)! : token;
         }
 
 

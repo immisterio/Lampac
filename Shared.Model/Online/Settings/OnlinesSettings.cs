@@ -6,13 +6,19 @@ namespace Lampac.Models.LITE
     {
         public OnlinesSettings(string host, string? apihost = null, bool useproxy = false, string? token = null, bool enable = true, bool streamproxy = false, bool rip = false)
         {
-            this.host = host;
-            this.apihost = apihost;
             this.enable = enable;
-            this.token = token;
             this.useproxy = useproxy;
             this.streamproxy = streamproxy;
             this.rip = rip;
+
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
+
+            if (apihost != null)
+                this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
+
+            if (token != null)
+                this.token = token.Contains(":") ? Decrypt(token) : token;
         }
 
 

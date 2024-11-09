@@ -7,9 +7,11 @@ namespace Lampac.Models.LITE
     {
         public VokinoSettings(string host, bool streamproxy, bool rip = false)
         {
-            this.host = host;
             this.streamproxy = streamproxy;
             this.rip = rip;
+
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
 

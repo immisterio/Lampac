@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Online;
+using System.Text.RegularExpressions;
 
 namespace Shared.Model.Base
 {
@@ -74,5 +75,26 @@ namespace Shared.Model.Base
             return $"{crhost}/{uri}";
         }
         #endregion
+
+
+        public string? Decrypt(string? data)
+        {
+            try
+            {
+                if (data == null)
+                    return data;
+
+                char[] buffer = data.ToCharArray();
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    char letter = buffer[i];
+                    letter = (char)(letter - 3);
+                    buffer[i] = letter;
+                }
+
+                return new string(buffer);
+            }
+            catch { return null; }
+        }
     }
 }

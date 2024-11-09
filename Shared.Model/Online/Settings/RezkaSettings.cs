@@ -7,8 +7,10 @@ namespace Lampac.Models.LITE
         public RezkaSettings(string host, bool streamproxy = false)
         {
             enable = true;
-            this.host = host;
             this.streamproxy = streamproxy;
+
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
 
