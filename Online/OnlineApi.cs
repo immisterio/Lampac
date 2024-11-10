@@ -70,23 +70,15 @@ namespace Lampac.Controllers
 
 
         #region externalids
+        /// <summary>
+        /// imdb_id, kinopoisk_id
+        /// </summary>
         static Dictionary<string, string> externalids = null;
 
         [Route("externalids")]
         async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
-            if (id == null || id == "0")
-                return Content("{}");
-
-            if (id.StartsWith("KP_"))
-            {
-                string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
-                return Json(new { imdb_id = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value, kinopoisk_id = id.Replace("KP_", "") });
-            }
-
-            if (!long.TryParse(id, out _))
-                return Content("{}");
-
+            #region load externalids
             if (externalids == null && IO.File.Exists("cache/externalids/master.json"))
             {
                 try
@@ -98,6 +90,39 @@ namespace Lampac.Controllers
 
             if (externalids == null)
                 externalids = new Dictionary<string, string>();
+            #endregion
+
+            #region KP_
+            if (id != null && id.StartsWith("KP_"))
+            {
+                string _kp = id.Replace("KP_", "");
+                foreach (var eid in externalids)
+                {
+                    if (eid.Value == _kp && !string.IsNullOrEmpty(eid.Key))
+                    {
+                        imdb_id = eid.Key;
+                        break;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(imdb_id))
+                {
+                    return Json(new { imdb_id, kinopoisk_id = _kp });
+                }
+                else
+                {
+                    string mkey = $"externalids:KP_:{_kp}";
+                    if (!memoryCache.TryGetValue(mkey, out string _imdbid))
+                    {
+                        string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                        _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
+                        memoryCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
+                    }
+
+                    return Json(new { imdb_id = _imdbid, kinopoisk_id = id.Replace("KP_", "") });
+                }
+            }
+            #endregion
 
             #region getAlloha / getVSDN / getTabus
             async Task<string> getAlloha(string imdb)
@@ -147,25 +172,40 @@ namespace Lampac.Controllers
             #region get imdb_id
             if (string.IsNullOrWhiteSpace(imdb_id))
             {
-                string path = $"cache/externalids/{id}";
-                if (IO.File.Exists(path))
+                if (kinopoisk_id > 0)
                 {
-                    imdb_id = IO.File.ReadAllText(path);
-                }
-                else
-                {
-                    string mkey = $"externalids:locktmdb:{serial}:{id}";
-                    if (!memoryCache.TryGetValue(mkey, out _))
+                    foreach (var eid in externalids)
                     {
-                        memoryCache.Set(mkey, 0 , DateTime.Now.AddHours(1));
-
-                        string cat = serial == 1 ? "tv" : "movie";
-                        string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 6);
-                        if (!string.IsNullOrWhiteSpace(json))
+                        if (eid.Value == kinopoisk_id.ToString() && !string.IsNullOrEmpty(eid.Key))
                         {
-                            imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                            if (!string.IsNullOrWhiteSpace(imdb_id))
-                                IO.File.WriteAllText(path, imdb_id);
+                            imdb_id = eid.Key;
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
+                {
+                    string path = $"cache/externalids/{id}_{serial}";
+                    if (IO.File.Exists(path))
+                    {
+                        imdb_id = IO.File.ReadAllText(path);
+                    }
+                    else
+                    {
+                        string mkey = $"externalids:locktmdb:{serial}:{id}";
+                        if (!memoryCache.TryGetValue(mkey, out _))
+                        {
+                            memoryCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+
+                            string cat = serial == 1 ? "tv" : "movie";
+                            string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 6);
+                            if (!string.IsNullOrWhiteSpace(json))
+                            {
+                                imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                                if (!string.IsNullOrWhiteSpace(imdb_id))
+                                    IO.File.WriteAllText(path, imdb_id);
+                            }
                         }
                     }
                 }
@@ -179,7 +219,7 @@ namespace Lampac.Controllers
             {
                 externalids.TryGetValue(imdb_id, out kpid);
 
-                if (string.IsNullOrEmpty(kpid))
+                if (string.IsNullOrEmpty(kpid) || kpid == "0")
                 { 
                     string path = $"cache/externalids/{imdb_id}";
                     if (IO.File.Exists(path))
@@ -215,9 +255,13 @@ namespace Lampac.Controllers
                                     }
                             }
 
-                            if (!string.IsNullOrEmpty(kpid))
+                            if (!string.IsNullOrEmpty(kpid) && kpid != "0")
                             {
-                                externalids.TryAdd(imdb_id, kpid);
+                                if (externalids.ContainsKey(imdb_id))
+                                    externalids[imdb_id] = kpid;
+                                else
+                                    externalids.TryAdd(imdb_id, kpid);
+
                                 IO.File.WriteAllText(path, kpid);
                             }
                         }
