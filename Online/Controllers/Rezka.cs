@@ -114,6 +114,7 @@ namespace Lampac.Controllers.LITE
         #region Movie
         [HttpGet]
         [Route("lite/rezka/movie")]
+        [Route("lite/rezka/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = AppInit.conf.Rezka;

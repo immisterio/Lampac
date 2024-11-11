@@ -250,7 +250,11 @@ namespace Shared.Engine.Online
                             if (match.Groups[2].Value.Contains("data-director=\"1\""))
                                 link += "&director=1";
 
-                            mtpl.Append(voice, link, "call", $"{link}&play=true");
+                            string? stream = null;
+                            if (showstream)
+                                stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+
+                            mtpl.Append(voice, link, "call", stream);
                         }
 
                         match = match.NextMatch();
@@ -328,7 +332,11 @@ namespace Shared.Engine.Online
                             eshash.Add(m.Groups[4].Value);
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups[3].Value}";
 
-                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: (showstream ? $"{link}&play=true" : null));
+                            string? stream = null;
+                            if (showstream)
+                                stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+
+                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: stream);
                         }
                         #endregion
                     }
@@ -459,7 +467,9 @@ namespace Shared.Engine.Online
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups[1].Value}";
-                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? $"{link}&play=true" : null));
+                        string stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+
+                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? stream : null));
                     }
 
                     m = m.NextMatch();

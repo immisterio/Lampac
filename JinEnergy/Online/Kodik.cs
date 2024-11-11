@@ -21,6 +21,7 @@ namespace JinEnergy.Online
                 init.apihost!,
                 init.token,
                 init.hls,
+                "video",
                 (uri, head) => JsHttpClient.Get(init.cors(uri), httpHeaders(args, init, head)),
                 (uri, data) => JsHttpClient.Post(init.cors(uri), data, httpHeaders(args, init)),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
