@@ -205,7 +205,7 @@ namespace Lampac.Controllers.LITE
                 return authCookie;
 
             if (!string.IsNullOrEmpty(init.cookie))
-                return init.cookie;
+                return $"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+;)")}";
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
                 return null;
@@ -251,13 +251,14 @@ namespace Lampac.Controllers.LITE
 
                                 foreach (string line in cook)
                                 {
-                                    if (string.IsNullOrEmpty(line) || !line.Contains("dle_"))
+                                    if (string.IsNullOrEmpty(line))
                                         continue;
 
                                     if (line.Contains("=deleted;"))
                                         continue;
 
-                                    cookie += $"{line.Split(";")[0]}; ";
+                                    if (line.Contains("dle_user_taken") || line.Contains("dle_user_id") || line.Contains("dle_password"))
+                                        cookie += $"{line.Split(";")[0]}; ";
                                 }
 
                                 if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))

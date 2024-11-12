@@ -3,6 +3,7 @@ using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
+using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
 {
@@ -16,19 +17,25 @@ namespace JinEnergy.Online
             string rhsHost = init.corsHost();
             var headers = httpHeaders(args, init);
 
+            string fixCookie(string cook)
+            {
+                return $"dle_user_taken=1; {Regex.Match(cook, "(dle_user_id=[^;]+;)")} {Regex.Match(cook, "(dle_password=[^;]+;)")}";
+            }
+
+            bool ispremium = false;
             if (init.premium && !string.IsNullOrEmpty(init.cookie))
             {
+                ispremium = true;
                 rhsHost = "kwwsv=22odps1df";
                 headers = httpHeaders(args, init, HeadersModel.Init(
                    ("X-Lampac-App", "1"),
                    ("X-Lampac-Version", "bwajs"),
                    ("X-Lampac-Device-Id", AppInit.KitUid),
-                   ("X-Lampac-Cookie", init.cookie)
+                   ("X-Lampac-Cookie", fixCookie(init.cookie))
                 ));
             }
-
-            if (!string.IsNullOrEmpty(init.cookie))
-                headers.Add(new HeadersModel("cookie", init.cookie));
+            else if (!string.IsNullOrEmpty(init.cookie))
+                headers.Add(new HeadersModel("cookie", fixCookie(init.cookie)));
 
             //bool userapn = IsApnIncluded(init);
 
@@ -41,7 +48,7 @@ namespace JinEnergy.Online
                 !string.IsNullOrEmpty(init.cookie),
                 ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
                 (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
-                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
+                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
                 //streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
             );
         }
@@ -50,6 +57,9 @@ namespace JinEnergy.Online
         [JSInvokable("lite/rezka")]
         async public static ValueTask<string> Index(string args)
         {
+            if (AppInit.IsDefaultConf && AppInit.Country == "RU")
+                return "{\"accsdb\":true,\"msg\":\"Авторизуйтесь на https://bwa.to/bind/rezka\"}";
+
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
 

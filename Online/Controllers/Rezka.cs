@@ -10,6 +10,7 @@ using Shared.Model.Online;
 using System.Collections.Generic;
 using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -151,14 +152,10 @@ namespace Lampac.Controllers.LITE
                 return authCookie;
 
             if (!string.IsNullOrEmpty(init.cookie))
-                return init.cookie;
+                return $"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+;)")}";
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
-            {
                 return null;
-                DateTimeOffset _ym = DateTimeOffset.UtcNow;
-                return $"PHPSESSID={CrypTo.unic(26).ToLower()}; dle_user_taken=1; dle_user_token={CrypTo.md5(DateTime.Now.ToString())}; _ym_uid={_ym.ToUnixTimeMilliseconds() + CrypTo.unic(5, true)}; _ym_d={_ym.ToUnixTimeSeconds()}; _ym_isad=2; _ym_visorc=b";
-            }
 
             if (memoryCache.TryGetValue("rezka:login", out _))
                 return null;
@@ -195,13 +192,14 @@ namespace Lampac.Controllers.LITE
 
                                 foreach (string line in cook)
                                 {
-                                    if (string.IsNullOrEmpty(line) || !line.Contains("dle_"))
+                                    if (string.IsNullOrEmpty(line))
                                         continue;
 
                                     if (line.Contains("=deleted;"))
                                         continue;
 
-                                    cookie += $"{line.Split(";")[0]}; ";
+                                    if (line.Contains("dle_user_taken") || line.Contains("dle_user_id") || line.Contains("dle_password"))
+                                        cookie += $"{line.Split(";")[0]}; ";
                                 }
 
                                 if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))

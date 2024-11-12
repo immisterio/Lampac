@@ -99,7 +99,7 @@ namespace Shared.Model
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) { geostreamproxy = new List<string>() { "ALL" } };
 
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("kwws=2255;;71dqqdfgq1ff2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("kwws=2255;;71dqqdfgq1ff2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", rip: true) { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("kwws=22dsl1yrnlqr1wy", streamproxy: true);
 
