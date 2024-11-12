@@ -62,7 +62,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            if (balancer is "filmix" or "ashdi" or "rhs")
+            if (balancer is "filmix" or "ashdi")
                 init.streamproxy = false;
 
             reset: var rch = new RchClient(HttpContext, host, init.rhub);

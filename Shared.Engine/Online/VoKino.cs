@@ -56,8 +56,8 @@ namespace Shared.Engine.Online
             if (on.alloha)
                 send("Alloha", 3);
 
-            if (on.zetflix)
-                send("Zetflix", 4);
+            if (on.vibix)
+                send("Vibix", 4);
 
             if (on.videocdn)
                 send("VideoCDN", 5);
@@ -65,11 +65,8 @@ namespace Shared.Engine.Online
             if (on.ashdi)
                 send("Ashdi", 6);
 
-            if (on.rhs)
-                send("RHS", 7);
-
-            if (on.collaps)
-                send("Collaps", 8);
+            if (on.hdvb)
+                send("HDVB", 7);
         }
 
         #region Embed
