@@ -121,6 +121,8 @@ namespace JinEnergy
 
         public static bool IsDefaultConf { get; private set; } = true;
 
+        public static bool IsWebConf { get; private set; } = true;
+
         public static string? Country { get; private set; }
 
         public static SisiConf sisi => conf.sisi;

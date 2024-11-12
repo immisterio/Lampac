@@ -60,6 +60,9 @@ namespace JinEnergy.Online
             if (AppInit.IsDefaultConf && AppInit.Country == "RU")
                 return "{\"accsdb\":true,\"msg\":\"Авторизуйтесь на https://bwa.to/bind/rezka\"}";
 
+            if (AppInit.IsDefaultConf && AppInit.IsWebConf)
+                return "{\"accsdb\":true,\"msg\":\"Работает только с HDRezka Premium\"}";
+
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
 
