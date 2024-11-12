@@ -402,7 +402,7 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
                 send("FanCDN", conf.FanCDN);
 
-            send("VideoCDN", conf.VCDN, "vcdn");
+            send("Lumex", conf.Lumex, "lumex");
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
@@ -573,6 +573,7 @@ namespace Lampac.Controllers
                         case "kinobase":
                         case "zetflix":
                         case "vcdn":
+                        case "lumex":
                         case "eneyida":
                         case "kinoukr":
                         case "hdvb":

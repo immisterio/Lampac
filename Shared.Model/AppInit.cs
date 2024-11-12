@@ -101,6 +101,8 @@ namespace Shared.Model
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("kwws=2255;;71dqqdfgq1ff2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", rip: true) { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
+        public OnlinesSettings Lumex { get; set; } = new OnlinesSettings("kwwsv=22s1oxph{1sz2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", enable: false) { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
+
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("kwws=22dsl1yrnlqr1wy", streamproxy: true);
 
         public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("kwwsv=22liudph1ylghr", "kwwsv=22ylghriudph1vsdfh", enable: false);
