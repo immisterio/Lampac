@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
                 return authCookie;
 
             if (!string.IsNullOrEmpty(init.cookie))
-                return $"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+;)")}";
+                return $"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+);")}".Trim();
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
                 return null;
@@ -198,12 +198,12 @@ namespace Lampac.Controllers.LITE
                                     if (line.Contains("=deleted;"))
                                         continue;
 
-                                    if (line.Contains("dle_user_taken") || line.Contains("dle_user_id") || line.Contains("dle_password"))
+                                    if (line.Contains("dle_user_id") || line.Contains("dle_password"))
                                         cookie += $"{line.Split(";")[0]}; ";
                                 }
 
                                 if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
-                                    authCookie = cookie.Trim();
+                                    authCookie = $"dle_user_taken=1; {Regex.Replace(cookie.Trim(), ";$", "")}";
                             }
                         }
                     }
