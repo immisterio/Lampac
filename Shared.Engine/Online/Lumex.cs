@@ -4,6 +4,7 @@ using System.Text.Json;
 using Shared.Model.Online.Lumex;
 using Shared.Model.Templates;
 using Lampac.Models.LITE;
+using System.IO;
 
 namespace Shared.Engine.Online
 {
@@ -103,15 +104,12 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
         {
-            if (result == null)
+            if (result?.media == null || result.media.Count == 0)
                 return string.Empty;
 
             if (result.content_type is "movie" or "anime")
             {
                 #region Фильм
-                if (result.media == null || result.media.Count == 0)
-                    return string.Empty;
-
                 var mtpl = new MovieTpl(title, original_title, result.media.Count);
 
                 foreach (var media in result.media)
@@ -121,12 +119,14 @@ namespace Shared.Engine.Online
                     {
                         foreach (string srt in media.subtitles)
                         {
-                            string name = Regex.Match(srt, "/([^\\.]+)\\.srt").Groups[1].Value;
+                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
                             subtitles.Append(name, onstream($"http:{srt}"));
                         }
                     }
 
-                    mtpl.Append(media.translation_name, host+$"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}", subtitles: subtitles);
+                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}";
+
+                    mtpl.Append(media.translation_name, link, subtitles: subtitles);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -134,96 +134,97 @@ namespace Shared.Engine.Online
             }
             else
             {
-                return string.Empty;
-
                 #region Сериал
-                //string? enc_title = HttpUtility.UrlEncode(title);
-                //string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string? enc_title = HttpUtility.UrlEncode(title);
+                string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-                //try
-                //{
-                //    if (result.serial == null || result.serial.Count == 0)
-                //        return string.Empty;
+                try
+                {
+                    if (s == -1)
+                    {
+                        var tpl = new SeasonTpl();
 
-                //    if (s == -1)
-                //    {
-                //        var seasons = new HashSet<int>();
+                        foreach (var media in result.media.OrderBy(s => s.season_id))
+                        {
+                            string link = host + $"lite/lumex?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
+                            tpl.Append($"{media.season_id} сезон", link, media.season_id);
+                        }
 
-                //        foreach (var voice in result.serial)
-                //        {
-                //            foreach (var season in voice.Value)
-                //                seasons.Add(season.id);
-                //        }
+                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    }
+                    else
+                    {
+                        #region Перевод
+                        var vtpl = new VoiceTpl();
+                        var tmpVoice = new HashSet<int>();
 
-                //        var tpl = new SeasonTpl(result.quality);
+                        foreach (var media in result.media)
+                        {
+                            if (media.season_id != s)
+                                continue;
 
-                //        foreach (int id in seasons.OrderBy(s => s))
-                //        {
-                //            string link = host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={id}";
-                //            tpl.Append($"{id} сезон", link, id);
-                //        }
+                            foreach (var episode in media.episodes)
+                            {
+                                foreach (var voice in episode.media)
+                                {
+                                    if (tmpVoice.Contains(voice.translation_id))
+                                        continue;
 
-                //        return rjson ? tpl.ToJson() : tpl.ToHtml();
-                //    }
-                //    else
-                //    {
-                //        #region Перевод
-                //        var vtpl = new VoiceTpl();
+                                    tmpVoice.Add(voice.translation_id);
 
-                //        foreach (var voice in result.voiceSeasons)
-                //        {
-                //            if (!voice.Value.Contains(s))
-                //                continue;
+                                    if (string.IsNullOrEmpty(t))
+                                        t = voice.translation_id.ToString();
 
-                //            if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
-                //            {
-                //                if (string.IsNullOrEmpty(t))
-                //                    t = voice.Key;
+                                    vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), host + $"lite/lumex?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.translation_id}");
+                                }
+                            }
+                        }
+                        #endregion
 
-                //                vtpl.Append(name, t == voice.Key, host + $"lite/vcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.Key}");
-                //            }
-                //        }
-                //        #endregion
+                        if (string.IsNullOrEmpty(t))
+                            t = "0";
 
-                //        if (string.IsNullOrEmpty(t))
-                //            t = "0";
+                        var etpl = new EpisodeTpl();
 
-                //        var season = result.serial[t].First(i => i.id == s);
-                //        if (season.folder == null)
-                //            return string.Empty;
+                        foreach (var media in result.media)
+                        {
+                            if (media.season_id != s)
+                                continue;
 
-                //        var etpl = new EpisodeTpl();
+                            foreach (var episode in media.episodes)
+                            {
+                                foreach (var voice in episode.media)
+                                {
+                                    if (voice.translation_id.ToString() != t)
+                                        continue;
 
-                //        foreach (var episode in season.folder)
-                //        {
-                //            var streams = new List<(string link, string quality)>() { Capacity = 4 };
-                //            foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
-                //            {
-                //                string link = m.Groups[2].Value;
-                //                if (string.IsNullOrEmpty(link))
-                //                    continue;
+                                    var subtitles = new SubtitleTpl();
+                                    if (media.subtitles != null && media.subtitles.Count > 0)
+                                    {
+                                        foreach (string srt in media.subtitles)
+                                        {
+                                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
+                                            subtitles.Append(name, onstream($"http:{srt}"));
+                                        }
+                                    }
 
-                //                streams.Insert(0, (onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
-                //            }
+                                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}";
 
-                //            if (streams.Count == 0)
-                //                continue;
+                                    etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
+                                }
+                            }
+                        }
 
-                //            string e = episode.id.Split("_")[1];
+                        if (rjson)
+                            return etpl.ToJson(vtpl);
 
-                //            etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
-                //        }
-
-                //        if (rjson)
-                //            return etpl.ToJson(vtpl);
-
-                //        return vtpl.ToHtml() + etpl.ToHtml();
-                //    }
-                //}
-                //catch
-                //{
-                //    return string.Empty;
-                //}
+                        return vtpl.ToHtml() + etpl.ToHtml();
+                    }
+                }
+                catch
+                {
+                    return string.Empty;
+                }
                 #endregion
             }
         }
