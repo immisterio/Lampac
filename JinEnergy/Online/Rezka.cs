@@ -19,7 +19,7 @@ namespace JinEnergy.Online
 
             string fixCookie(string cook)
             {
-                return $"dle_user_taken=1; {Regex.Match(cook, "(dle_user_id=[^;]+;)")} {Regex.Match(cook, "(dle_password=[^;]+);")}".Trim();
+                return $"dle_user_taken=1; {Regex.Match(cook, "(dle_user_id=[^;]+;)")} {Regex.Match(cook, "(dle_password=[^;]+)")}".Trim();
             }
 
             bool ispremium = false;
