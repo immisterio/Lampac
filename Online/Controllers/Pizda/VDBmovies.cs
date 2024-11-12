@@ -71,58 +71,65 @@ namespace Lampac.Controllers.LITE
 
         async ValueTask<string> black_magic(string uri)
         {
-            using (var browser = await PuppeteerTo.Browser())
+            try
             {
-                var page = await browser.Page(new Dictionary<string, string>()
+                using (var browser = await PuppeteerTo.Browser())
                 {
-                    ["accept"] = "*/*",
-                    ["cache-control"] = "no-cache",
-                    ["dnt"] = "1",
-                    ["origin"] = "https://spider-man-lordfilm.cam",
-                    ["pragma"] = "no-cache",
-                    ["priority"] = "u=1, i",
-                    ["referer"] = "https://spider-man-lordfilm.cam/",
-                    ["sec-ch-ua"] = "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\"",
-                    ["sec-ch-ua-mobile"] = "?0",
-                    ["sec-ch-ua-platform"] = "\"Windows\"",
-                    ["sec-fetch-dest"] = "empty",
-                    ["sec-fetch-mode"] = "cors",
-                    ["sec-fetch-site"] = "cross-site"
-                });
+                    if (browser == null)
+                        return null;
 
-                if (page == null)
-                    return null;
+                    var page = await browser.Page(new Dictionary<string, string>()
+                    {
+                        ["accept"] = "*/*",
+                        ["cache-control"] = "no-cache",
+                        ["dnt"] = "1",
+                        ["origin"] = "https://spider-man-lordfilm.cam",
+                        ["pragma"] = "no-cache",
+                        ["priority"] = "u=1, i",
+                        ["referer"] = "https://spider-man-lordfilm.cam/",
+                        ["sec-ch-ua"] = "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\"",
+                        ["sec-ch-ua-mobile"] = "?0",
+                        ["sec-ch-ua-platform"] = "\"Windows\"",
+                        ["sec-fetch-dest"] = "empty",
+                        ["sec-fetch-mode"] = "cors",
+                        ["sec-fetch-site"] = "cross-site"
+                    });
 
-                var response = await page.GoToAsync(uri);
-                string html = await response.TextAsync();
-                if (html.Contains("<title>Just a moment...</title>") || html.Contains("<title>Attention Required! | Cloudflare</title>"))
-                    return null;
+                    if (page == null)
+                        return null;
 
-                if (!html.StartsWith("new Playerjs"))
-                {
-                    await Task.Delay(400);
-                    response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
+                    var response = await page.GoToAsync(uri);
+                    string html = await response.TextAsync();
+                    if (html.Contains("<title>Just a moment...</title>") || html.Contains("<title>Attention Required! | Cloudflare</title>"))
+                        return null;
 
                     if (!html.StartsWith("new Playerjs"))
                     {
-                        await Task.Delay(200);
+                        await Task.Delay(400);
                         response = await page.GoToAsync($"view-source:{uri}");
                         html = await response.TextAsync();
 
                         if (!html.StartsWith("new Playerjs"))
                         {
+                            await Task.Delay(200);
                             response = await page.GoToAsync($"view-source:{uri}");
                             html = await response.TextAsync();
+
+                            if (!html.StartsWith("new Playerjs"))
+                            {
+                                response = await page.GoToAsync($"view-source:{uri}");
+                                html = await response.TextAsync();
+                            }
                         }
                     }
+
+                    if (!html.Contains("new Playerjs"))
+                        return null;
+
+                    return html;
                 }
-
-                if (!html.Contains("new Playerjs"))
-                    return null;
-
-                return html;
             }
+            catch { return null; }
         }
     }
 }

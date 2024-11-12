@@ -158,7 +158,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
-            send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
+            send("Rezka - " + (AppInit.Rezka.premium || (AppInit.IsWebConf) ? "2160p" : "720p"), "rezka", AppInit.Rezka);
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 

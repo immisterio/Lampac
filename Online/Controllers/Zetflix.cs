@@ -57,32 +57,39 @@ namespace Lampac.Controllers.LITE
                     return html;
                 }
 
-                using (var browser = await PuppeteerTo.Browser())
+                try
                 {
-                    var page = await browser.Page(cookies, new Dictionary<string, string>()
+                    using (var browser = await PuppeteerTo.Browser())
                     {
-                        ["Referer"] = "https://www.google.com/"
-                    });
+                        if (browser == null)
+                            return null;
 
-                    if (page == null)
-                        return null;
+                        var page = await browser.Page(cookies, new Dictionary<string, string>()
+                        {
+                            ["Referer"] = "https://www.google.com/"
+                        });
 
-                    await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+                        if (page == null)
+                            return null;
 
-                    var response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
+                        await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
 
-                    if (html.StartsWith("<script>(function"))
-                        return null;
+                        var response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
 
-                    var cook = await page.GetCookiesAsync();
-                    PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+                        if (html.StartsWith("<script>(function"))
+                            return null;
 
-                    if (!html.Contains("new Playerjs"))
-                        return null;
+                        var cook = await page.GetCookiesAsync();
+                        PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
 
-                    return html;
+                        if (!html.Contains("new Playerjs"))
+                            return null;
+
+                        return html;
+                    }
                 }
+                catch { return null; }
             });
 
             if (html == null)
@@ -117,42 +124,49 @@ namespace Lampac.Controllers.LITE
             if (cookies != null && DateTime.Now > excookies)
                 cookies = null;
 
-            using (var browser = await PuppeteerTo.Browser())
+            try
             {
-                var page = await browser.Page(cookies, new Dictionary<string, string>()
+                using (var browser = await PuppeteerTo.Browser())
                 {
-                    ["Referer"] = "https://www.google.com/"
-                });
+                    if (browser == null)
+                        return null;
 
-                if (page == null)
-                    return null;
+                    var page = await browser.Page(cookies, new Dictionary<string, string>()
+                    {
+                        ["Referer"] = "https://www.google.com/"
+                    });
 
-                var response = await page.GoToAsync($"view-source:{uri}");
-                string html = await response.TextAsync();
+                    if (page == null)
+                        return null;
 
-                if (html.StartsWith("<script>(function(){"))
-                {
-                    cookies = null;
-                    await page.DeleteCookieAsync();
-                    await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+                    var response = await page.GoToAsync($"view-source:{uri}");
+                    string html = await response.TextAsync();
 
-                    response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
+                    if (html.StartsWith("<script>(function(){"))
+                    {
+                        cookies = null;
+                        await page.DeleteCookieAsync();
+                        await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+
+                        response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
+                    }
+
+                    if (html.StartsWith("<script>(function"))
+                        return null;
+
+                    if (cookies == null)
+                        excookies = DateTime.Now.AddMinutes(10);
+
+                    cookies = await page.GetCookiesAsync();
+
+                    if (!html.Contains("new Playerjs"))
+                        return null;
+
+                    return html;
                 }
-
-                if (html.StartsWith("<script>(function"))
-                    return null;
-
-                if (cookies == null)
-                    excookies = DateTime.Now.AddMinutes(10);
-
-                cookies = await page.GetCookiesAsync();
-
-                if (!html.Contains("new Playerjs"))
-                    return null;
-
-                return html;
             }
+            catch { return null; }
         }
     }
 }
