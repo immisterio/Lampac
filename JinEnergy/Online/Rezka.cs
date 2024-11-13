@@ -58,10 +58,10 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             if (AppInit.IsDefaultConf && AppInit.Country == "RU")
-                return "{\"accsdb\":true,\"msg\":\"Авторизуйтесь на https://bwa.to/bind/rezka\"}";
+                return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
 
             if (AppInit.IsDefaultConf && AppInit.IsWebConf)
-                return "{\"accsdb\":true,\"msg\":\"Работает только с HDRezka Premium\"}";
+                return ShowError("Работает только с HDRezka Premium");
 
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
@@ -72,7 +72,7 @@ namespace JinEnergy.Online
             string? href = parse_arg("href", args);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(arg.title) || arg.year == 0))
-                return EmptyError("arg");
+                return ShowError("Отсутствуют параметры href/title");
 
             string memkey = $"rezka:{arg.kinopoisk_id}:{arg.imdb_id}:{arg.title}:{arg.original_title}:{arg.year}:{arg.clarification}:{href}";
             refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id, arg.imdb_id, arg.title, arg.original_title, arg.clarification, arg.year, href));
@@ -83,6 +83,8 @@ namespace JinEnergy.Online
                 IMemoryCache.Remove(memkey);
                 if (IsRefresh(init, NotUseDefaultApn: true))
                     goto refresh;
+
+                return EmptyError("Не удалось получить html");
             }
 
             return html;
