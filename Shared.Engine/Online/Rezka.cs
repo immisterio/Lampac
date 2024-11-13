@@ -25,6 +25,7 @@ namespace Shared.Engine.Online
         void log(string msg)
         {
             requestlog += $"{msg}\n\n===========================================\n\n\n";
+            onlog?.Invoke($"rezka: {msg}\n");
         }
 
         public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
