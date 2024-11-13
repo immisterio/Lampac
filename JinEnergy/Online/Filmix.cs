@@ -6,6 +6,12 @@ namespace JinEnergy.Online
 {
     public class FilmixController : BaseController
     {
+        [JSInvokable("lite/filmixpro")]
+        public static string FilmixPro(string args)
+        {
+            return ShowError("Нужен Filmix PRO+");
+        }
+
         [JSInvokable("lite/filmix")]
         async public static ValueTask<string> Index(string args)
         {

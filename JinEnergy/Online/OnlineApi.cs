@@ -158,7 +158,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
-            send("Rezka - " + (AppInit.Rezka.premium || (AppInit.IsWebConf) ? "2160p" : "720p"), "rezka", AppInit.Rezka);
+            send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
@@ -188,7 +188,12 @@ namespace JinEnergy.Online
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             if (!AppInit.Filmix.pro)
+            {
                 send($"Filmix - {(string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+
+                if (AppInit.IsDefaultConf)
+                    send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
+            }
 
             if (serial == 0 && !isanime)
             {

@@ -49,7 +49,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init, false))
+                if (IsRefresh(init, NotUseDefaultApn: true))
                     goto refresh;
             }
 
