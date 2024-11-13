@@ -150,27 +150,25 @@ namespace JinEnergy.Online
                 send("AniMedia - 1080p", "animedia", AppInit.AniMedia);
             }
 
-            if (AppInit.Filmix.pro)
-                send("Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
-
+            send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
             send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
-            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
-            send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
+            //send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
+            //send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
 
-            if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
-                send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
+            //if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
+            //    send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
 
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
                 if (arg.kinopoisk_id > 0)
                     send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
 
-                send("Eneyida (Украинский) - 1080p", "eneyida", AppInit.Eneyida);
+                //send("Eneyida (Украинский) - 1080p", "eneyida", AppInit.Eneyida);
 
                 if (!isanime)
                     send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
@@ -187,13 +185,8 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
-            if (!AppInit.Filmix.pro)
-            {
-                send($"Filmix - {(string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
-
-                if (AppInit.IsDefaultConf)
-                    send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
-            }
+            if (!AppInit.Filmix.pro && AppInit.IsDefaultConf)
+                send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
 
             if (serial == 0 && !isanime)
             {
