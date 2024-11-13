@@ -13,6 +13,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Model.Online.Lumex;
 using Shared.Model.Online;
 using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -31,6 +32,8 @@ namespace Lampac.Controllers.LITE
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
+
+            string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
             var proxyManager = new ProxyManager("lumex", init);
             var proxy = proxyManager.Get();
@@ -63,6 +66,8 @@ namespace Lampac.Controllers.LITE
                         if (browser == null)
                             return null;
 
+                        log += "browser init\n";
+
                         var page = await browser.Page(new Dictionary<string, string>()
                         {
                             ["referer"] = "https://ikino.org/37521-odinokie-volki-2024.html"
@@ -71,6 +76,7 @@ namespace Lampac.Controllers.LITE
                         if (page == null)
                             return null;
 
+                        string content = null, csrf = null;
                         await page.SetRequestInterceptionAsync(true);
 
                         page.Request += async (sender, e) =>
@@ -80,7 +86,11 @@ namespace Lampac.Controllers.LITE
                                 if (e?.Request == null)
                                     return;
 
-                                if (e.Request.Method.Method != "GET" || e.Request.Url.Contains("/validate/") || Regex.IsMatch(e.Request.Url, "\\.(woff|jpe?g|png|ico)", RegexOptions.IgnoreCase))
+                                if (!string.IsNullOrEmpty(content))
+                                {
+                                    await e.Request.AbortAsync();
+                                }
+                                else if (e.Request.Method.Method != "GET" || e.Request.Url.Contains("/validate/") || Regex.IsMatch(e.Request.Url, "\\.(woff|jpe?g|png|ico)", RegexOptions.IgnoreCase))
                                 {
                                     await e.Request.AbortAsync();
                                 }
@@ -95,13 +105,14 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         };
 
-                        string content = null, csrf = null;
                         page.Response += async (sender, e) =>
                         {
                             try
                             {
-                                if (e?.Response != null)
+                                if (e?.Response != null && string.IsNullOrEmpty(content))
                                 {
+                                    log += $"browser Response.Url / {e.Response?.Url}\n";
+
                                     if (!string.IsNullOrEmpty(e.Response.Url) && e.Response.Url.Contains("contentId=") && e.Response.Url.Contains("api.lumex"))
                                     {
                                         content = await e.Response.TextAsync();
@@ -113,6 +124,8 @@ namespace Lampac.Controllers.LITE
                         };
 
                         string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
+
+                        log += $"browser GoToAsync / {init.corsHost()}?{args}\n";
                         await page.GoToAsync($"{init.corsHost()}?{args}");
 
                         for (int i = 0; i < 100; i++)
@@ -124,18 +137,24 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (string.IsNullOrEmpty(csrf) || string.IsNullOrEmpty(content))
+                        {
+                            log += $"\ncsrf || content == null\n\ncsrf: {csrf}\n\ncontent: {content}\n";
                             return null;
+                        }
 
+                        log += $"\ncsrf: {csrf}\n\ncontent: {content}\n";
                         var md = JsonConvert.DeserializeObject<JObject>(content)["player"].ToObject<EmbedModel>();
                         md.csrf = csrf;
 
                         return md;
                     }
                 }
-                catch { }
+                catch (Exception ex) { log += $"\nex: {ex}\n"; }
 
                 return null;
             });
+
+            OnLog(log + "\nStart OnResult");
 
             return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
         }

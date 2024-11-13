@@ -131,7 +131,7 @@ namespace JinEnergy.Online
 
                     if (arg.original_language is "ru" or "ja" or "ko" or "zh" or "cn" or "zh|cn")
                     {
-                        if (plugin is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" || (plugin == "kodik" && arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id)))
+                        if (plugin is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "fancdn" or "redheadsound" or "kinotochka" or "remux" || (plugin == "kodik" && arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id)))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 

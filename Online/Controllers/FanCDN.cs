@@ -7,6 +7,8 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using System.Collections.Generic;
 using Shared.Model.Online;
+using System.Net;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fancdn")]
         async public Task<ActionResult> Index(string title, string original_title, int year, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.FanCDN.Clone();
+            var init = AppInit.conf.FanCDN;
 
             if (!init.enable || string.IsNullOrEmpty(init.cookie) || string.IsNullOrEmpty(original_title) || year == 0)
                 return OnError();
@@ -36,8 +38,7 @@ namespace Lampac.Controllers.LITE
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("cookie", init.cookie)
+                ("upgrade-insecure-requests", "1")
             );
 
             var proxyManager = new ProxyManager("fancdn", init);
@@ -53,7 +54,7 @@ namespace Lampac.Controllers.LITE
                    if (ongettourl.Contains("fancdn."))
                        headers.Add(new HeadersModel("referer", $"{init.host}/"));
 
-                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, httpversion: 2);
+                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, httpversion: 2, cookieContainer: cookieContainer(init.cookie));
                },
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "fancdn")
             );
@@ -65,5 +66,37 @@ namespace Lampac.Controllers.LITE
 
             return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title, rjson: rjson), origsource: origsource);
         }
+
+
+        #region cookieContainer
+        static (string lastCook, CookieContainer cookies) container = default;
+
+        static CookieContainer cookieContainer(string cook)
+        {
+            if (container.lastCook == cook)
+                return container.cookies;
+
+            container.lastCook = cook;
+            container.cookies = new CookieContainer();
+
+            foreach (string line in cook.Split(";"))
+            {
+                if (string.IsNullOrEmpty(line) || !line.Contains("="))
+                    continue;
+
+                string[] split = line.Split('=');
+                container.cookies.Add(new Cookie()
+                {
+                    Path = "/",
+                    Expires = DateTime.Now.AddHours(1),
+                    Domain = ".fanserialstv.net",
+                    Name = split[0].Trim(),
+                    Value = split[1].Trim(),
+                });
+            }
+
+            return container.cookies;
+        }
+        #endregion
     }
 }

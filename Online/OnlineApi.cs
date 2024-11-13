@@ -18,7 +18,6 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
-using Microsoft.AspNetCore.Http;
 
 namespace Lampac.Controllers
 {
@@ -365,7 +364,7 @@ namespace Lampac.Controllers
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
                         string _p = (plugin ?? name.ToLower());
-                        if (_p is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" or "alloha" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
+                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "fancdn" or "redheadsound" or "kinotochka" or "remux" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
@@ -407,13 +406,16 @@ namespace Lampac.Controllers
                 {
                     send("VDBmovies", conf.VDBmovies);
                     send("Zetflix", conf.Zetflix);
+                    send("Lumex", conf.Lumex, "lumex");
                 }
             }
 
             if (serial == -1 || serial == 0)
+                send("Vibix", conf.Vibix);
+
+            if (serial == -1 || serial == 0)
                 send("FanCDN", conf.FanCDN);
 
-            send("Lumex", conf.Lumex, "lumex");
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
