@@ -5,6 +5,7 @@ using Lampac.Models.SISI;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
 using Shared.Model.Online.Settings;
+using System;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -32,6 +33,8 @@ namespace JinEnergy
         {
             if (type == "apk")
                 IsAndrod = true;
+
+            typeConf = type ?? "web";
 
             await LoadOrUpdateConfig(urlconf);
 
@@ -121,7 +124,7 @@ namespace JinEnergy
 
         public static bool IsDefaultConf { get; private set; } = true;
 
-        public static bool IsWebConf { get; private set; } = true;
+        public static string typeConf { get; private set; }
 
         public static string? Country { get; private set; }
 

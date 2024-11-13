@@ -1,11 +1,27 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Online;
 
 namespace JinEnergy.Online
 {
     public class VideoDBController : BaseController
     {
+        static List<HeadersModel> baseheader = HeadersModel.Init(
+            ("cache-control", "no-cache"),
+            ("dnt", "1"),
+            ("origin", "https://kinoplay2.site"),
+            ("pragma", "no-cache"),
+            ("priority", "u=1, i"),
+            ("referer", "https://kinoplay2.site/"),
+            ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
+            ("sec-ch-ua-mobile", "?0"),
+            ("sec-ch-ua-platform", "\"Windows\""),
+            ("sec-fetch-dest", "empty"),
+            ("sec-fetch-mode", "cors"),
+            ("sec-fetch-site", "cross-site")
+        );
+
         [JSInvokable("lite/videodb")]
         async public static ValueTask<string> Index(string args)
         {
@@ -21,10 +37,9 @@ namespace JinEnergy.Online
             (
                null,
                init.corsHost(),
-               //MaybeInHls(init.hls, init),
-               (url, head) => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, head)),
-               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile)
-               //AppInit.log
+               (url, head) => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, baseheader)),
+               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile),
+               AppInit.log
             );
 
             string memkey = $"videodb:view:{arg.kinopoisk_id}";
@@ -34,11 +49,22 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
-                if (IsRefresh(init))
+                if (IsRefresh(init, false))
                     goto refresh;
             }
 
             return html;
+        }
+
+        [JSInvokable("lite/videodb/manifest.m3u8")]
+        async public static ValueTask<string> Manifest(string args)
+        {
+            var init = AppInit.VideoDB;
+            string? link = parse_arg("link", args);
+            if (link == null)
+                return string.Empty;
+
+            return await JsHttpClient.Get(init.cors(link), httpHeaders(args, init, baseheader)) ?? string.Empty;
         }
     }
 }

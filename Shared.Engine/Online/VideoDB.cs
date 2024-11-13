@@ -35,7 +35,7 @@ namespace Shared.Engine.Online
 
             if (html == null)
             {
-                onlog?.Invoke("html null");
+                onlog?.Invoke("VideoDB: html null");
                 return null;
             }
 
@@ -66,11 +66,21 @@ namespace Shared.Engine.Online
 
             string? file = decodePlayer();
             if (file == null)
+            {
+                onlog?.Invoke("VideoDB: file null");
                 return null;
+            }
+
+            onlog?.Invoke("VideoDB: file OK");
 
             List<RootObject>? pl = JsonNode.Parse(file)?["file"]?.Deserialize<List<RootObject>>();
-            if (pl == null || pl.Count == 0) 
+            if (pl == null || pl.Count == 0)
+            {
+                onlog?.Invoke("VideoDB: pl null");
                 return null;
+            }
+
+            onlog?.Invoke("VideoDB: pl OK");
 
             string quality = file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
             return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };

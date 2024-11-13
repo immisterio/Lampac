@@ -58,14 +58,20 @@ namespace JinEnergy.Online
         [JSInvokable("lite/rezka")]
         async public static ValueTask<string> Index(string args)
         {
-            if (AppInit.IsDefaultConf && AppInit.Country == "RU")
-                return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
-
-            if (AppInit.IsDefaultConf && AppInit.IsWebConf)
-                return ShowError("Нужен HDRezka Premium");
-
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
+
+            if (AppInit.typeConf == "web" && !init.premium)
+                return ShowError("Нужен HDRezka Premium");
+
+            if (AppInit.Country == "RU")
+            {
+                if (string.IsNullOrEmpty(init.cookie))
+                    return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
+
+                else if (!AppInit.IsAndrod)
+                    return ShowError("Нужен HDRezka Premium");
+            }
 
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);
