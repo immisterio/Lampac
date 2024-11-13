@@ -40,7 +40,7 @@ curl -L -k -s https://lampac.sh | bash
 3. Основные настройки в init.conf (пример example.conf)
 
 # Источники 
-* Filmix, KinoPub, Alloha, Rezka, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino
+* Filmix, KinoPub, Alloha, Rezka, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 

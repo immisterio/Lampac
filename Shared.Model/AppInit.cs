@@ -115,6 +115,11 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5");
 
+        /// <summary>
+        /// aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
+        /// </summary>
+        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("kwwsv=22ylel{1ruj", enable: false);
+
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22dsl1vuyns1frp") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
