@@ -18,6 +18,7 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
+using Microsoft.AspNetCore.Http;
 
 namespace Lampac.Controllers
 {
@@ -315,11 +316,21 @@ namespace Lampac.Controllers
                 {
                     try
                     {
-                        if (item.assembly.GetType(item.online) is Type t && t.GetMethod("Events") is MethodInfo m)
+                        if (item.assembly.GetType(item.online) is Type t)
                         {
-                            var result = (List<(string name, string url, string plugin, int index)>)m.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
-                            if (result != null && result.Count > 0)
-                                online.AddRange(result);
+                            if (t.GetMethod("Events") is MethodInfo e)
+                            {
+                                var result = (List<(string name, string url, string plugin, int index)>)e.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
+                                if (result != null && result.Count > 0)
+                                    online.AddRange(result);
+                            }
+
+                            if (t.GetMethod("EventsAsync") is MethodInfo es)
+                            {
+                                var result = await (Task<List<(string name, string url, string plugin, int index)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
+                                if (result != null && result.Count > 0)
+                                    online.AddRange(result);
+                            }
                         }
                     }
                     catch { }
