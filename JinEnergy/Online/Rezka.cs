@@ -48,7 +48,8 @@ namespace JinEnergy.Online
                 !string.IsNullOrEmpty(init.cookie),
                 ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
                 (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
-                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
+                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile)),
+                AppInit.log
                 //streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
             );
         }
@@ -61,7 +62,7 @@ namespace JinEnergy.Online
                 return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
 
             if (AppInit.IsDefaultConf && AppInit.IsWebConf)
-                return ShowError("Работает только с HDRezka Premium");
+                return ShowError("Нужен HDRezka Premium");
 
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
