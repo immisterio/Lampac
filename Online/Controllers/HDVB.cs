@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
             if (kinopoisk_id == 0 || !AppInit.conf.HDVB.enable)
                 return OnError();
@@ -44,7 +44,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string link = $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={HttpUtility.UrlEncode(m.Value<string>("iframe_url"))}";
                     
-                    mtpl.Append(m.Value<string>("translator"), link, "call", $"{link.Replace("/video", "/video.m3u8")}&play=true");
+                    mtpl.Append(m.Value<string>("translator"), link, "call", $"{link.Replace("/video", "/video.m3u8")}&account_email={HttpUtility.UrlEncode(account_email)}&play=true");
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                     foreach (int episode in data[t].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s).Value<JArray>("episodes").ToObject<List<int>>())
                     {
                         string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={s}&e={episode}";
-                        string streamlink = $"{link.Replace("/serial", "/serial.m3u8")}&play=true";
+                        string streamlink = $"{link.Replace("/serial", "/serial.m3u8")}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
 
                         etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
                     }

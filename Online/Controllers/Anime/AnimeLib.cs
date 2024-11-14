@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animelib")]
-        async public Task<ActionResult> Index(string title, int year, string uri, string t, string account_email, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, string title, int year, string uri, string t, bool rjson = false)
         {
             var init = AppInit.conf.AnimeLib;
 
@@ -158,7 +158,7 @@ namespace Lampac.Controllers.LITE
 
                     string link = $"{host}/lite/animelib/video?id={id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
 
-                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: $"{link}&play=true");
+                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: $"{link}&account_email={HttpUtility.UrlEncode(account_email)}&play=true");
                 }
                 
                 if (rjson)

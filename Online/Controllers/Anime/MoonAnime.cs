@@ -170,7 +170,7 @@ namespace Lampac.Controllers.LITE
                                     string vod = folder.Value<string>("vod");
 
                                     string link = $"{host}/lite/moonanime/video?vod={HttpUtility.UrlEncode(vod)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}";
-                                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+                                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
 
                                     etpl.Append($"{episode} серия", title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
                                 }

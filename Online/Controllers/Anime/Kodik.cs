@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
                     return LocalRedirect($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&account_email={HttpUtility.UrlEncode(account_email)}");
             }
 
-            return ContentTo(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
+            return ContentTo(oninvk.Html(content, account_email, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
         }
 
         #region Video - API
