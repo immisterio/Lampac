@@ -104,7 +104,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// </summary>
-        public OnlinesSettings Lumex { get; set; } = new OnlinesSettings("kwwsv=22s1oxph{1sz2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", enable: false) { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
+        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1sz", "tl6h28Hn1rL5") { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("kwws=22dsl1yrnlqr1wy", streamproxy: true);
 

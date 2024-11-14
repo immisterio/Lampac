@@ -27,10 +27,10 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public LumexInvoke(OnlinesSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null, Action? requesterror = null)
+        public LumexInvoke(LumexSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
-            this.scheme = init.scheme;
+            this.scheme = init.scheme ?? "http";
             this.iframeapihost = init.corsHost();
             this.apihost = init.cors(init.apihost);
             this.token = init!.token;
@@ -101,7 +101,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
+        public string Html(EmbedModel? result, string account_email, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
         {
             if (result?.media == null || result.media.Count == 0)
                 return string.Empty;
@@ -119,11 +119,11 @@ namespace Shared.Engine.Online
                         foreach (string srt in media.subtitles)
                         {
                             string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
-                            subtitles.Append(name, onstream($"http:{srt}"));
+                            subtitles.Append(name, onstream($"{scheme}:{srt}"));
                         }
                     }
 
-                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}";
+                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}&account_email={HttpUtility.UrlEncode(account_email)}";
 
                     mtpl.Append(media.translation_name, link, subtitles: subtitles);
                 }
@@ -145,7 +145,7 @@ namespace Shared.Engine.Online
 
                         foreach (var media in result.media.OrderBy(s => s.season_id))
                         {
-                            string link = host + $"lite/lumex?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
+                            string link = host + $"lite/lumex?&account_email={HttpUtility.UrlEncode(account_email)}kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
                             tpl.Append($"{media.season_id} сезон", link, media.season_id);
                         }
 
@@ -203,11 +203,11 @@ namespace Shared.Engine.Online
                                         foreach (string srt in media.subtitles)
                                         {
                                             string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
-                                            subtitles.Append(name, onstream($"http:{srt}"));
+                                            subtitles.Append(name, onstream($"{scheme}:{srt}"));
                                         }
                                     }
 
-                                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}";
+                                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}&account_email={HttpUtility.UrlEncode(account_email)}";
 
                                     etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
                                 }

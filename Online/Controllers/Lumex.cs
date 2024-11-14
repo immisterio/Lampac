@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/lumex")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Lumex;
             if (!init.enable)
@@ -154,10 +154,10 @@ namespace Lampac.Controllers.LITE
                 //catch (Exception ex) { log += $"\nex: {ex}\n"; return null; }
                 #endregion
 
-                var result = await HttpClient.BaseGetAsync($"https://api.lumex.pw/content?clientId=nPBZWDQ5doe2&contentType=short&kpId={kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("Accept", "*/*"),
-                    ("Origin", "https://p.lumex.pw"),
-                    ("Referer", "https://p.lumex.pw/"),
+                    ("Origin", $"https://p.{init.iframehost}"),
+                    ("Referer", $"https://p.{init.iframehost}/"),
                     ("Sec-Ch-Ua", "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\""),
                     ("Sec-Ch-Ua-Mobile", "?0"),
                     ("Sec-Ch-Ua-Platform", "\"Windows\""),
@@ -185,7 +185,7 @@ namespace Lampac.Controllers.LITE
 
             OnLog(log + "\nStart OnResult");
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, account_email, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
         }
 
 
@@ -201,16 +201,16 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lumex/video:{playlist}:{csrf}";
             if (!memoryCache.TryGetValue(memkey, out string location))
             {
-                var result = await HttpClient.Post<JObject>("https://api.lumex.pw" + playlist, "", headers: HeadersModel.Init(
+                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                     ("cache-control", "no-cache"),
                     ("cookie", $"x-csrf-token={csrf}"),
                     ("dnt", "1"),
-                    ("origin", "https://p.lumex.pw"),
+                    ("Origin", $"https://p.{init.iframehost}"),
+                    ("Referer", $"https://p.{init.iframehost}/"),
                     ("pragma", "no-cache"),
                     ("priority", "u=1, i"),
-                    ("referer", "https://p.lumex.pw/"),
                     ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\""),
