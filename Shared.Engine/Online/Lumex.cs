@@ -145,7 +145,7 @@ namespace Shared.Engine.Online
 
                         foreach (var media in result.media.OrderBy(s => s.season_id))
                         {
-                            string link = host + $"lite/lumex?&account_email={HttpUtility.UrlEncode(account_email)}kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
+                            string link = host + $"lite/lumex?account_email={HttpUtility.UrlEncode(account_email)}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
                             tpl.Append($"{media.season_id} сезон", link, media.season_id);
                         }
 
