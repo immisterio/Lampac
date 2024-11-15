@@ -88,7 +88,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string account_email, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson)
+        public string Html(EmbedModel? root, string account_email, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -147,7 +147,14 @@ namespace Shared.Engine.Online
                     //catch { }
                     #endregion
 
-                    mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    if (bwa)
+                    {
+                        mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                    }
+                    else
+                    {
+                        mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    }
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();

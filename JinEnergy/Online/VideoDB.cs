@@ -56,7 +56,7 @@ namespace JinEnergy.Online
             return html;
         }
 
-        [JSInvokable("lite/videodb/manifest.m3u8")]
+        [JSInvokable("lite/videodb/manifest")]
         async public static ValueTask<string> Manifest(string args)
         {
             var init = AppInit.VideoDB;
