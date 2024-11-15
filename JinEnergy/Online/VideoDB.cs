@@ -27,7 +27,6 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Index(string args)
         {
             var init = AppInit.VideoDB.Clone();
-            bool userapn = IsApnIncluded(init);
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
@@ -39,8 +38,7 @@ namespace JinEnergy.Online
                null,
                init.corsHost(),
                (url, head) => JsHttpClient.Get(init.cors(url), httpHeaders(args, init, baseheader)),
-               streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile),
-               AppInit.log
+               streamfile => HostStreamProxy(init, streamfile)
             );
 
             string memkey = $"videodb:view:{arg.kinopoisk_id}";
@@ -77,7 +75,7 @@ namespace JinEnergy.Online
 
             AppInit.log("currentUrl: " + currentUrl);
 
-            return "{\"method\":\"play\",\"url\":\"" + currentUrl + "\"}";
+            return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, currentUrl) + "\",\"title\":\"auto\"}";
         }
     }
 }
