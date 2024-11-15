@@ -4,7 +4,7 @@ DEST="/home/lampac"
 # Become root
 # sudo su -
 apt-get update
-apt-get install -y unzip ffmpeg curl
+apt-get install -y unzip curl coreutils
 apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
 
 # Install .NET
@@ -52,6 +52,13 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+random_port=$(shuf -i 9000-12999 -n 1)
+cat <<EOF > $DEST/init.conf
+{
+  "listenport": $random_port
+}
+EOF
+
 # Enable service
 systemctl daemon-reload
 systemctl enable lampac
@@ -78,10 +85,12 @@ echo "################################################################"
 echo ""
 echo "Have fun!"
 echo ""
+echo "http://IP:$random_port"
+echo ""
 echo "Please check/edit $DEST/init.conf params and configure it"
 echo ""
 echo "Then [re]start it as systemctl [re]start lampac"
 echo ""
-echo "Clear iptables if port 9118 is not available"
+echo "Clear iptables if port $random_port is not available"
 echo "bash $DEST/iptables-drop.sh"
 echo ""

@@ -3,12 +3,16 @@ DEST="/home/lampac"
 cd $DEST
 
 ver=$(cat vers.txt)
-gitver=$(curl -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g)
+gitver=$(curl --connect-timeout 10 -m 20 -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g)
 if [ $gitver -gt $ver ]; then
     echo "update lampac to version $gitver"
     rm -f update.zip
     if ! curl -L -k -o update.zip https://github.com/immisterio/Lampac/releases/latest/download/update.zip; then
         echo "Failed to download update.zip. Exiting."
+        exit 1
+    fi
+    if ! unzip -t update.zip; then
+        echo "Failed to test update.zip. Exiting."
         exit 1
     fi
     systemctl stop lampac
@@ -18,7 +22,7 @@ if [ $gitver -gt $ver ]; then
     systemctl start lampac
 else
     check_ping() {
-        response=$(curl -k -s "$1/ping")
+        response=$(curl --connect-timeout 5 -m 10 -k -s "$1/ping")
         if [[ "$response" == *"pong"* ]]; then
             return 0
         else
@@ -43,6 +47,10 @@ else
         rm -f update.zip
         if ! curl -L -k -o update.zip "$BASE_URL/update/$dver.zip"; then
             echo "Failed to download update.zip. Exiting."
+            exit 1
+        fi
+        if ! unzip -t update.zip; then
+            echo "Failed to test update.zip. Exiting."
             exit 1
         fi
         systemctl stop lampac
