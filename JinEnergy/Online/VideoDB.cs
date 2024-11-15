@@ -45,7 +45,7 @@ namespace JinEnergy.Online
             string memkey = $"videodb:view:{arg.kinopoisk_id}";
             refresh: var content = await InvokeCache(arg.id, memkey, () => oninvk.Embed(arg.kinopoisk_id));
 
-            string html = oninvk.Html(content, arg.account_email, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid, false);
+            string html = oninvk.Html(content, arg.account_email, arg.kinopoisk_id, arg.title, arg.original_title, t, s, sid, false, true);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(memkey);
