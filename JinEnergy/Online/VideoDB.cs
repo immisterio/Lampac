@@ -2,7 +2,7 @@
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace JinEnergy.Online
 {
@@ -61,8 +61,6 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Manifest(string args)
         {
             var init = AppInit.VideoDB;
-
-            var arg = defaultArgs(args);
             string? link = parse_arg("link", args);
             if (link == null)
                 return string.Empty;
@@ -74,13 +72,12 @@ namespace JinEnergy.Online
                 returnHeaders = true
             });
 
-            //AppInit.log("result: " + (result ?? "result == null"));
-
-            string currentUrl = Regex.Match(result, "\"currentUrl\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+            var json = JsonDocument.Parse(result);
+            string currentUrl = json.RootElement.GetProperty("currentUrl").GetString();
 
             AppInit.log("currentUrl: " + currentUrl);
 
-            return "{\"method\":\"play\",\"url\":\"" + currentUrl + "\",\"title\":\"" + arg.title ?? arg.original_title + "\"}";
+            return "{\"method\":\"play\",\"url\":\"" + currentUrl + "\"}";
         }
     }
 }
