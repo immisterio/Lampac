@@ -11,7 +11,7 @@ namespace JinEnergy.Engine
     public static class JsHttpClient
     {
         #region httpReqHeaders
-        static Dictionary<string, string> httpReqHeaders(List<HeadersModel>? addHeaders)
+        public static Dictionary<string, string> httpReqHeaders(List<HeadersModel>? addHeaders)
         {
             var hed = new Dictionary<string, string>() 
             {

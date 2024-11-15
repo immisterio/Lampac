@@ -1,4 +1,5 @@
 ﻿using JinEnergy.Engine;
+using Lampac.Models.LITE.KinoPub;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
@@ -63,6 +64,16 @@ namespace JinEnergy.Online
             string? link = parse_arg("link", args);
             if (link == null)
                 return string.Empty;
+
+            var result = await AppInit.JSRuntime.InvokeAsync<object?>("httpReq", init.cors(link), false, new 
+            { 
+                dataType = "text", timeout = 8 * 1000, 
+                headers = JsHttpClient.httpReqHeaders(httpHeaders(args, init, baseheader)),
+                returnHeaders = true
+            });
+
+            AppInit.log(result.ToString());
+            return string.Empty;
 
             return await JsHttpClient.Get(init.cors(link), httpHeaders(args, init, baseheader)) ?? string.Empty;
         }
