@@ -74,11 +74,13 @@ namespace JinEnergy.Online
                 returnHeaders = true
             });
 
-            AppInit.log("result: " + (result ?? "result == null"));
+            //AppInit.log("result: " + (result ?? "result == null"));
 
-            string current_url = Regex.Match(result, "\"currentUrl\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+            string currentUrl = Regex.Match(result, "\"currentUrl\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
 
-            return "{\"method\":\"play\",\"url\":\"" + current_url + "\",\"title\":\"" + arg.title ?? arg.original_title + "\"}";
+            AppInit.log("currentUrl: " + currentUrl);
+
+            return "{\"method\":\"play\",\"url\":\"" + currentUrl + "\",\"title\":\"" + arg.title ?? arg.original_title + "\"}";
         }
     }
 }
