@@ -64,6 +64,8 @@ namespace JinEnergy.Online
             if (link == null)
                 return string.Empty;
 
+            AppInit.log($"req: {init.cors(link)}");
+
             var result = await AppInit.JSRuntime.InvokeAsync<object?>("httpReq", init.cors(link), false, new 
             { 
                 dataType = "text", timeout = 8 * 1000, 
