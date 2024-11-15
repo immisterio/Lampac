@@ -240,7 +240,14 @@ namespace Shared.Engine.Online
                             if (streams.Count == 0)
                                 continue;
 
-                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, (bwa ? "call" : "play"), streamquality: new StreamQualityTpl(streams));
+                            if (bwa)
+                            {
+                                etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                            }
+                            else
+                            {
+                                etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            }
                         }
                     }
 

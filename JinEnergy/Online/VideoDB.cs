@@ -73,9 +73,7 @@ namespace JinEnergy.Online
             var json = JsonDocument.Parse(result);
             string currentUrl = json.RootElement.GetProperty("currentUrl").GetString();
 
-            AppInit.log("currentUrl: " + currentUrl);
-
-            return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, currentUrl) + "\",\"title\":\"auto\"}";
+            return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, currentUrl) + "\",\"title\":\"1080p\"}";
         }
     }
 }
