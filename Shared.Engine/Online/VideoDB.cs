@@ -149,7 +149,7 @@ namespace Shared.Engine.Online
 
                     if (bwa)
                     {
-                        mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                        mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call", subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                     }
                     else
                     {

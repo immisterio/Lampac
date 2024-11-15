@@ -2,6 +2,7 @@
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
+using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
 {
@@ -60,23 +61,24 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Manifest(string args)
         {
             var init = AppInit.VideoDB;
+
+            var arg = defaultArgs(args);
             string? link = parse_arg("link", args);
             if (link == null)
                 return string.Empty;
 
-            AppInit.log($"req: {init.cors(link)}");
-
-            var result = await AppInit.JSRuntime.InvokeAsync<object?>("httpReq", init.cors(link), false, new 
+            string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", init.cors(link), false, new 
             { 
                 dataType = "text", timeout = 8 * 1000, 
                 headers = JsHttpClient.httpReqHeaders(httpHeaders(args, init, baseheader)),
                 returnHeaders = true
             });
 
-            AppInit.log(result?.ToString() ?? "result == null");
-            return string.Empty;
+            AppInit.log("result: " + (result ?? "result == null"));
 
-            return await JsHttpClient.Get(init.cors(link), httpHeaders(args, init, baseheader)) ?? string.Empty;
+            string current_url = Regex.Match(result, "\"current_url\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+
+            return "{\"method\":\"play\",\"url\":\"" + current_url + "\",\"title\":\"" + arg.title ?? arg.original_title + "\"}";
         }
     }
 }
