@@ -57,7 +57,7 @@ namespace JinEnergy.Online
             return html;
         }
 
-        [JSInvokable("lite/videodb/manifest")]
+        [JSInvokable("lite/videodb/manifest.m3u8")]
         async public static ValueTask<string> Manifest(string args)
         {
             var init = AppInit.VideoDB;
@@ -76,7 +76,7 @@ namespace JinEnergy.Online
 
             AppInit.log("result: " + (result ?? "result == null"));
 
-            string current_url = Regex.Match(result, "\"current_url\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+            string current_url = Regex.Match(result, "\"currentUrl\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
 
             return "{\"method\":\"play\",\"url\":\"" + current_url + "\",\"title\":\"" + arg.title ?? arg.original_title + "\"}";
         }

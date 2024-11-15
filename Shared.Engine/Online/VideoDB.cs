@@ -147,14 +147,7 @@ namespace Shared.Engine.Online
                     //catch { }
                     #endregion
 
-                    if (bwa)
-                    {
-                        mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call", subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
-                    }
-                    else
-                    {
-                        mtpl.Append(name, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
-                    }
+                    mtpl.Append(name, streams[0].link, (bwa ? "call" : "play"), subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -240,7 +233,7 @@ namespace Shared.Engine.Online
                             if (streams.Count == 0)
                                 continue;
 
-                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, (bwa ? "call" : "play"), streamquality: new StreamQualityTpl(streams));
                         }
                     }
 
