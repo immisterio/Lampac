@@ -11,6 +11,9 @@ docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
 curl -L -k -s https://lampac.sh | bash
 ```
+* Порт генерируется рандомно и выводится в конце установки скрипта
+* Изменить или посмотреть порт можно в init.conf - 
+```grep "listenport" /home/lampac/init.conf```
 
 # Установка на Windows
 1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md
