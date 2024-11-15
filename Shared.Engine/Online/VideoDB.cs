@@ -147,7 +147,14 @@ namespace Shared.Engine.Online
                     //catch { }
                     #endregion
 
-                    mtpl.Append(name, streams[0].link, (bwa ? "call" : "play"), subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    if (bwa)
+                    {
+                        mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                    }
+                    else
+                    {
+                        mtpl.Append(name, streams[0].link);
+                    }
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
