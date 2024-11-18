@@ -525,7 +525,7 @@ namespace Lampac.Controllers
             bool work = res.Contains("data-json=") || rch;
 
             string quality = string.Empty;
-            string balanser = plugin;
+            string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
 
             #region определение качества
             if (work && life)
@@ -576,7 +576,6 @@ namespace Lampac.Controllers
                         case "vokino":
                         case "alloha":
                         case "remux":
-                        case "ashdi":
                         case "pidtor":
                         case "rhsprem":
                         case "animelib":
@@ -589,6 +588,7 @@ namespace Lampac.Controllers
                         case "lumex":
                         case "eneyida":
                         case "kinoukr":
+                        case "ashdi":
                         case "hdvb":
                         case "anilibria":
                         case "animedia":
@@ -634,7 +634,7 @@ namespace Lampac.Controllers
                 name += quality;
             }
 
-            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
+            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
 
             memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
         }
