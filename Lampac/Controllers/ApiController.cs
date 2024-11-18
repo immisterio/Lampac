@@ -185,12 +185,19 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region tmdbproxy.js
+        #region tmdbproxy.js / startpage.js
         [HttpGet]
         [Route("tmdbproxy.js")]
         public ActionResult TmdbProxy()
         {
             return Content(FileCache.ReadAllText("plugins/tmdbproxy.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+        }
+        
+        [HttpGet]
+        [Route("startpage.js")]
+        public ActionResult StartPage()
+        {
+            return Content(FileCache.ReadAllText("plugins/startpage.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -227,7 +234,10 @@ namespace Lampac.Controllers
                         initiale += "{\"url\": \"{localhost}/online.js\",\"status\": 1,\"name\": \"Онлайн\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
+                    {
                         initiale += "{\"url\": \"{localhost}/sisi.js\",\"status\": 1,\"name\": \"Клубничка\",\"author\": \"lampac\"},";
+                        initiale += "{\"url\": \"{localhost}/startpage.js\",\"status\": 1,\"name\": \"Стартовая страница\",\"author\": \"lampac\"},";
+                    }
 
                     if (AppInit.conf.LampaWeb.initPlugins.timecode)
                         initiale += "{\"url\": \"{localhost}/timecode.js\",\"status\": 1,\"name\": \"Синхронизация тайм-кодов\",\"author\": \"lampac\"},";
@@ -244,6 +254,8 @@ namespace Lampac.Controllers
             }
 
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
+
+            file = file.Replace("{country}", GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()));
             file = file.Replace("{localhost}", host);
             file = file.Replace("{deny}", string.Empty);
             file = file.Replace("{pirate_store}", string.Empty);
@@ -254,6 +266,29 @@ namespace Lampac.Controllers
                 file = file.Replace("{jachost}", "redapi.cfhttp.top");
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region privateinit.js
+        [HttpGet]
+        [Route("privateinit.js")]
+        public ActionResult PrivateInit(string account_email)
+        {
+            if (string.IsNullOrEmpty(account_email) || !AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex) || DateTime.UtcNow > ex)
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
+            string initiale = string.Empty;
+            string file = FileCache.ReadAllText("plugins/privateinit.js");
+
+            file = file.Replace("{country}", GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()));
+            file = file.Replace("{localhost}", host);
+
+            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
+                file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
+            else
+                file = file.Replace("{jachost}", "redapi.cfhttp.top");
+
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 
