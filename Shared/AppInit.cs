@@ -43,6 +43,9 @@ namespace Lampac
                     string initfile = File.ReadAllText("init.conf");
                     initfile = Regex.Replace(initfile, "\"weblog\":([ \t]+)?(true|false)([ \t]+)?,", "", RegexOptions.IgnoreCase);
 
+                    if (!initfile.StartsWith("{"))
+                        initfile = "{" + initfile + "}";
+
                     cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
                     if (cacheconf.Item1 == null)
                         cacheconf.Item1 = new AppInit();
