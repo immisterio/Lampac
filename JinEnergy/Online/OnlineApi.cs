@@ -145,11 +145,11 @@ namespace JinEnergy.Online
             if (isanime)
             {
                 send("Anilibria - 1080p", "anilibria", AppInit.AnilibriaOnline);
-                send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
                 send("Animevost - 720p", "animevost", AppInit.Animevost);
                 send("AniMedia - 1080p", "animedia", AppInit.AniMedia);
                 send("Animebesst - 1080p", "animebesst", AppInit.Animebesst);
                 send("AnimeLib - 2160p", "animelib", AppInit.AnimeLib);
+                send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
             }
 
             send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
@@ -158,7 +158,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
-            send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
+            send("Rezka - " + (AppInit.Rezka.premium || AppInit.typeConf == "web" ? "2160p" : "720p"), "rezka", AppInit.Rezka);
             send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
             //send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
             //send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
@@ -210,7 +210,7 @@ namespace JinEnergy.Online
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
-                send("VideoHUB", "cdnvideohub", AppInit.CDNvideohub);
+                send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }
