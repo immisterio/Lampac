@@ -29,7 +29,7 @@ namespace JinEnergy.Online
                 rhsHost = "kwwsv=22odps1df";
                 headers = httpHeaders(args, init, HeadersModel.Init(
                    ("X-Lampac-App", "1"),
-                   ("X-Lampac-Version", "bwajs"),
+                   ("X-Lampac-Version", "BWA"),
                    ("X-Lampac-Device-Id", AppInit.KitUid),
                    ("X-Lampac-Cookie", fixCookie(init.cookie))
                 ));

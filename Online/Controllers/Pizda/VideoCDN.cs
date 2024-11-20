@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VCDN.Clone();
-            if (!init.enable)
+            if (!init.enable || init.rip)
                 return OnError();
 
             if (init.rhub && !AppInit.conf.rch.enable)

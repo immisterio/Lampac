@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.VDBmovies.Clone();
 
-            if (!init.enable || kinopoisk_id == 0)
+            if (!init.enable || init.rip || kinopoisk_id == 0)
                 return OnError();
 
             if (IsOverridehost(init, out string overridehost))

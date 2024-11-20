@@ -86,7 +86,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/voidboost/serial")]
         async public Task<ActionResult> Serial(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s)
         {
-            if (!AppInit.conf.Voidboost.enable || string.IsNullOrEmpty(t))
+            if (!AppInit.conf.Voidboost.enable || AppInit.conf.Voidboost.rip || string.IsNullOrEmpty(t))
                 return Content(string.Empty);
 
             var oninvk = InitVoidboostInvoke();
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string title, string original_title, string t, int s, int e, bool play)
         {
             var init = getInit();
-            if (!init.enable)
+            if (!init.enable || init.rip)
                 return OnError();
 
             var oninvk = InitVoidboostInvoke();

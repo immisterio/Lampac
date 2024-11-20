@@ -40,8 +40,11 @@ namespace Online
 
         public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
         {
-            if (refresh_proxy)
-                proxyManager?.Refresh();
+            if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
+            {
+                if (refresh_proxy)
+                    proxyManager?.Refresh();
+            }
 
             return OnError(msg, weblog: weblog);
         }

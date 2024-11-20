@@ -13,6 +13,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using System.Net;
 using System.Management;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -25,6 +26,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.RezkaPrem;
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("rhsprem", init);
             var proxy = proxyManager.Get();
 
@@ -81,13 +83,15 @@ namespace Lampac.Controllers.LITE
                ("X-Lampac-App", "1"),
                ("X-Lampac-Version", $"{appversion}.{minorversion}"),
                ("X-Lampac-Device-Id", $"lampac:user_id/{user_id}:{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
-               ("Cookie", cookie),
+               ("X-Lampac-Cookie", cookie),
                ("User-Agent", HttpContext.Request.Headers.UserAgent)
             ));
 
+            var rheaders = headers.ToDictionary(k => k.name, v => v.val);
+
             string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
 
-            if (country != null)
+            if (!init.rhub && country != null)
                 headers.Add(new HeadersModel("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
 
             if (init.forceua)
@@ -100,10 +104,10 @@ namespace Lampac.Controllers.LITE
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 true,
-                ongettourl => HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers),
-                (url, data) => HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                ongettourl => init.rhub ? rch.Get(ongettourl, rheaders) : HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                (url, data) => init.rhub ? rch.Post(url, data, rheaders) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rhsprem"),
-                requesterror: () => proxyManager.Refresh()
+                requesterror: () => { if (init.rhub == false) proxyManager.Refresh(); }
             );
         }
         #endregion
@@ -117,7 +121,13 @@ namespace Lampac.Controllers.LITE
                 return OnError("disabled");
 
             if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
+            {
+                if (!AppInit.conf.rch.enable)
+                    return ShowError(RchClient.ErrorMsg);
+
+                if (string.IsNullOrEmpty(init.cookie))
+                    return ShowError("rhub работает через cookie");
+            }
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
@@ -127,12 +137,20 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
+            var rch = new RchClient(HttpContext, host, init.rhub);
 
-            var content = await InvokeCache($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
-            if (content == null)
-                return OnError("content = null", proxyManager, weblog: oninvk.requestlog);
+            var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), null, async res => 
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson).Replace("/rezka", "/rhsprem"));
+                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+            });
+
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg ?? "content = null", proxyManager, weblog: oninvk.requestlog);
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson).Replace("/rezka", "/rhsprem"));
         }
 
 
@@ -152,15 +170,31 @@ namespace Lampac.Controllers.LITE
             if (oninvk == null)
                 return OnError("authorization error ;(");
 
-            Episodes root = await InvokeCache($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
-            if (root == null)
-                return OnError("root = null", weblog: oninvk.requestlog);
+            var rch = new RchClient(HttpContext, host, init.rhub);
 
-            var content = await InvokeCache($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
-            if (content == null)
-                return OnError("content = null", weblog: oninvk.requestlog);
+            var cache_root = await InvokeCache<Episodes>($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), null, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            return ContentTo(oninvk.Serial(root, content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson).Replace("/rezka", "/rhsprem"));
+                return await oninvk.SerialEmbed(id, t);
+            });
+
+            if (!cache_root.IsSuccess)
+                return OnError(cache_root.ErrorMsg ?? "root = null", weblog: oninvk.requestlog);
+
+            var cache_content = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), null, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+            });
+
+            if (!cache_content.IsSuccess)
+                return OnError(cache_content.ErrorMsg ?? "content = null", weblog: oninvk.requestlog);
+
+            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson).Replace("/rezka", "/rhsprem"));
         }
         #endregion
 
@@ -179,12 +213,20 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
+            var rch = new RchClient(HttpContext, host, init.rhub);
 
-            var md = await InvokeCache($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
-            if (md == null)
-                return OnError("md == null", weblog: oninvk.requestlog);
+            var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
 
-            string result = oninvk.Movie(md, title, original_title, play);
+                return await oninvk.Movie(id, t, director, s, e, favs);
+            });
+
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg ?? "md == null", weblog: oninvk.requestlog);
+
+            string result = oninvk.Movie(cache.Value, title, original_title, play);
             if (result == null)
                 return OnError("result = null", weblog: oninvk.requestlog);
 

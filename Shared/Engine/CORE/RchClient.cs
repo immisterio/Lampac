@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Shared.Engine.CORE;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -13,7 +14,7 @@ namespace Lampac.Engine.CORE
         #region static
         public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
 
-        public static EventHandler<(string connectionId, string rchId, string url, string data)> hub = null;
+        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers)> hub = null;
 
         static ConcurrentDictionary<string, string> clients = new ConcurrentDictionary<string, string>();
 
@@ -57,13 +58,13 @@ namespace Lampac.Engine.CORE
 
 
         #region Get
-        public ValueTask<string> Get(string url) => SendHub(url);
+        public ValueTask<string> Get(string url, Dictionary<string, string> headers = null) => SendHub(url, null, headers);
 
-        async public ValueTask<T> Get<T>(string url, bool IgnoreDeserializeObject = false)
+        async public ValueTask<T> Get<T>(string url, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false)
         {
             try
             {
-                string html = await SendHub(url);
+                string html = await SendHub(url, null, headers);
                 if (html == null)
                     return default;
 
@@ -80,13 +81,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public ValueTask<string> Post(string url, string data) => SendHub(url, data);
+        public ValueTask<string> Post(string url, string data, Dictionary<string, string> headers = null) => SendHub(url, data, headers);
 
-        async public ValueTask<T> Post<T>(string url, string data, bool IgnoreDeserializeObject = false)
+        async public ValueTask<T> Post<T>(string url, string data, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false)
         {
             try
             {
-                string json = await SendHub(url, data);
+                string json = await SendHub(url, data, headers);
                 if (json == null)
                     return default;
 
@@ -103,7 +104,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null)
+        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null)
         {
             if (hub == null)
                 return null;
@@ -114,7 +115,7 @@ namespace Lampac.Engine.CORE
                 var tcs = new TaskCompletionSource<string>();
                 rchIds.TryAdd(rchId, tcs);
 
-                hub.Invoke(null, (connectionId, rchId, url, data));
+                hub.Invoke(null, (connectionId, rchId, url, data, headers));
 
                 string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(20));
                 rchIds.TryRemove(rchId, out _);

@@ -556,7 +556,7 @@ namespace Lampac.Controllers
                 if (balanser == "alloha")
                     quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;
 
-                if (balanser == "rezka")
+                if (balanser == "rezka" || balanser == "rhs")
                 {
                     string rezkaq = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? " ~ 2160p" : " ~ 720p";
                     quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
@@ -608,6 +608,7 @@ namespace Lampac.Controllers
                         case "animebesst":
                         case "kodik":
                         case "kinotochka":
+                        case "rhs":
                             quality = " ~ 720p";
                             break;
                         case "kinokrad":

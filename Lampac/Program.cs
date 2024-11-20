@@ -28,7 +28,7 @@ namespace Lampac
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
-            RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data);
+            RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers);
 
             Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
             {
