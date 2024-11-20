@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Kinotochka;
 
@@ -47,6 +47,9 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
                     {
+                        if (rchtype == "web")
+                            return ShowError(RchClient.ErrorType(rchtype));
+
                         if (rch.IsNotConnected())
                             return ContentTo(rch.connectionMsg);
 
@@ -95,6 +98,9 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:playlist:{newsuri}";
                     if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
+                        if (rchtype == "web")
+                            return ShowError(RchClient.ErrorType(rchtype));
+
                         if (rch.IsNotConnected())
                             return ContentTo(rch.connectionMsg);
 
@@ -154,6 +160,9 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!hybridCache.TryGetValue(memKey, out string file))
                 {
+                    if (rchtype == "web")
+                        return ShowError(RchClient.ErrorType(rchtype));
+
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 

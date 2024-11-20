@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinoukr")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Kinoukr.Clone();
 
@@ -70,6 +70,9 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
             {
+                if (rchtype == "web")
+                    return ShowError(RchClient.ErrorType(rchtype));
+
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 

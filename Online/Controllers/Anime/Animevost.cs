@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string title, int year, string uri, int s, string account_email, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, int year, string uri, int s, string account_email, bool rjson = false)
         {
             var init = AppInit.conf.Animevost;
 
@@ -38,6 +38,9 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animevost:search:{title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
+                    if (rchtype == "web")
+                        return ShowError(RchClient.ErrorType(rchtype));
+
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
@@ -76,7 +79,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animevost?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect($"/lite/animevost?rjson={rjson}&rchtype={rchtype}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 var stpl = new SimilarTpl(catalog.Count);
 
@@ -92,6 +95,9 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animevost:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string id)> links))
                 {
+                    if (rchtype == "web")
+                        return ShowError(RchClient.ErrorType(rchtype));
+
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
@@ -150,6 +156,9 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out string mp4))
             {
                 var rch = new RchClient(HttpContext, host, init.rhub);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/frame5.php?play={id}&old=1";
                 string iframe = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));

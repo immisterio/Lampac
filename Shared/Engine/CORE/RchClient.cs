@@ -14,6 +14,14 @@ namespace Lampac.Engine.CORE
         #region static
         public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
 
+        public static string ErrorType(string type)
+        {
+            if (type == "web")
+                return "На MSX недоступно";
+
+            return "Только на android";
+        }
+
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers)> hub = null;
 
         static ConcurrentDictionary<string, string> clients = new ConcurrentDictionary<string, string>();

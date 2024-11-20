@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string title, string uri, int s, string account_email, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, string account_email, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst;
 
@@ -38,6 +38,9 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animebesst:search:{title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
+                    if (rchtype != "apk")
+                        return ShowError(RchClient.ErrorType(rchtype));
+
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
@@ -99,6 +102,9 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animebesst:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
+                    if (rchtype != "apk")
+                        return ShowError(RchClient.ErrorType(rchtype));
+
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 

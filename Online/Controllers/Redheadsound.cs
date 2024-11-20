@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Redheadsound.Clone();
 
@@ -44,6 +44,9 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), proxyManager, async res =>
             {
+                if (rchtype == "web")
+                    return ShowError(RchClient.ErrorType(rchtype));
+
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
