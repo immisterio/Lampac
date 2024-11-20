@@ -41,24 +41,33 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rheader = httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val);
+
             if (string.IsNullOrWhiteSpace(uri))
             {
+                #region Поиск
                 if (string.IsNullOrWhiteSpace(title) || year == 0)
                     return OnError();
 
-                #region Поиск
                 string memkey = $"animelib:search:{title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri)> catalog))
                 {
-                    var search = await HttpClient.Get<JObject>($"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(title)}", httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    if (rch.IsNotConnected())
+                        return ContentTo(rch.connectionMsg);
+
+                    string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(title)}";
+                    var search = init.rhub ? await rch.Get<JObject>(req_uri, rheader) :
+                                             await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+
                     if (search == null || !search.ContainsKey("data"))
-                        return OnError(proxyManager);
+                        return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                     catalog = new List<(string title, string year, string uri)>();
 
@@ -82,7 +91,9 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError();
 
-                    proxyManager.Success();
+                    if (!init.rhub)
+                        proxyManager.Success();
+
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
@@ -103,16 +114,25 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animelib:playlist:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out JArray episodes))
                 {
-                    var root = await HttpClient.Get<JObject>($"{init.corsHost()}/api/episodes?anime_id={uri}", timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    if (rch.IsNotConnected())
+                        return ContentTo(rch.connectionMsg);
+
+                    string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
+
+                    var root = init.rhub ? await rch.Get<JObject>(req_uri, rheader) : 
+                                           await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+
                     if (root == null || !root.ContainsKey("data"))
-                        return OnError(proxyManager);
+                        return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                     episodes = root["data"].ToObject<JArray>();
 
                     if (episodes.Count == 0)
                         return OnError();
 
-                    proxyManager.Success();
+                    if (!init.rhub)
+                        proxyManager.Success();
+
                     memoryCache.Set(memKey, episodes, cacheTime(30, init: init));
                 }
 
@@ -120,9 +140,16 @@ namespace Lampac.Controllers.LITE
                 memKey = $"animelib:video:{episodes.First.Value<int>("id")}";
                 if (!memoryCache.TryGetValue(memKey, out JArray players))
                 {
-                    var root = await HttpClient.Get<JObject>($"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}", httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    if (rch.IsNotConnected())
+                        return ContentTo(rch.connectionMsg);
+
+                    string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}";
+
+                    var root = init.rhub ? await rch.Get<JObject>(req_uri, rheader) : 
+                                           await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+
                     if (root == null || !root.ContainsKey("data"))
-                        return OnError(proxyManager);
+                        return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                     players = root["data"]["players"].ToObject<JArray>();
                     memoryCache.Set(memKey, players, cacheTime(30, init: init));
@@ -180,16 +207,27 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
+
             string memKey = $"animelib:video:{id}";
             if (!memoryCache.TryGetValue(memKey, out JArray players))
             {
-                var root = await HttpClient.Get<JObject>($"{init.corsHost()}/api/episodes/{id}", httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string req_uri = $"{init.corsHost()}/api/episodes/{id}";
+
+                var root = init.rhub ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val)) :
+                                       await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+
                 if (root == null || !root.ContainsKey("data"))
-                    return OnError(proxyManager);
+                    return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                 players = root["data"]["players"].ToObject<JArray>();
 
-                proxyManager.Success();
+                if (!init.rhub)
+                    proxyManager.Success();
+
                 memoryCache.Set(memKey, players, cacheTime(30, init: init));
             }
 
