@@ -185,6 +185,8 @@ namespace JinEnergy
 
         public static OnlinesSettings CDNmovies => conf.CDNmovies;
 
+        public static OnlinesSettings CDNvideohub => conf.CDNvideohub;
+
         public static OnlinesSettings VDBmovies => conf.VDBmovies;
 
 
@@ -201,6 +203,10 @@ namespace JinEnergy
         public static OnlinesSettings Animevost => conf.Animevost;
 
         public static OnlinesSettings AniMedia => conf.AniMedia;
+
+        public static OnlinesSettings Animebesst => conf.Animebesst;
+
+        public static OnlinesSettings AnimeLib => conf.AnimeLib;
 
         public static OnlinesSettings MoonAnime => conf.MoonAnime;
 

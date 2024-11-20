@@ -148,6 +148,8 @@ namespace JinEnergy.Online
                 send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
                 send("Animevost - 720p", "animevost", AppInit.Animevost);
                 send("AniMedia - 1080p", "animedia", AppInit.AniMedia);
+                send("Animebesst - 1080p", "animebesst", AppInit.Animebesst);
+                send("AnimeLib - 2160p", "animelib", AppInit.AnimeLib);
             }
 
             send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
@@ -192,10 +194,11 @@ namespace JinEnergy.Online
             if (serial == 0 && !isanime)
             {
                 send("iRemux - 4K HDR", "remux", AppInit.iRemux);
-                send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
 
                 if (arg.kinopoisk_id > 0)
                     send("Kinotochka - 720p", "kinotochka", AppInit.Kinotochka);
+
+                send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
             }
 
             //if (!titleSearch)
@@ -206,6 +209,8 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
+            if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
+                send("VideoHUB", "cdnvideohub", AppInit.CDNvideohub);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }
