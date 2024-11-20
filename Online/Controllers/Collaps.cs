@@ -47,8 +47,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.dash,
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl), beseheader.ToDictionary(k => k.name, v => v.val)) : 
-                                         HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, beseheader)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, beseheader)),
                onstreamtofile => init.rhub ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps", headers: beseheader),
                requesterror: () => proxyManager.Refresh()
             );

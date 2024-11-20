@@ -15,28 +15,36 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.CDNvideohub;
-            if (!init.enable)
+            if (!init.enable || init.rip)
                 return OnError();
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("cdnvideohub", init);
             var proxy = proxyManager.Get();
 
-            string memKey = $"cdnvideohub:view:{kinopoisk_id}";
+            string memKey = rch.ipkey($"cdnvideohub:view:{kinopoisk_id}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out string file))
             {
-                string embed = await HttpClient.Get($"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
+                string embed = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
-                    return OnError(proxyManager);
+                    return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                 file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
                     return OnError();
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, file.Replace("u0026", "&").Replace("\\", ""), cacheTime(20, init: init));
+                if (!init.rhub)
+                    proxyManager.Success();
+
+                file = file.Replace("u0026", "&").Replace("\\", "");
+                hybridCache.Set(memKey, file, cacheTime(init.rhub ? 5 : 20, init: init));
             }
 
             if (origsource)

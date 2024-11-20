@@ -112,6 +112,39 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region RezkaBind
+        [HttpGet]
+        [Route("/lite/rhs/bind")]
+        async public Task<ActionResult> RezkaBind(string login, string pass)
+        {
+            string html = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
+            {
+                html = "Введите данные аккаунта rezka.ag <br> <br><form method=\"get\" action=\"/lite/rhs/bind\"><input type=\"text\" name=\"login\" placeholder=\"email\"> &nbsp; &nbsp; <input type=\"text\" name=\"pass\" placeholder=\"пароль\"><br><br><button>Авторизоваться</button></form> ";
+            }
+            else
+            {
+                string cookie = await getCookie(new RezkaSettings(AppInit.conf.RezkaPrem.host) 
+                {
+                    login = login,
+                    passwd = pass
+                });
+
+                if (string.IsNullOrEmpty(cookie))
+                {
+                    html = "Ошибка авторизации ;(";
+                }
+                else
+                {
+                    html = "Добавьте в init.conf<br><br>\"RezkaPrem\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"cookie\": \"" + cookie + "\"<br>}";
+                }
+            }
+
+            return Content(html, "text/html; charset=utf-8");
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/rhsprem")]
         async public Task<ActionResult> Index(string account_email, long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
@@ -126,7 +159,7 @@ namespace Lampac.Controllers.LITE
                     return ShowError(RchClient.ErrorMsg);
 
                 if (string.IsNullOrEmpty(init.cookie))
-                    return ShowError("rhub работает через cookie");
+                    return ShowError("rhub работает через cookie - IP:9118/lite/rhs/bind");
             }
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))

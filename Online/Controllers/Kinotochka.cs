@@ -24,12 +24,13 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
+            var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("kinotochka", init);
             var proxy = proxyManager.Get();
 
@@ -46,9 +47,13 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
                     {
-                        string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        if (rch.IsNotConnected())
+                            return ContentTo(rch.connectionMsg);
+
+                        string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
+                        string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (search == null)
-                            return OnError(proxyManager);
+                            return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                         links = new List<(string, string, string)>();
 
@@ -90,17 +95,20 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:playlist:{newsuri}";
                     if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        string news = await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                        if (rch.IsNotConnected())
+                            return ContentTo(rch.connectionMsg);
+
+                        string news = init.rhub ? await rch.Get(newsuri) : await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (news == null)
-                            return OnError(proxyManager);
+                            return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                         string filetxt = Regex.Match(news, "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
                         if (string.IsNullOrEmpty(filetxt))
                             return OnError();
 
-                        var root = await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                        var root = init.rhub ? await rch.Get<JObject>(filetxt) : await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (root == null)
-                            return OnError(proxyManager);
+                            return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                         var playlist = root.Value<JArray>("playlist");
                         if (playlist == null)
@@ -146,9 +154,13 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!hybridCache.TryGetValue(memKey, out string file))
                 {
-                    string embed = await HttpClient.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                    if (rch.IsNotConnected())
+                        return ContentTo(rch.connectionMsg);
+
+                    string uri = $"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}";
+                    string embed = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                     if (embed == null)
-                        return OnError(proxyManager);
+                        return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                     file = Regex.Match(embed, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(file))

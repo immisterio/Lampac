@@ -24,11 +24,13 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
+
+            var rch = new RchClient(HttpContext, host, init.rhub);
 
             if (string.IsNullOrWhiteSpace(uri))
             {
@@ -36,9 +38,13 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animebesst:search:{title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
-                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    if (rch.IsNotConnected())
+                        return ContentTo(rch.connectionMsg);
+
+                    string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
+                    string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
-                        return OnError(proxyManager);
+                        return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                     catalog = new List<(string title, string year, string uri, string s)>();
 
@@ -67,7 +73,9 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0 && !search.Contains(">Поиск по сайту<"))
                         return OnError();
 
-                    proxyManager.Success();
+                    if (!init.rhub)
+                        proxyManager.Success();
+
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
@@ -91,9 +99,12 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animebesst:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
-                    string news = await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    if (rch.IsNotConnected())
+                        return ContentTo(rch.connectionMsg);
+
+                    string news = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
-                        return OnError(proxyManager);
+                        return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                     string videoList = Regex.Match(news, "var videoList ?=([^\n\r]+)").Groups[1].Value.Trim();
                     if (string.IsNullOrEmpty(videoList))
@@ -112,7 +123,9 @@ namespace Lampac.Controllers.LITE
                     if (links.Count == 0)
                         return OnError();
 
-                    proxyManager.Success();
+                    if (!init.rhub)
+                        proxyManager.Success();
+
                     hybridCache.Set(memKey, links, cacheTime(30, init: init));
                 }
 
@@ -147,15 +160,31 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animebesst:video:{uri}";
             if (!hybridCache.TryGetValue(memKey, out string hls))
             {
-                string iframe = await HttpClient.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
+                var rch = new RchClient(HttpContext, host, init.rhub);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string iframe;
+                if (init.rhub)
+                {
+                    iframe = await rch.Get(init.cors($"https://{uri}"), headers: new Dictionary<string, string>() { ["referer"] = init.host });
+                }
+                else
+                {
+                    iframe = await HttpClient.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
+                }
+
                 if (iframe == null)
-                    return OnError(proxyManager);
+                    return OnError(proxyManager, refresh_proxy: !init.rhub);
 
                 hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
                     return OnError();
 
-                proxyManager.Success();
+                if (!init.rhub)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, hls, cacheTime(30, init: init));
             }
 
