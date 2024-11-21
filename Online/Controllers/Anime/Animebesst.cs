@@ -38,8 +38,8 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animebesst:search:{title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
-                    if (rchtype != "apk")
-                        return ShowError(RchClient.ErrorType(rchtype));
+                    if (rch.IsNotSupport(rchtype, "cors,web", out string rch_error))
+                        return ShowError(rch_error);
 
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -102,8 +102,8 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animebesst:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
                 {
-                    if (rchtype != "apk")
-                        return ShowError(RchClient.ErrorType(rchtype));
+                    if (rch.IsNotSupport(rchtype, "cors,web", out string rch_error))
+                        return ShowError(rch_error);
 
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);

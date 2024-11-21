@@ -413,12 +413,12 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0)
             {
                 send("VideoDB", conf.VideoDB);
+                send("Lumex", conf.Lumex, "lumex");
 
                 if (AppInit.conf.puppeteer.enable)
                 {
                     send("VDBmovies", conf.VDBmovies);
                     send("Zetflix", conf.Zetflix);
-                    send("Lumex", conf.Lumex, "lumex");
                 }
             }
 

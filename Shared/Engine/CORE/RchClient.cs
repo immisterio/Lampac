@@ -151,5 +151,25 @@ namespace Lampac.Engine.CORE
             return !clients.Values.Contains(ip);
         }
         #endregion
+
+        #region IsNotSupport
+        public bool IsNotSupport(string rchtype, string rch_deny, out string rch_msg)
+        {
+            rch_msg = null;
+
+            if (!enableRhub)
+                return false; // rch не используется
+
+            if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
+                rch_msg = "На MSX недоступно";
+            else
+                rch_msg = "Только на android";
+
+            if (string.IsNullOrEmpty(rchtype))
+                return true;
+
+            return rch_deny.Contains(rchtype);
+        }
+        #endregion
     }
 }
