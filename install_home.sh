@@ -46,6 +46,10 @@ cat <<EOF > $DEST/init.conf
   },
   "serverproxy": {
     "verifyip": false,
+    "cache": {
+      "img": false,
+      "img_rsize": false
+    },
     "buffering": {
       "enable": false
     }
