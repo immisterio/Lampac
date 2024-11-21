@@ -44,6 +44,22 @@ namespace JinEnergy
 
             timer.AutoReset = true;
             timer.Enabled = true;
+
+            try
+            {
+                if (JSRuntime != null)
+                {
+                    string? result = await JSRuntime.InvokeAsync<string?>("httpReq", "https://github.com/", false, new
+                    {
+                        dataType = "text",
+                        timeout = 5 * 1000,
+                        returnHeaders = true
+                    });
+
+                    IsWorkReturnHeaders = result != null && result.Contains("currentUrl");
+                }
+            }
+            catch { }
         }
         #endregion
 
@@ -121,6 +137,8 @@ namespace JinEnergy
 
 
         public static bool IsAndrod { get; private set; }
+
+        public static bool IsWorkReturnHeaders { get; private set; }
 
         public static bool IsDefaultConf { get; private set; } = true;
 

@@ -22,7 +22,7 @@ curl -L -k -s https://lampac.sh | bash
 3. Запустить Lampac.exe
 
 # Запуск в Android
-1. BwaJS - https://bwa.to
+1. BWA - https://bwa.to
 2. Termux - https://github.com/bbk14/TermuxDebian/blob/main/README.md
 
 # Плагины для Lampa
