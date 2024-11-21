@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"animevost:search:{title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
                 {
-                    if (rchtype == "web")
+                    if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                         return ShowError(RchClient.ErrorType(rchtype));
 
                     if (rch.IsNotConnected())
@@ -95,7 +95,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"animevost:playlist:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string episode, string id)> links))
                 {
-                    if (rchtype == "web")
+                    if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                         return ShowError(RchClient.ErrorType(rchtype));
 
                     if (rch.IsNotConnected())

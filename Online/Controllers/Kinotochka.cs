@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:seasons:{title}";
                     if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
                     {
-                        if (rchtype == "web")
+                        if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                             return ShowError(RchClient.ErrorType(rchtype));
 
                         if (rch.IsNotConnected())
@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                     string memKey = $"kinotochka:playlist:{newsuri}";
                     if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
                     {
-                        if (rchtype == "web")
+                        if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                             return ShowError(RchClient.ErrorType(rchtype));
 
                         if (rch.IsNotConnected())
@@ -160,7 +160,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"kinotochka:view:{kinopoisk_id}";
                 if (!hybridCache.TryGetValue(memKey, out string file))
                 {
-                    if (rchtype == "web")
+                    if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                         return ShowError(RchClient.ErrorType(rchtype));
 
                     if (rch.IsNotConnected())

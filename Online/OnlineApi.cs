@@ -18,6 +18,7 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
+using System.Data;
 
 namespace Lampac.Controllers
 {
@@ -277,12 +278,15 @@ namespace Lampac.Controllers
         #region events
         [HttpGet]
         [Route("lifeevents")]
-        public ActionResult LifeEvents(long id, string imdb_id, long kinopoisk_id, int serial, string source)
+        public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial, string source)
         {
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
-            if (memoryCache.TryGetValue(checkOnlineSearchKey(id, source), out (bool ready, int tasks, string online) res))
+            if (string.IsNullOrEmpty(memkey))
+                memkey = checkOnlineSearchKey(id, source);
+
+            if (memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) res))
             {
                 if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
                 {
@@ -302,7 +306,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, bool islite = false, string account_email = null)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null)
         {
             var online = new List<(string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
@@ -336,9 +340,17 @@ namespace Lampac.Controllers
                 }
             }
 
-            void send(string name, BaseSettings init, string plugin = null, string arg_title = null, string arg_url = null)
+            void send(string name, BaseSettings init, string plugin = null, string arg_title = null, string arg_url = null, string rch_access = null)
             {
-                if (init.enable && !init.rip)
+                bool enable = init.enable && !init.rip;
+
+                if (init.rhub)
+                {
+                    if (rch_access != null && rchtype != null) // null == all
+                        enable = rch_access.Contains(rchtype);
+                }
+
+                if (enable)
                 {
                     string url = init.overridehost;
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
@@ -379,9 +391,9 @@ namespace Lampac.Controllers
             {
                 send("Anilibria", conf.AnilibriaOnline);
                 send("AnimeLib", conf.AnimeLib);
-                send("Animevost", conf.Animevost);
+                send("Animevost", conf.Animevost, rch_access: "apk,cors");
                 send("MoonAnime (Украинский)", conf.MoonAnime, "moonanime");
-                send("Animebesst", conf.Animebesst);
+                send("Animebesst", conf.Animebesst, rch_access: "apk");
                 send("AnimeGo", conf.AnimeGo);
                 send("AniMedia", conf.AniMedia);
             }
@@ -433,19 +445,19 @@ namespace Lampac.Controllers
             send("Eneyida (Украинский)", conf.Eneyida, "eneyida");
 
             if (!isanime)
-                send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr");
+                send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr", rch_access: "apk,cors");
 
             if (AppInit.conf.Collaps.two)
                 send("Collaps", conf.Collaps, "collaps-dash");
             send("Collaps", conf.Collaps);
 
             if (serial == -1 || serial == 0)
-                send("Redheadsound", conf.Redheadsound);
+                send("Redheadsound", conf.Redheadsound, rch_access: "apk,cors");
 
             if (kinopoisk_id > 0)
                 send("HDVB", conf.HDVB);
 
-            send("Kinotochka", conf.Kinotochka);
+            send("Kinotochka", conf.Kinotochka, rch_access: "apk,cors");
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
                 send("CDNmovies", conf.CDNmovies);
@@ -471,7 +483,7 @@ namespace Lampac.Controllers
 
             if (chos)
             {
-                string memkey = checkOnlineSearchKey(id, source);
+                string memkey = checkOnlineSearchKey(id, source, online.Count);
                 if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
                 {
                     memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
@@ -480,10 +492,10 @@ namespace Lampac.Controllers
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
                     foreach (var o in online)
-                        tasks.Add(checkSearch(links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
+                        tasks.Add(checkSearch(memkey, links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
 
                     if (life)
-                        return Content("{\"life\":true}", contentType: "application/javascript; charset=utf-8");
+                        return Json(new { life = true, memkey });
 
                     await Task.WhenAll(tasks);
 
@@ -495,7 +507,7 @@ namespace Lampac.Controllers
                 }
 
                 if (life)
-                    return Content("{\"life\":true}", contentType: "application/javascript; charset=utf-8");
+                    return Json(new { life = true, memkey });
 
                 return Content($"[{cache.online.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
             }
@@ -508,9 +520,9 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        static string checkOnlineSearchKey(long id, string source) => $"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}";
+        static string checkOnlineSearchKey(long id, string source, int count = 0) => CrypTo.md5($"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{count}");
 
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
+        async Task checkSearch(string memkey, ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
             string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
@@ -637,7 +649,7 @@ namespace Lampac.Controllers
 
             links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
 
-            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
+            memoryCache.Set(memkey, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
         }
         #endregion
     }

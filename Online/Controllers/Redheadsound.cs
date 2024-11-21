@@ -44,7 +44,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), proxyManager, async res =>
             {
-                if (rchtype == "web")
+                if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                     return ShowError(RchClient.ErrorType(rchtype));
 
                 if (rch.IsNotConnected())

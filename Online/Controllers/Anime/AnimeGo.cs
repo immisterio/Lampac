@@ -29,6 +29,9 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
+            if (init.rhub)
+                return ShowError(RchClient.ErrorMsg);
+
             if (pid == 0)
             {
                 #region Поиск

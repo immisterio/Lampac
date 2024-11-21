@@ -24,9 +24,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "124";
+        public static string appversion => "125";
 
-        public static string minorversion => "9";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 

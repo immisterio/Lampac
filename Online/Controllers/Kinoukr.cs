@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
             {
-                if (rchtype == "web")
+                if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                     return ShowError(RchClient.ErrorType(rchtype));
 
                 if (rch.IsNotConnected())
