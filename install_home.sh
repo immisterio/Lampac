@@ -41,11 +41,14 @@ cat <<EOF > $DEST/init.conf
   "ffprobe": {
     "enable": false
   },
+  "weblog": {
+    "enable": false
+  },
   "serverproxy": {
-	"verifyip": false,
-	"buffering": {
-	  "enable": false
-	}
+    "verifyip": false,
+    "buffering": {
+      "enable": false
+    }
   }
 }
 EOF
