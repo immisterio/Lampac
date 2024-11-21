@@ -5,7 +5,7 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 ```
 docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
-tags: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
+__tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 
 # Установка на linux
 спасибо @nikk, @Denis
