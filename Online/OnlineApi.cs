@@ -484,9 +484,12 @@ namespace Lampac.Controllers
             if (chos)
             {
                 string memkey = checkOnlineSearchKey(id, source, online.Count);
-                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
+                string memkey_old = checkOnlineSearchKey(id, source);
+
+                if ((!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) && !memoryCache.TryGetValue(memkey_old, out cache)) || !conf.multiaccess)
                 {
                     memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
+                    memoryCache.Set(memkey_old, cache, DateTime.Now.AddSeconds(20));
 
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
@@ -504,6 +507,7 @@ namespace Lampac.Controllers
                     cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
 
                     memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(5));
+                    memoryCache.Set(memkey_old, cache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (life)
@@ -649,7 +653,8 @@ namespace Lampac.Controllers
 
             links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
 
-            memoryCache.Set(memkey, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
+            foreach (string key in new string[] { memkey, checkOnlineSearchKey(id, source) })
+                memoryCache.Set(key, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
         }
         #endregion
     }
