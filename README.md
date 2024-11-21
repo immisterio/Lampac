@@ -16,6 +16,14 @@ curl -L -k -s https://lampac.sh | bash
 * Изменить или посмотреть порт можно в init.conf - 
 ```grep "listenport" /home/lampac/init.conf```
 
+# Домашняя - linux
+```
+curl -L -k -s https://lampac.sh/home | bash
+```
+* 84Mb RAM, 200Mb HDD, 50 пользователей
+* DLNA по умолчанию отключен, включается в init.conf
+* TorrServer по умолчанию отключен, включается в module/manifest.json
+
 # Установка на Windows
 1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md
 2. Распаковать https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
