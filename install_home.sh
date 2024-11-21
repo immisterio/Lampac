@@ -51,7 +51,27 @@ cat <<EOF > $DEST/init.conf
 EOF
 
 # manifest.json
-echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"dll":"DLNA.dll"}]' > $DEST/module/manifest.json
+cat <<EOF > $DEST/module/manifest.json
+[
+  {
+    "enable": true,
+    "dll": "SISI.dll"
+  },
+  {
+    "enable": true,
+    "dll": "Online.dll"
+  },
+  {
+    "enable": true,
+    "dll": "DLNA.dll"
+  },
+  {
+    "enable": false,
+    "initspace": "TorrServer.ModInit",
+    "dll": "TorrServer.dll"
+  }
+]
+EOF
 
 # Lampac.runtimeconfig.json
 cat <<EOF > $DEST/Lampac.runtimeconfig.json
@@ -108,7 +128,7 @@ echo -n "1" > $DEST/vers-minor.txt
 
 # clear
 cd $DEST
-rm -rf merchant torrserver
+rm -rf merchant wwwroot/bwa
 rm -rf runtimes/wi*
 rm -rf runtimes/os*
 rm -rf runtimes/linux-m*
