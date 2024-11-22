@@ -17,15 +17,12 @@ chmod 755 dotnet-install.sh
 ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 rm dotnet-install.sh
 
-# Clean packages cache
-apt-get clean && rm -rf /var/lib/apt/lists/*
-
 # Download zip
 curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 unzip -o publish.zip
 rm -f publish.zip
 
-echo -n "admin" > passwd
+echo -n "termux" > passwd
 
 # init.conf
 cat <<EOF > init.conf
@@ -108,6 +105,78 @@ rm -rf runtimes/os*
 rm -rf runtimes/linux-m*
 rm -rf runtimes/linux-arm
 rm -rf runtimes/linux-x64
+
+# update info
+curl -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > vers.txt
+echo -n "1" > vers-minor.txt
+
+# update.sh
+cat <<EOF > update.sh
+#!/usr/bin/env bash
+
+ver=$(cat vers.txt)
+gitver=$(curl --connect-timeout 10 -m 20 -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g)
+if [ $gitver -gt $ver ]; then
+    echo "update lampac to version $gitver"
+    rm -f update.zip
+    if ! curl -L -k -o update.zip https://github.com/immisterio/Lampac/releases/latest/download/update.zip; then
+        echo "Failed to download update.zip. Exiting."
+        exit 1
+    fi
+    if ! unzip -t update.zip; then
+        echo "Failed to test update.zip. Exiting."
+        exit 1
+    fi
+    unzip -o update.zip
+    rm -f update.zip
+    echo -n $gitver > vers.txt
+else
+    check_ping() {
+        response=$(curl --connect-timeout 5 -m 10 -k -s "$1/ping")
+        if [[ "$response" == *"pong"* ]]; then
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    if check_ping "http://noah.lampac.sh"; then
+        BASE_URL="http://noah.lampac.sh"
+    elif check_ping "https://lampac.sh"; then
+        BASE_URL="https://lampac.sh"
+    else
+        echo "minor updates are not available"
+        exit 1
+    fi
+
+    mver=$(cat vers-minor.txt)
+    dver=$(curl -k -s $BASE_URL/update/$ver.txt)
+	
+    if [[ ${#dver} -eq 8 && $dver != $mver ]]; then
+        echo "update lampac to version $gitver.$mver"
+        rm -f update.zip
+        if ! curl -L -k -o update.zip "$BASE_URL/update/$dver.zip"; then
+            echo "Failed to download update.zip. Exiting."
+            exit 1
+        fi
+        if ! unzip -t update.zip; then
+            echo "Failed to test update.zip. Exiting."
+            exit 1
+        fi
+        unzip -o update.zip
+        rm -f update.zip
+        echo -n $dver > vers-minor.txt
+    else
+        echo "lampac already current version $ver"
+    fi
+fi
+EOF
+
+# update minor
+/bin/bash update.sh
+
+# Clean packages cache
+apt-get clean && rm -rf /var/lib/apt/lists/*
 
 #exit from Debian
 exit
