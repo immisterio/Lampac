@@ -92,7 +92,7 @@ cat <<EOF > Lampac.runtimeconfig.json
       "System.GC.Server": false,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 50000000
+      "System.GC.HeapHardLimit": 83886080
     }
   }
 }
@@ -181,8 +181,36 @@ apt-get clean && rm -rf /var/lib/apt/lists/*
 #exit from Debian
 exit
 
+cat <<EOF > start.sh
+#!/bin/bash
+
+tmux new-session -d -s Lampac "proot-distro login debian -- dotnet Lampac.dll"
+EOF
+
+cat <<EOF > stop.sh
+#!/bin/bash
+
+tmux kill-session -a -t Lampac
+EOF
+
+cat <<EOF > restart.sh
+#!/bin/bash
+
+bash stop.sh
+bash start.sh
+EOF
+
+cat <<EOF > update.sh
+#!/bin/bash
+
+proot-distro login debian
+bash update.sh
+exit
+EOF
+
+# Run Motherfucker Run 
 ln -s /data/data/com.termux/files/usr/var/lib/proot-distro/installed-rootfs/debian/ debian
-tmux new-session -d -s Lampac "proot-distro login debian -- dotnet Lampac.dll"'
+tmux new-session -d -s Lampac "proot-distro login debian -- dotnet Lampac.dll"
 
 # Note
 echo ""
