@@ -30,8 +30,8 @@ curl -L -k -s https://lampac.sh/home | bash
 3. Запустить Lampac.exe
 
 # Запуск в Android
-1. BWA - https://bwa.to
-2. Termux - https://github.com/bbk14/TermuxDebian/blob/main/README.md
+1. Termux - https://github.com/immisterio/Lampac/blob/main/Termux/README.md
+2. BWA - https://bwa.to
 
 # Плагины для Lampa
 1. онлайн   - "http://IP:9118/online.js"
