@@ -38,9 +38,6 @@ cat <<EOF > $DEST/init.conf
     "enable": false,
     "autoupdatetrackers": false
   },
-  "ffprobe": {
-    "enable": false
-  },
   "weblog": {
     "enable": false
   },
@@ -99,8 +96,7 @@ cat <<EOF > $DEST/Lampac.runtimeconfig.json
       "System.GC.Server": false,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 83886080,
-      "System.GC.HeapCount": 10
+      "System.GC.HeapHardLimit": 83886080
     }
   }
 }
