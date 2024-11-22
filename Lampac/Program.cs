@@ -36,6 +36,7 @@ namespace Lampac
             }) + "\n");
 
             
+            if (!AppInit.conf.mikrotik) 
             {
                 ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
                 ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));

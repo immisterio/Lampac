@@ -13,6 +13,12 @@ namespace Lampac.Controllers
         [Route("admin/auth")]
         public ActionResult Authorization([FromForm]string parol)
         {
+			if (IO.File.ReadAllText("passwd") == "termux")
+			{
+                HttpContext.Response.Cookies.Append("passwd", parol.Trim());
+                return Redirect("/admin/init");
+            }
+
             if (!string.IsNullOrEmpty(parol) && IO.File.ReadAllText("passwd") == parol.Trim())
 			{
 				HttpContext.Response.Cookies.Append("passwd", parol.Trim());

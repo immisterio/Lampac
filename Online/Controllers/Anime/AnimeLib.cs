@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animelib")]
-        async public Task<ActionResult> Index(string account_email, string title, int year, string uri, string t, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
             var init = AppInit.conf.AnimeLib;
 
@@ -56,20 +56,32 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrWhiteSpace(title) || year == 0)
                     return OnError();
 
-                string memkey = $"animelib:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri)> catalog))
+                string memkey = $"animelib:search:{title}:{original_title}";
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, bool coincidence)> catalog))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
-                    string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(title)}";
-                    var search = init.rhub ? await rch.Get<JObject>(req_uri, rheader) :
-                                             await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    async ValueTask<JObject> goSearch(string q)
+                    {
+                        if (string.IsNullOrEmpty(q))
+                            return null;
 
-                    if (search == null || !search.ContainsKey("data"))
+                        string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
+                        var result = init.rhub ? await rch.Get<JObject>(req_uri, rheader) :
+                                                 await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+
+                        if (result == null || !result.ContainsKey("data"))
+                            return null;
+
+                        return result;
+                    }
+
+                    var search = await goSearch(original_title) ?? await goSearch(title);
+                    if (search == null)
                         return OnError(proxyManager, refresh_proxy: !init.rhub);
 
-                    catalog = new List<(string title, string year, string uri)>();
+                    catalog = new List<(string title, string year, string uri, bool coincidence)>();
 
                     foreach (var anime in search["data"])
                     {
@@ -78,14 +90,18 @@ namespace Lampac.Controllers.LITE
                         string slug_url = anime.Value<string>("slug_url");
                         string releaseDate = anime.Value<string>("releaseDate");
 
-                        if (string.IsNullOrEmpty(slug_url) || string.IsNullOrEmpty(releaseDate))
+                        if (string.IsNullOrEmpty(slug_url))
                             continue;
+
+                        var model = ($"{rus_name} / {eng_name}", (releaseDate != null ? releaseDate.Split("-")[0] : "0"), slug_url, false);
 
                         if (StringConvert.SearchName(title) == StringConvert.SearchName(rus_name) || StringConvert.SearchName(title) == StringConvert.SearchName(eng_name))
                         {
-                            if (releaseDate.StartsWith(year.ToString()))
-                                catalog.Add(($"{rus_name} / {eng_name}", releaseDate.Split("-")[0], slug_url));
+                            if (!string.IsNullOrEmpty(releaseDate) && releaseDate.StartsWith(year.ToString()))
+                                model.Item4 = true;
                         }
+
+                        catalog.Add(model);
                     }
 
                     if (catalog.Count == 0)
@@ -97,8 +113,8 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
-                if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&account_email={HttpUtility.UrlEncode(account_email)}");
+                if (catalog.Where(i => i.coincidence).Count() == 1)
+                    return LocalRedirect($"/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog.First(i => i.coincidence).uri)}&account_email={HttpUtility.UrlEncode(account_email)}");
 
                 var stpl = new SimilarTpl(catalog.Count);
 
