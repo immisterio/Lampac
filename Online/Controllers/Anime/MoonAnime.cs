@@ -207,6 +207,25 @@ namespace Lampac.Controllers.LITE
             string memKey = $"moonanime:vod:{vod}";
             if (!hybridCache.TryGetValue(memKey, out (string file, string subtitle) cache))
             {
+                #region stats
+                _ = await HttpClient.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{vod}?player=partner\",\"player\":\"{vod}?player=partner\",\"view\":1}}", timeoutSeconds: 4, httpversion: 2, proxy: proxyManager.Get(), headers: HeadersModel.Init(
+                    ("accept", "*/*"),
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("origin", CrypTo.DecodeBase64("aHR0cDovL2xhbXBhLm14")),
+                    ("pragma", "no-cache"),
+                    ("priority", "u=1, i"),
+                    ("referer", vod),
+                    ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                ));
+                #endregion
+
                 string iframe = await HttpClient.Get(vod + "?player=partner", timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -247,7 +266,7 @@ namespace Lampac.Controllers.LITE
                 ("accept", "*/*"),
                 ("accept-language", "ru,en;q=0.9,en-GB;q=0.8,en-US;q=0.7"),
                 ("dnt", "1"),
-                ("origin", "https://anitube.in.ua"),
+                ("origin", CrypTo.DecodeBase64("aHR0cDovL2xhbXBhLm14")),
                 ("priority", "u=1, i"),
                 ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Microsoft Edge\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
                 ("sec-ch-ua-mobile", "?0"),
