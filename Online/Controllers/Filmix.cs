@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init.rhub);
             var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();
 
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.LITE
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
             #region filmix.tv
-            if (!string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))
+            if (!init.rhub && !string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))
             {
                 string accessToken = await InvokeCache("filmix:accessToken", TimeSpan.FromHours(8), async () => 
                 {
@@ -130,6 +130,9 @@ namespace Lampac.Controllers.LITE
 
                 return await oninvk.Post(postid);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s), origsource: origsource);
         }

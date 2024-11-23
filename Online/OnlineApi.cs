@@ -358,7 +358,7 @@ namespace Lampac.Controllers
                 {
                     if (AppInit.conf.accsdb.enable)
                     {
-                        if (user == null || init.group > user.group)
+                        if (user == null || (init.group > user.group && init.group_hide))
                             return;
                     }
 

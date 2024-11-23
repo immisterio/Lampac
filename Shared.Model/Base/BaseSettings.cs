@@ -8,6 +8,8 @@ namespace Shared.Model.Base
 
         public int group { get; set; }
 
+        public bool group_hide { get; set; } = true;
+
         public bool rhub { get; set; }
 
         public bool rhub_fallback { get; set; }

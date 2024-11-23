@@ -1,6 +1,7 @@
 ﻿using JinEnergy.Engine;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
+using Shared.Model.Online;
 
 namespace JinEnergy.Online
 {
@@ -22,13 +23,17 @@ namespace JinEnergy.Online
             int? s = parse_arg("s", args) != null ? int.Parse(parse_arg("s", args)!) : null;
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
 
+            var apk_headers = httpHeaders(args, init, HeadersModel.Init(
+                ("Accept-Encoding", "gzip")
+            ));
+
             var oninvk = new FilmixInvoke
             (
                null,
                init.corsHost(),
                init.token,
-               ongettourl => JsHttpClient.Get(init.cors(ongettourl), httpHeaders(args, init), useDefaultHeaders: false),
-               (url, data, head) => JsHttpClient.Post(init.cors(url), data, httpHeaders(args, init, head), useDefaultHeaders: false),
+               ongettourl => JsHttpClient.Get(init.cors(ongettourl), apk_headers, useDefaultHeaders: false),
+               (url, data, head) => JsHttpClient.Post(init.cors(url), data, head != null ? head : apk_headers, useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, streamfile)
             );
 
