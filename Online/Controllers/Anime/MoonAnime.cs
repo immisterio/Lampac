@@ -207,26 +207,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"moonanime:vod:{vod}";
             if (!hybridCache.TryGetValue(memKey, out (string file, string subtitle) cache))
             {
-                #region stats
-                _ = await HttpClient.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{vod}?player=partner\",\"player\":\"{vod}?player=partner\",\"view\":1}}", timeoutSeconds: 4, httpversion: 2, proxy: proxyManager.Get(), headers: HeadersModel.Init(
-                    ("accept", "*/*"),
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("origin", CrypTo.DecodeBase64("aHR0cDovL2xhbXBhLm14")),
-                    ("pragma", "no-cache"),
-                    ("priority", "u=1, i"),
-                    ("referer", vod),
-                    ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-                ));
-                #endregion
-
-                string iframe = await HttpClient.Get(vod + "?player=partner", timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
+                string iframe = await HttpClient.Get(vod + "?partner=lampa", timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -249,6 +230,25 @@ namespace Lampac.Controllers.LITE
                 cache.file = Regex.Match(iframe, "file: ?\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(cache.file))
                     return OnError();
+
+                #region stats
+                _ = await HttpClient.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, proxy: proxyManager.Get(), headers: HeadersModel.Init(
+                    ("accept", "*/*"),
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("origin", CrypTo.DecodeBase64("aHR0cDovL2xhbXBhLm14")),
+                    ("pragma", "no-cache"),
+                    ("priority", "u=1, i"),
+                    ("referer", vod),
+                    ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                ));
+                #endregion
 
                 cache.subtitle = Regex.Match(iframe, "subtitle: ?\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(cache.subtitle) || cache.subtitle == "null")
