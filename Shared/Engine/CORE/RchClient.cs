@@ -123,7 +123,25 @@ namespace Lampac.Engine.CORE
                 var tcs = new TaskCompletionSource<string>();
                 rchIds.TryAdd(rchId, tcs);
 
-                hub.Invoke(null, (connectionId, rchId, url, data, headers));
+                var send_headers = !useDefaultHeaders ? null : new Dictionary<string, string>() 
+                {
+                    { "Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" },
+                    { "User-Agent", HttpClient.UserAgent }
+                };
+
+                if (headers != null)
+                {
+                    if (send_headers == null)
+                        send_headers = new Dictionary<string, string>();
+
+                    foreach (var h in headers)
+                    {
+                        if (!send_headers.ContainsKey(h.Key))
+                            send_headers.TryAdd(h.Key, h.Value);
+                    }
+                }
+
+                hub.Invoke(null, (connectionId, rchId, url, data, send_headers));
 
                 string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(20));
                 rchIds.TryRemove(rchId, out _);
