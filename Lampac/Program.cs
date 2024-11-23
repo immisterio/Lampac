@@ -13,6 +13,9 @@ using PuppeteerSharp;
 using Shared.Engine;
 using Lampac.Engine;
 using Microsoft.AspNetCore.SignalR;
+using Shared.Model.Online;
+using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 
 namespace Lampac
 {
@@ -78,6 +81,71 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
+
+            #region tmdb proxy
+            var tmdb = AppInit.conf.serverproxy.tmdb;
+            if (!tmdb.useproxy && string.IsNullOrWhiteSpace(tmdb.API_IP))
+            {
+                ThreadPool.QueueUserWorkItem(async _ =>
+                {
+                    if (await HttpClient.Get(CrypTo.DecodeBase64("aHR0cDovL2dlby5jdWIucmVkLw=="), timeoutSeconds: 10) == "RU")
+                    {
+                        #region api.themoviedb.org
+                        string uri = "https://api.themoviedb.org/3/movie/1079091?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=content_ratings,release_dates,keywords,alternative_titles&language=ru";
+                        string json = await HttpClient.Get(uri, timeoutSeconds: 10);
+                        if (json == null || !json.Contains("1079091"))
+                        {
+                            var dnsquery = await HttpClient.Get<JObject>("https://dns.quad9.net:5053/dns-query?name=api.themoviedb.org");
+                            if (dnsquery != null && dnsquery.ContainsKey("Answer"))
+                            {
+                                foreach (var dns in dnsquery["Answer"])
+                                {
+                                    string ip = dns.Value<string>("data");
+                                    if (!string.IsNullOrEmpty(ip) && Regex.IsMatch(ip, "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                                    {
+                                        json = await HttpClient.Get(uri, timeoutSeconds: 10, headers: HeadersModel.Init("Host", "api.themoviedb.org"));
+                                        if (json == null || !json.Contains("1079091"))
+                                            continue;
+
+                                        tmdb.API_IP = ip;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        #endregion
+
+                        if (string.IsNullOrEmpty(tmdb.API_IP))
+                            return;
+
+                        #region image.tmdb.org
+                        uri = "http://image.tmdb.org/t/p/w300/54U26SA33pxxJ2lf5mRxWeqRTLu.jpg";
+                        byte[] img = await HttpClient.Download(uri, timeoutSeconds: 10, headers: HeadersModel.Init("Host", "image.tmdb.org"));
+                        if (img == null || img.Length != 13160)
+                        {
+                            var dnsquery = await HttpClient.Get<JObject>("https://dns.quad9.net:5053/dns-query?name=image.tmdb.org");
+                            if (dnsquery != null && dnsquery.ContainsKey("Answer"))
+                            {
+                                foreach (var dns in dnsquery["Answer"])
+                                {
+                                    string ip = dns.Value<string>("data");
+                                    if (!string.IsNullOrEmpty(ip) && Regex.IsMatch(ip, "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                                    {
+                                        img = await HttpClient.Download(uri, timeoutSeconds: 10, headers: HeadersModel.Init("Host", "image.tmdb.org"));
+                                        if (img == null || img.Length != 13160)
+                                            continue;
+
+                                        tmdb.API_IP = ip;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        #endregion
+                    }
+                });
+            }
+            #endregion
 
             while (_reload)
             {
