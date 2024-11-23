@@ -23,6 +23,9 @@ namespace Lampac.Controllers.Xvideos
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
@@ -61,6 +64,9 @@ namespace Lampac.Controllers.Xvideos
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);

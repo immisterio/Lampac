@@ -162,6 +162,9 @@ namespace Lampac.Controllers.LITE
                     return ShowError("rhub работает через cookie - IP:9118/lite/rhs/bind");
             }
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
 
@@ -183,7 +186,7 @@ namespace Lampac.Controllers.LITE
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg ?? "content = null", proxyManager, weblog: oninvk.requestlog);
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson).Replace("/rezka", "/rhsprem"));
+            return OnResult(cache, () => oninvk.Html(cache.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !init.rhub, rjson).Replace("/rezka", "/rhsprem"));
         }
 
 
@@ -195,6 +198,9 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.RezkaPrem;
             if (!init.enable || init.rip)
                 return OnError("disabled");
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
@@ -227,7 +233,7 @@ namespace Lampac.Controllers.LITE
             if (!cache_content.IsSuccess)
                 return OnError(cache_content.ErrorMsg ?? "content = null", weblog: oninvk.requestlog);
 
-            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson).Replace("/rezka", "/rhsprem"));
+            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !init.rhub, rjson).Replace("/rezka", "/rhsprem"));
         }
         #endregion
 
@@ -240,6 +246,9 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.RezkaPrem;
             if (!init.enable || init.rip)
                 return OnError("disabled");
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var oninvk = await InitRezkaInvoke();
             if (oninvk == null)

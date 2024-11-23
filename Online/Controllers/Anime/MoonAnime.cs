@@ -30,6 +30,9 @@ namespace Lampac.Controllers.LITE
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
@@ -195,9 +198,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
             var init = AppInit.conf.MoonAnime;
-
             if (!init.enable || string.IsNullOrEmpty(init.token))
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             string memKey = $"moonanime:vod:{vod}";
             if (!hybridCache.TryGetValue(memKey, out (string file, string subtitle) cache))

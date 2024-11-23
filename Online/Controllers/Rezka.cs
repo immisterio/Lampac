@@ -71,6 +71,9 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
@@ -81,7 +84,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson));
+            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !init.rhub, rjson));
         }
 
 
@@ -93,6 +96,9 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.Rezka;
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
@@ -108,7 +114,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError();
 
-            return ContentTo(oninvk.Serial(root, content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson));
+            return ContentTo(oninvk.Serial(root, content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !init.rhub, rjson));
         }
         #endregion
 
@@ -121,6 +127,9 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.Rezka;
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);

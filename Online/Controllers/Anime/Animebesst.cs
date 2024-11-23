@@ -20,12 +20,14 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, string account_email, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst;
-
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -142,9 +144,10 @@ namespace Lampac.Controllers.LITE
                     string name = string.IsNullOrEmpty(l.name) ? $"{l.episode} серия" : $"{l.episode} {l.name}";
                     string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
 
-                    string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&account_email={HttpUtility.UrlEncode(account_email)}";
+                    string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}&account_email={HttpUtility.UrlEncode(account_email)}";
+                    string streamlink = init.rhub ? null : $"{link}&play=true";
 
-                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, voice_name: Regex.Unescape(voice_name));
+                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: streamlink, voice_name: Regex.Unescape(voice_name));
                 }
 
                 return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -156,7 +159,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animebesst/video.m3u8")]
-        async public Task<ActionResult> Video(string uri)
+        async public Task<ActionResult> Video(string uri, string title, bool play)
         {
             var init = AppInit.conf.Animebesst;
 
@@ -194,7 +197,12 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, hls, cacheTime(30, init: init));
             }
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animebesst"));
+            string link = HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animebesst");
+
+            if (play)
+                return Redirect(link);
+
+            return Content("{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}", "application/json; charset=utf-8");
         }
         #endregion
     }

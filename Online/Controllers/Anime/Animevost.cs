@@ -27,6 +27,9 @@ namespace Lampac.Controllers.LITE
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
@@ -132,8 +135,10 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in links)
                 {
-                    string link = $"{host}/lite/animevost/video?id={l.id}&account_email={HttpUtility.UrlEncode(account_email)}";
-                    etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link);
+                    string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}&account_email={HttpUtility.UrlEncode(account_email)}";
+                    string streamlink = init.rhub ? null : $"{link}&play=true";
+
+                    etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
                 }
 
                 return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -145,12 +150,14 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animevost/video")]
-        async public Task<ActionResult> Video(int id)
+        async public Task<ActionResult> Video(int id, string title, bool play)
         {
             var init = AppInit.conf.Animevost;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             string memKey = $"animevost:video:{id}";
             if (!hybridCache.TryGetValue(memKey, out string mp4))
@@ -176,7 +183,12 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, mp4, cacheTime(20, init: init));
             }
 
-            return Redirect(HostStreamProxy(init, mp4, proxy: proxyManager.Get(), plugin: "animevost"));
+            string link = HostStreamProxy(init, mp4, proxy: proxyManager.Get(), plugin: "animevost");
+
+            if (play)
+                return Redirect(link);
+
+            return Content("{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}", "application/json; charset=utf-8");
         }
         #endregion
     }

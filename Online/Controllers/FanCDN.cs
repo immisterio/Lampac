@@ -26,6 +26,12 @@ namespace Lampac.Controllers.LITE
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             var baseheader = HeadersModel.Init(
                 ("cache-control", "no-cache"),
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),

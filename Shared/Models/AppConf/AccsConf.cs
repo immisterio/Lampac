@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Shared.Model.Base;
+using System;
 using System.Collections.Generic;
 
 namespace Lampac.Models.AppConf
@@ -23,8 +24,12 @@ namespace Lampac.Models.AppConf
 
         public string denyMesage { get; set; }
 
+        public string denyGroupMesage { get; set; }
+
         public string expiresMesage { get; set; }
 
         public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
+
+        public List<AccsUser> users { get; set; } = new List<AccsUser>();
     }
 }

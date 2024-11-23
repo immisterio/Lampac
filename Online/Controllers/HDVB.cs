@@ -22,18 +22,22 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb")]
         async public Task<ActionResult> Index(string account_email, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
-            if (kinopoisk_id == 0 || !AppInit.conf.HDVB.enable)
+            var init = AppInit.conf.HDVB;
+            if (kinopoisk_id == 0 || !init.enable)
                 return OnError();
 
-            if (AppInit.conf.HDVB.rhub)
+            if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             JArray data = await search(kinopoisk_id);
             if (data == null)
                 return OnError();
-
-            if (IsOverridehost(AppInit.conf.HDVB, out string overridehost))
-                return Redirect(overridehost);
 
             if (data.First.Value<string>("type") == "movie")
             {
@@ -122,9 +126,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             var init = AppInit.conf.HDVB;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var proxy = proxyManager.Get();
 
@@ -196,9 +202,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             var init = AppInit.conf.HDVB;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var proxy = proxyManager.Get();
 

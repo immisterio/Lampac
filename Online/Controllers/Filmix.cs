@@ -13,6 +13,7 @@ using Shared.Model.Online.Filmix;
 using Shared.Model.Online;
 using System.Text;
 using Lampac.Models.LITE;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -49,6 +50,9 @@ namespace Lampac.Controllers.LITE
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
@@ -82,13 +86,19 @@ namespace Lampac.Controllers.LITE
                 livehash = await getLiveHash(init);
             #endregion
 
+            var apk_headers = httpHeaders(init, HeadersModel.Init(
+                ("Accept-Encoding", "gzip")
+            ));
+
             var oninvk = new FilmixInvoke
             (
                host,
                init.corsHost(),
                token,
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data, head) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
+               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl), apk_headers.ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
+                                         HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: apk_headers, useDefaultHeaders: false),
+               (url, data, head) => init.rhub ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers).ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
+                                                HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : apk_headers, useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
                requesterror: () => proxyManager.Refresh(),
                rjson: rjson

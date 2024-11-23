@@ -38,6 +38,9 @@ namespace Lampac.Controllers.LITE
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
@@ -56,7 +59,7 @@ namespace Lampac.Controllers.LITE
             if (origsource)
                 return Json(content);
 
-            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, title, original_title, t, s, sid, rjson));
+            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, title, original_title, t, s, sid, rjson, bwa: init.rhub));
         }
 
 
@@ -68,6 +71,9 @@ namespace Lampac.Controllers.LITE
 
             if (!init.enable || string.IsNullOrEmpty(link))
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();

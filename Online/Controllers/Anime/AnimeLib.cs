@@ -37,12 +37,14 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string account_email, string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
             var init = AppInit.conf.AnimeLib;
-
             if (!init.enable)
                 return OnError();
 
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -200,8 +202,9 @@ namespace Lampac.Controllers.LITE
                     name = string.IsNullOrEmpty(name) ? title : $"{title} / {name}";
 
                     string link = $"{host}/lite/animelib/video?id={id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
+                    string streamlink = init.rhub ? null : $"{link}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
 
-                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: $"{link}&account_email={HttpUtility.UrlEncode(account_email)}&play=true");
+                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: streamlink);
                 }
                 
                 if (rjson)
@@ -219,9 +222,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string title, long id, string voice, bool play)
         {
             var init = AppInit.conf.AnimeLib;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var rch = new RchClient(HttpContext, host, init.rhub);
 

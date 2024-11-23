@@ -312,7 +312,9 @@ namespace Lampac.Controllers
             bool isanime = original_language == "ja";
 
             var conf = AppInit.conf;
+            var user = string.IsNullOrEmpty(account_email) ? null : AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
 
+            #region modules
             if (AppInit.modules != null)
             {
                 foreach (var item in AppInit.modules.Where(i => i.online != null))
@@ -339,7 +341,9 @@ namespace Lampac.Controllers
                     catch { }
                 }
             }
+            #endregion
 
+            #region send
             void send(string name, BaseSettings init, string plugin = null, string arg_title = null, string arg_url = null, string rch_access = null)
             {
                 bool enable = init.enable && !init.rip;
@@ -352,6 +356,12 @@ namespace Lampac.Controllers
 
                 if (enable)
                 {
+                    if (AppInit.conf.accsdb.enable)
+                    {
+                        if (user == null || init.group > user.group)
+                            return;
+                    }
+
                     string url = init.overridehost;
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
                         url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
@@ -383,6 +393,7 @@ namespace Lampac.Controllers
                     online.Add(($"{displayname}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
+            #endregion
 
             if (original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
                 send("Kodik", conf.Kodik);

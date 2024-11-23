@@ -18,11 +18,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            if (!AppInit.conf.IframeVideo.enable)
+            var init = AppInit.conf.IframeVideo;
+            if (!init.enable)
                 return OnError();
 
-            if (AppInit.conf.IframeVideo.rhub)
+            if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var frame = await iframe(imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
@@ -76,9 +80,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
             var init = AppInit.conf.IframeVideo;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var proxy = proxyManager.Get();
 

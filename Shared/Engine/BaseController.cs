@@ -283,6 +283,33 @@ namespace Lampac.Engine
         }
         #endregion
 
+        #region NoAccessGroup
+        public bool NoAccessGroup(BaseSettings init, out string error_msg)
+        {
+            error_msg = null;
+
+            if (!AppInit.conf.accsdb.enable || init.group == 0)
+                return false;
+
+            string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim();
+
+            if (string.IsNullOrEmpty(account_email))
+            {
+                error_msg = AppInit.conf.accsdb.denyGroupMesage;
+                return true;
+            }
+
+            var user = AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
+            if (user == null || init.group > user.group)
+            {
+                error_msg = AppInit.conf.accsdb.denyGroupMesage;
+                return true;
+            }
+
+            return false;
+        }
+        #endregion
+
         public new void Dispose()
         {
             serviceScope?.Dispose();

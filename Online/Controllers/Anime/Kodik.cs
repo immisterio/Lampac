@@ -43,13 +43,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string account_email, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
-            if (!AppInit.conf.Kodik.enable)
+            var init = AppInit.conf.Kodik;
+            if (!init.enable)
                 return OnError();
 
-            if (AppInit.conf.Kodik.rhub)
+            if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
-            if (IsOverridehost(AppInit.conf.Kodik, out string overridehost))
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
             List<Result> content = null;
@@ -64,7 +68,7 @@ namespace Lampac.Controllers.LITE
 
                 //if (clarification == 1)
                 {
-                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title, null), proxyManager);
+                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: init), () => oninvk.Embed(title, null), proxyManager);
                     if (res?.result == null || res.result.Count == 0)
                         return OnError();
                 }
@@ -101,9 +105,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, string account_email, bool play)
         {
             var init = AppInit.conf.Kodik;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {
@@ -176,9 +182,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = AppInit.conf.Kodik;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var oninvk = InitKodikInvoke();
 

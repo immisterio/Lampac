@@ -19,6 +19,9 @@ namespace Lampac.Controllers.Xhamster
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             var proxyManager = new ProxyManager("xmr", init);
             var proxy = proxyManager.Get();
 

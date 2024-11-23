@@ -19,6 +19,9 @@ namespace Lampac.Controllers.HQporner
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             var proxyManager = new ProxyManager("hqr", init);
             var proxy = proxyManager.Get();
 

@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using Shared.Model.Base;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -87,10 +89,10 @@ namespace Lampac.Engine.Middlewares
                     HashSet<string> ips = null;
                     string account_email = httpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim() ?? string.Empty;
 
-                    bool userfindtoaccounts = AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex);
+                    var user = string.IsNullOrEmpty(account_email) ? null : AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
-                    if (string.IsNullOrWhiteSpace(account_email) || !userfindtoaccounts || DateTime.UtcNow > ex || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip, out ips))
+                    if (string.IsNullOrWhiteSpace(account_email) || user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip, out ips))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
                         {
@@ -110,9 +112,10 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
-                        string msg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
+                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы ") : 
+                                     limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
                                      string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.authMesage :
-                                     userfindtoaccounts ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", account_email).Replace("{expires}", ex.ToString("dd.MM.yyyy")) :
+                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", account_email).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
                                      AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";

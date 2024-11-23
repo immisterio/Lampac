@@ -6,7 +6,6 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using System.Linq;
 using Lampac.Engine.CORE;
 using System.IO;
 using Shared.Engine;
@@ -16,7 +15,7 @@ namespace Lampac.Controllers
     public class TracksController : BaseController
     {
         [Route("ffprobe")]
-        async public Task<ActionResult> Ffprobe(string media)
+        async public Task<ActionResult> Ffprobe(string media, string account_email)
         {
             if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
                 return Content(string.Empty);
@@ -27,7 +26,6 @@ namespace Lampac.Controllers
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
                     return Content(string.Empty);
 
-                string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First().Key : "";
                 media = $"{host}/dlna/stream?path={path}&account_email={HttpUtility.UrlEncode(account_email)}";
             }
             else if (media.Contains("/stream/"))

@@ -5,15 +5,12 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
-using Shared.Engine;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Model.Online.Lumex;
 using Shared.Model.Online;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using System.Linq;
 
 namespace Lampac.Controllers.LITE
@@ -30,6 +27,9 @@ namespace Lampac.Controllers.LITE
 
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -197,6 +197,9 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.Lumex;
             if (!init.enable)
                 return OnError("disable");
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
             if (!memoryCache.TryGetValue(memkey, out string location))

@@ -1,6 +1,8 @@
 ﻿using Lampac;
 using Lampac.Engine;
+using Shared.Model.Base;
 using System;
+using System.Linq;
 using System.Web;
 
 namespace Merchant
@@ -29,28 +31,36 @@ namespace Merchant
 
                 if (days > 0)
                 {
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out ex))
+                    if (AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email)) is AccsUser user)
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddDays(days) : DateTime.UtcNow.AddDays(days);
-                        AppInit.conf.accsdb.accounts[email] = ex;
+                        user.expires = ex;
                     }
                     else
                     {
                         ex = DateTime.UtcNow.AddDays(days);
-                        AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                        AppInit.conf.accsdb.users.Add(new AccsUser() 
+                        {
+                            id = email,
+                            expires = ex
+                        });
                     }
                 }
                 else
                 {
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out ex))
+                    if (AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email)) is AccsUser user)
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                        AppInit.conf.accsdb.accounts[email] = ex;
+                        user.expires = ex;
                     }
                     else
                     {
                         ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                        AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                        AppInit.conf.accsdb.users.Add(new AccsUser()
+                        {
+                            id = email,
+                            expires = ex
+                        });
                     }
                 }
 
@@ -74,6 +84,9 @@ namespace Merchant
 
         public static string decodeEmail(string email)
         {
+            if (string.IsNullOrEmpty(email))
+                return null;    
+
             return HttpUtility.UrlDecode(email.ToLower().Trim());
         }
     }

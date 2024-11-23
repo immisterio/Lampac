@@ -19,6 +19,9 @@ namespace Lampac.Controllers.XvideosRED
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             var proxyManager = new ProxyManager("xdsred", init);
             var proxy = proxyManager.Get();
 

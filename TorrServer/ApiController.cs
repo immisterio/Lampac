@@ -12,6 +12,8 @@ using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
 using Shared.Engine;
+using Shared.Model.Base;
+using System.Linq;
 
 namespace Lampac.Controllers
 {
@@ -100,7 +102,7 @@ namespace Lampac.Controllers
                     string login = decodedString[0].ToLower().Trim();
                     string passwd = decodedString[1];
 
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(login, out DateTime ex) && ex > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
+                    if (!string.IsNullOrEmpty(login) && AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == login || i.id.Contains(login)) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
                     {
                         await TorAPI();
                         return;

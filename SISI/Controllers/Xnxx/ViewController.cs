@@ -19,6 +19,9 @@ namespace Lampac.Controllers.Xnxx
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             var proxyManager = new ProxyManager("xnx", init);
             var proxy = proxyManager.Get();
 

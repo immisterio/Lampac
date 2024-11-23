@@ -66,13 +66,13 @@ namespace Lampac.Engine.CORE
 
 
         #region Get
-        public ValueTask<string> Get(string url, Dictionary<string, string> headers = null) => SendHub(url, null, headers);
+        public ValueTask<string> Get(string url, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
 
-        async public ValueTask<T> Get<T>(string url, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false)
+        async public ValueTask<T> Get<T>(string url, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string html = await SendHub(url, null, headers);
+                string html = await SendHub(url, null, headers, useDefaultHeaders);
                 if (html == null)
                     return default;
 
@@ -89,13 +89,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public ValueTask<string> Post(string url, string data, Dictionary<string, string> headers = null) => SendHub(url, data, headers);
+        public ValueTask<string> Post(string url, string data, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, data, headers, useDefaultHeaders);
 
-        async public ValueTask<T> Post<T>(string url, string data, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false)
+        async public ValueTask<T> Post<T>(string url, string data, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string json = await SendHub(url, data, headers);
+                string json = await SendHub(url, data, headers, useDefaultHeaders);
                 if (json == null)
                     return default;
 
@@ -112,7 +112,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null)
+        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
         {
             if (hub == null)
                 return null;

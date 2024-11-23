@@ -299,7 +299,11 @@ namespace Lampac.Controllers
         [Route("privateinit.js")]
         public ActionResult PrivateInit(string account_email)
         {
-            if (string.IsNullOrEmpty(account_email) || !AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex) || DateTime.UtcNow > ex)
+            if (string.IsNullOrEmpty(account_email))
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
+            var user = AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
+            if (user == null || user.ban || DateTime.UtcNow > user.expires)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
             string initiale = string.Empty;

@@ -28,7 +28,7 @@ namespace Online
         }
         #endregion
 
-        #region 
+        #region OnLog
         public void OnLog(string msg)
         {
             HttpClient.onlog?.Invoke(null, msg + "\n");
