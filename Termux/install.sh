@@ -92,13 +92,14 @@ cat <<EOF > Lampac.runtimeconfig.json
       "System.GC.Server": false,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 83886080
+      "System.GC.HeapHardLimit": 73886080
     }
   }
 }
 EOF
 
 # clear
+rm -f GeoLite2-Country.mmdb
 rm -rf merchant torrserver wwwroot/bwa
 rm -rf runtimes/wi*
 rm -rf runtimes/os*
