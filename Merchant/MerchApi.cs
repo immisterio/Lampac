@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
             if (email == null)
                 return Json(new { error = true, msg = "email null" });
 
-            var user = AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email));
+            var user = AppInit.conf.accsdb.findUser(email);
             if (user == null)
                 return Json(new { error = true, msg = "user not found" });
 
@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
 
             PayConfirm(email, merch, order, days);
 
-            var user = AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email));
+            var user = AppInit.conf.accsdb.findUser(email);
             if (user == null)
                 return Json(new { error = true, msg = "user not found" });
 

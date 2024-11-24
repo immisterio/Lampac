@@ -1,6 +1,7 @@
 ﻿using Shared.Model.Base;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lampac.Models.AppConf
 {
@@ -31,5 +32,14 @@ namespace Lampac.Models.AppConf
         public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
 
         public List<AccsUser> users { get; set; } = new List<AccsUser>();
+
+        public AccsUser findUser(string uid)
+        {
+            if (string.IsNullOrEmpty(uid))
+                return null;
+
+            uid = uid.ToLower().Trim();
+            return users.FirstOrDefault(i => i.id == uid || i.id.Contains(uid));
+        }
     }
 }

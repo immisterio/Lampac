@@ -64,7 +64,7 @@ namespace Lampac
                     {
                         foreach (var u in cacheconf.Item1.accsdb.accounts)
                         {
-                            if (cacheconf.Item1.accsdb.users.FirstOrDefault(i => i.id == u.Key || i.id.Contains(u.Key)) is AccsUser user)
+                            if (cacheconf.Item1.accsdb.findUser(u.Key) is AccsUser user)
                             {
                                 if (u.Value > user.expires)
                                     user.expires = u.Value;
@@ -73,7 +73,7 @@ namespace Lampac
                             {
                                 cacheconf.Item1.accsdb.users.Add(new AccsUser()
                                 {
-                                    id = u.Key,
+                                    id = u.Key.ToLower().Trim(),
                                     expires = u.Value
                                 });
                             }
@@ -97,9 +97,9 @@ namespace Lampac
                                     try
                                     {
                                         DateTime e = DateTime.FromFileTimeUtc(ex);
-                                        string email = data[0].Trim().ToLower();
+                                        string email = data[0].ToLower().Trim();
 
-                                        if (cacheconf.Item1.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email)) is AccsUser user)
+                                        if (cacheconf.Item1.accsdb.findUser(email) is AccsUser user)
                                         {
                                             if (e > user.expires)
                                                 user.expires = e;

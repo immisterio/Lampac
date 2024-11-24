@@ -31,7 +31,7 @@ namespace Merchant
 
                 if (days > 0)
                 {
-                    if (AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email)) is AccsUser user)
+                    if (AppInit.conf.accsdb.findUser(email) is AccsUser user)
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddDays(days) : DateTime.UtcNow.AddDays(days);
                         user.expires = ex;
@@ -41,14 +41,14 @@ namespace Merchant
                         ex = DateTime.UtcNow.AddDays(days);
                         AppInit.conf.accsdb.users.Add(new AccsUser() 
                         {
-                            id = email,
+                            id = email.ToLower().Trim(),
                             expires = ex
                         });
                     }
                 }
                 else
                 {
-                    if (AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == email || i.id.Contains(email)) is AccsUser user)
+                    if (AppInit.conf.accsdb.findUser(email) is AccsUser user)
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
                         user.expires = ex;
@@ -58,15 +58,15 @@ namespace Merchant
                         ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
                         AppInit.conf.accsdb.users.Add(new AccsUser()
                         {
-                            id = email,
+                            id = email.ToLower().Trim(),
                             expires = ex
                         });
                     }
                 }
 
-                System.IO.File.AppendAllText("merchant/users.txt", $"{email.ToLower()},{ex.ToFileTimeUtc()},{merch},{order}\n");
+                System.IO.File.AppendAllText("merchant/users.txt", $"{email.ToLower().Trim()},{ex.ToFileTimeUtc()},{merch},{order}\n");
 
-                _users += $"{email.ToLower()},{ex.ToFileTimeUtc()},{merch},{order}\n";
+                _users += $"{email.ToLower().Trim()},{ex.ToFileTimeUtc()},{merch},{order}\n";
                 LastWriteTimeUsers = System.IO.File.GetLastWriteTime("merchant/users.txt");
             }
         }

@@ -89,7 +89,7 @@ namespace Lampac.Engine.Middlewares
                     HashSet<string> ips = null;
                     string account_email = httpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim() ?? string.Empty;
 
-                    var user = string.IsNullOrEmpty(account_email) ? null : AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
+                    var user = AppInit.conf.accsdb.findUser(account_email);
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
                     if (string.IsNullOrWhiteSpace(account_email) || user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip, out ips))

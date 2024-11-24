@@ -26,7 +26,7 @@ namespace Lampac.Engine
 
         public static string appversion => "125";
 
-        public static string minorversion => "5";
+        public static string minorversion => "6";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -291,7 +291,7 @@ namespace Lampac.Engine
             if (!AppInit.conf.accsdb.enable || init.group == 0)
                 return false;
 
-            string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim();
+            string account_email = HttpContext.Request.Query["account_email"].ToString();
 
             if (string.IsNullOrEmpty(account_email))
             {
@@ -299,7 +299,7 @@ namespace Lampac.Engine
                 return true;
             }
 
-            var user = AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
+            var user = AppInit.conf.accsdb.findUser(account_email);
             if (user == null || init.group > user.group)
             {
                 error_msg = AppInit.conf.accsdb.denyGroupMesage;

@@ -312,7 +312,7 @@ namespace Lampac.Controllers
             bool isanime = original_language == "ja";
 
             var conf = AppInit.conf;
-            var user = string.IsNullOrEmpty(account_email) ? null : AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
+            var user = AppInit.conf.accsdb.findUser(account_email);
 
             #region modules
             if (AppInit.modules != null)

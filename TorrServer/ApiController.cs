@@ -102,7 +102,7 @@ namespace Lampac.Controllers
                     string login = decodedString[0].ToLower().Trim();
                     string passwd = decodedString[1];
 
-                    if (!string.IsNullOrEmpty(login) && AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == login || i.id.Contains(login)) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
+                    if (AppInit.conf.accsdb.findUser(login) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
                     {
                         await TorAPI();
                         return;

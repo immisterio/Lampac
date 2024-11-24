@@ -302,7 +302,7 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(account_email))
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            var user = AppInit.conf.accsdb.users.FirstOrDefault(i => i.id == account_email || i.id.Contains(account_email));
+            var user = AppInit.conf.accsdb.findUser(account_email);
             if (user == null || user.ban || DateTime.UtcNow > user.expires)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
