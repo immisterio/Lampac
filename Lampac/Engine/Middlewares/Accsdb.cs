@@ -85,13 +85,12 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|privateinit\\.js|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
-                    HashSet<string> ips = null, urls = null;
                     string account_email = httpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim() ?? string.Empty;
 
                     var user = AppInit.conf.accsdb.findUser(account_email);
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
-                    if (string.IsNullOrWhiteSpace(account_email) || user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip, out ips, out urls))
+                    if (string.IsNullOrWhiteSpace(account_email) || user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
                         {
@@ -130,15 +129,16 @@ namespace Lampac.Engine.Middlewares
         #region IsLock
         static string logsLock = string.Empty;
 
-        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock, out HashSet<string> ips, out HashSet<string> urls)
+        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock)
         {
             if (string.IsNullOrEmpty(account_email))
             {
-                ips = new HashSet<string>();
-                urls = new HashSet<string>();
                 islock = false;
                 return islock;
             }
+
+            HashSet<string> ips = null;
+            HashSet<string> urls = null;
 
             #region setLogs / writeFullLog
             void setLogs(string name)
