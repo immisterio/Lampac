@@ -193,9 +193,6 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
-            if (AppInit.IsDefaultConf)
-                send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
-
             if (serial == 0 && !isanime)
             {
                 send("iRemux - 4K HDR", "remux", AppInit.iRemux);
@@ -216,6 +213,9 @@ namespace JinEnergy.Online
 
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
+
+            if (!AppInit.Filmix.pro && AppInit.IsDefaultConf)
+                send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }
