@@ -2,7 +2,7 @@ curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 #./dotnet-install.sh --channel 7.0.1xx -InstallDir ./dotnet
 ./dotnet-install.sh --channel 8.0.1xx -InstallDir ./dotnet
-./dotnet-install.sh --channel 6.0.135 -InstallDir ./dotnet6
+./dotnet-install.sh -Version 6.0.133 -InstallDir ./dotnet6
 
 chmod +x Build/cloudflare/nightlies.sh
 ./Build/cloudflare/nightlies.sh
