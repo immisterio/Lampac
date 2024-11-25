@@ -34,8 +34,14 @@ namespace JinEnergy.Online
                    ("X-Lampac-Cookie", fixCookie(init.cookie))
                 ));
             }
-            else if (!string.IsNullOrEmpty(init.cookie))
-                headers.Add(new HeadersModel("cookie", fixCookie(init.cookie)));
+            else
+            {
+                if (!string.IsNullOrEmpty(init.cookie))
+                    headers.Add(new HeadersModel("cookie", fixCookie(init.cookie)));
+
+                headers.Add(new HeadersModel("Origin", init.host));
+                headers.Add(new HeadersModel("Referer", init.host + "/"));
+            }
 
             //bool userapn = IsApnIncluded(init);
 
@@ -61,17 +67,11 @@ namespace JinEnergy.Online
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
 
-            if (AppInit.typeConf == "web" && !init.premium)
+            if (AppInit.typeConf != "apk" && !init.premium)
                 return ShowError("Нужен HDRezka Premium");
 
-            if (AppInit.Country == "RU")
-            {
-                if (string.IsNullOrEmpty(init.cookie))
-                    return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
-
-                else if (!AppInit.IsAndrod)
-                    return ShowError("Нужен HDRezka Premium");
-            }
+            if (AppInit.Country == "RU" && string.IsNullOrEmpty(init.cookie))
+                return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
 
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);

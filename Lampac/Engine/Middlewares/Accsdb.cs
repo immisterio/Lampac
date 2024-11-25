@@ -140,7 +140,7 @@ namespace Lampac.Engine.Middlewares
             HashSet<string> ips = null;
             HashSet<string> urls = null;
 
-            #region setLogs / writeFullLog
+            #region setLogs
             void setLogs(string name)
             {
                 string logFile = $"cache/logs/accsdb/{DateTime.Now:dd-MM-yyyy}.lock.txt";
