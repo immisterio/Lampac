@@ -152,6 +152,8 @@ namespace JinEnergy.Online
                 send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
             }
 
+            send("Rezka - " + ((AppInit.Rezka.premium || AppInit.typeConf == "web") ? "2160p" : "720p"), "rezka", AppInit.Rezka);
+
             if (AppInit.Filmix.pro && !string.IsNullOrEmpty(AppInit.Filmix.token))
                 send($"Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
@@ -159,8 +161,6 @@ namespace JinEnergy.Online
 
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
-
-            send("Rezka - " + ((AppInit.Rezka.premium || AppInit.typeConf == "web") ? "2160p" : "720p"), "rezka", AppInit.Rezka);
 
             if (AppInit.IsWorkReturnHeaders)
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
