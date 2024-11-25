@@ -152,7 +152,9 @@ namespace JinEnergy.Online
                 send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
             }
 
-            send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+            if (AppInit.Filmix.pro && !string.IsNullOrEmpty(AppInit.Filmix.token))
+                send($"Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
@@ -191,7 +193,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
-            if (!AppInit.Filmix.pro && AppInit.IsDefaultConf)
+            if (AppInit.IsDefaultConf)
                 send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
 
             if (serial == 0 && !isanime)
