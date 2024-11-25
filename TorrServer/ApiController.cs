@@ -104,8 +104,11 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.accsdb.findUser(login) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
                     {
-                        await TorAPI();
-                        return;
+                        if (user.group >= ModInit.conf.group)
+                        {
+                            await TorAPI();
+                            return;
+                        }
                     }
                 }
 

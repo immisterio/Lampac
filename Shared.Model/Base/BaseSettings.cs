@@ -2,7 +2,7 @@
 
 namespace Shared.Model.Base
 {
-    public class BaseSettings : Iproxy, Istreamproxy, Icors
+    public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup
     {
         public bool enable { get; set; }
 

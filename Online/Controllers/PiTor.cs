@@ -28,6 +28,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             #region Кеш запроса
             string memKey = $"pidtor:{title}:{original_title}:{year}";
             if (!memoryCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
@@ -344,6 +347,9 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(title|account_email|original_title)=[^&]+", "");
             string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
 
@@ -437,6 +443,9 @@ namespace Lampac.Controllers.LITE
             var init = AppInit.conf.PidTor;
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
 

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -285,7 +284,7 @@ namespace Lampac.Engine
         #endregion
 
         #region NoAccessGroup
-        public bool NoAccessGroup(BaseSettings init, out string error_msg)
+        public bool NoAccessGroup(Igroup init, out string error_msg)
         {
             error_msg = null;
 

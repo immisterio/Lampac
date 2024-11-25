@@ -30,6 +30,8 @@ namespace TorrServer
 
         public bool rdb { get; set; }
 
+        public int group { get; set; }
+
         public string defaultPasswd { get; set; } = "ts";
 
 

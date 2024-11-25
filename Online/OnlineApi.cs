@@ -444,11 +444,26 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
                 send("iRemux", conf.iRemux, "remux");
 
+            #region PidTor
             if (conf.PidTor.enable)
             {
                 if ((conf.PidTor.torrs != null && conf.PidTor.torrs.Length > 0) || (conf.PidTor.auth_torrs != null && conf.PidTor.auth_torrs.Count > 0) || AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
-                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                {
+                    void psend()
+                    {
+                        if (AppInit.conf.accsdb.enable)
+                        {
+                            if (user == null || (conf.PidTor.group > user.group && conf.PidTor.group_hide))
+                                return;
+                        }
+
+                        online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                    }
+
+                    psend();
+                }
             }
+            #endregion
 
             if (kinopoisk_id > 0)
                 send("Ashdi (Украинский)", conf.Ashdi, "ashdi");
