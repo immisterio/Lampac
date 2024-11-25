@@ -13,7 +13,6 @@ using Shared.Model.Base;
 using System.Text.RegularExpressions;
 using Shared.Models.AppConf;
 using Shared.Models.ServerProxy;
-using System.Linq;
 
 namespace Lampac
 {

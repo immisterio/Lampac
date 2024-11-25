@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Merchant;
-using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {

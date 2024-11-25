@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -26,7 +27,7 @@ namespace Lampac.Engine
 
         public static string appversion => "125";
 
-        public static string minorversion => "6";
+        public static string minorversion => "7";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -288,7 +289,7 @@ namespace Lampac.Engine
         {
             error_msg = null;
 
-            if (!AppInit.conf.accsdb.enable || init.group == 0)
+            if (!AppInit.conf.accsdb.enable || init.group == 0 || HttpContext.Request.Headers.TryGetValue("localrequest", out _))
                 return false;
 
             string account_email = HttpContext.Request.Query["account_email"].ToString();

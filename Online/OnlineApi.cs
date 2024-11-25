@@ -426,11 +426,11 @@ namespace Lampac.Controllers
                 send("VideoDB", conf.VideoDB);
                 send("Lumex", conf.Lumex, "lumex");
 
-                if (AppInit.conf.puppeteer.enable)
-                {
+                if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
                     send("VDBmovies", conf.VDBmovies);
+
+                if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send("Zetflix", conf.Zetflix);
-                }
             }
 
             if (serial == -1 || serial == 0)
