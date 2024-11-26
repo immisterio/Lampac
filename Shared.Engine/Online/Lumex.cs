@@ -125,7 +125,7 @@ namespace Shared.Engine.Online
 
                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}";
                     if (!string.IsNullOrEmpty(args))
-                        link += $"&args={args.Remove(0, 1)}";
+                        link += args.Remove(0, 1);
 
                     mtpl.Append(media.translation_name, link, subtitles: subtitles);
                 }
@@ -149,7 +149,7 @@ namespace Shared.Engine.Online
                         {
                             string link = host + $"lite/lumex?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
                             if (!string.IsNullOrEmpty(args))
-                                link += $"&args={args.Remove(0, 1)}";
+                                link += args.Remove(0, 1);       
 
                             tpl.Append($"{media.season_id} сезон", link, media.season_id);
                         }
@@ -214,7 +214,7 @@ namespace Shared.Engine.Online
 
                                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}";
                                     if (!string.IsNullOrEmpty(args))
-                                        link += $"&args={args.Remove(0, 1)}";
+                                        link += args.Remove(0, 1);
 
                                     etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
                                 }
