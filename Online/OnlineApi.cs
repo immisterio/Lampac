@@ -492,7 +492,7 @@ namespace Lampac.Controllers
                 send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
 
             if (!life && conf.litejac)
-                online.Add(("Торренты", "{localhost}/lite/jac", "jac", online.Count));
+                online.Add(("Торренты", "{localhost}/lite/jac", "jac", 200));
 
             #region checkOnlineSearch
             bool chos = conf.online.checkOnlineSearch && id > 0;
@@ -540,7 +540,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + (islite ? i.name.Split(" ~ ")[0].Split(" - ")[0] : i.name) + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
+            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
             return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
