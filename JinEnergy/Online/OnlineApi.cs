@@ -152,10 +152,11 @@ namespace JinEnergy.Online
                 send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
             }
 
-            send("Rezka - " + ((AppInit.Rezka.premium || AppInit.typeConf == "web") ? "2160p" : "720p"), "rezka", AppInit.Rezka);
+            if (AppInit.typeConf != "web")
+                send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
 
-            if (!string.IsNullOrEmpty(AppInit.Filmix.token))
-                send($"Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+            if (!AppInit.IsDefaultConf)
+                send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : !string.IsNullOrEmpty(AppInit.Filmix.token) ? "720p" : "480p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
@@ -208,14 +209,17 @@ namespace JinEnergy.Online
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
+            if (AppInit.IsDefaultConf)
+                send($"Filmix - 480p", "filmix", AppInit.Filmix);
+
             if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
 
-            if (AppInit.IsDefaultConf)
-                send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
+            if (AppInit.typeConf == "web")
+                send("Rezka - 2160p", "rezka", AppInit.Rezka);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }
