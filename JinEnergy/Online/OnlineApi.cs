@@ -166,22 +166,7 @@ namespace JinEnergy.Online
             if (AppInit.IsWorkReturnHeaders)
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
 
-            //send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
-            //send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
-
-            //if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
-            //    send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
-
-            if (AppInit.Country != "RU" && AppInit.Country != "BY")
-            {
-                if (arg.kinopoisk_id > 0)
-                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
-
-                //send("Eneyida (Украинский) - 1080p", "eneyida", AppInit.Eneyida);
-
-                if (!isanime)
-                    send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
-            }
+            send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
             if (!titleSearch)
             {
@@ -191,23 +176,28 @@ namespace JinEnergy.Online
                 send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
             }
 
-            if (arg.kinopoisk_id > 0)
-                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
+            if (serial == 0 && !isanime)
+                send("iRemux - 4K HDR", "remux", AppInit.iRemux);
+
+            if (AppInit.Country != "RU" && AppInit.Country != "BY")
+            {
+                if (arg.kinopoisk_id > 0)
+                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
+
+                if (!isanime)
+                    send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
+            }
+
+            //if (arg.kinopoisk_id > 0)
+            //    send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             if (serial == 0 && !isanime)
             {
-                send("iRemux - 4K HDR", "remux", AppInit.iRemux);
-
                 if (arg.kinopoisk_id > 0)
                     send("Kinotochka - 720p", "kinotochka", AppInit.Kinotochka);
 
                 send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
             }
-
-            //if (!titleSearch)
-            //    send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
-
-            send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
             if (AppInit.IsDefaultConf)
                 send($"Filmix - 480p", "filmix", AppInit.Filmix);
