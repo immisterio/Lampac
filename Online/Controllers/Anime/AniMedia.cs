@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, string account_email = null, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.AniMedia;
             if (!init.enable || string.IsNullOrWhiteSpace(title))
@@ -64,7 +64,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animedia?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect(accsArgs($"/lite/animedia?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 

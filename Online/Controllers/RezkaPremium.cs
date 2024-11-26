@@ -147,7 +147,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
         {
             var init = AppInit.conf.RezkaPrem;
             if (!init.enable || init.rip)
@@ -186,14 +186,14 @@ namespace Lampac.Controllers.LITE
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg ?? "content = null", proxyManager, weblog: oninvk.requestlog);
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !init.rhub, rjson).Replace("/rezka", "/rhsprem"));
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !init.rhub, rjson).Replace("/rezka", "/rhsprem"));
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rhsprem/serial")]
-        async public Task<ActionResult> Serial(string account_email, long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.RezkaPrem;
             if (!init.enable || init.rip)
@@ -233,7 +233,7 @@ namespace Lampac.Controllers.LITE
             if (!cache_content.IsSuccess)
                 return OnError(cache_content.ErrorMsg ?? "content = null", weblog: oninvk.requestlog);
 
-            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !init.rhub, rjson).Replace("/rezka", "/rhsprem"));
+            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !init.rhub, rjson).Replace("/rezka", "/rhsprem"));
         }
         #endregion
 

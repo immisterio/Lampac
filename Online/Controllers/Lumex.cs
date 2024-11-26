@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/lumex")]
-        async public Task<ActionResult> Index(string account_email, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Lumex;
             if (!init.enable)
@@ -185,7 +185,7 @@ namespace Lampac.Controllers.LITE
 
             OnLog(log + "\nStart OnResult");
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, account_email, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
         }
 
 

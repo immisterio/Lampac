@@ -142,7 +142,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string account_email, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream, bool rjson)
+        public string Html(List<Result> results, string args, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream, bool rjson)
         {
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -158,9 +158,14 @@ namespace Shared.Engine.Online
 
                     string? streamlink = null;
                     if (showstream)
+                    {
                         streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
 
-                    mtpl.Append(data.translation.title, url, "call", $"{streamlink}&account_email={HttpUtility.UrlEncode(account_email)}");
+                        if (!string.IsNullOrEmpty(args))
+                            streamlink += $"&{args.Remove(0, 1)}";
+                    }
+
+                    mtpl.Append(data.translation.title, url, "call", streamlink);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -225,9 +230,14 @@ namespace Shared.Engine.Online
 
                         string? streamlink = null;
                         if (showstream)
+                        {
                             streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, url, "call", streamlink: $"{streamlink}&account_email={HttpUtility.UrlEncode(account_email)}");
+                            if (!string.IsNullOrEmpty(args))
+                                streamlink += $"&{args.Remove(0, 1)}";
+                        }
+
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, url, "call", streamlink: streamlink);
                     }
 
                     if (rjson)

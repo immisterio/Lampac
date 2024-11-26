@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string rchtype, string title, int year, string uri, int s, string account_email, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, int year, string uri, int s, bool rjson = false)
         {
             var init = AppInit.conf.Animevost;
 
@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animevost?rjson={rjson}&rchtype={rchtype}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&rchtype={rchtype}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
@@ -135,8 +135,8 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var l in links)
                 {
-                    string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}&account_email={HttpUtility.UrlEncode(account_email)}";
-                    string streamlink = init.rhub ? null : $"{link}&play=true";
+                    string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
+                    string streamlink = init.rhub ? null : accsArgs($"{link}&play=true");
 
                     etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
                 }

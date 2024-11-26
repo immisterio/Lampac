@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
         {
             var init = AppInit.conf.Rezka;
             if (!init.enable)
@@ -84,14 +84,14 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError(proxyManager);
 
-            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !init.rhub, rjson));
+            return ContentTo(oninvk.Html(content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !init.rhub, rjson));
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(string account_email, long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Rezka;
             if (!init.enable)
@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
             if (content == null)
                 return OnError();
 
-            return ContentTo(oninvk.Serial(root, content, account_email, kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !init.rhub, rjson));
+            return ContentTo(oninvk.Serial(root, content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !init.rhub, rjson));
         }
         #endregion
 

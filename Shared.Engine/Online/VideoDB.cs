@@ -88,10 +88,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string account_email, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false)
+        public string Html(EmbedModel? root, string args, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
+
+            if (!string.IsNullOrEmpty(args))
+                args = $"&{args.Remove(0, 1)}";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -118,7 +121,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&account_email={HttpUtility.UrlEncode(account_email)}", $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
@@ -177,7 +180,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&account_email={HttpUtility.UrlEncode(account_email)}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
+                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}{args}", season);
                     }
 
                     return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -210,7 +213,7 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                string link = host + $"lite/videodb?rjson={rjson}&account_email={HttpUtility.UrlEncode(account_email)}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
+                                string link = host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}{args}";
 
                                 vtpl.Append(perevod, t == perevod, link);
                             }
@@ -234,7 +237,7 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&account_email={HttpUtility.UrlEncode(account_email)}", $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)

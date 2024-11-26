@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, string account_email, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst;
             if (!init.enable || string.IsNullOrWhiteSpace(title))
@@ -88,7 +88,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect(accsArgs($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
@@ -144,7 +144,7 @@ namespace Lampac.Controllers.LITE
                     string name = string.IsNullOrEmpty(l.name) ? $"{l.episode} серия" : $"{l.episode} {l.name}";
                     string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
 
-                    string link = $"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}&account_email={HttpUtility.UrlEncode(account_email)}";
+                    string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
                     string streamlink = init.rhub ? null : $"{link}&play=true";
 
                     etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: streamlink, voice_name: Regex.Unescape(voice_name));

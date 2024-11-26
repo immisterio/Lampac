@@ -85,12 +85,11 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|privateinit\\.js|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
-                    string account_email = httpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim() ?? string.Empty;
 
-                    var user = AppInit.conf.accsdb.findUser(account_email);
+                    var user = AppInit.conf.accsdb.findUser(httpContext, out string uid);
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
-                    if (string.IsNullOrWhiteSpace(account_email) || user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip))
+                    if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(uid, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
                         {
@@ -112,9 +111,9 @@ namespace Lampac.Engine.Middlewares
 
                         string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы ") : 
                                      limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
-                                     string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.authMesage :
-                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", account_email).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
-                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
+                                     string.IsNullOrWhiteSpace(uid) ? AppInit.conf.accsdb.authMesage :
+                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
+                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", uid);
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}", httpContext.RequestAborted);

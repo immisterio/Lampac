@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animelib")]
-        async public Task<ActionResult> Index(string account_email, string title, string original_title, int year, string uri, string t, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
             var init = AppInit.conf.AnimeLib;
             if (!init.enable)
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (catalog.Where(i => i.coincidence).Count() == 1)
-                    return LocalRedirect($"/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog.First(i => i.coincidence).uri)}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect(accsArgs($"/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog.First(i => i.coincidence).uri)}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
@@ -202,7 +202,7 @@ namespace Lampac.Controllers.LITE
                     name = string.IsNullOrEmpty(name) ? title : $"{title} / {name}";
 
                     string link = $"{host}/lite/animelib/video?id={id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
-                    string streamlink = init.rhub ? null : $"{link}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
+                    string streamlink = init.rhub ? null : accsArgs($"{link}&play=true");
 
                     etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: streamlink);
                 }

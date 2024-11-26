@@ -297,12 +297,9 @@ namespace Lampac.Controllers
         #region privateinit.js
         [HttpGet]
         [Route("privateinit.js")]
-        public ActionResult PrivateInit(string account_email)
+        public ActionResult PrivateInit()
         {
-            if (string.IsNullOrEmpty(account_email))
-                return Content(string.Empty, "application/javascript; charset=utf-8");
-
-            var user = AppInit.conf.accsdb.findUser(account_email);
+            var user = AppInit.conf.accsdb.findUser(HttpContext, out _);
             if (user == null || user.ban || DateTime.UtcNow > user.expires)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 

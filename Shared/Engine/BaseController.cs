@@ -6,11 +6,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using MonoTorrent.Client;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine.CORE;
@@ -26,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "125";
 
-        public static string minorversion => "7";
+        public static string minorversion => "8";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -133,11 +135,7 @@ namespace Lampac.Engine
             uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
 
             if (AppInit.conf.accsdb.enable)
-            {
-                string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(account_email))
-                    uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
-            }
+                uri = AccsDbInvk.Args(uri, HttpContext);
 
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
@@ -195,11 +193,7 @@ namespace Lampac.Engine
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 
                 if (AppInit.conf.accsdb.enable)
-                {
-                    string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(account_email))
-                        uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
-                }
+                    uri = AccsDbInvk.Args(uri, HttpContext);
 
                 return $"{host}/proxy/{uri}";
             }
@@ -291,15 +285,7 @@ namespace Lampac.Engine
             if (!AppInit.conf.accsdb.enable || init.group == 0 || HttpContext.Request.Headers.TryGetValue("localrequest", out _))
                 return false;
 
-            string account_email = HttpContext.Request.Query["account_email"].ToString();
-
-            if (string.IsNullOrEmpty(account_email))
-            {
-                error_msg = AppInit.conf.accsdb.denyGroupMesage;
-                return true;
-            }
-
-            var user = AppInit.conf.accsdb.findUser(account_email);
+            var user = AppInit.conf.accsdb.findUser(HttpContext, out _);
             if (user == null || init.group > user.group)
             {
                 error_msg = AppInit.conf.accsdb.denyGroupMesage;
@@ -307,6 +293,13 @@ namespace Lampac.Engine
             }
 
             return false;
+        }
+        #endregion
+
+        #region accsArgs
+        public string accsArgs(string uri)
+        {
+            return AccsDbInvk.Args(uri, HttpContext);
         }
         #endregion
 

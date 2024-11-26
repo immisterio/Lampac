@@ -312,7 +312,7 @@ namespace Lampac.Controllers
             bool isanime = original_language == "ja";
 
             var conf = AppInit.conf;
-            var user = AppInit.conf.accsdb.findUser(account_email);
+            var user = AppInit.conf.accsdb.findUser(HttpContext, out string uid);
 
             #region modules
             if (AppInit.modules != null)
@@ -370,9 +370,6 @@ namespace Lampac.Controllers
 
                     if (!string.IsNullOrEmpty(url))
                     {
-                        if (!string.IsNullOrEmpty(account_email))
-                            url += (url.Contains("?") ? "&" : "?") + $"account_email={HttpUtility.UrlEncode(account_email)}";
-
                         if (plugin == "collaps-dash")
                         {
                             displayname = displayname.Replace("- 720p", "- 1080p");
@@ -473,9 +470,9 @@ namespace Lampac.Controllers
             if (!isanime)
                 send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr", rch_access: "apk,cors");
 
-            if (AppInit.conf.Collaps.two)
-                send("Collaps", conf.Collaps, "collaps-dash");
-            send("Collaps", conf.Collaps);
+            if (AppInit.conf.Collaps.two && !AppInit.conf.Collaps.dash)
+                send("Collaps (dash)", conf.Collaps, "collaps-dash");
+            send($"Collaps ({(AppInit.conf.Collaps.dash ? "dash" : "hls")})", conf.Collaps, "collaps");
 
             if (serial == -1 || serial == 0)
                 send("Redheadsound", conf.Redheadsound, rch_access: "apk,cors");
@@ -558,7 +555,8 @@ namespace Lampac.Controllers
             string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
             var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
-            string res = await HttpClient.Get($"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
+            string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true";
+            string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
             if (string.IsNullOrEmpty(res))
                 res = string.Empty;

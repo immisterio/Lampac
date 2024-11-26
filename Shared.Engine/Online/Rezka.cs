@@ -194,10 +194,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string account_email, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream, bool rjson = false)
+        public string Html(EmbedModel? result, string args, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
+
+            if (!string.IsNullOrEmpty(args))
+                args = $"&{args.Remove(0, 1)}";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -253,9 +256,12 @@ namespace Shared.Engine.Online
 
                             string? stream = null;
                             if (showstream)
+                            {
                                 stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+                                stream += args;
+                            }
 
-                            mtpl.Append(voice, link, "call", $"{stream}&account_email={HttpUtility.UrlEncode(account_email)}");
+                            mtpl.Append(voice, link, "call", stream);
                         }
 
                         match = match.NextMatch();
@@ -335,9 +341,12 @@ namespace Shared.Engine.Online
 
                             string? stream = null;
                             if (showstream)
+                            {
                                 stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+                                stream += args;
+                            }
 
-                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: $"{stream}&account_email={HttpUtility.UrlEncode(account_email)}");
+                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: stream);
                         }
                         #endregion
                     }
@@ -398,10 +407,13 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, string account_email, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream, bool rjson = false)
+        public string Serial(Episodes? root, EmbedModel? result, string args, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream, bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
+
+            if (!string.IsNullOrEmpty(args))
+                args = $"&{args.Remove(0, 1)}";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -470,7 +482,7 @@ namespace Shared.Engine.Online
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups[1].Value}";
                         string stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
 
-                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? $"{stream}&account_email={HttpUtility.UrlEncode(account_email)}" : null));
+                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? $"{stream}{args}" : null));
                     }
 
                     m = m.NextMatch();

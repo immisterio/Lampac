@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/pidtor")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string account_email, string original_language, int serial, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -268,7 +268,6 @@ namespace Lampac.Controllers.LITE
              
             string en_title = HttpUtility.UrlEncode(title);
             string en_original_title = HttpUtility.UrlEncode(original_title);
-            string en_account_email = HttpUtility.UrlEncode(account_email);
 
             var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
             movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) : movies.ThenByDescending(i => i.torrent.PublishDate);
@@ -331,7 +330,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(hashmagnet))
                         continue;
 
-                    mtpl.Append(torrent.voice, $"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}&account_email={en_account_email}", voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
+                    mtpl.Append(torrent.voice, accsArgs($"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}"), voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -341,7 +340,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/pidtor/serial/{id}")]
-        async public Task<ActionResult> Serial(string id, string title, string original_title, string account_email, int s, bool rjson = false)
+        async public Task<ActionResult> Serial(string id, string title, string original_title, int s, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -371,7 +370,7 @@ namespace Lampac.Controllers.LITE
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                 {
                     var ts = init.auth_torrs.First();
-                    string login = ts.login.Replace("{account_email}", account_email ?? string.Empty);
+                    string login = ts.login.Replace("{account_email}", accsArgs(string.Empty));
 
                     return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}"), ts.host);
                 }
@@ -380,7 +379,7 @@ namespace Lampac.Controllers.LITE
                     if (init.base_auth != null && init.base_auth.enable)
                     {
                         var ts = init.auth_torrs.First();
-                        string login = init.base_auth.login.Replace("{account_email}", account_email ?? string.Empty);
+                        string login = init.base_auth.login.Replace("{account_email}", accsArgs(string.Empty));
 
                         return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}"), ts.host);
                     }
@@ -429,7 +428,7 @@ namespace Lampac.Controllers.LITE
                 if (Path.GetExtension(torrent.Path) is ".srt" or ".txt" or ".jpg" or ".png")
                     continue;
 
-                mtpl.Append(Path.GetFileName(torrent.Path), title ?? original_title, s.ToString(), torrent.Id.ToString(), $"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}&account_email={HttpUtility.UrlEncode(account_email)}");
+                mtpl.Append(Path.GetFileName(torrent.Path), title ?? original_title, s.ToString(), torrent.Id.ToString(), accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}"));
             }
 
             return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());

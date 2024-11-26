@@ -104,11 +104,14 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.accsdb.findUser(login) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
                     {
-                        if (user.group >= ModInit.conf.group)
+                        if (ModInit.conf.group > user.group)
                         {
-                            await TorAPI();
+                            await HttpContext.Response.WriteAsync("NoAccessGroup", HttpContext.RequestAborted).ConfigureAwait(false);
                             return;
                         }
+
+                        await TorAPI();
+                        return;
                     }
                 }
 

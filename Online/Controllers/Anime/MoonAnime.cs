@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/moonanime")]
-        async public Task<ActionResult> Index(string account_email, string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.MoonAnime;
 
@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (catalog.Count == 1)
-                    return LocalRedirect($"/lite/moonanime?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&animeid={catalog[0].id}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect(accsArgs($"/lite/moonanime?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&animeid={catalog[0].id}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
@@ -173,7 +173,7 @@ namespace Lampac.Controllers.LITE
                                     string vod = folder.Value<string>("vod");
 
                                     string link = $"{host}/lite/moonanime/video?vod={HttpUtility.UrlEncode(vod)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}";
-                                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
+                                    string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                     etpl.Append($"{episode} серия", title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
                                 }

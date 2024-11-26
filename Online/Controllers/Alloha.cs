@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public Task<ActionResult> Index(string account_email, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Alloha;
             if (!init.enable)
@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
                     string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
-                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
+                    string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     bool uhd = translation.Value["uhd"].ToString() == "True" && AppInit.conf.Alloha.m4s;
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
@@ -111,7 +111,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}" + defaultargs;
-                        string streamlink = $"{link.Replace("/video", "/video.m3u8")}&account_email={HttpUtility.UrlEncode(account_email)}&play=true";
+                        string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                         etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", streamlink: streamlink);
                     }

@@ -15,7 +15,7 @@ namespace Lampac.Controllers
     public class TracksController : BaseController
     {
         [Route("ffprobe")]
-        async public Task<ActionResult> Ffprobe(string media, string account_email)
+        async public Task<ActionResult> Ffprobe(string media)
         {
             if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
                 return Content(string.Empty);
@@ -26,7 +26,7 @@ namespace Lampac.Controllers
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
                     return Content(string.Empty);
 
-                media = $"{host}/dlna/stream?path={path}&account_email={HttpUtility.UrlEncode(account_email)}";
+                media = accsArgs($"{host}/dlna/stream?path={path}");
             }
             else if (media.Contains("/stream/"))
             {

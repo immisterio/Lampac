@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VideoDB;
 
@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
             if (origsource)
                 return Json(content);
 
-            return ContentTo(oninvk.Html(content, account_email, kinopoisk_id, title, original_title, t, s, sid, rjson, bwa: init.rhub));
+            return ContentTo(oninvk.Html(content, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson, bwa: init.rhub));
         }
 
 

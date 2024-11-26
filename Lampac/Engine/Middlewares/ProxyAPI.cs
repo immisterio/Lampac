@@ -43,7 +43,6 @@ namespace Lampac.Engine.Middlewares
         {
             string reqip = httpContext.Connection.RemoteIpAddress.ToString();
             string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
-            string account_email = Regex.Match(httpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
 
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
@@ -154,7 +153,7 @@ namespace Lampac.Engine.Middlewares
 
                     if (md5file.EndsWith(".m3u8"))
                     {
-                        string hls = editm3u(File.ReadAllText(cachefile), httpContext, account_email, decryptLink);
+                        string hls = editm3u(File.ReadAllText(cachefile), httpContext, decryptLink);
 
                         httpContext.Response.ContentType = "application/vnd.apple.mpegurl";
                         httpContext.Response.ContentLength = hls.Length;
@@ -197,7 +196,7 @@ namespace Lampac.Engine.Middlewares
 
                     if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                     {
-                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", account_email));
+                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", httpContext));
                         return;
                     }
 
@@ -217,7 +216,7 @@ namespace Lampac.Engine.Middlewares
                                 }
 
                                 string m3u8 = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
-                                string hls = editm3u(m3u8, httpContext, account_email, decryptLink);
+                                string hls = editm3u(m3u8, httpContext, decryptLink);
 
                                 if (cache_stream && !File.Exists(cachefile))
                                 {
@@ -335,22 +334,22 @@ namespace Lampac.Engine.Middlewares
 
 
         #region validArgs
-        string validArgs(string uri, string account_email)
+        string validArgs(string uri, HttpContext httpContext)
         {
-            if (!AppInit.conf.accsdb.enable || string.IsNullOrWhiteSpace(account_email))
+            if (!AppInit.conf.accsdb.enable)
                 return uri;
 
-            return uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
+            return AccsDbInvk.Args(uri, httpContext);
         }
         #endregion
 
         #region editm3u
-        string editm3u(string _m3u8, HttpContext httpContext, string account_email, ProxyLinkModel decryptLink)
+        string editm3u(string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
         {
             string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
             string m3u8 = Regex.Replace(_m3u8, "(https?://[^\n\r\"\\# ]+)", m =>
             {
-                return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, decryptLink)}", account_email);
+                return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, decryptLink)}", httpContext);
             });
 
             string hlshost = Regex.Match(decryptLink.uri, "(https?://[^/]+)/").Groups[1].Value;
@@ -382,7 +381,7 @@ namespace Lampac.Engine.Middlewares
                     uri = hlspatch + uri;
                 }
 
-                return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", account_email);
+                return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
             });
 
             m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
@@ -409,7 +408,7 @@ namespace Lampac.Engine.Middlewares
                     uri = hlspatch + uri;
                 }
 
-                return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", account_email);
+                return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
             });
 
             return m3u8;
