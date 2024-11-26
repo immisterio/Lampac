@@ -133,7 +133,9 @@ namespace Lampac.Engine
             }
 
             uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
-            uri = AccsDbInvk.Args(uri, HttpContext);
+
+            if (AppInit.conf.accsdb.enable)
+                uri = AccsDbInvk.Args(uri, HttpContext);
 
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
@@ -189,7 +191,9 @@ namespace Lampac.Engine
                 #endregion
 
                 uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
-                uri = AccsDbInvk.Args(uri, HttpContext);
+
+                if (AppInit.conf.accsdb.enable)
+                    uri = AccsDbInvk.Args(uri, HttpContext);
 
                 return $"{host}/proxy/{uri}";
             }
