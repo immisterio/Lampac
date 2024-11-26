@@ -154,7 +154,7 @@ namespace JinEnergy.Online
 
             send("Rezka - " + ((AppInit.Rezka.premium || AppInit.typeConf == "web") ? "2160p" : "720p"), "rezka", AppInit.Rezka);
 
-            if (AppInit.Filmix.pro && !string.IsNullOrEmpty(AppInit.Filmix.token))
+            if (!string.IsNullOrEmpty(AppInit.Filmix.token))
                 send($"Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
@@ -214,7 +214,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
 
-            if (!AppInit.Filmix.pro && AppInit.IsDefaultConf)
+            if (AppInit.IsDefaultConf)
                 send($"Filmix - 2160p", "filmixpro", AppInit.Filmix);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";

@@ -67,11 +67,14 @@ namespace JinEnergy.Online
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
 
-            if (AppInit.typeConf != "apk" && !init.premium)
+            if (AppInit.typeConf == "web" && !init.premium)
                 return ShowError("Нужен HDRezka Premium");
 
-            if (AppInit.Country == "RU" && string.IsNullOrEmpty(init.cookie))
-                return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
+            if (!string.IsNullOrEmpty(init.cookie))
+            {
+                if (AppInit.typeConf != "apk" && !init.premium)
+                    return ShowError("Для cookie нужен apk или HDRezka Premium");
+            }
 
             var arg = defaultArgs(args);
             string? t = parse_arg("t", args);
