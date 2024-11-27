@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Lampac.Controllers
 {
@@ -26,7 +28,7 @@ namespace Lampac.Controllers
         {
             string js = FileCache.ReadAllText("plugins/timecode.js").Replace("{localhost}", host);
             if (!string.IsNullOrEmpty(uid))
-                js = js.Replace("'profile=' + encodeURIComponent(uid)", $"'profile=' + encodeURIComponent('{uid}')");
+                js = Regex.Replace(js, "'profile=' \\+ encodeURIComponent\\([^\\)]+\\)", $"'profile={HttpUtility.UrlEncode(uid)}'");
 
             return Content(js, contentType: "application/javascript; charset=utf-8");
         }
