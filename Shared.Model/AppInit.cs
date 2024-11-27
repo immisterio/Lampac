@@ -135,7 +135,7 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph");
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true);
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true, enable: false);
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("kwwsv=22dqlphyrvw1ruj", streamproxy: true);
 

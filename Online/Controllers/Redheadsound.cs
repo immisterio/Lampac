@@ -35,6 +35,9 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
+            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+                return ShowError(rch_error);
+
             var oninvk = new RedheadsoundInvoke
             (
                host,
@@ -47,9 +50,6 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), proxyManager, async res =>
             {
-                if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                    return ShowError(rch_error);
-
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 

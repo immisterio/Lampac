@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost")]
         async public Task<ActionResult> Index(string rchtype, string title, int year, string uri, int s, bool rjson = false)
         {
-            var init = AppInit.conf.Animevost;
+            var init = AppInit.conf.Animevost.Clone();
 
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -33,26 +33,30 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init);
+
+            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+                return ShowError(rch_error);
 
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
-                string memkey = $"animevost:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
+                var cache = await InvokeCache<List<(string title, string year, string uri, string s)>>($"animevost:search:{title}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                        return ShowError(rch_error);
-
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string data = $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0";
                     string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    {
+                        if (!init.rhub)
+                            proxyManager?.Refresh();
 
-                    catalog = new List<(string title, string year, string uri, string s)>();
+                        return res.Fail("search");
+                    }
+
+                    var catalog = new List<(string title, string year, string uri, string s)>();
 
                     foreach (string row in search.Split("class=\"shortstory\"").Skip(1))
                     {
@@ -70,49 +74,58 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0 && !search.Contains("Поиск по сайту"))
-                        return OnError();
+                        return res.Fail("catalog");
 
-                    if (!init.rhub)
-                        proxyManager.Success();
+                    return catalog;
+                });
 
-                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
-                }
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                if (catalog.Count == 0)
-                    return OnError();
+                if (cache.Value != null && cache.Value.Count == 1)
+                    return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&rchtype={rchtype}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
 
-                if (catalog.Count == 1)
-                    return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&rchtype={rchtype}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}"));
+                return OnResult(cache, () =>
+                {
+                    if (cache.Value.Count == 0)
+                        return string.Empty;
 
-                var stpl = new SimilarTpl(catalog.Count);
+                    var stpl = new SimilarTpl(cache.Value.Count);
 
-                foreach (var res in catalog)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
+                    foreach (var res in cache.Value)
+                        stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
 
-                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return rjson ? stpl.ToJson() : stpl.ToHtml();
+                });
                 #endregion
             }
             else 
             {
                 #region Серии
-                string memKey = $"animevost:playlist:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out List<(string episode, string id)> links))
+                var cache = await InvokeCache<List<(string episode, string id)>>($"animevost:playlist:{uri}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                        return ShowError(rch_error);
-
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string news = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    {
+                        if (!init.rhub)
+                            proxyManager?.Refresh();
+
+                        return res.Fail("news");
+                    }
 
                     string data = Regex.Match(news, "var data = ([^\n\r]+)").Groups[1].Value;
                     if (string.IsNullOrEmpty(data))
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    {
+                        if (!init.rhub)
+                            proxyManager?.Refresh();
 
-                    links = new List<(string episode, string id)>();
+                        return res.Fail("data");
+                    }
+
+                    var links = new List<(string episode, string id)>();
                     var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",");
                     while (match.Success)
                     {
@@ -123,25 +136,28 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (links.Count == 0)
-                        return OnError();
+                        return res.Fail("links");
 
-                    if (!init.rhub)
-                        proxyManager.Success();
+                    return links;
+                });
 
-                    hybridCache.Set(memKey, links, cacheTime(30, init: init));
-                }
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                var etpl = new EpisodeTpl();
-
-                foreach (var l in links)
+                return OnResult(cache, () =>
                 {
-                    string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
-                    string streamlink = init.rhub ? null : accsArgs($"{link}&play=true");
+                    var etpl = new EpisodeTpl();
 
-                    etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
-                }
+                    foreach (var l in cache.Value)
+                    {
+                        string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
+                        string streamlink = init.rhub ? null : accsArgs($"{link}&play=true");
 
-                return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
+                    }
+
+                    return rjson ? etpl.ToJson() : etpl.ToHtml();
+                });
                 #endregion
             }
         }
@@ -152,43 +168,58 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost/video")]
         async public Task<ActionResult> Video(int id, string title, bool play)
         {
-            var init = AppInit.conf.Animevost;
+            var init = AppInit.conf.Animevost.Clone();
             if (!init.enable)
                 return OnError();
 
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            string memKey = $"animevost:video:{id}";
-            if (!hybridCache.TryGetValue(memKey, out string mp4))
-            {
-                var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init);
 
+            var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), init.rhub ? null : proxyManager, async res =>
+            {
                 if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
+                    return res.Fail(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/frame5.php?play={id}&old=1";
                 string iframe = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
-                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p").Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(mp4))
-                    mp4 = Regex.Match(iframe ?? "" , "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p").Groups[1].Value;
+                var links = new List<(string l, string q)>(2);
 
-                if (string.IsNullOrWhiteSpace(mp4))
-                    return OnError(proxyManager, refresh_proxy: !init.rhub);
+                string mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p").Groups[1].Value;
+                if (!string.IsNullOrEmpty(mp4))
+                    links.Add((mp4, "720p"));
+
+                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p").Groups[1].Value;
+                if (!string.IsNullOrEmpty(mp4))
+                    links.Add((mp4, "480p"));
+
+                if (links.Count == 0)
+                {
+                    if (!init.rhub)
+                        proxyManager?.Refresh();
+
+                    return res.Fail("mp4");
+                }
 
                 if (!init.rhub)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, mp4, cacheTime(20, init: init));
-            }
+                return links;
+            });
 
-            string link = HostStreamProxy(init, mp4, proxy: proxyManager.Get(), plugin: "animevost");
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
-            if (play)
-                return Redirect(link);
+            if (cache.IsSuccess && play)
+                return Redirect(HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost"));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}", "application/json; charset=utf-8");
+            return OnResult(cache, () =>
+            {
+                string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost");
+                return "{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}";
+            });
         }
         #endregion
     }

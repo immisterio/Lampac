@@ -37,6 +37,9 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("kinoukr", init);
             var proxy = proxyManager.Get();
 
+            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+                return ShowError(rch_error);
+
             var oninvk = new KinoukrInvoke
             (
                host,
@@ -73,9 +76,6 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
             {
-                if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                    return ShowError(rch_error);
-
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 

@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
+using Shared.Model.Online.Kinotochka;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,7 +20,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinotochka")]
         async public Task<ActionResult> Index(string rchtype, long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Kinotochka;
+            var init = AppInit.conf.Kinotochka.Clone();
 
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -33,9 +34,12 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("kinotochka", init);
             var proxy = proxyManager.Get();
+
+            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+                return ShowError(rch_error);
 
             // enable 720p
             string cookie = init.cookie;
@@ -47,21 +51,22 @@ namespace Lampac.Controllers.LITE
                 if (s == -1)
                 {
                     #region Сезоны
-                    string memKey = $"kinotochka:seasons:{title}";
-                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
+                    var cache = await InvokeCache<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
                     {
-                        if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                            return ShowError(rch_error);
-
                         if (rch.IsNotConnected())
-                            return ContentTo(rch.connectionMsg);
+                            return res.Fail(rch.connectionMsg);
 
                         string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
                         string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (search == null)
-                            return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        {
+                            if (!init.rhub)
+                                proxyManager?.Refresh();
 
-                        links = new List<(string, string, string)>();
+                            return res.Fail("search");
+                        }
+
+                        var links = new List<(string, string, string)>();
 
                         foreach (string row in search.Split("sres-wrap clearfix").Skip(1).Reverse())
                         {
@@ -78,52 +83,60 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0 && !search.Contains(">Поиск по сайту<"))
-                            return OnError();
+                            return res.Fail("links");
 
-                        proxyManager.Success();
-                        hybridCache.Set(memKey, links, cacheTime(30, init: init));
-                    }
+                        return links;
+                    });
 
-                    if (links.Count == 0)
-                        return OnError();
+                    if (IsRhubFallback(cache, init))
+                        goto reset;
 
-                    var tpl = new SeasonTpl();
+                    return OnResult(cache, () =>
+                    {
+                        var tpl = new SeasonTpl();
 
-                    foreach (var l in links)
-                        tpl.Append(l.name, l.uri, l.season);
+                        foreach (var l in cache.Value)
+                            tpl.Append(l.name, l.uri, l.season);
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    });
                     #endregion
                 }
                 else
                 {
                     #region Серии
-                    string memKey = $"kinotochka:playlist:{newsuri}";
-                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
+                    var cache = await InvokeCache<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
                     {
-                        if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                            return ShowError(rch_error);
-
                         if (rch.IsNotConnected())
-                            return ContentTo(rch.connectionMsg);
+                            return res.Fail(rch.connectionMsg);
 
                         string news = init.rhub ? await rch.Get(newsuri) : await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (news == null)
-                            return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        {
+                            if (!init.rhub)
+                                proxyManager?.Refresh();
+
+                            return res.Fail("news");
+                        }
 
                         string filetxt = Regex.Match(news, "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
                         if (string.IsNullOrEmpty(filetxt))
-                            return OnError();
+                            return res.Fail("filetxt");
 
                         var root = init.rhub ? await rch.Get<JObject>(filetxt) : await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (root == null)
-                            return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        {
+                            if (!init.rhub)
+                                proxyManager?.Refresh();
+
+                            return res.Fail("root");
+                        }
 
                         var playlist = root.Value<JArray>("playlist");
                         if (playlist == null)
-                            return OnError();
+                            return res.Fail("playlist");
 
-                        links = new List<(string name, string uri)>();
+                        var links = new List<(string name, string uri)>();
 
                         foreach (var pl in playlist)
                         {
@@ -139,18 +152,23 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (links.Count == 0)
-                            return OnError();
+                            return res.Fail("links");
 
-                        proxyManager.Success();
-                        hybridCache.Set(memKey, links, cacheTime(30, init: init));
-                    }
+                        return links;
+                    });
 
-                    var etpl = new EpisodeTpl();
+                    if (IsRhubFallback(cache, init))
+                        goto reset;
 
-                    foreach (var l in links)
-                        etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy));
+                    return OnResult(cache, () =>
+                    {
+                        var etpl = new EpisodeTpl();
 
-                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                        foreach (var l in cache.Value)
+                            etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy));
+
+                        return rjson ? etpl.ToJson() : etpl.ToHtml();
+                    });
                     #endregion
                 }
             }
@@ -160,23 +178,24 @@ namespace Lampac.Controllers.LITE
                 if (kinopoisk_id == 0)
                     return OnError();
 
-                string memKey = $"kinotochka:view:{kinopoisk_id}";
-                if (!hybridCache.TryGetValue(memKey, out string file))
+                var cache = await InvokeCache<EmbedModel>($"kinotochka:view:{kinopoisk_id}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotSupport(rchtype, "web", out string rch_error))
-                        return ShowError(rch_error);
-
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string uri = $"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}";
                     string embed = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                     if (embed == null)
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    {
+                        if (!init.rhub)
+                            proxyManager?.Refresh();
 
-                    file = Regex.Match(embed, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
+                        return res.Fail("embed");
+                    }
+
+                    string file = Regex.Match(embed, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(file))
-                        return OnError();
+                        return res.Fail("file");
 
                     foreach (string f in file.Split(",").Reverse())
                     {
@@ -187,14 +206,19 @@ namespace Lampac.Controllers.LITE
                         break;
                     }
 
-                    proxyManager.Success();
-                    hybridCache.Set(memKey, file, cacheTime(30, init: init));
-                }
+                    return new EmbedModel() { content = file };
+                });
 
-                var mtpl = new MovieTpl(title);
-                mtpl.Append("По умолчанию", HostStreamProxy(init, file, proxy: proxy));
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return OnResult(cache, () => 
+                {
+                    var mtpl = new MovieTpl(title);
+                    mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy));
+
+                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                });
                 #endregion
             }
         }
