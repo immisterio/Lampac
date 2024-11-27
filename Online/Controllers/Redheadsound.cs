@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 

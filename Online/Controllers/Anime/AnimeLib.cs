@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
             var rheader = httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val);
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -228,7 +228,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
 
             string memKey = $"animelib:video:{id}";
             if (!memoryCache.TryGetValue(memKey, out JArray players))

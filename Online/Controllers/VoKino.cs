@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
             if (balancer is "filmix" or "ashdi" or "alloha")
                 init.streamproxy = false;
 
-            reset: var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init);
             var proxy = proxyManager.Get();
 
             var oninvk = new VoKinoInvoke

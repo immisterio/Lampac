@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Shared.Engine.CORE;
+using Shared.Model.Base;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -43,15 +44,16 @@ namespace Lampac.Engine.CORE
 
         string ip, connectionId;
 
-        bool enableRhub;
+        bool enableRhub, rhub_fallback;
 
         public string connectionMsg { get; private set; }
 
         public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy.CurrentProxyIp)}";
 
-        public RchClient(HttpContext context, string host, bool enableRhub)
+        public RchClient(HttpContext context, string host, BaseSettings init)
         {
-            this.enableRhub = enableRhub;
+            enableRhub = init.rhub;
+            rhub_fallback = init.rhub_fallback;
             ip = context.Connection.RemoteIpAddress.ToString();
             connectionId = clients.FirstOrDefault(i => i.Value == ip).Key;
 
@@ -177,6 +179,9 @@ namespace Lampac.Engine.CORE
 
             if (!enableRhub)
                 return false; // rch не используется
+
+            if (rhub_fallback)
+                return false; // разрешен возврат на сервер
 
             if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
                 rch_msg = "На MSX недоступно";

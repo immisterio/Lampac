@@ -25,7 +25,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("eneyida", init);
             var proxy = proxyManager.Get();
 

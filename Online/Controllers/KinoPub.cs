@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
             var proxy = proxyManager.Get();
 
             string token = init.token;

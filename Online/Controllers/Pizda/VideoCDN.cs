@@ -25,7 +25,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("vcdn", init);
             var proxy = proxyManager.Get();
 

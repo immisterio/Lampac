@@ -348,7 +348,7 @@ namespace Lampac.Controllers
             {
                 bool enable = init.enable && !init.rip;
 
-                if (init.rhub)
+                if (init.rhub && !init.rhub_fallback)
                 {
                     if (rch_access != null && rchtype != null) // null == all
                         enable = rch_access.Contains(rchtype);

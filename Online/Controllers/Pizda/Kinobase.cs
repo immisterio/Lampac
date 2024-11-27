@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(title) || year == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
             var proxy = proxyManager.Get();
 
             var oninvk = new KinobaseInvoke

@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("kinoukr", init);
             var proxy = proxyManager.Get();
 

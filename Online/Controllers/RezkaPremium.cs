@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.RezkaPrem;
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("rhsprem", init);
             var proxy = proxyManager.Get();
 
@@ -173,7 +173,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
 
             var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), null, async res => 
             {
@@ -209,7 +209,7 @@ namespace Lampac.Controllers.LITE
             if (oninvk == null)
                 return OnError("authorization error ;(");
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
 
             var cache_root = await InvokeCache<Episodes>($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), null, async res =>
             {
@@ -255,7 +255,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), proxyManager, async res =>
             {

@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
             else if (init.two)
                 init.dash = false;
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
             var proxyManager = new ProxyManager("collaps", init);
             var proxy = proxyManager.Get();
 

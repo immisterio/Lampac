@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init.rhub);
+            var rch = new RchClient(HttpContext, host, init);
 
             if (string.IsNullOrWhiteSpace(uri))
             {
@@ -162,7 +162,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animevost:video:{id}";
             if (!hybridCache.TryGetValue(memKey, out string mp4))
             {
-                var rch = new RchClient(HttpContext, host, init.rhub);
+                var rch = new RchClient(HttpContext, host, init);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
