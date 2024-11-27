@@ -152,7 +152,7 @@ namespace JinEnergy.Online
                 send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
             }
 
-            if (AppInit.typeConf != "web")
+            if (AppInit.typeConf != "web" || AppInit.Rezka.premium)
                 send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
 
             if (!AppInit.IsDefaultConf)
@@ -208,7 +208,7 @@ namespace JinEnergy.Online
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
 
-            if (AppInit.typeConf == "web")
+            if (AppInit.typeConf == "web" && !AppInit.Rezka.premium)
                 send("Rezka - 2160p", "rezka", AppInit.Rezka);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";

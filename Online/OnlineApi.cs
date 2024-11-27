@@ -483,7 +483,7 @@ namespace Lampac.Controllers
             send("Kinotochka", conf.Kinotochka, rch_access: "apk,cors");
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
-                send("CDNmovies", conf.CDNmovies);
+                send("CDNmovies", conf.CDNmovies, rch_access: "apk,cors");
 
             if (serial == -1 || serial == 0)
                 send("IframeVideo", conf.IframeVideo);
