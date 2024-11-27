@@ -71,6 +71,9 @@ curl -L -k -s https://lampac.sh/home | bash
 
 # Плагин Timecode.js
 Синхронизация отметок просмотра между разными устройствами
+* Для синхронизации отметок, все устройства должны быть авторизованы в cub.red под одним аккаунтом, либо на устройствах вместо плагина IP:9118/timecode.js, должен использоваться IP:9118/timecode/{uid}, где {uid} это любые символы, например IP:9118/timecode/myhome
+* email или {uid} должен совпадать на устройствах которые вы хотите синхронизовать между собой 
+
 
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере
@@ -101,17 +104,12 @@ curl -L -k -s https://lampac.sh/home | bash
 1. Для Samsung "IP:9118/samsung.wgt"
 
 # Параметры init.conf
-* xdb - Выводит платные источники с sisi.am
-* fileCacheInactiveDay - Время хранения резервного кеша на диске
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа
 * accsdb - Доступ к API через авторизацию (для jackett используется apikey)
 * useproxy - Парсит источник через прокси указанные в "proxy"
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
-* disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети
-* proxytoproxyimg - Использовать прокси при получении картинки в "http://IP:9118/proxyimg/"
-* SisiHeightPicture - Уменьшение размера картинки в xxx по высоте до 200px
 * findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
 * corseu - Использовать прокси cors.bwa.workers.dev
 
