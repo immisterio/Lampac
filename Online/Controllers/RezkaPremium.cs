@@ -107,7 +107,7 @@ namespace Lampac.Controllers.LITE
                 ongettourl => init.rhub ? rch.Get(ongettourl, rheaders) : HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => init.rhub ? rch.Post(url, data, rheaders) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rhsprem"),
-                requesterror: () => { if (init.rhub == false) proxyManager.Refresh(); }
+                requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
             );
         }
         #endregion

@@ -43,10 +43,10 @@ namespace Lampac.Controllers.LITE
                    ("Upgrade-Insecure-Requests", "1")
                ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<List<Voice>>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<List<Voice>>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20, init: init), init.rhub ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

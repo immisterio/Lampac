@@ -39,10 +39,10 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => init.rhub ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "anilibria"),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<List<RootObject>>($"anilibriaonline:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<List<RootObject>>($"anilibriaonline:{title}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

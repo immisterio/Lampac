@@ -78,10 +78,10 @@ namespace Lampac.Controllers.LITE
                init.token,
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}", proxyManager), cacheTime(20, init: init), init.rhub ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

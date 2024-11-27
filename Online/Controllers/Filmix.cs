@@ -100,13 +100,13 @@ namespace Lampac.Controllers.LITE
                (url, data, head) => init.rhub ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers).ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : apk_headers, useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
-               requesterror: () => proxyManager.Refresh(),
+               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } },
                rjson: rjson
             );
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -123,7 +123,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), proxyManager, inmemory: true, onget: async res =>
+            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), init.rhub ? null : proxyManager, inmemory: true, onget: async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

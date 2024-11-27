@@ -70,11 +70,11 @@ namespace Lampac.Controllers.LITE
                     ("upgrade-insecure-requests", "1")
                ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr"),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
                //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

@@ -84,12 +84,12 @@ namespace Lampac.Controllers.LITE
                token,
                ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
             );
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40, init: init), proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10, init: init), init.rhub ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
