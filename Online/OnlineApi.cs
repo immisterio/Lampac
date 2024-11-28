@@ -32,7 +32,7 @@ namespace Lampac.Controllers
         #region online.js
         [HttpGet]
         [Route("online.js")]
-        [Route("online/{token}")]
+        [Route("online/js/{token}")]
         public ActionResult Online(string token)
         {
             var init = AppInit.conf.online;

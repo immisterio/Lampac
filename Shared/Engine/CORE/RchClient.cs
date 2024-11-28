@@ -63,7 +63,10 @@ namespace Lampac.Engine.CORE
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
             {
                 if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
+                {
                     enableRhub = false;
+                    init.rhub = false;
+                }
             }
 
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new

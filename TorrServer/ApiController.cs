@@ -13,6 +13,7 @@ using System.Buffers;
 using Shared.Model.Online;
 using Shared.Engine;
 using Shared.Model.Base;
+using System.Web;
 
 namespace Lampac.Controllers
 {
@@ -21,9 +22,15 @@ namespace Lampac.Controllers
         #region ts.js
         [HttpGet]
         [Route("ts.js")]
-        public ActionResult Plugin()
+        [Route("ts/js/{token}")]
+        public ActionResult Plugin(string token)
         {
-            return Content(FileCache.ReadAllText("plugins/ts.js").Replace("{localhost}", Regex.Replace(host, "^https?://", "")), contentType: "application/javascript; charset=utf-8");
+            string file = FileCache.ReadAllText("plugins/ts.js").Replace("{localhost}", Regex.Replace(host, "^https?://", ""));
+
+            if (!string.IsNullOrEmpty(token))
+                file = Regex.Replace(file, "Lampa.Storage.set\\('torrserver_login'[^\n\r]+", $"Lampa.Storage.set('torrserver_login','{HttpUtility.UrlEncode(token)}');");
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

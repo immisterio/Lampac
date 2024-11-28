@@ -9,6 +9,8 @@ using System.IO.Compression;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using System.Web;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers
 {
@@ -187,9 +189,13 @@ namespace Lampac.Controllers
         #region tmdbproxy.js / startpage.js
         [HttpGet]
         [Route("tmdbproxy.js")]
-        public ActionResult TmdbProxy()
+        [Route("tmdbproxy/js/{token}")]
+        public ActionResult TmdbProxy(string token)
         {
-            return Content(FileCache.ReadAllText("plugins/tmdbproxy.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            string file = FileCache.ReadAllText("plugins/tmdbproxy.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         
         [HttpGet]
@@ -288,6 +294,79 @@ namespace Lampac.Controllers
 
             file = file.Replace("{full_btn_priority_hash}", full_btn_priority_hash);
             #endregion
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region on.js
+        [HttpGet]
+        [Route("on.js")]
+        [Route("on/{token}")]
+        [Route("on/h/{token}")]
+        public ActionResult LamOnInit(string token, bool adult = true)
+        {
+            if (adult && HttpContext.Request.Path.Value.StartsWith("/on/h/"))
+                adult = false;
+
+            List<string> plugins = new List<string>(7);
+            string file = FileCache.ReadAllText("plugins/on.js");
+
+            if (AppInit.modules != null)
+            {
+                void send(string name, bool worktoken)
+                {
+                    if (worktoken)
+                    {
+                        if (!string.IsNullOrEmpty(token))
+                            plugins.Add($"\"{{localhost}}/{name}/js/{HttpUtility.UrlEncode(token)}\"");
+                        else
+                            plugins.Add($"\"{{localhost}}/{name}.js\"");
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(token))
+                            plugins.Add($"\"{{localhost}}/{name}.js\"");
+                    }
+                }
+
+                if (AppInit.conf.LampaWeb.initPlugins.dlna && AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) != null)
+                    send("dlna", false);
+
+                if (AppInit.conf.LampaWeb.initPlugins.tracks && AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
+                    send("tracks", false);
+
+                if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
+                    send("tmdbproxy", true);
+
+                if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)
+                    send("online", true);
+
+                if (adult)
+                {
+                    if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
+                    {
+                        send("sisi", true);
+                        send("startpage", false);
+                    }
+                }
+
+                if (AppInit.conf.LampaWeb.initPlugins.timecode)
+                    send("timecode", true);
+
+                if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
+                    send("ts", true);
+            }
+
+            if (plugins.Count == 0)
+                file = file.Replace("{plugins}", string.Empty);
+            else
+            {
+                file = file.Replace("{plugins}", string.Join(",", plugins));
+            }
+
+            file = file.Replace("{country}", requestInfo.Country);
+            file = file.Replace("{localhost}", host);
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }

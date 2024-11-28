@@ -22,7 +22,7 @@ namespace SISI
         #region sisi.js
         [HttpGet]
         [Route("sisi.js")]
-        [Route("sisi/{token}")]
+        [Route("sisi/js/{token}")]
         public ActionResult Sisi(string token, bool lite)
         {
             if (lite)
