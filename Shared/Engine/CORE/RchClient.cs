@@ -2,11 +2,11 @@
 using Newtonsoft.Json;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
@@ -47,16 +47,24 @@ namespace Lampac.Engine.CORE
 
         bool enableRhub, rhub_fallback;
 
+        public bool enable => enableRhub;
+
         public string connectionMsg { get; private set; }
 
         public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy.CurrentProxyIp)}";
 
-        public RchClient(HttpContext context, string host, BaseSettings init)
+        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo)
         {
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
             ip = context.Connection.RemoteIpAddress.ToString();
             connectionId = clients.FirstOrDefault(i => i.Value == ip).Key;
+
+            if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
+            {
+                if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
+                    enableRhub = false;
+            }
 
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {

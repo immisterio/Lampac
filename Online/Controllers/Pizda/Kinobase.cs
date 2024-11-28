@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinobase")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
-            var init = AppInit.conf.Kinobase;
+            var init = AppInit.conf.Kinobase.Clone();
 
             if (!init.enable || init.rip)
                 return OnError();
@@ -24,20 +24,20 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(title) || year == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();
 
             var oninvk = new KinobaseInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init)),
-               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init)),
+               (url, data) => rch.enable ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"kinobase:view:{title}:{year}", proxyManager), cacheTime(20, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"kinobase:view:{title}:{year}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

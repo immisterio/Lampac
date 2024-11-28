@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnvideohub")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.CDNvideohub;
+            var init = AppInit.conf.CDNvideohub.Clone();
             if (!init.enable || init.rip)
                 return OnError();
 
@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("cdnvideohub", init);
             var proxy = proxyManager.Get();
 
@@ -38,19 +38,19 @@ namespace Lampac.Controllers.LITE
                     return ContentTo(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
-                string embed = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string embed = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
-                    return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                 file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
                     return OnError();
 
-                if (!init.rhub)
+                if (!rch.enable)
                     proxyManager.Success();
 
                 file = file.Replace("u0026", "&").Replace("\\", "");
-                hybridCache.Set(memKey, file, cacheTime(init.rhub ? 5 : 20, init: init));
+                hybridCache.Set(memKey, file, cacheTime(rch.enable ? 5 : 20, init: init));
             }
 
             if (origsource)

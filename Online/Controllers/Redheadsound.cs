@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
@@ -42,13 +42,13 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => rch.enable ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "redheadsound"),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

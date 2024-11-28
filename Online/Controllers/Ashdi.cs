@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("ashdi", init);
             var proxy = proxyManager.Get();
 
@@ -35,12 +35,12 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), statusCodeOK: false),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), statusCodeOK: false),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi"),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

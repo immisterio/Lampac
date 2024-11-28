@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (rch.IsNotSupport(rchtype, "web", out string rch_error))
                 return ShowError(rch_error);
@@ -41,16 +41,16 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
-                var cache = await InvokeCache<List<(string title, string year, string uri, string s)>>($"animevost:search:{title}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
+                var cache = await InvokeCache<List<(string title, string year, string uri, string s)>>($"animevost:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
                     string data = $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0";
-                    string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                     {
-                        if (!init.rhub)
+                        if (!rch.enable)
                             proxyManager?.Refresh();
 
                         return res.Fail("search");
@@ -102,15 +102,15 @@ namespace Lampac.Controllers.LITE
             else 
             {
                 #region Серии
-                var cache = await InvokeCache<List<(string episode, string id)>>($"animevost:playlist:{uri}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
+                var cache = await InvokeCache<List<(string episode, string id)>>($"animevost:playlist:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    string news = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string news = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
                     {
-                        if (!init.rhub)
+                        if (!rch.enable)
                             proxyManager?.Refresh();
 
                         return res.Fail("news");
@@ -119,7 +119,7 @@ namespace Lampac.Controllers.LITE
                     string data = Regex.Match(news, "var data = ([^\n\r]+)").Groups[1].Value;
                     if (string.IsNullOrEmpty(data))
                     {
-                        if (!init.rhub)
+                        if (!rch.enable)
                             proxyManager?.Refresh();
 
                         return res.Fail("data");
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var l in cache.Value)
                     {
                         string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
-                        string streamlink = init.rhub ? null : accsArgs($"{link}&play=true");
+                        string streamlink = rch.enable ? null : accsArgs($"{link}&play=true");
 
                         etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
                     }
@@ -175,15 +175,15 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
 
-            var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/frame5.php?play={id}&old=1";
-                string iframe = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                string iframe = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
                 var links = new List<(string l, string q)>(2);
 
@@ -197,13 +197,13 @@ namespace Lampac.Controllers.LITE
 
                 if (links.Count == 0)
                 {
-                    if (!init.rhub)
+                    if (!rch.enable)
                         proxyManager?.Refresh();
 
                     return res.Fail("mp4");
                 }
 
-                if (!init.rhub)
+                if (!rch.enable)
                     proxyManager.Success();
 
                 return links;

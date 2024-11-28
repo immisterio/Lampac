@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animelib")]
         async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
-            var init = AppInit.conf.AnimeLib;
+            var init = AppInit.conf.AnimeLib.Clone();
             if (!init.enable)
                 return OnError();
 
@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var rheader = httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val);
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
                             return null;
 
                         string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
-                        var result = init.rhub ? await rch.Get<JObject>(req_uri, rheader) :
+                        var result = rch.enable ? await rch.Get<JObject>(req_uri, rheader) :
                                                  await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                         if (result == null || !result.ContainsKey("data"))
@@ -81,7 +81,7 @@ namespace Lampac.Controllers.LITE
 
                     var search = await goSearch(original_title) ?? await goSearch(title);
                     if (search == null)
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     catalog = new List<(string title, string year, string uri, bool coincidence)>();
 
@@ -109,7 +109,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0)
                         return OnError();
 
-                    if (!init.rhub)
+                    if (!rch.enable)
                         proxyManager.Success();
 
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
@@ -137,18 +137,18 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
 
-                    var root = init.rhub ? await rch.Get<JObject>(req_uri, rheader) : 
-                                           await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, rheader) : 
+                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                     if (root == null || !root.ContainsKey("data"))
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     episodes = root["data"].ToObject<JArray>();
 
                     if (episodes.Count == 0)
                         return OnError();
 
-                    if (!init.rhub)
+                    if (!rch.enable)
                         proxyManager.Success();
 
                     memoryCache.Set(memKey, episodes, cacheTime(30, init: init));
@@ -163,11 +163,11 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}";
 
-                    var root = init.rhub ? await rch.Get<JObject>(req_uri, rheader) : 
-                                           await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, rheader) : 
+                                            await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                     if (root == null || !root.ContainsKey("data"))
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     players = root["data"]["players"].ToObject<JArray>();
                     memoryCache.Set(memKey, players, cacheTime(30, init: init));
@@ -202,7 +202,7 @@ namespace Lampac.Controllers.LITE
                     name = string.IsNullOrEmpty(name) ? title : $"{title} / {name}";
 
                     string link = $"{host}/lite/animelib/video?id={id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
-                    string streamlink = init.rhub ? null : accsArgs($"{link}&play=true");
+                    string streamlink = rch.enable ? null : accsArgs($"{link}&play=true");
 
                     etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: streamlink);
                 }
@@ -221,14 +221,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animelib/video")]
         async public Task<ActionResult> Video(string title, long id, string voice, bool play)
         {
-            var init = AppInit.conf.AnimeLib;
+            var init = AppInit.conf.AnimeLib.Clone();
             if (!init.enable)
                 return OnError();
 
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var rch = new RchClient(HttpContext, host, init);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             string memKey = $"animelib:video:{id}";
             if (!memoryCache.TryGetValue(memKey, out JArray players))
@@ -238,15 +238,15 @@ namespace Lampac.Controllers.LITE
 
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
 
-                var root = init.rhub ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val)) :
-                                       await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val)) :
+                                        await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                 if (root == null || !root.ContainsKey("data"))
-                    return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                 players = root["data"]["players"].ToObject<JArray>();
 
-                if (!init.rhub)
+                if (!rch.enable)
                     proxyManager.Success();
 
                 memoryCache.Set(memKey, players, cacheTime(30, init: init));

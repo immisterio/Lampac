@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst")]
         async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, bool rjson = false)
         {
-            var init = AppInit.conf.Animebesst;
+            var init = AppInit.conf.Animebesst.Clone();
             if (!init.enable || string.IsNullOrWhiteSpace(title))
                 return OnError();
 
@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (rch.IsNotSupport(rchtype, "cors,web", out string rch_error))
                 return ShowError(rch_error);
@@ -47,9 +47,9 @@ namespace Lampac.Controllers.LITE
                         return ContentTo(rch.connectionMsg);
 
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
-                    string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     catalog = new List<(string title, string year, string uri, string s)>();
 
@@ -78,7 +78,7 @@ namespace Lampac.Controllers.LITE
                     if (catalog.Count == 0 && !search.Contains(">Поиск по сайту<"))
                         return OnError();
 
-                    if (!init.rhub)
+                    if (!rch.enable)
                         proxyManager.Success();
 
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
@@ -107,9 +107,9 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
-                    string news = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string news = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
-                        return OnError(proxyManager, refresh_proxy: !init.rhub);
+                        return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     string videoList = Regex.Match(news, "var videoList ?=([^\n\r]+)").Groups[1].Value.Trim();
                     if (string.IsNullOrEmpty(videoList))
@@ -128,7 +128,7 @@ namespace Lampac.Controllers.LITE
                     if (links.Count == 0)
                         return OnError();
 
-                    if (!init.rhub)
+                    if (!rch.enable)
                         proxyManager.Success();
 
                     hybridCache.Set(memKey, links, cacheTime(30, init: init));
@@ -142,7 +142,7 @@ namespace Lampac.Controllers.LITE
                     string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
 
                     string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
-                    string streamlink = init.rhub ? null : $"{link}&play=true";
+                    string streamlink = rch.enable ? null : $"{link}&play=true";
 
                     etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: streamlink, voice_name: Regex.Unescape(voice_name));
                 }
@@ -158,7 +158,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst/video.m3u8")]
         async public Task<ActionResult> Video(string uri, string title, bool play)
         {
-            var init = AppInit.conf.Animebesst;
+            var init = AppInit.conf.Animebesst.Clone();
 
             if (!init.enable)
                 return OnError();
@@ -166,13 +166,13 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animebesst:video:{uri}";
             if (!hybridCache.TryGetValue(memKey, out string hls))
             {
-                var rch = new RchClient(HttpContext, host, init);
+                var rch = new RchClient(HttpContext, host, init, requestInfo);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
                 string iframe;
-                if (init.rhub)
+                if (rch.enable)
                 {
                     iframe = await rch.Get(init.cors($"https://{uri}"), headers: new Dictionary<string, string>() { ["referer"] = init.host });
                 }
@@ -182,13 +182,13 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (iframe == null)
-                    return OnError(proxyManager, refresh_proxy: !init.rhub);
+                    return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                 hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
                     return OnError();
 
-                if (!init.rhub)
+                if (!rch.enable)
                     proxyManager.Success();
 
                 hybridCache.Set(memKey, hls, cacheTime(30, init: init));

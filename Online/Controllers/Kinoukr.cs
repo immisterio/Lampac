@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("kinoukr", init);
             var proxy = proxyManager.Get();
 
@@ -44,8 +44,8 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: url.Contains("bobr-kurwa") ? httpHeaders(init) : httpHeaders(init, HeadersModel.Init
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => rch.enable ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: url.Contains("bobr-kurwa") ? httpHeaders(init) : httpHeaders(init, HeadersModel.Init
                (
                     ("cache-control", "no-cache"),
                     ("cookie", $"PHPSESSID={CrypTo.md5(DateTime.Now.ToBinary().ToString())}; legit_user=1;"),
@@ -70,11 +70,11 @@ namespace Lampac.Controllers.LITE
                     ("upgrade-insecure-requests", "1")
                ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr"),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
                //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

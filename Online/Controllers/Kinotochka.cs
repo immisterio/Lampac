@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("kinotochka", init);
             var proxy = proxyManager.Get();
 
@@ -51,16 +51,16 @@ namespace Lampac.Controllers.LITE
                 if (s == -1)
                 {
                     #region Сезоны
-                    var cache = await InvokeCache<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
+                    var cache = await InvokeCache<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                     {
                         if (rch.IsNotConnected())
                             return res.Fail(rch.connectionMsg);
 
                         string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
-                        string search = init.rhub ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (search == null)
                         {
-                            if (!init.rhub)
+                            if (!rch.enable)
                                 proxyManager?.Refresh();
 
                             return res.Fail("search");
@@ -105,15 +105,15 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     #region Серии
-                    var cache = await InvokeCache<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
+                    var cache = await InvokeCache<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                     {
                         if (rch.IsNotConnected())
                             return res.Fail(rch.connectionMsg);
 
-                        string news = init.rhub ? await rch.Get(newsuri) : await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                        string news = rch.enable ? await rch.Get(newsuri) : await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (news == null)
                         {
-                            if (!init.rhub)
+                            if (!rch.enable)
                                 proxyManager?.Refresh();
 
                             return res.Fail("news");
@@ -123,10 +123,10 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(filetxt))
                             return res.Fail("filetxt");
 
-                        var root = init.rhub ? await rch.Get<JObject>(filetxt) : await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                        var root = rch.enable ? await rch.Get<JObject>(filetxt) : await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (root == null)
                         {
-                            if (!init.rhub)
+                            if (!rch.enable)
                                 proxyManager?.Refresh();
 
                             return res.Fail("root");
@@ -178,16 +178,16 @@ namespace Lampac.Controllers.LITE
                 if (kinopoisk_id == 0)
                     return OnError();
 
-                var cache = await InvokeCache<EmbedModel>($"kinotochka:view:{kinopoisk_id}", cacheTime(30, init: init), init.rhub ? null : proxyManager, async res =>
+                var cache = await InvokeCache<EmbedModel>($"kinotochka:view:{kinopoisk_id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
                     string uri = $"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}";
-                    string embed = init.rhub ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                    string embed = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                     if (embed == null)
                     {
-                        if (!init.rhub)
+                        if (!rch.enable)
                             proxyManager?.Refresh();
 
                         return res.Fail("embed");

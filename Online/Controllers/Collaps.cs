@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
             else if (init.two)
                 init.dash = false;
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("collaps", init);
             var proxy = proxyManager.Get();
 
@@ -50,12 +50,12 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.dash,
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, beseheader)),
-               onstreamtofile => init.rhub ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps", headers: beseheader),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, beseheader)),
+               onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps", headers: beseheader),
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

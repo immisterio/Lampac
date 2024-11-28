@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("filmix", init);
             var proxy = proxyManager.Get();
 
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.LITE
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
             #region filmix.tv
-            if (!init.rhub && !string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))
+            if (!rch.enable && !string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))
             {
                 string accessToken = await InvokeCache("filmix:accessToken", TimeSpan.FromHours(8), async () => 
                 {
@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
             }
 
             string livehash = string.Empty;
-            if (!init.rhub && (init.livehash || !string.IsNullOrEmpty(init.token_apitv)))
+            if (!rch.enable && (init.livehash || !string.IsNullOrEmpty(init.token_apitv)))
                 livehash = await getLiveHash(init);
             #endregion
 
@@ -95,18 +95,18 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                token,
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl), apk_headers.ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
-                                         HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: apk_headers, useDefaultHeaders: false),
-               (url, data, head) => init.rhub ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers).ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
-                                                HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : apk_headers, useDefaultHeaders: false),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), apk_headers.ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
+                                          HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: apk_headers, useDefaultHeaders: false),
+               (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers).ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
+                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : apk_headers, useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } },
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
                rjson: rjson
             );
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -123,7 +123,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), init.rhub ? null : proxyManager, inmemory: true, onget: async res =>
+            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, inmemory: true, onget: async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

@@ -352,8 +352,15 @@ namespace Lampac.Controllers
 
                 if (enable && init.rhub && !init.rhub_fallback)
                 {
-                    if (rch_access != null && rchtype != null) // null == all
+                    if (rch_access != null && rchtype != null) 
+                    {
                         enable = rch_access.Contains(rchtype);
+                        if (enable && init.rhub_geo_disable != null)
+                        {
+                            if (requestInfo.Country == null || init.rhub_geo_disable.Contains(requestInfo.Country))
+                                enable = false;
+                        }
+                    }
                 }
 
                 if (init.geo_hide != null)

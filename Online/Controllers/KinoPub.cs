@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinopub")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.KinoPub;
+            var init = AppInit.conf.KinoPub.Clone();
 
             if (!init.enable)
                 return OnError();
@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();
 
             string token = init.token;
@@ -82,14 +82,14 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                token,
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy),
-               requesterror: () => { if (!init.rhub) { proxyManager.Refresh(); } }
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40, init: init), init.rhub ? null : proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10, init: init), init.rhub ? null : proxyManager, async res =>
+            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
