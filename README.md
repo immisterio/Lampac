@@ -34,13 +34,14 @@ curl -L -k -s https://lampac.sh/home | bash
 2. BWA - https://bwa.to
 
 # Плагины для Lampa
-1. онлайн   - "http://IP:9118/online.js"
-2. xxx      - "http://IP:9118/sisi.js"
-3. DLNA     - "http://IP:9118/dlna.js"
-4. TimeCode - "http://IP:9118/timecode.js"
-5. Tracks   - "http://IP:9118/tracks.js"
-6. TorrServer      - "http://IP:9118/ts.js"
-7. Парсер Jackett  - "IP:9118"
+1. Все плагины     - "http://IP:9118/on.js"
+2. онлайн   - "http://IP:9118/online.js"
+3. xxx      - "http://IP:9118/sisi.js"
+4. DLNA     - "http://IP:9118/dlna.js"
+5. TimeCode - "http://IP:9118/timecode.js"
+6. Tracks   - "http://IP:9118/tracks.js"
+7. TorrServer      - "http://IP:9118/ts.js"
+8. Парсер Jackett  - "IP:9118"
 
 # Плагины для Lampa Lite
 1. онлайн/jackett  - "http://IP:9118/lite.js" 
