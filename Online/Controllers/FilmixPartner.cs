@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 return Content("data-json=");
 
             #region video_links
-            string memKey = $"fxapi:{postid}:{HttpContext.Connection.RemoteIpAddress}";
+            string memKey = $"fxapi:{postid}:{requestInfo.IP}";
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 string XFXTOKEN = await getXFXTOKEN(account_email);

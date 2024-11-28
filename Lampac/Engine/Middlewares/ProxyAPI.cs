@@ -41,7 +41,8 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
-            string reqip = httpContext.Connection.RemoteIpAddress.ToString();
+            var requestInfo = httpContext.Features.Get<RequestModel>();
+            string reqip = requestInfo.IP;
             string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
 
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))

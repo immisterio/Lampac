@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                 return LocalRedirect(accsArgs($"/lite/kodik/{uri}?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&play={play}"));
             }
 
-            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+            string userIp = requestInfo.IP;
             if (init.localip)
             {
                 userIp = await mylocalip();

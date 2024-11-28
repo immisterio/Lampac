@@ -389,7 +389,7 @@ namespace Lampac.Controllers.LITE
             }
 
 
-            string tskey = $"pidtor:ts:{id}:{HttpContext.Connection.RemoteIpAddress}";
+            string tskey = $"pidtor:ts:{id}:{requestInfo.IP}";
             if (!memoryCache.TryGetValue(tskey, out (List<HeadersModel> header, string host) ts))
             {
                 ts = gots();
@@ -446,7 +446,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+            string country = requestInfo.Country;
 
             int index = tsid != -1 ? tsid : 1;
             string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|tsid)=[^&]+", "");
@@ -478,7 +478,7 @@ namespace Lampac.Controllers.LITE
 
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
-                string tskey = $"pidtor:ts2:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                string tskey = $"pidtor:ts2:{id}:{requestInfo.IP}";
                 if (!memoryCache.TryGetValue(tskey, out PidTorAuthTS ts))
                 {
                     var tors = init.auth_torrs.Where(i => i.enable).ToList();
@@ -496,7 +496,7 @@ namespace Lampac.Controllers.LITE
             {
                 if (init.base_auth != null && init.base_auth.enable)
                 {
-                    string tskey = $"pidtor:ts3:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                    string tskey = $"pidtor:ts3:{id}:{requestInfo.IP}";
                     if (!memoryCache.TryGetValue(tskey, out string ts))
                     {
                         ts = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
@@ -506,7 +506,7 @@ namespace Lampac.Controllers.LITE
                     return await auth_stream(ts, init.base_auth.login, init.base_auth.passwd);
                 }
 
-                string key = $"pidtor:ts4:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                string key = $"pidtor:ts4:{id}:{requestInfo.IP}";
                 if (!memoryCache.TryGetValue(key, out string tshost))
                 {
                     tshost = init.torrs[Random.Shared.Next(0, init.torrs.Length)];

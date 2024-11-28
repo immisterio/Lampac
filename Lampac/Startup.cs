@@ -254,6 +254,7 @@ namespace Lampac
 
             app.UseModHeaders();
             app.UseStaticFiles();
+            app.UseRequestInfo();
             app.UseAccsdb();
             app.UseOverrideResponse();
             app.UseProxyIMG();

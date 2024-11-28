@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -82,14 +83,15 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|privateinit\\.js|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm|online|sisi)(/|$)|(extensions|kit)$|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|privateinit\\.js|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
+                    var requestInfo = httpContext.Features.Get<RequestModel>();
 
-                    var user = AppInit.conf.accsdb.findUser(httpContext, out string uid);
+                    var user = requestInfo.user;
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
-                    if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(uid, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip))
+                    if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
                         {
@@ -111,9 +113,9 @@ namespace Lampac.Engine.Middlewares
 
                         string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы ") : 
                                      limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
-                                     string.IsNullOrWhiteSpace(uid) ? AppInit.conf.accsdb.authMesage :
-                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
-                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", uid);
+                                     string.IsNullOrWhiteSpace(requestInfo.user_uid) ? AppInit.conf.accsdb.authMesage :
+                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
+                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid);
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}", httpContext.RequestAborted);

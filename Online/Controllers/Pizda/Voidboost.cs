@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
             if (init.geostreamproxy != null && init.geostreamproxy.Count > 0)
             {
-                string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+                string country = requestInfo.Country;
                 if (country != null && init.geostreamproxy.Contains(country))
                 {
                     init.streamproxy = true;
@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
             var headers = httpHeaders(init);
 
             if (init.xrealip)
-                headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
+                headers.Add(new HeadersModel("realip", requestInfo.IP));
 
             headers.Add(new HeadersModel("Origin", "http://baskino.me"));
             headers.Add(new HeadersModel("Referer", "http://baskino.me/"));
@@ -111,7 +111,7 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = InitVoidboostInvoke();
 
-            string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
+            string realip = (init.xrealip && init.corseu) ? requestInfo.IP : "";
 
             var md = await InvokeCache($"rezka:view:stream:{t}:{s}:{e}:{proxyManager.CurrentProxyIp}:{play}:{realip}", cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(t, s, e), proxyManager);
 

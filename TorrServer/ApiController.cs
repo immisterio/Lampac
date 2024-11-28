@@ -13,7 +13,6 @@ using System.Buffers;
 using Shared.Model.Online;
 using Shared.Engine;
 using Shared.Model.Base;
-using System.Linq;
 
 namespace Lampac.Controllers
 {
@@ -158,7 +157,7 @@ namespace Lampac.Controllers
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                     }
-                    else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
+                    else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
                     {
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                     }

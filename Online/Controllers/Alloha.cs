@@ -139,7 +139,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+            string userIp = requestInfo.IP;
             if (init.localip || init.streamproxy)
             {
                 userIp = await mylocalip();

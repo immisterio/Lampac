@@ -26,13 +26,15 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "125";
+        public static string appversion => "126";
 
-        public static string minorversion => "8";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
         public IMemoryCache memoryCache { get; private set; }
+
+        public RequestModel requestInfo => HttpContext?.Features?.Get<RequestModel>();
 
         public string host => AppInit.Host(HttpContext);
 
@@ -68,7 +70,7 @@ namespace Lampac.Engine
             if (init.headers == null)
                 return headers;
 
-            string ip = HttpContext.Connection.RemoteIpAddress.ToString();
+            string ip = requestInfo.IP;
             string account_email = HttpContext.Request.Query["account_email"].ToString() ?? string.Empty;
 
             foreach (var h in init.headers)
@@ -132,7 +134,7 @@ namespace Lampac.Engine
                            .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
             }
 
-            uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
+            uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
 
             if (AppInit.conf.accsdb.enable)
                 uri = AccsDbInvk.Args(uri, HttpContext);
@@ -148,7 +150,7 @@ namespace Lampac.Engine
             bool streamproxy = conf.streamproxy || conf.useproxystream;
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {
-                string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+                string country = requestInfo.Country;
                 if (!string.IsNullOrEmpty(country) && country.Length == 2)
                 {
                     if (conf.geostreamproxy.Contains("ALL") || conf.geostreamproxy.Contains(country))
@@ -166,7 +168,7 @@ namespace Lampac.Engine
                         using (MD5 md5 = MD5.Create())
                         {
                             long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
-                            string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{HttpContext.Connection.RemoteIpAddress} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
+                            string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
 
                             return $"{apn.host}/{hash}:{ex}/{uri}";
                         }
@@ -175,7 +177,7 @@ namespace Lampac.Engine
                     {
                         using (var sha1 = SHA1.Create())
                         {
-                            var data = Encoding.UTF8.GetBytes($"{HttpContext.Connection.RemoteIpAddress}{uri}{apn.secret}");
+                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{uri}{apn.secret}");
                             return Convert.ToBase64String(sha1.ComputeHash(data));
                         }
                     }
@@ -190,7 +192,7 @@ namespace Lampac.Engine
                     return apnlink(AppInit.conf.apn);
                 #endregion
 
-                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
+                uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 
                 if (AppInit.conf.accsdb.enable)
                     uri = AccsDbInvk.Args(uri, HttpContext);
@@ -285,7 +287,7 @@ namespace Lampac.Engine
             if (!AppInit.conf.accsdb.enable || init.group == 0 || HttpContext.Request.Headers.TryGetValue("localrequest", out _))
                 return false;
 
-            var user = AppInit.conf.accsdb.findUser(HttpContext, out _);
+            var user = requestInfo.user;
             if (user == null || init.group > user.group)
             {
                 error_msg = AppInit.conf.accsdb.denyGroupMesage;

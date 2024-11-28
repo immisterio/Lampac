@@ -9,7 +9,6 @@ using System.IO.Compression;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
-using Shared.Engine.CORE;
 
 namespace Lampac.Controllers
 {
@@ -66,20 +65,20 @@ namespace Lampac.Controllers
         public ActionResult Geo(string select)
         {
             if (select == "ip")
-                return Content(HttpContext.Connection.RemoteIpAddress.ToString());
+                return Content(requestInfo.IP);
 
             if (select == "country")
-                return Content(GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()));
+                return Content(requestInfo.Country);
 
             return Json(new 
             { 
-                ip = HttpContext.Connection.RemoteIpAddress.ToString(),
-                country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()) 
+                ip = requestInfo.IP,
+                country = requestInfo.Country
             });
         }
 
         [Route("/myip")]
-        public ActionResult MyIP() => Content(HttpContext.Connection.RemoteIpAddress.ToString());
+        public ActionResult MyIP() => Content(requestInfo.IP);
 
         [Route("/testaccsdb")]
         public ActionResult TestAccsdb() => Content("{\"accsdb\": false}");
@@ -255,7 +254,7 @@ namespace Lampac.Controllers
 
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
 
-            file = file.Replace("{country}", GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()));
+            file = file.Replace("{country}", requestInfo.Country);
             file = file.Replace("{localhost}", host);
             file = file.Replace("{deny}", string.Empty);
             file = file.Replace("{pirate_store}", string.Empty);
@@ -299,14 +298,14 @@ namespace Lampac.Controllers
         [Route("privateinit.js")]
         public ActionResult PrivateInit()
         {
-            var user = AppInit.conf.accsdb.findUser(HttpContext, out _);
+            var user = requestInfo.user;
             if (user == null || user.ban || DateTime.UtcNow > user.expires)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
             string initiale = string.Empty;
             string file = FileCache.ReadAllText("plugins/privateinit.js");
 
-            file = file.Replace("{country}", GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString()));
+            file = file.Replace("{country}", requestInfo.Country);
             file = file.Replace("{localhost}", host);
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)

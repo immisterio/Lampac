@@ -38,9 +38,9 @@ namespace Lampac.Controllers.LITE
                 headers.Add(new HeadersModel("X-App-Hdrezka-App", "1"));
 
             if (init.xrealip)
-                headers.Add(new HeadersModel("realip", HttpContext.Connection.RemoteIpAddress.ToString()));
+                headers.Add(new HeadersModel("realip", requestInfo.IP));
 
-            string country = init.forceua ? "UA" : GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+            string country = init.forceua ? "UA" : requestInfo.Country;
 
             return new RezkaInvoke
             (
@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
             var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);
 
-            string realip = (init.xrealip && init.corseu) ? HttpContext.Connection.RemoteIpAddress.ToString() : "";
+            string realip = (init.xrealip && init.corseu) ? requestInfo.IP : "";
 
             var md = await InvokeCache($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)

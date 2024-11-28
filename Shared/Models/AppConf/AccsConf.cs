@@ -14,6 +14,8 @@ namespace Lampac.Models.AppConf
 
         public string premium_pattern { get; set; }
 
+        public string domainId_pattern { get; set; }
+
         public int maxip_hour { get; set; }
 
         public int maxrequest_hour { get; set; }

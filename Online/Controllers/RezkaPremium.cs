@@ -89,10 +89,10 @@ namespace Lampac.Controllers.LITE
 
             var rheaders = headers.ToDictionary(k => k.name, v => v.val);
 
-            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+            string country = requestInfo.Country;
 
             if (!init.rhub && country != null)
-                headers.Add(new HeadersModel("X-Real-IP", HttpContext.Connection.RemoteIpAddress.ToString()));
+                headers.Add(new HeadersModel("X-Real-IP", requestInfo.IP));
 
             if (init.forceua)
                 country = "UA";
