@@ -14,6 +14,8 @@ namespace Shared.Model.Base
 
         public bool rhub_fallback { get; set; }
 
+        public string[]? geo_hide { get; set; }
+
         public bool rip { get; set; }
 
         public int cache_time { get; set; }

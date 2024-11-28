@@ -62,9 +62,9 @@ namespace Shared.Model
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("kwwsv=22dsl1qlqvho1zv", streamproxy: true, two: true);
 
-        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("kwwsv=22edvh1dvkgl1yls");
+        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("kwwsv=22edvh1dvkgl1yls") { geo_hide = new string[] { "RU", "BY" } };
 
-        public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("kwwsv=22nlqrxnu1frp");
+        public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("kwwsv=22nlqrxnu1frp") { geo_hide = new string[] { "RU", "BY" } };
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("kwwsv=22nlqryleh1fr", streamproxy: true);
 

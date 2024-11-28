@@ -350,10 +350,16 @@ namespace Lampac.Controllers
             {
                 bool enable = init.enable && !init.rip;
 
-                if (init.rhub && !init.rhub_fallback)
+                if (enable && init.rhub && !init.rhub_fallback)
                 {
                     if (rch_access != null && rchtype != null) // null == all
                         enable = rch_access.Contains(rchtype);
+                }
+
+                if (init.geo_hide != null)
+                {
+                    if (requestInfo.Country == null || init.geo_hide.Contains(requestInfo.Country))
+                        enable = false;
                 }
 
                 if (enable)
