@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
@@ -62,7 +63,8 @@ namespace Lampac.Engine.CORE
                 rch = true,
                 AppInit.conf.rch.keepalive,
                 result = $"{host}/rch/result",
-                ws = $"{host}/ws"
+                ws = $"{host}/ws",
+                timeout = init.rhub_fallback ? 5 : 8
             });
         }
 

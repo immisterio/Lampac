@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using Lampac;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
@@ -21,7 +22,8 @@ namespace SISI
         #region sisi.js
         [HttpGet]
         [Route("sisi.js")]
-        public ActionResult Sisi(bool lite)
+        [Route("sisi/{token}")]
+        public ActionResult Sisi(string token, bool lite)
         {
             if (lite)
                 return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", $"{host}/sisi"), contentType: "application/javascript; charset=utf-8");
@@ -37,6 +39,8 @@ namespace SISI
                 file = file.Replace("Defined.use_api == 'pwa'", "true");
                 file = file.Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
             }
+
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }

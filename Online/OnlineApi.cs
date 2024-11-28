@@ -32,12 +32,14 @@ namespace Lampac.Controllers
         #region online.js
         [HttpGet]
         [Route("online.js")]
-        public ActionResult Online()
+        [Route("online/{token}")]
+        public ActionResult Online(string token)
         {
             var init = AppInit.conf.online;
 
             string file = FileCache.ReadAllText("plugins/online.js");
             file = file.Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             if (init.component != "lampac")
             {
@@ -312,7 +314,7 @@ namespace Lampac.Controllers
             bool isanime = original_language == "ja";
 
             var conf = AppInit.conf;
-            var user = AppInit.conf.accsdb.findUser(HttpContext, out string uid);
+            var user = requestInfo.user;
 
             #region modules
             if (AppInit.modules != null)
