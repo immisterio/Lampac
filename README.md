@@ -115,7 +115,7 @@ curl -L -k -s https://lampac.sh/home | bash
 * corseu - Использовать прокси cors.bwa.workers.dev
 
 # Пример init.conf
-* Список всех параметров, а так же значения по умолчанию смотреть в example.conf 
+* Список всех параметров, а так же значения по умолчанию смотреть в current.conf и example.conf 
 * В init.conf нужно указывать только те параметры, которые хотите изменить
 * Редактировать init.conf можно так же через ip:9118/admin/init
 

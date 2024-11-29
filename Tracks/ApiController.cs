@@ -14,6 +14,21 @@ namespace Lampac.Controllers
 {
     public class TracksController : BaseController
     {
+        [HttpGet]
+        [Route("tracks.js")]
+        [Route("tracks/js/{token}")]
+        public ActionResult Tracks(string token)
+        {
+            if (!AppInit.conf.ffprobe.enable)
+                return Content(string.Empty);
+
+            string file = FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+
+
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media)
         {
@@ -98,17 +113,6 @@ namespace Lampac.Controllers
             }
 
             return Content(outPut, contentType: "application/json; charset=utf-8");
-        }
-
-
-        [HttpGet]
-        [Route("tracks.js")]
-        public ActionResult Tracks()
-        {
-            if (!AppInit.conf.ffprobe.enable)
-                return Content(string.Empty);
-
-            return Content(FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
     }
 }

@@ -33,11 +33,13 @@ namespace Lampac
             HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
             RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers);
 
-            Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+            string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
             {
                 NullValueHandling = NullValueHandling.Ignore
-            }) + "\n");
+            });
 
+            Console.WriteLine(init + "\n");
+            File.WriteAllText("current.conf", init);
             
             if (!AppInit.conf.mikrotik) 
             {

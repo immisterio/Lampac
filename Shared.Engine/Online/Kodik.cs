@@ -38,8 +38,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<List<Result>?> Embed(string? imdb_id, long kinopoisk_id, int s)
+        async public ValueTask<List<Result>?> Embed(string? imdb_id, long kinopoisk_id, int s)
         {
+            if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
+                return null;
+
             string url = $"{apihost}/search?token={token}&limit=100&with_episodes=true";
             if (kinopoisk_id > 0)
                 url += $"&kinopoisk_id={kinopoisk_id}";

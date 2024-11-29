@@ -25,8 +25,30 @@ namespace Lampac.Engine.Middlewares
 
             if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
             {
+                #region getuid
+                string getuid()
+                {
+                    if (!string.IsNullOrEmpty(httpContext.Request.Query["token"].ToString()))
+                        return httpContext.Request.Query["token"].ToString();
+
+                    if (!string.IsNullOrEmpty(httpContext.Request.Query["account_email"].ToString()))
+                        return httpContext.Request.Query["account_email"].ToString();
+
+                    if (!string.IsNullOrEmpty(httpContext.Request.Query["uid"].ToString()))
+                        return httpContext.Request.Query["uid"].ToString();
+
+                    if (!string.IsNullOrEmpty(httpContext.Request.Query["box_mac"].ToString()))
+                        return httpContext.Request.Query["box_mac"].ToString();
+
+                    return null;
+                }
+                #endregion
+
                 req.user = AppInit.conf.accsdb.findUser(httpContext, out string uid);
                 req.user_uid = uid;
+
+                if (string.IsNullOrEmpty(req.user_uid))
+                    req.user_uid = getuid();
 
                 httpContext.Features.Set(req);
                 return _next(httpContext);

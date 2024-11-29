@@ -139,7 +139,7 @@ namespace Shared.Model
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("kwwsv=22dqlphyrvw1ruj", streamproxy: true);
 
-        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E");
+        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E") { geo_hide = new string[] { "RU", "BY" } };
 
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("kwwsv=22dqlph41ehvw");
 

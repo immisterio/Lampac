@@ -316,25 +316,21 @@ namespace Lampac.Controllers
             {
                 void send(string name, bool worktoken)
                 {
-                    if (worktoken)
+                    if (worktoken && !string.IsNullOrEmpty(token))
                     {
-                        if (!string.IsNullOrEmpty(token))
-                            plugins.Add($"\"{{localhost}}/{name}/js/{HttpUtility.UrlEncode(token)}\"");
-                        else
-                            plugins.Add($"\"{{localhost}}/{name}.js\"");
+                        plugins.Add($"\"{{localhost}}/{name}/js/{HttpUtility.UrlEncode(token)}\"");
                     }
                     else
                     {
-                        if (string.IsNullOrEmpty(token))
-                            plugins.Add($"\"{{localhost}}/{name}.js\"");
+                        plugins.Add($"\"{{localhost}}/{name}.js\"");
                     }
                 }
 
                 if (AppInit.conf.LampaWeb.initPlugins.dlna && AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) != null)
-                    send("dlna", false);
+                    send("dlna", true);
 
                 if (AppInit.conf.LampaWeb.initPlugins.tracks && AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
-                    send("tracks", false);
+                    send("tracks", true);
 
                 if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
                     send("tmdbproxy", true);
