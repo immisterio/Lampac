@@ -6,6 +6,8 @@ namespace Shared.Models.ServerProxy
     {
         public bool enable { get; set; }
 
+        public bool forced_apn { get; set; }
+
         public bool encrypt { get; set; }
 
         public bool verifyip { get; set; }

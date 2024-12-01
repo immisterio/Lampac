@@ -6,11 +6,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using MonoTorrent.Client;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine.CORE;
@@ -24,13 +26,15 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "122";
+        public static string appversion => "126";
 
-        public static string minorversion => "14";
+        public static string minorversion => "3";
 
         public HybridCache hybridCache { get; private set; }
 
         public IMemoryCache memoryCache { get; private set; }
+
+        public RequestModel requestInfo => HttpContext?.Features?.Get<RequestModel>();
 
         public string host => AppInit.Host(HttpContext);
 
@@ -66,7 +70,7 @@ namespace Lampac.Engine
             if (init.headers == null)
                 return headers;
 
-            string ip = HttpContext.Connection.RemoteIpAddress.ToString();
+            string ip = requestInfo.IP;
             string account_email = HttpContext.Request.Query["account_email"].ToString() ?? string.Empty;
 
             foreach (var h in init.headers)
@@ -113,7 +117,7 @@ namespace Lampac.Engine
         #region proxy
         public string HostImgProxy(string uri, int width = 0, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
-            if (string.IsNullOrWhiteSpace(uri) || !AppInit.conf.sisi.rsize) 
+            if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
                 return uri;
 
             var init = AppInit.conf.sisi;
@@ -130,27 +134,23 @@ namespace Lampac.Engine
                            .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
             }
 
-            uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers);
+            uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
 
             if (AppInit.conf.accsdb.enable)
-            {
-                string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
-                if (!string.IsNullOrWhiteSpace(account_email))
-                    uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
-            }
+                uri = AccsDbInvk.Args(uri, HttpContext);
 
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
         public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
         {
-            if (string.IsNullOrEmpty(uri) || conf == null || conf.rhub)
+            if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null || conf.rhub)
                 return uri;
 
             bool streamproxy = conf.streamproxy || conf.useproxystream;
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {
-                string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+                string country = requestInfo.Country;
                 if (!string.IsNullOrEmpty(country) && country.Length == 2)
                 {
                     if (conf.geostreamproxy.Contains("ALL") || conf.geostreamproxy.Contains(country))
@@ -168,7 +168,7 @@ namespace Lampac.Engine
                         using (MD5 md5 = MD5.Create())
                         {
                             long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
-                            string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{HttpContext.Connection.RemoteIpAddress} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
+                            string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
 
                             return $"{apn.host}/{hash}:{ex}/{uri}";
                         }
@@ -177,7 +177,7 @@ namespace Lampac.Engine
                     {
                         using (var sha1 = SHA1.Create())
                         {
-                            var data = Encoding.UTF8.GetBytes($"{HttpContext.Connection.RemoteIpAddress}{uri}{apn.secret}");
+                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{uri}{apn.secret}");
                             return Convert.ToBase64String(sha1.ComputeHash(data));
                         }
                     }
@@ -188,18 +188,14 @@ namespace Lampac.Engine
                 if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
                     return apnlink(conf.apn);
 
-                if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
+                if ((AppInit.conf.serverproxy.forced_apn || conf.apnstream) && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
                     return apnlink(AppInit.conf.apn);
                 #endregion
 
-                uri = ProxyLink.Encrypt(uri, HttpContext.Connection.RemoteIpAddress.ToString(), headers, conf != null && conf.useproxystream ? proxy : null, plugin);
+                uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, conf != null && conf.useproxystream ? proxy : null, plugin);
 
                 if (AppInit.conf.accsdb.enable)
-                {
-                    string account_email = Regex.Match(HttpContext.Request.QueryString.Value, "account_email=([^&]+)").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(account_email))
-                        uri = uri + (uri.Contains("?") ? "&" : "?") + $"account_email={account_email}";
-                }
+                    uri = AccsDbInvk.Args(uri, HttpContext);
 
                 return $"{host}/proxy/{uri}";
             }
@@ -280,6 +276,32 @@ namespace Lampac.Engine
 
             overridehost += HttpContext.Request.QueryString.Value;
             return true;
+        }
+        #endregion
+
+        #region NoAccessGroup
+        public bool NoAccessGroup(Igroup init, out string error_msg)
+        {
+            error_msg = null;
+
+            if (!AppInit.conf.accsdb.enable || init.group == 0 || requestInfo.IsLocalRequest)
+                return false;
+
+            var user = requestInfo.user;
+            if (user == null || init.group > user.group)
+            {
+                error_msg = AppInit.conf.accsdb.denyGroupMesage;
+                return true;
+            }
+
+            return false;
+        }
+        #endregion
+
+        #region accsArgs
+        public string accsArgs(string uri)
+        {
+            return AccsDbInvk.Args(uri, HttpContext);
         }
         #endregion
 

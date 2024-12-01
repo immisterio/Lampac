@@ -30,6 +30,8 @@ namespace TorrServer
 
         public bool rdb { get; set; }
 
+        public int group { get; set; }
+
         public string defaultPasswd { get; set; } = "ts";
 
 
@@ -122,8 +124,23 @@ namespace TorrServer
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
+                #region downloadUrl
+                string downloadUrl;
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                {
+                    downloadUrl = "https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-windows-amd64.exe";
+                }
+                else
+                {
+                    string uname = (await Bash.Run("uname -m")) ?? string.Empty;
+                    string arch = uname.Contains("x86_64") ? "amd64" : (uname.Contains("i386") || uname.Contains("i686")) ? "386" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : "amd64";
+
+                    downloadUrl = "https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch;
+                }
+                #endregion
+
                 #region updatet/install
-                try
+                reinstall: try
                 {
                     if (conf.updatets)
                     {
@@ -146,26 +163,48 @@ namespace TorrServer
 
                     if (!File.Exists(tspath))
                     {
-                        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                        redownload: try
                         {
-                            tsprocess?.Dispose();
-                            await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-windows-amd64.exe", tspath);
-                        }
-                        else
-                        {
-                            string uname = (await Bash.Run("uname -m")) ?? string.Empty;
-                            string arch = uname.Contains("x86_64") ? "amd64" : (uname.Contains("i386") || uname.Contains("i686")) ? "386" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : "amd64";
-
-                            tsprocess?.Dispose();
-                            bool success = await HttpClient.DownloadFile("https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch, tspath);
-                            if (success)
-                                await Bash.Run($"chmod +x {tspath}");
+                            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                            {
+                                tsprocess?.Dispose();
+                                bool success = await HttpClient.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
+                                if (!success)
+                                    File.Delete(tspath);
+                            }
                             else
-                                await Bash.Run($"rm -f {tspath}");
+                            {
+                                tsprocess?.Dispose();
+                                bool success = await HttpClient.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
+                                if (success)
+                                    await Bash.Run($"chmod +x {tspath}");
+                                else
+                                    await Bash.Run($"rm -f {tspath}");
+                            }
+                        }
+                        catch
+                        {
+                            File.Delete(tspath);
+                            await Task.Delay(10_000);
+                            goto redownload;
                         }
                     }
                 }
                 catch { }
+
+                if (!File.Exists(tspath))
+                {
+                    await Task.Delay(10_000);
+                    goto reinstall;
+                }
+
+                var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 20, allowAutoRedirect: true);
+                if (response != null && response.Content.Headers.ContentLength.HasValue && new FileInfo(tspath).Length != response.Content.Headers.ContentLength.Value)
+                {
+                    File.Delete(tspath);
+                    await Task.Delay(10_000);
+                    goto reinstall;
+                }
                 #endregion
 
                 reset: try
@@ -181,14 +220,14 @@ namespace TorrServer
 
                     tsprocess.OutputDataReceived += (sender, args) => { };
                     tsprocess.ErrorDataReceived += (sender, args) => { };
-
                     tsprocess.BeginOutputReadLine();
                     tsprocess.BeginErrorReadLine();
+
                     await tsprocess.WaitForExitAsync().ConfigureAwait(false);
                 }
                 catch { }
 
-                await Task.Delay(5_000).ConfigureAwait(false);
+                await Task.Delay(10_000).ConfigureAwait(false);
                 goto reset;
             });
         }

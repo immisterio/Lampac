@@ -17,6 +17,9 @@ namespace Lampac.Controllers.Tizam
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             string memKey = $"tizam:view:{uri}";
             if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);

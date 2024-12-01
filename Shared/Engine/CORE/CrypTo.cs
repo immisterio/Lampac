@@ -31,6 +31,14 @@ namespace Lampac.Engine.CORE
             }
         }
 
+        public static string DecodeBase64(string base64Text)
+        {
+            if (string.IsNullOrEmpty(base64Text))
+                return string.Empty;
+
+            return Encoding.UTF8.GetString(Convert.FromBase64String(base64Text));
+        }
+
         public static string Base64(string text)
         {
             if (text == null)

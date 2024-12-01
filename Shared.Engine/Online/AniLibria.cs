@@ -1,5 +1,6 @@
 ﻿using Lampac.Models.LITE.AniLibria;
 using Shared.Model.Templates;
+using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
@@ -38,6 +39,8 @@ namespace Shared.Engine.Online
             {
                 if (item.names.ru != null && item.names.ru.ToLower().StartsWith(title.ToLower()))
                     result.Add(item);
+                else if (item.names.en != null && item.names.en.ToLower().StartsWith(title.ToLower()))
+                    result.Add(item);
             }
 
             return result;
@@ -50,12 +53,12 @@ namespace Shared.Engine.Online
             if (result == null || result.Count == 0)
                 return string.Empty;
 
-            if (!string.IsNullOrWhiteSpace(code) || (result.Count == 1 && result[0].season.year == year && result[0].names.ru?.ToLower() == title.ToLower()))
+            if (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (result[0].names.ru?.ToLower() == title.ToLower() || result[0].names.en?.ToLower() == title.ToLower())))
             {
                 #region Серии
                 var etpl = new EpisodeTpl();
 
-                var root = string.IsNullOrWhiteSpace(code) ? result[0] : result.Find(i => i.code == code);
+                var root = string.IsNullOrEmpty(code) ? result[0] : result.Find(i => i.code == code);
 
                 foreach (var episode in root.player.playlist.Select(i => i.Value))
                 {
@@ -74,7 +77,13 @@ namespace Shared.Engine.Online
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
                     hls = onstreamfile($"https://{root.player.host}{hls}");
 
-                    string season = string.IsNullOrWhiteSpace(code) || (root.names.ru?.ToLower() == title.ToLower()) ? "1" : "0";
+                    string season = root.names.ru?.ToLower() == title.ToLower() || root.names.en?.ToLower() == title.ToLower() ? "1" : "0";
+                    if (season == "0")
+                    {
+                        season = Regex.Match(code ?? "", "-([0-9]+)(nd|th)").Groups[1].Value;
+                        if (string.IsNullOrEmpty(season))
+                            season = string.IsNullOrEmpty(code) ? "0" : "1";
+                    }
 
                     etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), hls, streamquality: new StreamQualityTpl(streams));
                 }

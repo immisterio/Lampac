@@ -2,8 +2,10 @@
 using Shared.Model.Online.Filmix;
 using Shared.Model.Online.FilmixTV;
 using Shared.Model.Templates;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Web;
 
 namespace Shared.Engine.Online
@@ -197,49 +199,64 @@ namespace Shared.Engine.Online
                 string? enc_title = HttpUtility.UrlEncode(title);
                 string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-                int indexTranslate = 0;
-                var vtpl = new VoiceTpl();
-
-                foreach (var voiceover in root.SerialVoice)
-                {
-                    string link = host + $"lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&t={indexTranslate}";
-                    bool active = t == indexTranslate;
-
-                    indexTranslate++;
-                    vtpl.Append(voiceover.Key, active, link);
-                }
-
-                var selectedVoiceOverIndex = t != null ? t : 0;
-                var selectedVoiceOver = root.SerialVoice.ElementAt(selectedVoiceOverIndex).Value;
-
                 if (s == null)
                 {
                     #region Сезоны
-                    var maxQuality = selectedVoiceOver
+                    var maxQuality = root.SerialVoice.SelectMany(i => i.Value)
                         .SelectMany(season => season.Value.episodes)
                         .SelectMany(episode => episode.Value.files)
                         .Max(file => file.quality);
 
-                    var quality = $"{maxQuality}p";
-                    var tpl = new SeasonTpl(quality);
+                    var tpl = new SeasonTpl($"{maxQuality}p");
+                    var temp = new HashSet<int>();
 
-                    foreach (var season in selectedVoiceOver)
+                    foreach (var translation in root.SerialVoice)
                     {
-                        var link = $"{host}lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}&t={selectedVoiceOverIndex}";
-                        tpl.Append($"{season.Value.season} сезон", link, season.Value.season);
+                        foreach (var season in translation.Value)
+                        {
+                            if (temp.Contains(season.Value.season))
+                                continue;
+
+                            temp.Add(season.Value.season);
+
+                            var link = $"{host}lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}";
+                            tpl.Append($"{season.Value.season} сезон", link, season.Value.season);
+                        }
                     }
 
-                    return rjson ? tpl.ToJson(vtpl) : tpl.ToHtml(vtpl);
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
                     #endregion
                 }
                 else
                 {
-                    var selectedSeason = selectedVoiceOver.FirstOrDefault(x => x.Value.season == s);
+                    #region Перевод 
+                    int indexTranslate = 0;
+                    var vtpl = new VoiceTpl();
+
+                    foreach (var translation in root.SerialVoice)
+                    {
+                        foreach (var season in translation.Value)
+                        {
+                            if (season.Value.season == s)
+                            {
+                                string link = host + $"lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
+                                bool active = t == indexTranslate;
+
+                                if (t == -1)
+                                    t = indexTranslate;
+
+                                vtpl.Append(translation.Key, active, link);
+                            }
+                        }
+
+                        indexTranslate++;
+                    }
+                    #endregion
+
+                    var selectedSeason = root.SerialVoice.ElementAt(t).Value.FirstOrDefault(x => x.Value.season == s);
 
                     if (selectedSeason.Value == null)
-                    {
-                        return "<div>Сезон не найден</div>";
-                    }
+                        return string.Empty;
 
                     var etpl = new EpisodeTpl();
 

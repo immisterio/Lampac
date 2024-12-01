@@ -24,6 +24,9 @@ namespace Lampac.Controllers.Porntrex
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> links))
             {
@@ -49,6 +52,9 @@ namespace Lampac.Controllers.Porntrex
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
 
             var proxy = proxyManager.Get();
 

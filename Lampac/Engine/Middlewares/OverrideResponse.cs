@@ -29,7 +29,7 @@ namespace Lampac.Engine.Middlewares
                             case "html":
                                 {
                                     httpContext.Response.ContentType = over.type;
-                                    await httpContext.Response.WriteAsync(over.val.Replace("{localhost}", AppInit.Host(httpContext)));
+                                    await httpContext.Response.WriteAsync(over.val.Replace("{localhost}", AppInit.Host(httpContext)), httpContext.RequestAborted);
                                     return;
                                 }
                             case "file":
@@ -38,12 +38,12 @@ namespace Lampac.Engine.Middlewares
                                     if (Regex.IsMatch(over.val, "\\.(html|txt|css|js|json|xml)$", RegexOptions.IgnoreCase))
                                     {
                                         string val = FileCache.ReadAllText(over.val);
-                                        await httpContext.Response.WriteAsync(val.Replace("{localhost}", AppInit.Host(httpContext)));
+                                        await httpContext.Response.WriteAsync(val.Replace("{localhost}", AppInit.Host(httpContext)), httpContext.RequestAborted);
                                     }
                                     else
                                     {
                                         using (var fs = new FileStream(over.val, FileMode.Open))
-                                            await fs.CopyToAsync(httpContext.Response.Body);
+                                            await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
                                     }
                                     return;
                                 }

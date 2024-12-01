@@ -6,8 +6,10 @@ namespace Lampac.Models.LITE
     {
         public FilmixSettings(string host, bool enable = true)
         {
-            this.host = host;
             this.enable = enable;
+
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
 

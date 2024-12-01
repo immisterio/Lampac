@@ -38,6 +38,9 @@ namespace Lampac.Controllers.LITE
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
@@ -56,18 +59,21 @@ namespace Lampac.Controllers.LITE
             if (origsource)
                 return Json(content);
 
-            return ContentTo(oninvk.Html(content, kinopoisk_id, title, original_title, t, s, sid, rjson));
+            return ContentTo(oninvk.Html(content, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson, bwa: init.rhub));
         }
 
 
         [HttpGet]
         [Route("lite/videodb/manifest.m3u8")]
-        async public Task<ActionResult> Manifest(string link, string title, string original_title, bool play = false)
+        async public Task<ActionResult> Manifest(string link)
         {
             var init = AppInit.conf.VideoDB;
 
             if (!init.enable || string.IsNullOrEmpty(link))
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
@@ -76,11 +82,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(location) || link == location)
                 return OnError();
 
-            string m3u8 = HostStreamProxy(init, location, proxy: proxy, plugin: "videodb");
-            if (play)
-                return Redirect(m3u8);
-
-            return Content("{\"method\":\"play\",\"url\":\"" + m3u8 + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            return Redirect(HostStreamProxy(init, location, proxy: proxy, plugin: "videodb"));
         }
 
 

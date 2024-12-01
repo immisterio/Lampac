@@ -4,16 +4,14 @@ DEST="/home/lampac"
 # Become root
 # sudo su -
 apt-get update
-apt-get install -y unzip ffmpeg curl
-apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
+apt-get install -y unzip curl coreutils
+apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
 
 # Install .NET
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
 chmod 755 dotnet-install.sh
-./dotnet-install.sh --channel 6.0 --runtime aspnetcore
-#echo "export DOTNET_ROOT=\$HOME/.dotnet" >> ~/.bashrc
-#echo "export PATH=\$PATH:\$HOME/.dotnet:\$HOME/.dotnet/tools" >> ~/.bashrc
-#source ~/.bashrc
+./dotnet-install.sh --channel 6.0 --runtime aspnetcore --install-dir /usr/share/dotnet
+ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Download zip
 mkdir $DEST -p 
@@ -40,12 +38,7 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/ma
 curl -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g > $DEST/vers.txt
 curl -k -s https://raw.githubusercontent.com/m0nty81/lampac/main/update.sh > $DEST/update.sh
 chmod 755 $DEST/update.sh
-crontab -l | { cat; echo "10 */4 * * * /bin/bash $DEST/update.sh"; } | crontab -
-
-# update minor
-echo -n "1" > $DEST/vers-minor.txt
-/bin/bash $DEST/update.sh
-cd $DEST
+crontab -l | { cat; echo "$(shuf -i 10-55 -n 1) * * * * /bin/bash $DEST/update.sh"; } | crontab -
 
 # Create service
 echo ""
@@ -66,9 +59,25 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+if [ ! -f "$DEST/init.conf" ]; then
+random_port=$(shuf -i 9000-12999 -n 1)
+cat <<EOF > $DEST/init.conf
+{
+  "listenport": $random_port
+}
+EOF
+fi
+
 # Enable service
 systemctl daemon-reload
 systemctl enable lampac
+
+# update minor
+echo -n "1" > $DEST/vers-minor.txt
+/bin/bash $DEST/update.sh
+cd $DEST
+
+# done
 systemctl start lampac
 
 # update minor
@@ -96,10 +105,12 @@ echo "################################################################"
 echo ""
 echo "Have fun!"
 echo ""
+echo "http://IP:$random_port"
+echo ""
 echo "Please check/edit $DEST/init.conf params and configure it"
 echo ""
 echo "Then [re]start it as systemctl [re]start lampac"
 echo ""
-echo "Clear iptables if port 9118 is not available"
+echo "Clear iptables if port $random_port is not available"
 echo "bash $DEST/iptables-drop.sh"
 echo ""

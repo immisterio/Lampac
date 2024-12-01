@@ -5,6 +5,7 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 ```
 docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
+__tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 
 
 # Установка на linux
@@ -12,6 +13,17 @@ docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
 curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 ```
+* Порт генерируется рандомно и выводится в конце установки скрипта
+* Изменить или посмотреть порт можно в init.conf - 
+```grep "listenport" /home/lampac/init.conf```
+
+# Домашняя - linux
+```
+curl -L -k -s https://lampac.sh/home | bash
+```
+* 84Mb RAM, 200Mb HDD, 50 пользователей
+* DLNA по умолчанию отключен, включается в init.conf
+* TorrServer по умолчанию отключен, включается в module/manifest.json
 
 # Установка на Windows
 1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md
@@ -19,17 +31,18 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 3. Запустить Lampac.exe
 
 # Запуск в Android
-1. BwaJS - https://bwa.to
-2. Termux - https://github.com/bbk14/TermuxDebian/blob/main/README.md
+1. Termux - https://github.com/immisterio/Lampac/blob/main/Termux/README.md
+2. BWA - https://bwa.to
 
 # Плагины для Lampa
-1. онлайн   - "http://IP:9118/online.js"
-2. xxx      - "http://IP:9118/sisi.js"
-3. DLNA     - "http://IP:9118/dlna.js"
-4. TimeCode - "http://IP:9118/timecode.js"
-5. Tracks   - "http://IP:9118/tracks.js"
-6. TorrServer      - "http://IP:9118/ts.js"
-7. Парсер Jackett  - "IP:9118"
+1. Все плагины     - "http://IP:9118/on.js"
+2. онлайн   - "http://IP:9118/online.js"
+3. xxx      - "http://IP:9118/sisi.js"
+4. DLNA     - "http://IP:9118/dlna.js"
+5. TimeCode - "http://IP:9118/timecode.js"
+6. Tracks   - "http://IP:9118/tracks.js"
+7. TorrServer      - "http://IP:9118/ts.js"
+8. Парсер Jackett  - "IP:9118"
 
 # Плагины для Lampa Lite
 1. онлайн/jackett  - "http://IP:9118/lite.js" 
@@ -41,7 +54,7 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 3. Основные настройки в init.conf (пример example.conf)
 
 # Источники 
-* Filmix, KinoPub, Alloha, Rezka, Zetflix, Collaps, VideoCDN, VDBmovies, VideoDB, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino
+* Filmix, KinoPub, Alloha, Rezka, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 
@@ -60,6 +73,9 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 
 # Плагин Timecode.js
 Синхронизация отметок просмотра между разными устройствами
+* Для синхронизации отметок, все устройства должны быть авторизованы в cub.red под одним аккаунтом, либо на устройствах вместо плагина IP:9118/timecode.js, должен использоваться IP:9118/timecode/{uid}, где {uid} это любые символы, например IP:9118/timecode/myhome
+* email или {uid} должен совпадать на устройствах которые вы хотите синхронизовать между собой 
+
 
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере
@@ -90,22 +106,17 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 1. Для Samsung "IP:9118/samsung.wgt"
 
 # Параметры init.conf
-* xdb - Выводит платные источники с sisi.am
-* fileCacheInactiveDay - Время хранения резервного кеша на диске
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа
 * accsdb - Доступ к API через авторизацию (для jackett используется apikey)
 * useproxy - Парсит источник через прокси указанные в "proxy"
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
-* disableserverproxy - Запрещает запросы через "http://IP:9118/(proxy|proxyimg)/"
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети
-* proxytoproxyimg - Использовать прокси при получении картинки в "http://IP:9118/proxyimg/"
-* SisiHeightPicture - Уменьшение размера картинки в xxx по высоте до 200px
 * findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
 * corseu - Использовать прокси cors.bwa.workers.dev
 
 # Пример init.conf
-* Список всех параметров, а так же значения по умолчанию смотреть в example.conf 
+* Список всех параметров, а так же значения по умолчанию смотреть в current.conf и example.conf 
 * В init.conf нужно указывать только те параметры, которые хотите изменить
 * Редактировать init.conf можно так же через ip:9118/admin/init
 

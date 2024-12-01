@@ -6,10 +6,12 @@ namespace Lampac.Models.SISI
     {
         public SisiSettings(string host, bool enable = true, bool useproxy = false, bool streamproxy = false)
         {
-            this.host = host;
             this.enable = enable;
             this.useproxy = useproxy;
             this.streamproxy = streamproxy;
+
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
         public string? cookie { get; set; }

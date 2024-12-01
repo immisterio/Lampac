@@ -1,6 +1,8 @@
-﻿namespace Shared.Model.Online.Settings
+﻿using Shared.Model.Base;
+
+namespace Shared.Model.Online.Settings
 {
-    public class PidTorSettings
+    public class PidTorSettings : Igroup
     {
         public bool enable { get; set; }
 
@@ -29,6 +31,10 @@
         public string[]? torrs { get; set; }
 
         public List<PidTorAuthTS>? auth_torrs { get; set; }
+
+        public int group { get; set; }
+
+        public bool group_hide { get; set; } = true;
     }
 
     public class PidTorAuthTS
@@ -42,5 +48,7 @@
         public string? passwd { get; set; }
 
         public string? country { get; set; }
+
+        public string? no_country { get; set; }
     }
 }

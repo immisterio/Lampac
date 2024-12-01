@@ -32,7 +32,7 @@ namespace Lampac.Engine.Middlewares
                 if (errorCache is OnErrorResult)
                 {
                     httpContext.Response.ContentType = "application/json; charset=utf-8";
-                    return httpContext.Response.WriteAsJsonAsync(errorCache);
+                    return httpContext.Response.WriteAsJsonAsync(errorCache, httpContext.RequestAborted);
                 }
                 else if (errorCache is string)
                 {
@@ -41,7 +41,7 @@ namespace Lampac.Engine.Middlewares
                         httpContext.Response.Headers.TryAdd("emsg", errorCache.ToString());
                 }
 
-                return httpContext.Response.WriteAsync(string.Empty);
+                return httpContext.Response.WriteAsync(string.Empty, httpContext.RequestAborted);
             }
 
             return _next(httpContext);

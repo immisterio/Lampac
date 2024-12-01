@@ -1,7 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using System.Web;
 using Lampac.Engine.CORE;
 using System.Linq;
@@ -75,7 +74,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.Lostfilmhd;
 
-            if (!init.enable)
+            if (!init.enable || AppInit.conf.Lostfilmhd.rip)
                 return OnError();
 
             var proxy = proxyManager.Get();

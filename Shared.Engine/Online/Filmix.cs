@@ -2,7 +2,6 @@
 using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -16,7 +15,7 @@ namespace Shared.Engine.Online
         public bool disableSphinxSearch;
 
         public string? token;
-        string? host;
+        string? host, args;
         string apihost;
         Func<string, ValueTask<string?>> onget;
         Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost;
@@ -36,6 +35,8 @@ namespace Shared.Engine.Online
             this.onlog = onlog;
             this.requesterror = requesterror;
             this.rjson = rjson;
+
+            args = $"app_lang=ru_RU&user_dev_apk=2.2.0&user_dev_id={UnicTo.Code(16)}&user_dev_name=Xiaomi+24069PC21G&user_dev_os=14&user_dev_token={token}&user_dev_vendor=Xiaomi";
         }
         #endregion
 
@@ -45,7 +46,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return null;
 
-            string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
+            string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&{args}";
             onlog?.Invoke(uri);
             
             string? json = await onget.Invoke(uri);
@@ -230,7 +231,7 @@ namespace Shared.Engine.Online
         #region Post
         async public ValueTask<RootObject?> Post(int postid)
         {
-            string uri = $"{apihost}/api/v2/post/{postid}?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={token}&user_dev_vendor=Xiaomi";
+            string uri = $"{apihost}/api/v2/post/{postid}?{args}";
             onlog?.Invoke(uri);
 
             string? json = await onget.Invoke(uri);
@@ -319,7 +320,7 @@ namespace Shared.Engine.Online
                 if (s == null)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(!string.IsNullOrEmpty(root?.quality) ? $"{root.quality}p" : null);
+                    var tpl = new SeasonTpl(!string.IsNullOrEmpty(root?.quality) ? $"{root.quality.Replace("+", "")}p" : null);
 
                     foreach (var season in player_links.playlist)
                     {

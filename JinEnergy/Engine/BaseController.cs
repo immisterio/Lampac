@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Shared.Model.Base;
 using Shared.Model.Online;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
@@ -30,6 +31,11 @@ namespace JinEnergy.Engine
                 AppInit.JSRuntime.InvokeVoidAsync("console.log", "BWA", msg).ConfigureAwait(false);
 
             return string.Empty;
+        }
+
+        public static string ShowError(string msg)
+        {
+            return JsonSerializer.Serialize(new { accsdb = true, msg = (msg ?? "empty") });
         }
 
         public static string? parse_arg(string name, string args)

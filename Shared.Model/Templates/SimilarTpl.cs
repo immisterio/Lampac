@@ -14,7 +14,7 @@ namespace Shared.Model.Templates
         public SimilarTpl(int capacity) { data.Capacity = capacity; }
 
 
-        public string OnlineSplit => "<span class=\\\"online-prestige-split\\\">●</span>";
+        public string OnlineSplit => "{prestige-split}";
 
 
         public void Append(string? title, string year, string details, string link)
@@ -44,6 +44,8 @@ namespace Shared.Model.Templates
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
+                datajson = datajson.Replace("{prestige-split}", "<span class=\\\"online-prestige-split\\\">●</span>");
+
                 html.Append($"<div class=\"videos__item videos__season selector {(firstjson ? "focused" : "")}\" data-json='{datajson}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">{HttpUtility.HtmlEncode(i.title)}</div></div></div>");
                 firstjson = false;
             }
@@ -63,7 +65,7 @@ namespace Shared.Model.Templates
                 data = data.Select(i => new 
                 {
                     url = i.link,
-                    i.details,
+                    details = i.details?.Replace("{prestige-split}", "<span class=\"online-prestige-split\">●</span>"),
                     i.title,
                     year = int.TryParse(i.year, out int _year) ? _year : 0
                 })

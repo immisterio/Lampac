@@ -94,6 +94,7 @@ namespace Lampac
 
             if (AppInit.modules != null)
             {
+                // mod.dll
                 foreach (var mod in AppInit.modules)
                 {
                     try
@@ -105,6 +106,7 @@ namespace Lampac
                 }
             }
 
+            // сборка dll из source
             if (File.Exists("module/manifest.json"))
             {
                 var jss = new JsonSerializerSettings
@@ -120,14 +122,15 @@ namespace Lampac
                 if (mods == null)
                     return;
 
+                #region CompilationMod
                 List<PortableExecutableReference> references = null;
 
-                foreach (var mod in mods)
+                void CompilationMod(RootModule mod)
                 {
-                    if (!mod.enable || mod.dll.EndsWith(".dll"))
-                        continue;
+                    if (!mod.enable || mod.dll.EndsWith(".dll") || AppInit.modules.FirstOrDefault(i => i.dll == mod.dll) != null)
+                        return;
 
-                    string path = File.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
+                    string path = Directory.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
                     if (Directory.Exists(path))
                     {
                         var syntaxTree = new List<SyntaxTree>();
@@ -165,12 +168,27 @@ namespace Lampac
                                 if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                     m.Invoke(null, new object[] { });
 
-                                Console.WriteLine("load module: " + mod.dll);
+                                Console.WriteLine("compilation module: " + mod.dll);
                                 AppInit.modules.Add(mod);
                                 mvcBuilder.AddApplicationPart(mod.assembly);
                             }
                         }
                     }
+                }
+                #endregion
+
+                foreach (var mod in mods)
+                    CompilationMod(mod);
+
+                foreach (string folderMod in Directory.GetDirectories("module/"))
+                {
+                    string manifest = $"{Environment.CurrentDirectory}/{folderMod}/manifest.json";
+                    if (!File.Exists(manifest))
+                        continue;
+
+                    var mod = JsonConvert.DeserializeObject<RootModule>(File.ReadAllText(manifest), jss);
+                    if (mod != null)
+                        CompilationMod(mod);
                 }
             }
 
@@ -236,6 +254,7 @@ namespace Lampac
 
             app.UseModHeaders();
             app.UseStaticFiles();
+            app.UseRequestInfo();
             app.UseAccsdb();
             app.UseOverrideResponse();
             app.UseProxyIMG();

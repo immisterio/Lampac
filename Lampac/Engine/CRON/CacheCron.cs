@@ -10,13 +10,13 @@ namespace Lampac.Engine.CRON
     {
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (true)
             {
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.fileCacheInactive.intervalclear, 1)));
+                    await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.fileCacheInactive.intervalclear, 1))).ConfigureAwait(false);
 
                     foreach (var conf in new List<(string path, int minute)> {
                         ("html", AppInit.conf.fileCacheInactive.html),

@@ -121,12 +121,16 @@ namespace Lampac.Controllers
         #region dlna.js
         [HttpGet]
         [Route("dlna.js")]
-        public ActionResult Plugin()
+        [Route("dlna/js/{token}")]
+        public ActionResult Plugin(string token)
         {
             if (!AppInit.conf.dlna.enable)
                 return Content(string.Empty);
 
-            return Content(FileCache.ReadAllText("plugins/dlna.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            string file = FileCache.ReadAllText("plugins/dlna.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 

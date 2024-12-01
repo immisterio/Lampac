@@ -26,8 +26,13 @@ namespace Lampac.Controllers.LITE
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
+
+            string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
             var oninvk = new ZetflixInvoke
             (
@@ -41,7 +46,7 @@ namespace Lampac.Controllers.LITE
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(40, init: init), async () => 
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(20, init: init), async () => 
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
@@ -57,31 +62,48 @@ namespace Lampac.Controllers.LITE
                     return html;
                 }
 
-                using (var browser = await PuppeteerTo.Browser())
+                try
                 {
-                    var page = await browser.Page(cookies, new Dictionary<string, string>()
+                    using (var browser = await PuppeteerTo.Browser())
                     {
-                        ["Referer"] = "https://www.google.com/"
-                    });
+                        if (browser == null)
+                            return null;
 
-                    if (page == null)
-                        return null;
+                        log += "browser init\n";
 
-                    await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+                        var page = await browser.Page(cookies, new Dictionary<string, string>()
+                        {
+                            ["Referer"] = "https://www.google.com/"
+                        });
 
-                    var response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
+                        if (page == null)
+                            return null;
 
-                    if (html.StartsWith("<script>(function"))
-                        return null;
+                        log += "page init\n";
 
-                    var cook = await page.GetCookiesAsync();
-                    PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+                        await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
 
-                    if (!html.Contains("new Playerjs"))
-                        return null;
+                        var response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
 
-                    return html;
+                        log += $"{html}\n\n";
+
+                        if (html.StartsWith("<script>(function"))
+                            return null;
+
+                        var cook = await page.GetCookiesAsync();
+                        PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+
+                        if (!html.Contains("new Playerjs"))
+                            return null;
+
+                        return html;
+                    }
+                }
+                catch (Exception ex) 
+                {
+                    log += $"\nex: {ex}\n";
+                    return null; 
                 }
             });
 
@@ -102,6 +124,8 @@ namespace Lampac.Controllers.LITE
             if (!content.movie && s == -1 && id > 0)
                 number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(120, init: init), () => oninvk.number_of_seasons(id));
 
+            OnLog(log + "\nStart OnResult");
+
             return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, rjson: rjson));
         }
 
@@ -117,42 +141,49 @@ namespace Lampac.Controllers.LITE
             if (cookies != null && DateTime.Now > excookies)
                 cookies = null;
 
-            using (var browser = await PuppeteerTo.Browser())
+            try
             {
-                var page = await browser.Page(cookies, new Dictionary<string, string>()
+                using (var browser = await PuppeteerTo.Browser())
                 {
-                    ["Referer"] = "https://www.google.com/"
-                });
+                    if (browser == null)
+                        return null;
 
-                if (page == null)
-                    return null;
+                    var page = await browser.Page(cookies, new Dictionary<string, string>()
+                    {
+                        ["Referer"] = "https://www.google.com/"
+                    });
 
-                var response = await page.GoToAsync($"view-source:{uri}");
-                string html = await response.TextAsync();
+                    if (page == null)
+                        return null;
 
-                if (html.StartsWith("<script>(function(){"))
-                {
-                    cookies = null;
-                    await page.DeleteCookieAsync();
-                    await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+                    var response = await page.GoToAsync($"view-source:{uri}");
+                    string html = await response.TextAsync();
 
-                    response = await page.GoToAsync($"view-source:{uri}");
-                    html = await response.TextAsync();
+                    if (html.StartsWith("<script>(function(){"))
+                    {
+                        cookies = null;
+                        await page.DeleteCookieAsync();
+                        await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
+
+                        response = await page.GoToAsync($"view-source:{uri}");
+                        html = await response.TextAsync();
+                    }
+
+                    if (html.StartsWith("<script>(function"))
+                        return null;
+
+                    if (cookies == null)
+                        excookies = DateTime.Now.AddMinutes(10);
+
+                    cookies = await page.GetCookiesAsync();
+
+                    if (!html.Contains("new Playerjs"))
+                        return null;
+
+                    return html;
                 }
-
-                if (html.StartsWith("<script>(function"))
-                    return null;
-
-                if (cookies == null)
-                    excookies = DateTime.Now.AddMinutes(10);
-
-                cookies = await page.GetCookiesAsync();
-
-                if (!html.Contains("new Playerjs"))
-                    return null;
-
-                return html;
             }
+            catch { return null; }
         }
     }
 }

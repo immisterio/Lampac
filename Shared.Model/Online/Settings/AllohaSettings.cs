@@ -6,12 +6,13 @@ namespace Lampac.Models.LITE
     {
         public AllohaSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool m4s)
         {
-            this.apihost = apihost;
-            this.linkhost = linkhost;
             this.token = token;
             this.secret_token = secret_token;
             this.localip = localip;
             this.m4s = m4s;
+
+            this.linkhost = linkhost.StartsWith("http") ? linkhost : Decrypt(linkhost)!;
+            this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
         }
 
 

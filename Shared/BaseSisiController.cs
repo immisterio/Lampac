@@ -25,11 +25,11 @@ namespace SISI
             return OnError(msg);
         }
 
-        public JsonResult OnError(string msg)
+        public JsonResult OnError(string msg, bool rcache = true)
         {
             var model = new OnErrorResult() { msg = msg };
 
-            if (AppInit.conf.multiaccess)
+            if (AppInit.conf.multiaccess && rcache)
             {
                 var gbc = new ResponseCache();
                 memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddMinutes(1));

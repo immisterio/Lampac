@@ -12,6 +12,8 @@ using TorrServer;
 using System.Buffers;
 using Shared.Model.Online;
 using Shared.Engine;
+using Shared.Model.Base;
+using System.Web;
 
 namespace Lampac.Controllers
 {
@@ -20,9 +22,15 @@ namespace Lampac.Controllers
         #region ts.js
         [HttpGet]
         [Route("ts.js")]
-        public ActionResult Plugin()
+        [Route("ts/js/{token}")]
+        public ActionResult Plugin(string token)
         {
-            return Content(FileCache.ReadAllText("plugins/ts.js").Replace("{localhost}", Regex.Replace(host, "^https?://", "")), contentType: "application/javascript; charset=utf-8");
+            string file = FileCache.ReadAllText("plugins/ts.js").Replace("{localhost}", Regex.Replace(host, "^https?://", ""));
+
+            if (!string.IsNullOrEmpty(token))
+                file = Regex.Replace(file, "Lampa.Storage.set\\('torrserver_login'[^\n\r]+", $"Lampa.Storage.set('torrserver_login','{HttpUtility.UrlEncode(token)}');");
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -100,8 +108,14 @@ namespace Lampac.Controllers
                     string login = decodedString[0].ToLower().Trim();
                     string passwd = decodedString[1];
 
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(login, out DateTime ex) && ex > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
+                    if (AppInit.conf.accsdb.findUser(login) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)
                     {
+                        if (ModInit.conf.group > user.group)
+                        {
+                            await HttpContext.Response.WriteAsync("NoAccessGroup", HttpContext.RequestAborted).ConfigureAwait(false);
+                            return;
+                        }
+
                         await TorAPI();
                         return;
                     }
@@ -150,7 +164,7 @@ namespace Lampac.Controllers
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
                         await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
                     }
-                    else if (!ModInit.conf.rdb || HttpContext.Connection.RemoteIpAddress.ToString() == "127.0.0.1" || HttpContext.Connection.RemoteIpAddress.ToString().StartsWith("192.168."))
+                    else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
                     {
                         await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
                     }

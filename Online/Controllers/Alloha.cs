@@ -22,13 +22,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
-            if (!AppInit.conf.Alloha.enable)
+            var init = AppInit.conf.Alloha;
+            if (!init.enable)
                 return OnError("disable");
 
-            if (AppInit.conf.Alloha.rhub)
+            if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
-            if (IsOverridehost(AppInit.conf.Alloha, out string overridehost))
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
             var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
@@ -53,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
                     string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
-                    string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+                    string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     bool uhd = translation.Value["uhd"].ToString() == "True" && AppInit.conf.Alloha.m4s;
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
@@ -107,7 +111,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}" + defaultargs;
-                        string streamlink = $"{link.Replace("/video", "/video.m3u8")}&play=true";
+                        string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                         etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", streamlink: streamlink);
                     }
@@ -129,11 +133,13 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
         {
             var init = AppInit.conf.Alloha;
-
             if (!init.enable)
                 return OnError("disable");
 
-            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            string userIp = requestInfo.IP;
             if (init.localip || init.streamproxy)
             {
                 userIp = await mylocalip();

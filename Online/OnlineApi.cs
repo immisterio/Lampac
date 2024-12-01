@@ -18,6 +18,7 @@ using Shared.Model.Base;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
+using System.Data;
 
 namespace Lampac.Controllers
 {
@@ -31,12 +32,14 @@ namespace Lampac.Controllers
         #region online.js
         [HttpGet]
         [Route("online.js")]
-        public ActionResult Online()
+        [Route("online/js/{token}")]
+        public ActionResult Online(string token)
         {
             var init = AppInit.conf.online;
 
             string file = FileCache.ReadAllText("plugins/online.js");
             file = file.Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             if (init.component != "lampac")
             {
@@ -70,14 +73,15 @@ namespace Lampac.Controllers
 
 
         #region externalids
+        /// <summary>
+        /// imdb_id, kinopoisk_id
+        /// </summary>
         static Dictionary<string, string> externalids = null;
 
         [Route("externalids")]
-        async public Task<ActionResult> Externalids(long id, string imdb_id, long kinopoisk_id, int serial)
+        async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
-            if (id == 0)
-                return Content("{}");
-
+            #region load externalids
             if (externalids == null && IO.File.Exists("cache/externalids/master.json"))
             {
                 try
@@ -89,6 +93,39 @@ namespace Lampac.Controllers
 
             if (externalids == null)
                 externalids = new Dictionary<string, string>();
+            #endregion
+
+            #region KP_
+            if (id != null && id.StartsWith("KP_"))
+            {
+                string _kp = id.Replace("KP_", "");
+                foreach (var eid in externalids)
+                {
+                    if (eid.Value == _kp && !string.IsNullOrEmpty(eid.Key))
+                    {
+                        imdb_id = eid.Key;
+                        break;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(imdb_id))
+                {
+                    return Json(new { imdb_id, kinopoisk_id = _kp });
+                }
+                else
+                {
+                    string mkey = $"externalids:KP_:{_kp}";
+                    if (!memoryCache.TryGetValue(mkey, out string _imdbid))
+                    {
+                        string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                        _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
+                        memoryCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
+                    }
+
+                    return Json(new { imdb_id = _imdbid, kinopoisk_id = id.Replace("KP_", "") });
+                }
+            }
+            #endregion
 
             #region getAlloha / getVSDN / getTabus
             async Task<string> getAlloha(string imdb)
@@ -109,7 +146,7 @@ namespace Lampac.Controllers
             async Task<string> getVSDN(string imdb)
             {
                 var proxyManager = new ProxyManager("vcdn", AppInit.conf.VCDN);
-                string json = await HttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
+                string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -138,25 +175,40 @@ namespace Lampac.Controllers
             #region get imdb_id
             if (string.IsNullOrWhiteSpace(imdb_id))
             {
-                string path = $"cache/externalids/{id}";
-                if (IO.File.Exists(path))
+                if (kinopoisk_id > 0)
                 {
-                    imdb_id = IO.File.ReadAllText(path);
-                }
-                else
-                {
-                    string mkey = $"externalids:locktmdb:{serial}:{id}";
-                    if (!memoryCache.TryGetValue(mkey, out _))
+                    foreach (var eid in externalids)
                     {
-                        memoryCache.Set(mkey, 0 , DateTime.Now.AddHours(1));
-
-                        string cat = serial == 1 ? "tv" : "movie";
-                        string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 6);
-                        if (!string.IsNullOrWhiteSpace(json))
+                        if (eid.Value == kinopoisk_id.ToString() && !string.IsNullOrEmpty(eid.Key))
                         {
-                            imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                            if (!string.IsNullOrWhiteSpace(imdb_id))
-                                IO.File.WriteAllText(path, imdb_id);
+                            imdb_id = eid.Key;
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
+                {
+                    string path = $"cache/externalids/{id}_{serial}";
+                    if (IO.File.Exists(path))
+                    {
+                        imdb_id = IO.File.ReadAllText(path);
+                    }
+                    else
+                    {
+                        string mkey = $"externalids:locktmdb:{serial}:{id}";
+                        if (!memoryCache.TryGetValue(mkey, out _))
+                        {
+                            memoryCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+
+                            string cat = serial == 1 ? "tv" : "movie";
+                            string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 6);
+                            if (!string.IsNullOrWhiteSpace(json))
+                            {
+                                imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                                if (!string.IsNullOrWhiteSpace(imdb_id))
+                                    IO.File.WriteAllText(path, imdb_id);
+                            }
                         }
                     }
                 }
@@ -170,7 +222,7 @@ namespace Lampac.Controllers
             {
                 externalids.TryGetValue(imdb_id, out kpid);
 
-                if (string.IsNullOrEmpty(kpid))
+                if (string.IsNullOrEmpty(kpid) || kpid == "0")
                 { 
                     string path = $"cache/externalids/{imdb_id}";
                     if (IO.File.Exists(path))
@@ -206,9 +258,13 @@ namespace Lampac.Controllers
                                     }
                             }
 
-                            if (!string.IsNullOrEmpty(kpid))
+                            if (!string.IsNullOrEmpty(kpid) && kpid != "0")
                             {
-                                externalids.TryAdd(imdb_id, kpid);
+                                if (externalids.ContainsKey(imdb_id))
+                                    externalids[imdb_id] = kpid;
+                                else
+                                    externalids.TryAdd(imdb_id, kpid);
+
                                 IO.File.WriteAllText(path, kpid);
                             }
                         }
@@ -224,12 +280,15 @@ namespace Lampac.Controllers
         #region events
         [HttpGet]
         [Route("lifeevents")]
-        public ActionResult LifeEvents(long id, string imdb_id, long kinopoisk_id, int serial, string source)
+        public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial, string source)
         {
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
-            if (memoryCache.TryGetValue(checkOnlineSearchKey(id, source), out (bool ready, int tasks, string online) res))
+            if (string.IsNullOrEmpty(memkey))
+                memkey = checkOnlineSearchKey(id, source);
+
+            if (memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) res))
             {
                 if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
                 {
@@ -249,34 +308,75 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, int serial = -1, bool life = false, bool islite = false, string account_email = null)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null)
         {
             var online = new List<(string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
 
             var conf = AppInit.conf;
+            var user = requestInfo.user;
 
+            #region modules
             if (AppInit.modules != null)
             {
                 foreach (var item in AppInit.modules.Where(i => i.online != null))
                 {
                     try
                     {
-                        if (item.assembly.GetType(item.online) is Type t && t.GetMethod("Events") is MethodInfo m)
+                        if (item.assembly.GetType(item.online) is Type t)
                         {
-                            var result = (List<(string name, string url, string plugin, int index)>)m.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
-                            if (result != null && result.Count > 0)
-                                online.AddRange(result);
+                            if (t.GetMethod("Events") is MethodInfo e)
+                            {
+                                var result = (List<(string name, string url, string plugin, int index)>)e.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
+                                if (result != null && result.Count > 0)
+                                    online.AddRange(result);
+                            }
+
+                            if (t.GetMethod("EventsAsync") is MethodInfo es)
+                            {
+                                var result = await (Task<List<(string name, string url, string plugin, int index)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
+                                if (result != null && result.Count > 0)
+                                    online.AddRange(result);
+                            }
                         }
                     }
                     catch { }
                 }
             }
+            #endregion
 
-            void send(string name, BaseSettings init, string plugin = null, string arg_title = null, string arg_url = null)
+            #region send
+            void send(string name, BaseSettings init, string plugin = null, string arg_title = null, string arg_url = null, string rch_access = null)
             {
-                if (init.enable && !init.rip)
+                bool enable = init.enable && !init.rip;
+
+                if (enable && init.rhub && !init.rhub_fallback)
                 {
+                    if (rch_access != null && rchtype != null) 
+                    {
+                        enable = rch_access.Contains(rchtype);
+                        if (enable && init.rhub_geo_disable != null)
+                        {
+                            if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
+                                enable = false;
+                        }
+                    }
+                }
+
+                if (init.geo_hide != null)
+                {
+                    if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
+                        enable = false;
+                }
+
+                if (enable)
+                {
+                    if (AppInit.conf.accsdb.enable)
+                    {
+                        if (user == null || (init.group > user.group && init.group_hide))
+                            return;
+                    }
+
                     string url = init.overridehost;
                     if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
                         url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
@@ -285,9 +385,6 @@ namespace Lampac.Controllers
 
                     if (!string.IsNullOrEmpty(url))
                     {
-                        if (!string.IsNullOrEmpty(account_email))
-                            url += (url.Contains("?") ? "&" : "?") + $"account_email={HttpUtility.UrlEncode(account_email)}";
-
                         if (plugin == "collaps-dash")
                         {
                             displayname = displayname.Replace("- 720p", "- 1080p");
@@ -301,13 +398,14 @@ namespace Lampac.Controllers
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
                         string _p = (plugin ?? name.ToLower());
-                        if (_p is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" or "alloha" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
+                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "fancdn" or "redheadsound" or "kinotochka" or "remux" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
                     online.Add(($"{displayname}{arg_title}", url, plugin ?? name.ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
+            #endregion
 
             if (original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
                 send("Kodik", conf.Kodik);
@@ -316,9 +414,9 @@ namespace Lampac.Controllers
             {
                 send("Anilibria", conf.AnilibriaOnline);
                 send("AnimeLib", conf.AnimeLib);
-                send("Animevost", conf.Animevost);
+                send("Animevost", conf.Animevost, rch_access: "apk,cors");
                 send("MoonAnime (Украинский)", conf.MoonAnime, "moonanime");
-                send("Animebesst", conf.Animebesst);
+                send("Animebesst", conf.Animebesst, rch_access: "apk");
                 send("AnimeGo", conf.AnimeGo);
                 send("AniMedia", conf.AniMedia);
             }
@@ -338,28 +436,46 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0)
             {
                 send("VideoDB", conf.VideoDB);
+                send("Lumex", conf.Lumex, "lumex");
 
-                if (AppInit.conf.puppeteer.enable)
-                {
+                if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
                     send("VDBmovies", conf.VDBmovies);
+
+                if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send("Zetflix", conf.Zetflix);
-                }
             }
+
+            if (serial == -1 || serial == 0)
+                send("Vibix", conf.Vibix);
 
             if (serial == -1 || serial == 0)
                 send("FanCDN", conf.FanCDN);
 
-            send("VideoCDN", conf.VCDN, "vcdn");
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
                 send("iRemux", conf.iRemux, "remux");
 
+            #region PidTor
             if (conf.PidTor.enable)
             {
                 if ((conf.PidTor.torrs != null && conf.PidTor.torrs.Length > 0) || (conf.PidTor.auth_torrs != null && conf.PidTor.auth_torrs.Count > 0) || AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
-                    online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                {
+                    void psend()
+                    {
+                        if (AppInit.conf.accsdb.enable)
+                        {
+                            if (user == null || (conf.PidTor.group > user.group && conf.PidTor.group_hide))
+                                return;
+                        }
+
+                        online.Add(($"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                    }
+
+                    psend();
+                }
             }
+            #endregion
 
             if (kinopoisk_id > 0)
                 send("Ashdi (Украинский)", conf.Ashdi, "ashdi");
@@ -367,22 +483,22 @@ namespace Lampac.Controllers
             send("Eneyida (Украинский)", conf.Eneyida, "eneyida");
 
             if (!isanime)
-                send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr");
+                send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr", rch_access: "apk,cors");
 
-            if (AppInit.conf.Collaps.two)
-                send("Collaps", conf.Collaps, "collaps-dash");
-            send("Collaps", conf.Collaps);
+            if (AppInit.conf.Collaps.two && !AppInit.conf.Collaps.dash)
+                send("Collaps (dash)", conf.Collaps, "collaps-dash");
+            send($"Collaps ({(AppInit.conf.Collaps.dash ? "dash" : "hls")})", conf.Collaps, "collaps");
 
             if (serial == -1 || serial == 0)
-                send("Redheadsound", conf.Redheadsound);
+                send("Redheadsound", conf.Redheadsound, rch_access: "apk,cors");
 
             if (kinopoisk_id > 0)
                 send("HDVB", conf.HDVB);
 
-            send("Kinotochka", conf.Kinotochka);
+            send("Kinotochka", conf.Kinotochka, rch_access: "apk,cors");
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
-                send("CDNmovies", conf.CDNmovies);
+                send("CDNmovies", conf.CDNmovies, rch_access: "apk,cors");
 
             if (serial == -1 || serial == 0)
                 send("IframeVideo", conf.IframeVideo);
@@ -391,7 +507,7 @@ namespace Lampac.Controllers
                 send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
 
             if (!life && conf.litejac)
-                online.Add(("Торренты", "{localhost}/lite/jac", "jac", online.Count));
+                online.Add(("Торренты", "{localhost}/lite/jac", "jac", 200));
 
             #region checkOnlineSearch
             bool chos = conf.online.checkOnlineSearch && id > 0;
@@ -405,19 +521,22 @@ namespace Lampac.Controllers
 
             if (chos)
             {
-                string memkey = checkOnlineSearchKey(id, source);
-                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
+                string memkey = checkOnlineSearchKey(id, source, online.Count);
+                string memkey_old = checkOnlineSearchKey(id, source);
+
+                if ((!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) && !memoryCache.TryGetValue(memkey_old, out cache)) || !conf.multiaccess)
                 {
                     memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
+                    memoryCache.Set(memkey_old, cache, DateTime.Now.AddSeconds(20));
 
                     var tasks = new List<Task>();
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
                     foreach (var o in online)
-                        tasks.Add(checkSearch(links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
+                        tasks.Add(checkSearch(memkey, links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
 
                     if (life)
-                        return Content("{\"life\":true}", contentType: "application/javascript; charset=utf-8");
+                        return Json(new { life = true, memkey });
 
                     await Task.WhenAll(tasks);
 
@@ -426,31 +545,33 @@ namespace Lampac.Controllers
                     cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
 
                     memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(5));
+                    memoryCache.Set(memkey_old, cache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (life)
-                    return Content("{\"life\":true}", contentType: "application/javascript; charset=utf-8");
+                    return Json(new { life = true, memkey });
 
                 return Content($"[{cache.online.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
             }
             #endregion
 
-            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + (islite ? i.name.Split(" ~ ")[0].Split(" - ")[0] : i.name) + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
+            string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
             return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
         }
         #endregion
 
 
         #region checkSearch
-        static string checkOnlineSearchKey(long id, string source) => $"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}";
+        static string checkOnlineSearchKey(long id, string source, int count = 0) => CrypTo.md5($"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{count}");
 
-        async Task checkSearch(ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
+        async Task checkSearch(string memkey, ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
         {
             string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
             var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
-            string res = await HttpClient.Get($"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true", timeoutSeconds: 10, headers: header);
+            string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true";
+            string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
             if (string.IsNullOrEmpty(res))
                 res = string.Empty;
@@ -459,7 +580,7 @@ namespace Lampac.Controllers
             bool work = res.Contains("data-json=") || rch;
 
             string quality = string.Empty;
-            string balanser = plugin;
+            string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
 
             #region определение качества
             if (work && life)
@@ -490,7 +611,7 @@ namespace Lampac.Controllers
                 if (balanser == "alloha")
                     quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;
 
-                if (balanser == "rezka")
+                if (balanser == "rezka" || balanser == "rhs")
                 {
                     string rezkaq = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? " ~ 2160p" : " ~ 720p";
                     quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
@@ -510,7 +631,6 @@ namespace Lampac.Controllers
                         case "vokino":
                         case "alloha":
                         case "remux":
-                        case "ashdi":
                         case "pidtor":
                         case "rhsprem":
                         case "animelib":
@@ -520,8 +640,10 @@ namespace Lampac.Controllers
                         case "kinobase":
                         case "zetflix":
                         case "vcdn":
+                        case "lumex":
                         case "eneyida":
                         case "kinoukr":
+                        case "ashdi":
                         case "hdvb":
                         case "anilibria":
                         case "animedia":
@@ -541,6 +663,7 @@ namespace Lampac.Controllers
                         case "animebesst":
                         case "kodik":
                         case "kinotochka":
+                        case "rhs":
                             quality = " ~ 720p";
                             break;
                         case "kinokrad":
@@ -567,9 +690,10 @@ namespace Lampac.Controllers
                 name += quality;
             }
 
-            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{balanser}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
+            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
 
-            memoryCache.Set(checkOnlineSearchKey(id, source), (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
+            foreach (string key in new string[] { memkey, checkOnlineSearchKey(id, source) })
+                memoryCache.Set(key, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
         }
         #endregion
     }

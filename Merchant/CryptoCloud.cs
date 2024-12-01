@@ -68,13 +68,18 @@ namespace Lampac.Controllers.LITE
             WriteLog("cryptocloud", JsonConvert.SerializeObject(HttpContext.Request.Form));
 
             var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
-            if (root == null || root.Value<string>("status") != "success" || root.Value<string>("status_invoice") != "paid")
+            if (root == null || root.Value<string>("status") != "success")
                 return StatusCode(403);
 
-            var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.ReadAllText($"merchant/invoice/cryptocloud/{invoice_id}"));
-            PayConfirm(invoice["email"], "cryptocloud", invoice_id);
+            if (root.Value<string>("status_invoice") is "paid" or "overpaid")
+            {
+                var invoice = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.ReadAllText($"merchant/invoice/cryptocloud/{invoice_id}"));
+                PayConfirm(invoice["email"], "cryptocloud", invoice_id);
 
-            return StatusCode(200);
+                return StatusCode(200);
+            }
+
+            return StatusCode(403);
         }
     }
 }

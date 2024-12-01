@@ -36,7 +36,8 @@ namespace Lampac.Engine.Middlewares
                                 if (!next)
                                     return;
                             }
-                            else if (t.GetMethod("InvokeAsync") is MethodInfo m)
+                            
+                            if (t.GetMethod("InvokeAsync") is MethodInfo m)
                             {
                                 bool next = await (Task<bool>)m.Invoke(null, new object[] { httpContext, memoryCache });
                                 if (!next)

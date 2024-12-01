@@ -2,13 +2,21 @@
 
 namespace Shared.Model.Base
 {
-    public class BaseSettings : Iproxy, Istreamproxy, Icors
+    public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup
     {
         public bool enable { get; set; }
+
+        public int group { get; set; }
+
+        public bool group_hide { get; set; } = true;
 
         public bool rhub { get; set; }
 
         public bool rhub_fallback { get; set; }
+
+        public string[]? rhub_geo_disable { get; set; }
+
+        public string[]? geo_hide { get; set; }
 
         public bool rip { get; set; }
 
@@ -74,5 +82,26 @@ namespace Shared.Model.Base
             return $"{crhost}/{uri}";
         }
         #endregion
+
+
+        public string? Decrypt(string? data)
+        {
+            try
+            {
+                if (data == null)
+                    return data;
+
+                char[] buffer = data.ToCharArray();
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    char letter = buffer[i];
+                    letter = (char)(letter - 3);
+                    buffer[i] = letter;
+                }
+
+                return new string(buffer);
+            }
+            catch { return null; }
+        }
     }
 }

@@ -14,6 +14,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<OverrideResponse>();
         }
 
+        public static IApplicationBuilder UseRequestInfo(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<RequestInfo>();
+        }
+
         public static IApplicationBuilder UseAccsdb(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<Accsdb>();

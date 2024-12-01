@@ -14,7 +14,7 @@ namespace Shared.Engine.Online
         static Dictionary<string, string> psingles = new Dictionary<string, string>();
 
         string? host;
-        string apihost, token;
+        string apihost, token, videopath;
         bool usehls;
         Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
@@ -22,11 +22,12 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public KodikInvoke(string? host, string apihost, string token, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KodikInvoke(string? host, string apihost, string token, bool hls, string videopath, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.token = token;
+            this.videopath = videopath;
             this.onget = onget;
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
@@ -37,8 +38,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<List<Result>?> Embed(string? imdb_id, long kinopoisk_id, int s)
+        async public ValueTask<List<Result>?> Embed(string? imdb_id, long kinopoisk_id, int s)
         {
+            if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
+                return null;
+
             string url = $"{apihost}/search?token={token}&limit=100&with_episodes=true";
             if (kinopoisk_id > 0)
                 url += $"&kinopoisk_id={kinopoisk_id}";
@@ -141,7 +145,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream, bool rjson)
+        public string Html(List<Result> results, string args, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream, bool rjson)
         {
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -155,9 +159,14 @@ namespace Shared.Engine.Online
                 {
                     string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(data.link)}";
 
-                    string streamlink = string.Empty;
+                    string? streamlink = null;
                     if (showstream)
-                        streamlink = $"{url.Replace("/video", "/video.m3u8")}&play=true";
+                    {
+                        streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
+
+                        if (!string.IsNullOrEmpty(args))
+                            streamlink += $"&{args.Remove(0, 1)}";
+                    }
 
                     mtpl.Append(data.translation.title, url, "call", streamlink);
                 }
@@ -222,7 +231,16 @@ namespace Shared.Engine.Online
                     {
                         string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, url, "call", streamlink: (showstream ? $"{url.Replace("/video", "/video.m3u8")}&play=true" : null));
+                        string? streamlink = null;
+                        if (showstream)
+                        {
+                            streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
+
+                            if (!string.IsNullOrEmpty(args))
+                                streamlink += $"&{args.Remove(0, 1)}";
+                        }
+
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, url, "call", streamlink: streamlink);
                     }
 
                     if (rjson)

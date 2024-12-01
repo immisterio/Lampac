@@ -19,7 +19,7 @@ namespace JinEnergy.Online
             if (kpid != null && kpid.StartsWith("KP_"))
             {
                 kpid = kpid.Replace("KP_", "");
-                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&kinopoisk_id=" + kpid, timeoutSeconds: 5);
+                string? json = await JsHttpClient.Get($"{AppInit.VCDN.corsHost()}/api/short?api_token={AppInit.VCDN.token}&kinopoisk_id=" + kpid, timeoutSeconds: 5);
                 return JsonSerializer.Serialize(new { imdb_id = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value, kinopoisk_id = kpid });
             }
 
@@ -46,7 +46,7 @@ namespace JinEnergy.Online
 
             async Task<string?> getVSDN(string imdb)
             {
-                string? json = await JsHttpClient.Get("https://videocdn.tv/api/short?api_token=3i40G5TSECmLF77oAqnEgbx61ZWaOYaE&imdb_id=" + imdb, timeoutSeconds: 4);
+                string? json = await JsHttpClient.Get($"{AppInit.VCDN.corsHost()}/api/short?api_token={AppInit.VCDN.token}&imdb_id={imdb}", timeoutSeconds: 4);
                 if (json == null)
                     return null;
 
@@ -131,7 +131,7 @@ namespace JinEnergy.Online
 
                     if (arg.original_language is "ru" or "ja" or "ko" or "zh" or "cn" or "zh|cn")
                     {
-                        if (plugin is "eneyida" or "filmix" or "kinoukr" or "rezka" or "redheadsound" or "kinopub" || (plugin == "kodik" && arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id)))
+                        if (plugin is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "fancdn" or "redheadsound" or "kinotochka" or "remux" || (plugin == "kodik" && arg.kinopoisk_id == 0 && string.IsNullOrEmpty(arg.imdb_id)))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
@@ -145,36 +145,28 @@ namespace JinEnergy.Online
             if (isanime)
             {
                 send("Anilibria - 1080p", "anilibria", AppInit.AnilibriaOnline);
-                send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
                 send("Animevost - 720p", "animevost", AppInit.Animevost);
                 send("AniMedia - 1080p", "animedia", AppInit.AniMedia);
+                send("Animebesst - 1080p", "animebesst", AppInit.Animebesst);
+                send("AnimeLib - 2160p", "animelib", AppInit.AnimeLib);
+                send("MoonAnime (Украинский) - 1080p", "moonanime", AppInit.MoonAnime);
             }
 
-            if (AppInit.Filmix.pro)
-                send("Filmix - 4K HDR", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+            if (AppInit.typeConf != "web" || AppInit.Rezka.premium)
+                send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
+
+            if (!AppInit.IsDefaultConf)
+                send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : !string.IsNullOrEmpty(AppInit.Filmix.token) ? "720p" : "480p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
 
             if (arg.kinopoisk_id > 0 && AppInit.VoKino.enable)
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
-            if (arg.kinopoisk_id > 0 && serial == 0 && !isanime)
-                send("Zetflix - 1080p", "zetflix", AppInit.Zetflix);
+            if (AppInit.IsWorkReturnHeaders)
+                send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
 
-            send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
-            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN, argTitle_vpn);
-            send("Kinobase - 1080p", "kinobase", AppInit.Kinobase);
-
-            if (AppInit.Country != "RU" && AppInit.Country != "BY")
-            {
-                if (arg.kinopoisk_id > 0)
-                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
-
-                send("Eneyida (Украинский) - 1080p", "eneyida", AppInit.Eneyida);
-
-                if (!isanime)
-                    send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
-            }
+            send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
             if (!titleSearch)
             {
@@ -184,29 +176,40 @@ namespace JinEnergy.Online
                 send(AppInit.Collaps.dash ? "Collaps - 1080p" : "Collaps - 720p", "collaps", AppInit.Collaps);
             }
 
-            if (arg.kinopoisk_id > 0)
-                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
+            if (serial == 0 && !isanime)
+                send("iRemux - 4K HDR", "remux", AppInit.iRemux);
 
-            if (!AppInit.Filmix.pro)
-                send($"Filmix - {(string.IsNullOrEmpty(AppInit.Filmix.token) ? "480p" : "720p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
+            if (AppInit.Country != "RU" && AppInit.Country != "BY")
+            {
+                if (arg.kinopoisk_id > 0)
+                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
+
+                if (!isanime)
+                    send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
+            }
+
+            //if (arg.kinopoisk_id > 0)
+            //    send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             if (serial == 0 && !isanime)
             {
-                send("iRemux - 4K HDR", "remux", AppInit.iRemux);
-                send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
-
                 if (arg.kinopoisk_id > 0)
                     send("Kinotochka - 720p", "kinotochka", AppInit.Kinotochka);
+
+                send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
             }
 
-            //if (!titleSearch)
-            //    send("Voidboost - 720p", "voidboost", AppInit.Voidboost, argTitle_vpn);
-
-            send("HDVB - 1080p", "hdvb", AppInit.HDVB);
+            if (AppInit.IsDefaultConf)
+                send($"Filmix - 480p", "filmix", AppInit.Filmix);
 
             if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
+            if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
+                send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
+
+            if (AppInit.typeConf == "web" && !AppInit.Rezka.premium)
+                send("Rezka - 2160p", "rezka", AppInit.Rezka);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }

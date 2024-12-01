@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +29,8 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
-            if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd) && _localpasswd.ToString() == FileCache.ReadAllText("passwd"))
+            var requestInfo = httpContext.Features.Get<RequestModel>();
+            if (requestInfo.IsLocalRequest)
                 return _next(httpContext);
 
             #region manifest / admin
@@ -81,16 +84,14 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|extensions|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|on/|(online|sisi|timecode|tmdbproxy|dlna|ts|tracks)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
-                    HashSet<string> ips = null;
-                    string account_email = httpContext.Request.Query["account_email"].ToString()?.ToLower()?.Trim() ?? string.Empty;
 
-                    bool userfindtoaccounts = AppInit.conf.accsdb.accounts.TryGetValue(account_email, out DateTime ex);
+                    var user = requestInfo.user;
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
-                    if (string.IsNullOrWhiteSpace(account_email) || !userfindtoaccounts || DateTime.UtcNow > ex || IsLockHostOrUser(account_email, httpContext.Connection.RemoteIpAddress.ToString(), uri, out limitip, out ips))
+                    if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
                     {
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
                         {
@@ -110,10 +111,11 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
-                        string msg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
-                                     string.IsNullOrWhiteSpace(account_email) ? AppInit.conf.accsdb.authMesage :
-                                     userfindtoaccounts ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", account_email).Replace("{expires}", ex.ToString("dd.MM.yyyy")) :
-                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", account_email);
+                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы ") : 
+                                     limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
+                                     string.IsNullOrWhiteSpace(requestInfo.user_uid) ? AppInit.conf.accsdb.authMesage :
+                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
+                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid);
 
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}", httpContext.RequestAborted);
@@ -128,23 +130,25 @@ namespace Lampac.Engine.Middlewares
         #region IsLock
         static string logsLock = string.Empty;
 
-        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock, out HashSet<string> ips)
+        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock)
         {
             if (string.IsNullOrEmpty(account_email))
             {
-                ips = new HashSet<string>();
                 islock = false;
                 return islock;
             }
 
+            HashSet<string> ips = null;
+            HashSet<string> urls = null;
+
             #region setLogs
             void setLogs(string name)
             {
-                string logFile = $"cache/logs/accsdb/{DateTime.Now:dd-mm-yyyy}.lock.txt";
+                string logFile = $"cache/logs/accsdb/{DateTime.Now:dd-MM-yyyy}.lock.txt";
                 if (logsLock != string.Empty && !File.Exists(logFile))
                     logsLock = string.Empty;
 
-                string line = $"{name} / {account_email}";
+                string line = $"{name} / {account_email} / {CrypTo.md5(account_email)}.*.log";
 
                 if (!logsLock.Contains(line))
                 {
@@ -180,10 +184,14 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (IsLockIpHour(account_email, userip, out islock, out ips) || IsLockReqHour(account_email, uri, out islock))
+            if (IsLockIpHour(account_email, userip, out islock, out ips) || IsLockReqHour(account_email, uri, out islock, out urls))
             {
                 setLogs("lock_hour");
                 countlock_day(update: true);
+
+                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.ips.log", ips);
+                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.urls.log", urls);
+
                 return islock;
             }
 
@@ -234,17 +242,18 @@ namespace Lampac.Engine.Middlewares
             return islock;
         }
 
-        bool IsLockReqHour(string account_email, string uri, out bool islock)
+        bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
         {
-            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids)"))
+            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|timecode|ts/)"))
             {
+                urls = new HashSet<string>();
                 islock = false;
                 return islock;
             }
 
             string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}";
 
-            if (memoryCache.TryGetValue(memKeyLocIP, out HashSet<string> urls))
+            if (memoryCache.TryGetValue(memKeyLocIP, out urls))
             {
                 urls.Add(uri);
                 memoryCache.Set(memKeyLocIP, urls, DateTime.Now.AddHours(1));

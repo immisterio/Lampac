@@ -22,11 +22,14 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/pidtor")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string account_email, string original_language, int serial, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             #region Кеш запроса
             string memKey = $"pidtor:{title}:{original_title}:{year}";
@@ -265,7 +268,6 @@ namespace Lampac.Controllers.LITE
              
             string en_title = HttpUtility.UrlEncode(title);
             string en_original_title = HttpUtility.UrlEncode(original_title);
-            string en_account_email = HttpUtility.UrlEncode(account_email);
 
             var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
             movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) : movies.ThenByDescending(i => i.torrent.PublishDate);
@@ -328,7 +330,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(hashmagnet))
                         continue;
 
-                    mtpl.Append(torrent.voice, $"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}&account_email={en_account_email}", voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
+                    mtpl.Append(torrent.voice, accsArgs($"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}"), voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -338,11 +340,14 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/pidtor/serial/{id}")]
-        async public Task<ActionResult> Serial(string id, string title, string original_title, string account_email, int s, bool rjson = false)
+        async public Task<ActionResult> Serial(string id, string title, string original_title, int s, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(title|account_email|original_title)=[^&]+", "");
             string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
@@ -365,7 +370,7 @@ namespace Lampac.Controllers.LITE
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                 {
                     var ts = init.auth_torrs.First();
-                    string login = ts.login.Replace("{account_email}", account_email ?? string.Empty);
+                    string login = ts.login.Replace("{account_email}", accsArgs(string.Empty));
 
                     return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}"), ts.host);
                 }
@@ -374,7 +379,7 @@ namespace Lampac.Controllers.LITE
                     if (init.base_auth != null && init.base_auth.enable)
                     {
                         var ts = init.auth_torrs.First();
-                        string login = init.base_auth.login.Replace("{account_email}", account_email ?? string.Empty);
+                        string login = init.base_auth.login.Replace("{account_email}", accsArgs(string.Empty));
 
                         return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}"), ts.host);
                     }
@@ -384,7 +389,7 @@ namespace Lampac.Controllers.LITE
             }
 
 
-            string tskey = $"pidtor:ts:{id}:{HttpContext.Connection.RemoteIpAddress}";
+            string tskey = $"pidtor:ts:{id}:{requestInfo.IP}";
             if (!memoryCache.TryGetValue(tskey, out (List<HeadersModel> header, string host) ts))
             {
                 ts = gots();
@@ -423,7 +428,7 @@ namespace Lampac.Controllers.LITE
                 if (Path.GetExtension(torrent.Path) is ".srt" or ".txt" or ".jpg" or ".png")
                     continue;
 
-                mtpl.Append(Path.GetFileName(torrent.Path), title ?? original_title, s.ToString(), torrent.Id.ToString(), $"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}&account_email={HttpUtility.UrlEncode(account_email)}");
+                mtpl.Append(Path.GetFileName(torrent.Path), title ?? original_title, s.ToString(), torrent.Id.ToString(), accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}"));
             }
 
             return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -438,7 +443,10 @@ namespace Lampac.Controllers.LITE
             if (!init.enable)
                 return OnError();
 
-            string country = GeoIP2.Country(HttpContext.Connection.RemoteIpAddress.ToString());
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            string country = requestInfo.Country;
 
             int index = tsid != -1 ? tsid : 1;
             string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|tsid)=[^&]+", "");
@@ -470,10 +478,14 @@ namespace Lampac.Controllers.LITE
 
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
-                string tskey = $"pidtor:ts2:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                string tskey = $"pidtor:ts2:{id}:{requestInfo.IP}";
                 if (!memoryCache.TryGetValue(tskey, out PidTorAuthTS ts))
                 {
-                    var tors = init.auth_torrs.Where(i => i.enable).Where(i => i.country == null || i.country == country).ToList();
+                    var tors = init.auth_torrs.Where(i => i.enable).ToList();
+
+                    if (country != null)
+                        tors = tors.Where(i => i.country == null || i.country.Contains(country)).Where(i => i.no_country == null || !i.no_country.Contains(country)).ToList();
+
                     ts = tors[Random.Shared.Next(0, tors.Count)];
                     memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                 }
@@ -484,7 +496,7 @@ namespace Lampac.Controllers.LITE
             {
                 if (init.base_auth != null && init.base_auth.enable)
                 {
-                    string tskey = $"pidtor:ts3:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                    string tskey = $"pidtor:ts3:{id}:{requestInfo.IP}";
                     if (!memoryCache.TryGetValue(tskey, out string ts))
                     {
                         ts = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
@@ -494,7 +506,7 @@ namespace Lampac.Controllers.LITE
                     return await auth_stream(ts, init.base_auth.login, init.base_auth.passwd);
                 }
 
-                string key = $"pidtor:ts4:{id}:{HttpContext.Connection.RemoteIpAddress}";
+                string key = $"pidtor:ts4:{id}:{requestInfo.IP}";
                 if (!memoryCache.TryGetValue(key, out string tshost))
                 {
                     tshost = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
