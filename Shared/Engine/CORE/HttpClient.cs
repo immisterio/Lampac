@@ -157,6 +157,34 @@ namespace Lampac.Engine.CORE
         }
         #endregion
 
+        #region ResponseHeaders
+        async public static ValueTask<HttpResponseMessage> ResponseHeaders(string url, int timeoutSeconds = 8, List<HeadersModel> headers = null, int httpversion = 1, bool allowAutoRedirect = false, WebProxy proxy = null)
+        {
+            try
+            {
+                var handler = Handler(url, proxy);
+                handler.AllowAutoRedirect = allowAutoRedirect;
+
+                using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
+                {
+                    DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, null, headers);
+
+                    var req = new HttpRequestMessage(HttpMethod.Get, url)
+                    {
+                        Version = new Version(httpversion, 0)
+                    };
+
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead))
+                        return response;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        #endregion
+
 
         #region Get
         async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)

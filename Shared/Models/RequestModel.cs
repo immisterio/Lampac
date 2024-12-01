@@ -4,6 +4,8 @@ namespace Shared.Models
 {
     public class RequestModel
     {
+        public bool IsLocalRequest { get; set; }
+
         public string IP { get; set; }
 
         public string UserAgent { get; set; }

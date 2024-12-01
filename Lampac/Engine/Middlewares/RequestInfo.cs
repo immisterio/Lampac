@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Models;
 using System.Text.RegularExpressions;
@@ -16,12 +17,24 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            bool IsLocalRequest = false;
+            if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd))
+            {
+                if (_localpasswd.ToString() != FileCache.ReadAllText("passwd"))
+                    return httpContext.Response.WriteAsync("error passwd", httpContext.RequestAborted);
+
+                IsLocalRequest = true;
+            }
+
             var req = new RequestModel()
             {
+                IsLocalRequest = IsLocalRequest,
                 IP = httpContext.Connection.RemoteIpAddress.ToString(),
-                UserAgent = httpContext.Request.Headers.UserAgent,
-                Country = GeoIP2.Country(httpContext.Connection.RemoteIpAddress.ToString())
+                UserAgent = httpContext.Request.Headers.UserAgent
             };
+
+            if (!Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy-dash/|proxy/|proxyimg|lifeevents|externalids|ts|ws|weblog|rch/result|merchant/payconfirm)"))
+                req.Country = GeoIP2.Country(httpContext.Connection.RemoteIpAddress.ToString());
 
             if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
             {

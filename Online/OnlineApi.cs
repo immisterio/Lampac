@@ -357,7 +357,7 @@ namespace Lampac.Controllers
                         enable = rch_access.Contains(rchtype);
                         if (enable && init.rhub_geo_disable != null)
                         {
-                            if (requestInfo.Country == null || init.rhub_geo_disable.Contains(requestInfo.Country))
+                            if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
                                 enable = false;
                         }
                     }
@@ -365,7 +365,7 @@ namespace Lampac.Controllers
 
                 if (init.geo_hide != null)
                 {
-                    if (requestInfo.Country == null || init.geo_hide.Contains(requestInfo.Country))
+                    if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
                         enable = false;
                 }
 

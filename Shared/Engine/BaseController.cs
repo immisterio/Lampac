@@ -28,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "126";
 
-        public static string minorversion => "1";
+        public static string minorversion => "2";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -117,7 +117,7 @@ namespace Lampac.Engine
         #region proxy
         public string HostImgProxy(string uri, int width = 0, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
-            if (string.IsNullOrWhiteSpace(uri) || !AppInit.conf.sisi.rsize) 
+            if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
                 return uri;
 
             var init = AppInit.conf.sisi;
@@ -144,7 +144,7 @@ namespace Lampac.Engine
 
         public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
         {
-            if (string.IsNullOrEmpty(uri) || conf == null || conf.rhub)
+            if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null || conf.rhub)
                 return uri;
 
             bool streamproxy = conf.streamproxy || conf.useproxystream;
@@ -188,7 +188,7 @@ namespace Lampac.Engine
                 if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
                     return apnlink(conf.apn);
 
-                if (conf.apnstream && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
+                if ((AppInit.conf.serverproxy.forced_apn || conf.apnstream) && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
                     return apnlink(AppInit.conf.apn);
                 #endregion
 
@@ -284,7 +284,7 @@ namespace Lampac.Engine
         {
             error_msg = null;
 
-            if (!AppInit.conf.accsdb.enable || init.group == 0 || HttpContext.Request.Headers.TryGetValue("localrequest", out _))
+            if (!AppInit.conf.accsdb.enable || init.group == 0 || requestInfo.IsLocalRequest)
                 return false;
 
             var user = requestInfo.user;

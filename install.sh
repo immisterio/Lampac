@@ -10,10 +10,8 @@ apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev liba
 # Install .NET
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
 chmod 755 dotnet-install.sh
-./dotnet-install.sh --channel 6.0 --runtime aspnetcore
-#echo "export DOTNET_ROOT=\$HOME/.dotnet" >> ~/.bashrc
-#echo "export PATH=\$PATH:\$HOME/.dotnet:\$HOME/.dotnet/tools" >> ~/.bashrc
-#source ~/.bashrc
+./dotnet-install.sh --channel 6.0 --runtime aspnetcore --install-dir /usr/share/dotnet
+ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Download zip
 mkdir $DEST -p 

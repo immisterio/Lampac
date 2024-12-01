@@ -22,10 +22,9 @@ namespace Tracks
                 if (!string.IsNullOrEmpty(version))
                 {
                     if (await HttpClient.DownloadFile($"https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v{version}/ffprobe-{version}-win-64.zip", "cache/ffprobe.zip"))
-                    {
                         ZipFile.ExtractToDirectory("cache/ffprobe.zip", "cache/", overwriteFiles: true);
-                        File.Delete("cache/ffprobe.zip");
-                    }
+
+                    File.Delete("cache/ffprobe.zip");
                 }
             }
             else

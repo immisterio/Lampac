@@ -9,7 +9,8 @@ apt-get install -y unzip curl coreutils
 # Install .NET
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
 chmod 755 dotnet-install.sh
-./dotnet-install.sh --channel 6.0 --runtime aspnetcore
+./dotnet-install.sh --channel 6.0 --runtime aspnetcore --install-dir /usr/share/dotnet
+ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Download zip
 mkdir $DEST -p 

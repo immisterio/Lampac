@@ -41,6 +41,7 @@ cat <<EOF > init.conf
     "enable": true
   },
   "serverproxy": {
+    "enable": false,
     "verifyip": false,
     "cache": {
       "img": false,
@@ -92,7 +93,7 @@ cat <<EOF > Lampac.runtimeconfig.json
       "System.GC.Server": false,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 73886080
+      "System.GC.HeapHardLimit": 50000000
     }
   }
 }

@@ -29,7 +29,8 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
-            if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd) && _localpasswd.ToString() == FileCache.ReadAllText("passwd"))
+            var requestInfo = httpContext.Features.Get<RequestModel>();
+            if (requestInfo.IsLocalRequest)
                 return _next(httpContext);
 
             #region manifest / admin
@@ -86,7 +87,6 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|on/|(online|sisi|timecode|tmdbproxy|dlna|ts|tracks)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
-                    var requestInfo = httpContext.Features.Get<RequestModel>();
 
                     var user = requestInfo.user;
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
