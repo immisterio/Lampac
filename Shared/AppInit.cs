@@ -21,7 +21,7 @@ namespace Lampac
         static AppInit() { LoadModules(); }
 
         #region conf
-        static (AppInit, DateTime) cacheconf = default;
+        public static(AppInit, DateTime) cacheconf = default;
 
         public static AppInit conf
         {
@@ -40,7 +40,7 @@ namespace Lampac
                         Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
                     }};
 
-                    string initfile = File.ReadAllText("init.conf");
+                    string initfile = File.ReadAllText("init.conf").Trim();
                     initfile = Regex.Replace(initfile, "\"weblog\":([ \t]+)?(true|false)([ \t]+)?,", "", RegexOptions.IgnoreCase);
 
                     if (!initfile.StartsWith("{"))
@@ -205,6 +205,8 @@ namespace Lampac
         public string typecache = "hybrid"; // mem|file|hybrid
 
         public bool pirate_store = true;
+
+        public SyncConf sync = new SyncConf();
 
         public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
 

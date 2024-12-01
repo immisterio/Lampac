@@ -11,6 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using System.Web;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Lampac.Controllers
 {
@@ -392,6 +393,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
+
         #region weblog
         [HttpGet]
         [Route("weblog")]
@@ -454,6 +456,31 @@ namespace Lampac.Controllers
 </html>";
 
             return Content(html, "text/html; charset=utf-8");
+        }
+        #endregion
+
+        #region Sync
+        [Route("/api/sync")]
+        public ActionResult Sync()
+        {
+            if (!requestInfo.IsLocalRequest || !AppInit.conf.sync.enable || AppInit.conf.sync.type != "master")
+                return Content("error");
+
+            var init = new AppInit();
+
+            string confile = "sync.conf";
+            if (AppInit.conf.sync.override_conf != null && AppInit.conf.sync.override_conf.TryGetValue(requestInfo.IP, out string _conf))
+                confile = _conf;
+
+            if (IO.File.Exists(confile))
+                init = JsonConvert.DeserializeObject<AppInit>(IO.File.ReadAllText(confile));
+
+            init.accsdb.users = AppInit.conf.accsdb.users;
+
+            string json = JsonConvert.SerializeObject(init);
+            json = json.Replace("{server_ip}", requestInfo.IP);
+
+            return Content(json, "application/json; charset=utf-8");
         }
         #endregion
     }

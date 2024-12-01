@@ -12,7 +12,7 @@ namespace Lampac.Engine.CRON
 
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (true)
             {
@@ -63,7 +63,7 @@ namespace Lampac.Engine.CRON
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.LampaWeb.intervalupdate, 1)));
+                await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.LampaWeb.intervalupdate, 1))).ConfigureAwait(false);
             }
         }
     }
