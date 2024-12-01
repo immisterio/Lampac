@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/filmixtv")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.FilmixTV.Clone();
 
@@ -30,6 +30,12 @@ namespace Lampac.Controllers.LITE
 
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
 
             var proxyManager = new ProxyManager("filmixtv", init);
             var proxy = proxyManager.Get();

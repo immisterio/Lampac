@@ -35,7 +35,7 @@ namespace Shared.Engine.Online
 
             if (html == null)
             {
-                onlog?.Invoke("html null");
+                onlog?.Invoke("VideoDB: html null");
                 return null;
             }
 
@@ -66,11 +66,21 @@ namespace Shared.Engine.Online
 
             string? file = decodePlayer();
             if (file == null)
+            {
+                onlog?.Invoke("VideoDB: file null");
                 return null;
+            }
+
+            onlog?.Invoke("VideoDB: file OK");
 
             List<RootObject>? pl = JsonNode.Parse(file)?["file"]?.Deserialize<List<RootObject>>();
-            if (pl == null || pl.Count == 0) 
+            if (pl == null || pl.Count == 0)
+            {
+                onlog?.Invoke("VideoDB: pl null");
                 return null;
+            }
+
+            onlog?.Invoke("VideoDB: pl OK");
 
             string quality = file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
             return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };
@@ -78,10 +88,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson)
+        public string Html(EmbedModel? root, string args, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
+
+            if (!string.IsNullOrEmpty(args))
+                args = $"&{args.Remove(0, 1)}";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -108,7 +121,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&title={enc_title}&original_title={enc_original_title}", $"{m.Groups[1].Value}p"));
+                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
@@ -137,7 +150,14 @@ namespace Shared.Engine.Online
                     //catch { }
                     #endregion
 
-                    mtpl.Append(name, streams[0].link, "call", $"{streams[0].link}&play=true", subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    if (bwa)
+                    {
+                        mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                    }
+                    else
+                    {
+                        mtpl.Append(name, streams[0].link);
+                    }
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -160,7 +180,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
+                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}{args}", season);
                     }
 
                     return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -193,7 +213,7 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                string link = host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
+                                string link = host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}{args}";
 
                                 vtpl.Append(perevod, t == perevod, link);
                             }
@@ -217,13 +237,20 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}&title={enc_title}&original_title={enc_original_title}", $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)
                                 continue;
 
-                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, "call", streamlink: $"{streams[0].link}&play=true", streamquality: new StreamQualityTpl(streams));
+                            if (bwa)
+                            {
+                                etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                            }
+                            else
+                            {
+                                etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            }
                         }
                     }
 

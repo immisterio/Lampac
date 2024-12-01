@@ -34,6 +34,8 @@ namespace Shared.Model.Base
 
         public List<ProxyAction>? actions;
 
+        public int actions_attempts = 6;
+
 
         public object Clone()
         {

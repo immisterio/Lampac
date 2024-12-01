@@ -25,6 +25,7 @@ namespace Shared.Engine.Online
         void log(string msg)
         {
             requestlog += $"{msg}\n\n===========================================\n\n\n";
+            onlog?.Invoke($"rezka: {msg}\n");
         }
 
         public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
@@ -193,10 +194,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream, bool rjson = false)
+        public string Html(EmbedModel? result, string args, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
+
+            if (!string.IsNullOrEmpty(args))
+                args = $"&{args.Remove(0, 1)}";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -250,7 +254,14 @@ namespace Shared.Engine.Online
                             if (match.Groups[2].Value.Contains("data-director=\"1\""))
                                 link += "&director=1";
 
-                            mtpl.Append(voice, link, "call", $"{link}&play=true");
+                            string? stream = null;
+                            if (showstream)
+                            {
+                                stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+                                stream += args;
+                            }
+
+                            mtpl.Append(voice, link, "call", stream);
                         }
 
                         match = match.NextMatch();
@@ -328,7 +339,14 @@ namespace Shared.Engine.Online
                             eshash.Add(m.Groups[4].Value);
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups[3].Value}";
 
-                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: (showstream ? $"{link}&play=true" : null));
+                            string? stream = null;
+                            if (showstream)
+                            {
+                                stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+                                stream += args;
+                            }
+
+                            etpl.Append(m.Groups[4].Value, title ?? original_title, s.ToString(), m.Groups[3].Value, link, "call", streamlink: stream);
                         }
                         #endregion
                     }
@@ -389,10 +407,13 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream, bool rjson = false)
+        public string Serial(Episodes? root, EmbedModel? result, string args, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream, bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
+
+            if (!string.IsNullOrEmpty(args))
+                args = $"&{args.Remove(0, 1)}";
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -459,7 +480,9 @@ namespace Shared.Engine.Online
                     if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
                     {
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups[1].Value}";
-                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? $"{link}&play=true" : null));
+                        string stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
+
+                        etpl.Append(m.Groups[2].Value, title ?? original_title, s.ToString(), m.Groups[1].Value, link, "call", streamlink: (showstream ? $"{stream}{args}" : null));
                     }
 
                     m = m.NextMatch();

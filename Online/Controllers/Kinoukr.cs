@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinoukr")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Kinoukr.Clone();
 
@@ -24,22 +24,28 @@ namespace Lampac.Controllers.LITE
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("kinoukr", init);
             var proxy = proxyManager.Get();
+
+            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+                return ShowError(rch_error);
 
             var oninvk = new KinoukrInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => init.rhub ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: url.Contains("bobr-kurwa") ? httpHeaders(init) : httpHeaders(init, HeadersModel.Init
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => rch.enable ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: url.Contains("bobr-kurwa") ? httpHeaders(init) : httpHeaders(init, HeadersModel.Init
                (
                     ("cache-control", "no-cache"),
                     ("cookie", $"PHPSESSID={CrypTo.md5(DateTime.Now.ToBinary().ToString())}; legit_user=1;"),
@@ -64,11 +70,11 @@ namespace Lampac.Controllers.LITE
                     ("upgrade-insecure-requests", "1")
                ))),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr"),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
                //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

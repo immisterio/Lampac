@@ -15,7 +15,7 @@ namespace Lampac.Engine.CRON
     {
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (true)
             {
@@ -23,7 +23,7 @@ namespace Lampac.Engine.CRON
                 {
                     if (AppInit.modules == null || AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) == null)
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(1));
+                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
                         continue;
                     }
 
@@ -62,7 +62,7 @@ namespace Lampac.Engine.CRON
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.dlna.intervalUpdateTrackers));
+                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.dlna.intervalUpdateTrackers)).ConfigureAwait(false);
             }
         }
 

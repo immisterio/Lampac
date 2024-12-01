@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -30,6 +30,9 @@ namespace Lampac.Controllers.LITE
 
             if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
@@ -54,7 +57,7 @@ namespace Lampac.Controllers.LITE
                 return Content("data-json=");
 
             #region video_links
-            string memKey = $"fxapi:{postid}:{HttpContext.Connection.RemoteIpAddress}";
+            string memKey = $"fxapi:{postid}:{requestInfo.IP}";
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 string XFXTOKEN = await getXFXTOKEN(account_email);
@@ -140,11 +143,15 @@ namespace Lampac.Controllers.LITE
                                 string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
                                 bool active = t == indexTranslate;
 
-                                indexTranslate++;
+                                if (t == -1)
+                                    t = indexTranslate;
+
                                 vtpl.Append(translation.Value<string>("name"), active, link);
                                 break;
                             }
                         }
+
+                        indexTranslate++;
                     }
                     #endregion
 

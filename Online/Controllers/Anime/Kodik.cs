@@ -30,6 +30,7 @@ namespace Lampac.Controllers.LITE
                 init.apihost,
                 init.token,
                 init.hls,
+                string.IsNullOrEmpty(init.secret_token) ? "videoparse" : "video",
                 (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik"),
@@ -40,15 +41,19 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string account_email, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
-            if (!AppInit.conf.Kodik.enable)
+            var init = AppInit.conf.Kodik;
+            if (!init.enable)
                 return OnError();
 
-            if (AppInit.conf.Kodik.rhub)
+            if (init.rhub)
                 return ShowError(RchClient.ErrorMsg);
 
-            if (IsOverridehost(AppInit.conf.Kodik, out string overridehost))
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
             List<Result> content = null;
@@ -63,7 +68,7 @@ namespace Lampac.Controllers.LITE
 
                 //if (clarification == 1)
                 {
-                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title, null), proxyManager);
+                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: init), () => oninvk.Embed(title, null), proxyManager);
                     if (res?.result == null || res.result.Count == 0)
                         return OnError();
                 }
@@ -87,30 +92,32 @@ namespace Lampac.Controllers.LITE
             {
                 content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);
                 if (content == null || content.Count == 0)
-                    return LocalRedirect($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&account_email={HttpUtility.UrlEncode(account_email)}");
+                    return LocalRedirect(accsArgs($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}"));
             }
 
-            return ContentTo(oninvk.Html(content, imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
+            return ContentTo(oninvk.Html(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
         }
 
         #region Video - API
         [HttpGet]
         [Route("lite/kodik/video")]
         [Route("lite/kodik/video.m3u8")]
-        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, string account_email, bool play)
+        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = AppInit.conf.Kodik;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {
                 string uri = play ? "videoparse.m3u8" : "videoparse";
-                return LocalRedirect($"/lite/kodik/{uri}?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&account_email={HttpUtility.UrlEncode(account_email)}&play={play}");
+                return LocalRedirect(accsArgs($"/lite/kodik/{uri}?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&link={HttpUtility.UrlEncode(link)}&episode={episode}&play={play}"));
             }
 
-            string userIp = HttpContext.Connection.RemoteIpAddress.ToString();
+            string userIp = requestInfo.IP;
             if (init.localip)
             {
                 userIp = await mylocalip();
@@ -175,9 +182,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = AppInit.conf.Kodik;
-
             if (!init.enable)
                 return OnError();
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
 
             var oninvk = InitKodikInvoke();
 

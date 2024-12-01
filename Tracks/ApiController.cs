@@ -6,7 +6,6 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using System.Linq;
 using Lampac.Engine.CORE;
 using System.IO;
 using Shared.Engine;
@@ -15,6 +14,21 @@ namespace Lampac.Controllers
 {
     public class TracksController : BaseController
     {
+        [HttpGet]
+        [Route("tracks.js")]
+        [Route("tracks/js/{token}")]
+        public ActionResult Tracks(string token)
+        {
+            if (!AppInit.conf.ffprobe.enable)
+                return Content(string.Empty);
+
+            string file = FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, contentType: "application/javascript; charset=utf-8");
+        }
+
+
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media)
         {
@@ -27,8 +41,7 @@ namespace Lampac.Controllers
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
                     return Content(string.Empty);
 
-                string account_email = AppInit.conf.accsdb.enable ? AppInit.conf.accsdb?.accounts?.First().Key : "";
-                media = $"{host}/dlna/stream?path={path}&account_email={HttpUtility.UrlEncode(account_email)}";
+                media = accsArgs($"{host}/dlna/stream?path={path}");
             }
             else if (media.Contains("/stream/"))
             {
@@ -100,17 +113,6 @@ namespace Lampac.Controllers
             }
 
             return Content(outPut, contentType: "application/json; charset=utf-8");
-        }
-
-
-        [HttpGet]
-        [Route("tracks.js")]
-        public ActionResult Tracks()
-        {
-            if (!AppInit.conf.ffprobe.enable)
-                return Content(string.Empty);
-
-            return Content(FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
         }
     }
 }

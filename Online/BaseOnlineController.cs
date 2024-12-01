@@ -28,13 +28,23 @@ namespace Online
         }
         #endregion
 
+        #region OnLog
+        public void OnLog(string msg)
+        {
+            HttpClient.onlog?.Invoke(null, msg + "\n");
+        }
+        #endregion
+
         #region OnError
         public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
 
         public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
         {
-            if (refresh_proxy)
-                proxyManager?.Refresh();
+            if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
+            {
+                if (refresh_proxy)
+                    proxyManager?.Refresh();
+            }
 
             return OnError(msg, weblog: weblog);
         }

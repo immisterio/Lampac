@@ -21,6 +21,7 @@ namespace JinEnergy.Online
                 init.apihost!,
                 init.token,
                 init.hls,
+                "video",
                 (uri, head) => JsHttpClient.Get(init.cors(uri), httpHeaders(args, init, head)),
                 (uri, data) => JsHttpClient.Post(init.cors(uri), data, httpHeaders(args, init)),
                 streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
@@ -66,7 +67,7 @@ namespace JinEnergy.Online
                     return EmptyError("content");
             }
 
-            return oninvk.Html(content, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false, false);
+            return oninvk.Html(content, arg.account_email, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false, false);
         }
 
 

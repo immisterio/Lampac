@@ -19,6 +19,9 @@ namespace Lampac.Controllers.PornHub
             if (!init.enable)
                 return OnError("disable");
 
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
+
             string memKey = $"phub:vidosik:{vkey}";
             if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
                 return OnError(errormsg);
@@ -52,6 +55,9 @@ namespace Lampac.Controllers.PornHub
 
             if (!init.enable)
                 return OnError("disable");
+
+            if (NoAccessGroup(init, out string error_msg))
+                return OnError(error_msg, false);
 
             string memKey = $"phubprem:vidosik:{vkey}";
             if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))

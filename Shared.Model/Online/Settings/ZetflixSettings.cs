@@ -6,10 +6,12 @@ namespace Shared.Model.Online.Settings
     {
         public ZetflixSettings(string host, bool enable = true, bool streamproxy = false, bool rip = false)
         {
-            this.host = host;
             this.enable = enable;
             this.streamproxy = streamproxy;
             this.rip = rip;
+
+            if (host != null)
+                this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
 

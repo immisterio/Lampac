@@ -9,7 +9,23 @@ namespace Lampac.Controllers.LITE
         [Route("merchant/user")]
         public ActionResult Index(string account_email)
         {
-            return Json(AppInit.conf.accsdb.accounts[decodeEmail(account_email)]);
+            string email = decodeEmail(account_email);
+            if (email == null)
+                return Json(new { error = true, msg = "email null" });
+
+            var user = AppInit.conf.accsdb.findUser(email);
+            if (user == null)
+                return Json(new { error = true, msg = "user not found" });
+
+            return Json(new
+            {
+                user.id,
+                user.ids,
+                user.ban,
+                user.ban_msg,
+                user.expires,
+                user.group
+            });
         }
 
 
@@ -20,9 +36,16 @@ namespace Lampac.Controllers.LITE
                 return Content("incorrect passwd");
 
             string email = decodeEmail(account_email);
+            if (email == null)
+                return Json(new { error = true, msg = "email null" });
+
             PayConfirm(email, merch, order, days);
 
-            return Json(AppInit.conf.accsdb.accounts[email]);
+            var user = AppInit.conf.accsdb.findUser(email);
+            if (user == null)
+                return Json(new { error = true, msg = "user not found" });
+
+            return Json(user);
         }
     }
 }

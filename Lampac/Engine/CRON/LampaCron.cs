@@ -12,7 +12,7 @@ namespace Lampac.Engine.CRON
 
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (true)
             {
@@ -56,14 +56,14 @@ namespace Lampac.Engine.CRON
                             html = html.Replace("</body>", "<script src=\"/lampainit.js\"></script></body>");
 
                             File.WriteAllText("wwwroot/lampa-main/index.html", html);
-
                             File.CreateText("wwwroot/lampa-main/personal.lampa");
+                            File.Delete("wwwroot/lampa-main.zip");
                         }
                     }
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.LampaWeb.intervalupdate, 1)));
+                await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.LampaWeb.intervalupdate, 1))).ConfigureAwait(false);
             }
         }
     }

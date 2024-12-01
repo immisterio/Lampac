@@ -33,6 +33,8 @@ namespace JinEnergy
             if (type == "apk")
                 IsAndrod = true;
 
+            typeConf = type ?? "web";
+
             await LoadOrUpdateConfig(urlconf);
 
             var timer = new System.Timers.Timer(TimeSpan.FromMinutes(20));
@@ -41,6 +43,22 @@ namespace JinEnergy
 
             timer.AutoReset = true;
             timer.Enabled = true;
+
+            try
+            {
+                if (JSRuntime != null)
+                {
+                    string? result = await JSRuntime.InvokeAsync<string?>("httpReq", "https://github.com/", false, new
+                    {
+                        dataType = "text",
+                        timeout = 5 * 1000,
+                        returnHeaders = true
+                    });
+
+                    IsWorkReturnHeaders = result != null && result.Contains("currentUrl");
+                }
+            }
+            catch { }
         }
         #endregion
 
@@ -75,9 +93,15 @@ namespace JinEnergy
                             if (setings.corsehost != null)
                                 Shared.Model.AppInit.corseuhost = setings.corsehost;
 
+                            if (conf.Kodik.token != null)
+                                conf.Kodik.token = conf.Kodik.token.Contains(":") ? conf.Kodik.Decrypt(conf.Kodik.token)! : conf.Kodik.token;
+
+                            if (conf.VCDN.token != null)
+                                conf.VCDN.token = conf.VCDN.token.Contains(":") ? conf.VCDN.Decrypt(conf.VCDN.token)! : conf.VCDN.token;
+
                             if (IsDefaultConf && geo == "RU")
                             {
-                                conf.Rezka.enable = false;
+                                conf.Rezka.host = "https://hdrezka.me";
                                 conf.BongaCams.enable = false;
                                 conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/elo";
                                 conf.Xnxx.overridehost = "https://bwa-cloud.apn.monster/xnx";
@@ -114,7 +138,11 @@ namespace JinEnergy
 
         public static bool IsAndrod { get; private set; }
 
+        public static bool IsWorkReturnHeaders { get; private set; }
+
         public static bool IsDefaultConf { get; private set; } = true;
+
+        public static string typeConf { get; private set; }
 
         public static string? Country { get; private set; }
 
@@ -175,6 +203,8 @@ namespace JinEnergy
 
         public static OnlinesSettings CDNmovies => conf.CDNmovies;
 
+        public static OnlinesSettings CDNvideohub => conf.CDNvideohub;
+
         public static OnlinesSettings VDBmovies => conf.VDBmovies;
 
 
@@ -191,6 +221,10 @@ namespace JinEnergy
         public static OnlinesSettings Animevost => conf.Animevost;
 
         public static OnlinesSettings AniMedia => conf.AniMedia;
+
+        public static OnlinesSettings Animebesst => conf.Animebesst;
+
+        public static OnlinesSettings AnimeLib => conf.AnimeLib;
 
         public static OnlinesSettings MoonAnime => conf.MoonAnime;
 

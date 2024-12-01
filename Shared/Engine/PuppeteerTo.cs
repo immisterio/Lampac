@@ -66,16 +66,20 @@ namespace Shared.Engine
 
         async public static ValueTask<PuppeteerTo> Browser()
         {
-            if (shutdown)
-                return null;
+            try
+            {
+                if (shutdown)
+                    return null;
 
-            if (IsKeepOpen && browser_keepopen == null)
-                LaunchKeepOpen();
+                if (IsKeepOpen && browser_keepopen == null)
+                    LaunchKeepOpen();
 
-            if (browser_keepopen != null)
-                return new PuppeteerTo(browser_keepopen);
+                if (browser_keepopen != null)
+                    return new PuppeteerTo(browser_keepopen);
 
-            return new PuppeteerTo(await Launch());
+                return new PuppeteerTo(await Launch());
+            }
+            catch { return null; }
         }
 
         static Task<IBrowser> Launch()
@@ -88,7 +92,7 @@ namespace Shared.Engine
                 var option = new LaunchOptions()
                 {
                     Headless = AppInit.conf.puppeteer.Headless,
-                    Devtools = !AppInit.conf.puppeteer.Headless,
+                    Devtools = false,
                     IgnoreHTTPSErrors = true,
                     Args = new string[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1" },
                     Timeout = 12_000
@@ -162,13 +166,20 @@ namespace Shared.Engine
 
         private void Page_Request(object sender, RequestEventArgs e)
         {
-            if (Regex.IsMatch(e.Request.Url, "\\.(ico|png|jpe?g|WEBP|svg|css|EOT|TTF|WOFF2?|OTF)", RegexOptions.IgnoreCase) || e.Request.Url.StartsWith("data:image"))
+            try
             {
-                e.Request.AbortAsync();
-                return;
-            }
+                if (e?.Request == null)
+                    return;
 
-            e.Request.ContinueAsync();
+                if (Regex.IsMatch(e.Request.Url, "\\.(ico|png|jpe?g|WEBP|svg|css|EOT|TTF|WOFF2?|OTF)", RegexOptions.IgnoreCase) || e.Request.Url.StartsWith("data:image"))
+                {
+                    e.Request.AbortAsync();
+                    return;
+                }
+
+                e.Request.ContinueAsync();
+            }
+            catch { }
         }
 
         public void Dispose()

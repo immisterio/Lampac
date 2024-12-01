@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Shared.Engine.CORE;
+using Shared.Model.Base;
+using Shared.Models;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -13,7 +16,15 @@ namespace Lampac.Engine.CORE
         #region static
         public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
 
-        public static EventHandler<(string connectionId, string rchId, string url, string data)> hub = null;
+        public static string ErrorType(string type)
+        {
+            if (type == "web")
+                return "На MSX недоступно";
+
+            return "Только на android";
+        }
+
+        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers)> hub = null;
 
         static ConcurrentDictionary<string, string> clients = new ConcurrentDictionary<string, string>();
 
@@ -34,36 +45,49 @@ namespace Lampac.Engine.CORE
 
         string ip, connectionId;
 
-        bool enableRhub;
+        bool enableRhub, rhub_fallback;
+
+        public bool enable => enableRhub;
 
         public string connectionMsg { get; private set; }
 
         public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy.CurrentProxyIp)}";
 
-        public RchClient(HttpContext context, string host, bool enableRhub)
+        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo)
         {
-            this.enableRhub = enableRhub;
+            enableRhub = init.rhub;
+            rhub_fallback = init.rhub_fallback;
             ip = context.Connection.RemoteIpAddress.ToString();
             connectionId = clients.FirstOrDefault(i => i.Value == ip).Key;
+
+            if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
+            {
+                if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
+                {
+                    enableRhub = false;
+                    init.rhub = false;
+                }
+            }
 
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
                 AppInit.conf.rch.keepalive,
                 result = $"{host}/rch/result",
-                ws = $"{host}/ws"
+                ws = $"{host}/ws",
+                timeout = init.rhub_fallback ? 5 : 8
             });
         }
 
 
         #region Get
-        public ValueTask<string> Get(string url) => SendHub(url);
+        public ValueTask<string> Get(string url, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
 
-        async public ValueTask<T> Get<T>(string url, bool IgnoreDeserializeObject = false)
+        async public ValueTask<T> Get<T>(string url, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string html = await SendHub(url);
+                string html = await SendHub(url, null, headers, useDefaultHeaders);
                 if (html == null)
                     return default;
 
@@ -80,13 +104,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public ValueTask<string> Post(string url, string data) => SendHub(url, data);
+        public ValueTask<string> Post(string url, string data, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, data, headers, useDefaultHeaders);
 
-        async public ValueTask<T> Post<T>(string url, string data, bool IgnoreDeserializeObject = false)
+        async public ValueTask<T> Post<T>(string url, string data, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string json = await SendHub(url, data);
+                string json = await SendHub(url, data, headers, useDefaultHeaders);
                 if (json == null)
                     return default;
 
@@ -103,7 +127,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null)
+        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
         {
             if (hub == null)
                 return null;
@@ -114,9 +138,27 @@ namespace Lampac.Engine.CORE
                 var tcs = new TaskCompletionSource<string>();
                 rchIds.TryAdd(rchId, tcs);
 
-                hub.Invoke(null, (connectionId, rchId, url, data));
+                var send_headers = !useDefaultHeaders ? null : new Dictionary<string, string>() 
+                {
+                    { "Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" },
+                    { "User-Agent", HttpClient.UserAgent }
+                };
 
-                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(20));
+                if (headers != null)
+                {
+                    if (send_headers == null)
+                        send_headers = new Dictionary<string, string>();
+
+                    foreach (var h in headers)
+                    {
+                        if (!send_headers.ContainsKey(h.Key))
+                            send_headers.TryAdd(h.Key, h.Value);
+                    }
+                }
+
+                hub.Invoke(null, (connectionId, rchId, url, data, send_headers));
+
+                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 5 : 8));
                 rchIds.TryRemove(rchId, out _);
 
                 if (string.IsNullOrWhiteSpace(result))
@@ -140,6 +182,29 @@ namespace Lampac.Engine.CORE
                 return false; // rch не используется
 
             return !clients.Values.Contains(ip);
+        }
+        #endregion
+
+        #region IsNotSupport
+        public bool IsNotSupport(string rchtype, string rch_deny, out string rch_msg)
+        {
+            rch_msg = null;
+
+            if (!enableRhub)
+                return false; // rch не используется
+
+            if (rhub_fallback)
+                return false; // разрешен возврат на сервер
+
+            if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
+                rch_msg = "На MSX недоступно";
+            else
+                rch_msg = "Только на android";
+
+            if (string.IsNullOrEmpty(rchtype))
+                return true;
+
+            return rch_deny.Contains(rchtype);
         }
         #endregion
     }

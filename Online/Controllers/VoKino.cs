@@ -59,13 +59,16 @@ namespace Lampac.Controllers.LITE
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            if (balancer is "filmix" or "ashdi" or "rhs")
+            if (balancer is "filmix" or "ashdi" or "alloha")
                 init.streamproxy = false;
 
-            reset: var rch = new RchClient(HttpContext, host, init.rhub);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();
 
             var oninvk = new VoKinoInvoke
@@ -73,12 +76,12 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.token,
-               ongettourl => init.rhub ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

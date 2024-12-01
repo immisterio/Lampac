@@ -1,5 +1,6 @@
 ﻿using Lampac;
 using Lampac.Engine;
+using Shared.Model.Base;
 using System;
 using System.Web;
 
@@ -29,34 +30,42 @@ namespace Merchant
 
                 if (days > 0)
                 {
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out ex))
+                    if (AppInit.conf.accsdb.findUser(email) is AccsUser user)
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddDays(days) : DateTime.UtcNow.AddDays(days);
-                        AppInit.conf.accsdb.accounts[email] = ex;
+                        user.expires = ex;
                     }
                     else
                     {
                         ex = DateTime.UtcNow.AddDays(days);
-                        AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                        AppInit.conf.accsdb.users.Add(new AccsUser() 
+                        {
+                            id = email.ToLower().Trim(),
+                            expires = ex
+                        });
                     }
                 }
                 else
                 {
-                    if (AppInit.conf.accsdb.accounts.TryGetValue(email, out ex))
+                    if (AppInit.conf.accsdb.findUser(email) is AccsUser user)
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                        AppInit.conf.accsdb.accounts[email] = ex;
+                        user.expires = ex;
                     }
                     else
                     {
                         ex = DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
-                        AppInit.conf.accsdb.accounts.TryAdd(email, ex);
+                        AppInit.conf.accsdb.users.Add(new AccsUser()
+                        {
+                            id = email.ToLower().Trim(),
+                            expires = ex
+                        });
                     }
                 }
 
-                System.IO.File.AppendAllText("merchant/users.txt", $"{email.ToLower()},{ex.ToFileTimeUtc()},{merch},{order}\n");
+                System.IO.File.AppendAllText("merchant/users.txt", $"{email.ToLower().Trim()},{ex.ToFileTimeUtc()},{merch},{order}\n");
 
-                _users += $"{email.ToLower()},{ex.ToFileTimeUtc()},{merch},{order}\n";
+                _users += $"{email.ToLower().Trim()},{ex.ToFileTimeUtc()},{merch},{order}\n";
                 LastWriteTimeUsers = System.IO.File.GetLastWriteTime("merchant/users.txt");
             }
         }
@@ -74,6 +83,9 @@ namespace Merchant
 
         public static string decodeEmail(string email)
         {
+            if (string.IsNullOrEmpty(email))
+                return null;    
+
             return HttpUtility.UrlDecode(email.ToLower().Trim());
         }
     }

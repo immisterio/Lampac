@@ -21,7 +21,7 @@ namespace Lampac
         static AppInit() { LoadModules(); }
 
         #region conf
-        static (AppInit, DateTime) cacheconf = default;
+        public static(AppInit, DateTime) cacheconf = default;
 
         public static AppInit conf
         {
@@ -40,8 +40,11 @@ namespace Lampac
                         Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
                     }};
 
-                    string initfile = File.ReadAllText("init.conf");
+                    string initfile = File.ReadAllText("init.conf").Trim();
                     initfile = Regex.Replace(initfile, "\"weblog\":([ \t]+)?(true|false)([ \t]+)?,", "", RegexOptions.IgnoreCase);
+
+                    if (!initfile.StartsWith("{"))
+                        initfile = "{" + initfile + "}";
 
                     cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
                     if (cacheconf.Item1 == null)
@@ -54,6 +57,28 @@ namespace Lampac
                         if (!string.IsNullOrEmpty(cacheconf.Item1.corsehost))
                             corseuhost = cacheconf.Item1.corsehost;
                     }
+
+                    #region accounts
+                    if (cacheconf.Item1.accsdb.accounts != null)
+                    {
+                        foreach (var u in cacheconf.Item1.accsdb.accounts)
+                        {
+                            if (cacheconf.Item1.accsdb.findUser(u.Key) is AccsUser user)
+                            {
+                                if (u.Value > user.expires)
+                                    user.expires = u.Value;
+                            }
+                            else
+                            {
+                                cacheconf.Item1.accsdb.users.Add(new AccsUser()
+                                {
+                                    id = u.Key.ToLower().Trim(),
+                                    expires = u.Value
+                                });
+                            }
+                        }
+                    }
+                    #endregion
 
                     if (File.Exists("merchant/users.txt"))
                     {
@@ -68,16 +93,26 @@ namespace Lampac
                             {
                                 if (long.TryParse(data[1], out long ex) && ex > utc)
                                 {
-                                    DateTime e = DateTime.FromFileTimeUtc(ex);
-                                    string email = data[0].Trim().ToLower();
-
-                                    if (cacheconf.Item1.accsdb.accounts.TryGetValue(email, out DateTime _ex))
+                                    try
                                     {
-                                        if (e > _ex)
-                                            cacheconf.Item1.accsdb.accounts[email] = e;
+                                        DateTime e = DateTime.FromFileTimeUtc(ex);
+                                        string email = data[0].ToLower().Trim();
+
+                                        if (cacheconf.Item1.accsdb.findUser(email) is AccsUser user)
+                                        {
+                                            if (e > user.expires)
+                                                user.expires = e;
+                                        }
+                                        else
+                                        {
+                                            cacheconf.Item1.accsdb.users.Add(new AccsUser()
+                                            {
+                                                id = email,
+                                                expires = e
+                                            });
+                                        }
                                     }
-                                    else
-                                        cacheconf.Item1.accsdb.accounts.TryAdd(email, e);
+                                    catch { }
                                 }
                             }
                         }
@@ -171,6 +206,8 @@ namespace Lampac
 
         public bool pirate_store = true;
 
+        public SyncConf sync = new SyncConf();
+
         public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
 
         public string apikey = null;
@@ -226,7 +263,10 @@ namespace Lampac
 
         public AccsConf accsdb = new AccsConf() 
         { 
-            authMesage = "Войдите в аккаунт cub.red", denyMesage = "Добавьте {account_email} в init.conf", expiresMesage = "Время доступа для {account_email} истекло в {expires}", 
+            authMesage = "Войдите в аккаунт cub.red",
+            denyMesage = "Добавьте {account_email} в init.conf",
+            denyGroupMesage = "У вас нет прав для просмотра этой страницы",
+            expiresMesage = "Время доступа для {account_email} истекло в {expires}",
             maxip_hour = 15, maxrequest_hour = 300, maxlock_day = 3, blocked_hour = 36 
         };
 

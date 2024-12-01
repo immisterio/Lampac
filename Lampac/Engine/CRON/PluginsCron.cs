@@ -12,13 +12,13 @@ namespace Lampac.Engine.CRON
     {
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (true)
             {
                 if (!AppInit.conf.pirate_store)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
                     continue;
                 }
 
@@ -90,7 +90,7 @@ namespace Lampac.Engine.CRON
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(40));
+                await Task.Delay(TimeSpan.FromMinutes(40)).ConfigureAwait(false);
             }
         }
     }

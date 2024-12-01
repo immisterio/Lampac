@@ -11,6 +11,7 @@ using System.Net.Http;
 using Shared.Model.Online;
 using System.Collections.Generic;
 using System.Net;
+using Shared.Models;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -37,6 +38,8 @@ namespace Lampac.Engine.Middlewares
         {
             if (httpContext.Request.Path.Value.StartsWith("/proxyimg"))
             {
+                var requestInfo = httpContext.Features.Get<RequestModel>();
+
                 var init = AppInit.conf.serverproxy;
                 bool cacheimg = init.cache.img;
 
@@ -56,7 +59,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     else
                     {
-                        decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), httpContext.Connection.RemoteIpAddress.ToString());
+                        decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
                         href = decryptLink?.uri;
                     }
                 }
