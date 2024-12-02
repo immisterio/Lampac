@@ -5,7 +5,6 @@ DEST="/home/lampac"
 # sudo su -
 apt-get update
 apt-get install -y unzip curl coreutils
-apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
 
 # Install .NET
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
@@ -40,6 +39,84 @@ curl -k -s https://raw.githubusercontent.com/m0nty81/lampac/main/update.sh > $DE
 chmod 755 $DEST/update.sh
 crontab -l | { cat; echo "$(shuf -i 10-55 -n 1) * * * * /bin/bash $DEST/update.sh"; } | crontab -
 
+# init.conf
+random_port=$(shuf -i 9000-12999 -n 1)
+cat <<EOF > $DEST/init.conf
+{
+  "listenport": $random_port,
+  "typecache": "mem",
+  "mikrotik": true,
+  "puppeteer": {
+    "enable": false
+  },
+  "dlna": {
+    "enable": false,
+    "autoupdatetrackers": false
+  },
+  "weblog": {
+    "enable": false
+  },
+  "serverproxy": {
+    "verifyip": false,
+    "cache": {
+      "img": false,
+      "img_rsize": false
+    },
+    "buffering": {
+      "enable": false
+    }
+  }
+}
+EOF
+
+# manifest.json
+cat <<EOF > $DEST/module/manifest.json
+[
+  {
+    "enable": true,
+    "dll": "SISI.dll"
+  },
+  {
+    "enable": true,
+    "dll": "Online.dll"
+  },
+  {
+    "enable": true,
+    "dll": "DLNA.dll"
+  },
+  {
+    "enable": false,
+    "initspace": "TorrServer.ModInit",
+    "dll": "TorrServer.dll"
+  }
+]
+EOF
+
+# Lampac.runtimeconfig.json
+cat <<EOF > $DEST/Lampac.runtimeconfig.json
+{
+  "runtimeOptions": {
+    "tfm": "net6.0",
+    "frameworks": [
+      {
+        "name": "Microsoft.NETCore.App",
+        "version": "6.0.0"
+      },
+      {
+        "name": "Microsoft.AspNetCore.App",
+        "version": "6.0.0"
+      }
+    ],
+    "configProperties": {
+      "System.GC.Server": false,
+      "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+      "System.GC.HeapHardLimit": 83886080
+    }
+  }
+}
+EOF
+
 # Create service
 echo ""
 echo "Install service to /etc/systemd/system/lampac.service ..."
@@ -59,15 +136,6 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
-if [ ! -f "$DEST/init.conf" ]; then
-random_port=$(shuf -i 9000-12999 -n 1)
-cat <<EOF > $DEST/init.conf
-{
-  "listenport": $random_port
-}
-EOF
-fi
-
 # Enable service
 systemctl daemon-reload
 systemctl enable lampac
@@ -75,14 +143,34 @@ systemctl enable lampac
 # update minor
 echo -n "1" > $DEST/vers-minor.txt
 /bin/bash $DEST/update.sh
+
+# clear
 cd $DEST
+rm -rf merchant wwwroot/bwa
+rm -rf runtimes/wi*
+rm -rf runtimes/os*
+rm -rf runtimes/linux-m*
+
+# clear runtimes
+case $(uname -m) in
+    x86_64)
+        rm -rf runtimes/linux-a*
+        ;;
+    armv7l)
+        rm -rf runtimes/linux-arm64
+		rm -rf runtimes/linux-x64
+        ;;
+    aarch64)
+        rm -rf runtimes/linux-arm
+		rm -rf runtimes/linux-x64
+        ;;
+    *)
+        echo ""
+        ;;
+esac
 
 # done
 systemctl start lampac
-
-# update minor
-/bin/bash $DEST/update.sh
-cd $DEST
 
 # iptables drop
 cat <<EOF > iptables-drop.sh
