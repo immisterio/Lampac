@@ -27,9 +27,6 @@ namespace Lampac.Controllers
         [Route("timecode/js/{token}")]
         public ActionResult timecode(string uid, string token)
         {
-            if (string.IsNullOrEmpty(uid))
-                uid = token;
-
             string file = FileCache.ReadAllText("plugins/timecode.js").Replace("{localhost}", host);
             if (!string.IsNullOrEmpty(uid))
                 file = Regex.Replace(file, "'profile=' \\+ encodeURIComponent\\([^\\)]+\\)", $"'profile={HttpUtility.UrlEncode(uid)}'");
@@ -52,10 +49,10 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/timecode/add")]
-        public ActionResult Set([FromQuery]string profile, [FromQuery]string card_id, [FromForm]string id, [FromForm]string data)
+        public ActionResult Set([FromQuery] string profile, [FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
-                return Content("{\"secuses\", false}");
+                return Content("{\"secuses\": false}", "application/json; charset=utf-8");
 
             string path = getFilePath(card_id, profile, true);
             var db = getData(path);
@@ -70,7 +67,7 @@ namespace Lampac.Controllers
             }
 
             BrotliTo.Compress(path, JsonConvert.SerializeObject(db));
-            return Content("{\"secuses\", true}");
+            return Json(new { secuses = true });
         }
 
 

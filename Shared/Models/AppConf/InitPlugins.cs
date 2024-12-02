@@ -15,5 +15,7 @@
         public bool timecode { get; set; } = true;
 
         public bool torrserver { get; set; } = true;
+
+        public bool backup { get; set; } = true;
     }
 }

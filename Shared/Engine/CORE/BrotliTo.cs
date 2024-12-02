@@ -27,7 +27,12 @@ namespace Lampac.Engine.CORE
 
         public static byte[] Compress(string value)
         {
-            using var input = new MemoryStream(Encoding.UTF8.GetBytes(value));
+            return Compress(Encoding.UTF8.GetBytes(value));
+        }
+
+        public static byte[] Compress(byte[] value)
+        {
+            using var input = new MemoryStream(value);
             using var output = new MemoryStream();
             using var stream = new BrotliStream(output, CompressionLevel.Fastest);
 
@@ -39,9 +44,14 @@ namespace Lampac.Engine.CORE
 
         public static void Compress(string outfile, string value)
         {
+            Compress(outfile, Encoding.UTF8.GetBytes(value));
+        }
+
+        public static void Compress(string outfile, byte[] value)
+        {
             lock (GetLockObjectForPath(outfile))
             {
-                using var input = new MemoryStream(Encoding.UTF8.GetBytes(value));
+                using var input = new MemoryStream(value);
                 using var output = new FileStream(outfile, FileMode.Create);
                 using var stream = new BrotliStream(output, CompressionLevel.Fastest);
 
@@ -65,6 +75,11 @@ namespace Lampac.Engine.CORE
 
         public static string Decompress(string infile)
         {
+            return Encoding.UTF8.GetString(DecompressArray(infile));
+        }
+
+        public static byte[] DecompressArray(string infile)
+        {
             lock (GetLockObjectForPath(infile))
             {
                 using var input = new FileStream(infile, FileMode.Open);
@@ -74,7 +89,7 @@ namespace Lampac.Engine.CORE
                 stream.CopyTo(output);
                 stream.Flush();
 
-                return Encoding.UTF8.GetString(output.ToArray());
+                return output.ToArray();
             }
         }
     }
