@@ -198,12 +198,15 @@ namespace TorrServer
                     goto reinstall;
                 }
 
-                var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 20, allowAutoRedirect: true);
-                if (response != null && response.Content.Headers.ContentLength.HasValue && new FileInfo(tspath).Length != response.Content.Headers.ContentLength.Value)
+                if (!File.Exists("isdocker"))
                 {
-                    File.Delete(tspath);
-                    await Task.Delay(10_000);
-                    goto reinstall;
+                    var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 20, allowAutoRedirect: true);
+                    if (response != null && response.Content.Headers.ContentLength.HasValue && new FileInfo(tspath).Length != response.Content.Headers.ContentLength.Value)
+                    {
+                        File.Delete(tspath);
+                        await Task.Delay(10_000);
+                        goto reinstall;
+                    }
                 }
                 #endregion
 

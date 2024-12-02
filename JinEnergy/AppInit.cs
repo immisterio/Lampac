@@ -101,7 +101,6 @@ namespace JinEnergy
 
                             if (IsDefaultConf && geo == "RU")
                             {
-                                conf.Rezka.host = "https://hdrezka.me";
                                 conf.BongaCams.enable = false;
                                 conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/elo";
                                 conf.Xnxx.overridehost = "https://bwa-cloud.apn.monster/xnx";
