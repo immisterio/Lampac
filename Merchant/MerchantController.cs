@@ -34,6 +34,7 @@ namespace Merchant
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddDays(days) : DateTime.UtcNow.AddDays(days);
                         user.expires = ex;
+                        user.group = AppInit.conf.Merchant.defaultGroup;
                     }
                     else
                     {
@@ -41,7 +42,8 @@ namespace Merchant
                         AppInit.conf.accsdb.users.Add(new AccsUser() 
                         {
                             id = email.ToLower().Trim(),
-                            expires = ex
+                            expires = ex,
+                            group = AppInit.conf.Merchant.defaultGroup
                         });
                     }
                 }
@@ -51,6 +53,7 @@ namespace Merchant
                     {
                         ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
                         user.expires = ex;
+                        user.group = AppInit.conf.Merchant.defaultGroup;
                     }
                     else
                     {
@@ -58,7 +61,8 @@ namespace Merchant
                         AppInit.conf.accsdb.users.Add(new AccsUser()
                         {
                             id = email.ToLower().Trim(),
-                            expires = ex
+                            expires = ex,
+                            group = AppInit.conf.Merchant.defaultGroup
                         });
                     }
                 }

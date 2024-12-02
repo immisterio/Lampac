@@ -70,13 +70,13 @@ namespace JinEnergy.Online
             if (AppInit.typeConf == "web" && !init.premium)
                 return ShowError("Нужен HDRezka Premium");
 
+            if (AppInit.Country == "RU" && string.IsNullOrEmpty(init.cookie))
+                return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
+
             if (!string.IsNullOrEmpty(init.cookie))
             {
                 if (AppInit.typeConf != "apk" && !init.premium)
                     return ShowError("Для cookie нужен apk или HDRezka Premium");
-
-                //if (AppInit.Country == "RU" && string.IsNullOrEmpty(init.cookie))
-                //    return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
             }
 
             var arg = defaultArgs(args);

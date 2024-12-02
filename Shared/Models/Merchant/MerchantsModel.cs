@@ -10,6 +10,8 @@ namespace Lampac.Models.Merchant
 
         public int allowedDifference { get; set; }
 
+        public int defaultGroup { get; set; }
+
         public B2payConf B2PAY { get; set; } = new B2payConf();
 
         public CryptoCloudConf CryptoCloud { get; set; } = new CryptoCloudConf();

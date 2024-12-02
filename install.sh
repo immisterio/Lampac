@@ -51,7 +51,7 @@ Wants=network.target
 After=network.target
 [Service]
 WorkingDirectory=$DEST
-ExecStart=$HOME/.dotnet/dotnet Lampac.dll
+ExecStart=/usr/bin/dotnet Lampac.dll
 #ExecReload=/bin/kill -s HUP $MAINPID
 #ExecStop=/bin/kill -s QUIT $MAINPID
 Restart=always

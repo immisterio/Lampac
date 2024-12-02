@@ -11,11 +11,17 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Model.Online;
 using System.Linq;
+using System.IO;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
     public class MoonAnime : BaseOnlineController
     {
+        static MoonAnime() {
+            Directory.CreateDirectory("cache/logs/MoonAnime");
+        }
+
         ProxyManager proxyManager = new ProxyManager("moonanime", AppInit.conf.MoonAnime);
 
         [HttpGet]
@@ -248,6 +254,12 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-site", "same-origin"),
                     ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                 ));
+
+                try
+                {
+                    System.IO.File.AppendAllText($"cache/logs/MoonAnime/{DateTime.Today.ToString("dd-MM-yyyy")}.txt", $"{DateTime.Today.ToString("dd / mm:HH")} - {requestInfo.IP} / {vod}\n");
+                }
+                catch { }
                 #endregion
 
                 cache.subtitle = Regex.Match(iframe, "subtitle: ?\"([^\"]+)\"").Groups[1].Value;

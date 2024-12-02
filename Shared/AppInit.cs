@@ -102,13 +102,16 @@ namespace Lampac
                                         {
                                             if (e > user.expires)
                                                 user.expires = e;
+
+                                            user.group = conf.Merchant.defaultGroup;
                                         }
                                         else
                                         {
                                             cacheconf.Item1.accsdb.users.Add(new AccsUser()
                                             {
                                                 id = email,
-                                                expires = e
+                                                expires = e,
+                                                group = conf.Merchant.defaultGroup
                                             });
                                         }
                                     }
