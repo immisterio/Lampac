@@ -126,7 +126,7 @@ namespace Shared.Model
 
 
 
-        public KodikSettings Kodik { get; set; } = new KodikSettings("kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true) { geostreamproxy = new List<string>() { "UA" } };
+        public KodikSettings Kodik { get; set; } = new KodikSettings("kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("kwwsv=22dsl1dqloleuld1wy");
 

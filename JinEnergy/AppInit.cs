@@ -102,7 +102,7 @@ namespace JinEnergy
                             if (IsDefaultConf && geo == "RU")
                             {
                                 conf.BongaCams.enable = false;
-                                conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/elo";
+                                conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/xds";
                                 conf.Xnxx.overridehost = "https://bwa-cloud.apn.monster/xnx";
                                 conf.Ebalovo.overridehost = "https://bwa-cloud.apn.monster/elo";
                                 conf.HQporner.overridehost = "https://bwa-cloud.apn.monster/hqr";

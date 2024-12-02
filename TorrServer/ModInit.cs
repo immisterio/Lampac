@@ -30,9 +30,11 @@ namespace TorrServer
 
         public bool rdb { get; set; }
 
+        public string defaultPasswd { get; set; } = "ts";
+
         public int group { get; set; }
 
-        public string defaultPasswd { get; set; } = "ts";
+        public bool checkfile { get; set; } = true;
 
 
         static (ModInit, DateTime) cacheconf = default;
@@ -198,7 +200,7 @@ namespace TorrServer
                     goto reinstall;
                 }
 
-                if (!File.Exists("isdocker"))
+                if (!File.Exists("isdocker") && conf.checkfile)
                 {
                     var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 20, allowAutoRedirect: true);
                     if (response != null && response.Content.Headers.ContentLength.HasValue && new FileInfo(tspath).Length != response.Content.Headers.ContentLength.Value)

@@ -327,11 +327,11 @@ namespace Lampac.Controllers
 			<input name=""merch"" type=""checkbox"" /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud
 		</div>
 
-		<br><br>
+		<!--<br><br>
 		<label>Начальная настройка init.conf</label>
 		<div class=""flex"">
 			<input name=""localua"" type=""checkbox"" /> Я из Украины и lampac установлен локально
-		</div>
+		</div>-->
 	</div>
 	
 	<button type=""submit"">Завершить настройку</button>
