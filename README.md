@@ -104,6 +104,13 @@ curl -L -k -s https://lampac.sh/home | bash
 # Виджеты
 1. Для Samsung "IP:9118/samsung.wgt"
 
+# Работа с базами данных
+* Microsoft.EntityFrameworkCore - MS SQL Server, SQLite
+* Npgsql - PostgreSQL
+* Pomelo.EntityFrameworkCore.MySql - MariaDB, MySQL
+* MongoDB.Driver - MongoDB
+* StackExchange.Redis - Redis
+
 # Параметры init.conf
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
 * multiaccess - Настройка кеша в онлайн с учетом многопользовательского доступа
