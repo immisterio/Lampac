@@ -24,10 +24,10 @@ if [ $gitver -gt $ver ]; then
     curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/init.conf > $DEST/init.conf
     if ip addr | grep 192.168.10.; then
         echo "LAR subnet detected"
-        curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_lar.js > $DEST/plugins/lampainit.js
+        curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_lar.js > $DEST/plugins/lampainit.my.js
     elif ip addr | grep 192.168.3.; then
         echo "UVA subnet detected"
-        curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_uva.js > $DEST/plugins/lampainit.js
+        curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/custom.settings/lampainit_uva.js > $DEST/plugins/lampainit.my.js
     else
         echo "Unknown subnet!"
     fi
