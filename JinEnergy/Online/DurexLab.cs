@@ -32,8 +32,6 @@ namespace JinEnergy.Online
             string memkey = $"durexlab:view:{arg.kinopoisk_id}";
             var content = await InvokeCache(arg.id, memkey, async () => 
             {
-                AppInit.log($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}");
-
                 string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}", false, new
                 {
                     dataType = "text",
@@ -58,9 +56,12 @@ namespace JinEnergy.Online
 
                 var json = JsonDocument.Parse(result);
 
-                AppInit.log(json.RootElement.GetProperty("body").GetProperty("player").GetRawText());
 
-                var md = json.RootElement.GetProperty("body").GetProperty("player").Deserialize<EmbedModel>();
+                AppInit.log(json.RootElement.GetProperty("body").GetString());
+
+                var body = JsonDocument.Parse(json.RootElement.GetProperty("body").GetString());
+
+                var md = body.RootElement.GetProperty("player").Deserialize<EmbedModel>();
                 if (md == null)
                     return null;
 
