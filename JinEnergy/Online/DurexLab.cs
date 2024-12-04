@@ -30,7 +30,7 @@ namespace JinEnergy.Online
             );
 
             string memkey = $"durexlab:view:{arg.kinopoisk_id}";
-            var content = await InvokeCache<EmbedModel>(arg.id, memkey, async () => 
+            var content = await InvokeCache(arg.id, memkey, async () => 
             {
                 string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}", false, new
                 {
@@ -56,29 +56,20 @@ namespace JinEnergy.Online
 
                 var json = JsonDocument.Parse(result);
 
+                AppInit.log("cookie - " + json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText());
+
                 var md = json.RootElement.GetProperty("body").Deserialize<EmbedModel>();
+                if (md == null)
+                    return null;
+
                 md.csrf = Regex.Match(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText(), "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
 
-                AppInit.log("csrf: " + md.csrf);
+                AppInit.log("csrf - " + md.csrf);
+
+                if (string.IsNullOrEmpty(md.csrf))
+                    return null;
 
                 return md;
-
-
-
-                //if (string.IsNullOrEmpty(result.content))
-                //    return OnError(proxyManager);
-
-                //if (!result.response.Headers.TryGetValues("Set-Cookie", out var cook))
-                //    return OnError(proxyManager);
-
-                //string csrf = Regex.Match(cook.FirstOrDefault() ?? "", "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
-                //if (string.IsNullOrEmpty(csrf))
-                //    return OnError(proxyManager);
-
-                //var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
-                //md.csrf = csrf;
-
-                //return md;
             });
 
             return oninvk.Html(content, string.Empty, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
