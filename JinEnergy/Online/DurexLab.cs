@@ -113,7 +113,7 @@ namespace JinEnergy.Online
             AppInit.log("result2 - " + resultss2s);
 
 
-            var result = await JsHttpClient.Post<JsonNode>($"https://api.{init.iframehost}" + playlist, "", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
+            var result = await JsHttpClient.Post<JsonNode>($"https://api.{init.iframehost}" + playlist, "{}", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
                 ("accept", "*/*"),
                 ("cache-control", "no-cache"),
                 ("cookie", $"x-csrf-token={csrf}"),
