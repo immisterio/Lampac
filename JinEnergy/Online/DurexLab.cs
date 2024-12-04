@@ -6,6 +6,7 @@ using Shared.Model.Online;
 using Shared.Model.Online.Lumex;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
 {
@@ -54,9 +55,13 @@ namespace JinEnergy.Online
                     return null;
 
                 var json = JsonDocument.Parse(result);
-                AppInit.log(json.ToString());
 
-                return null;
+                var md = json.RootElement.GetProperty("body").Deserialize<EmbedModel>();
+                md.csrf = Regex.Match(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText(), "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
+
+                AppInit.log("csrf: " + md.csrf);
+
+                return md;
 
 
 
@@ -79,8 +84,9 @@ namespace JinEnergy.Online
             return oninvk.Html(content, string.Empty, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, t, s);
         }
 
-        [JSInvokable("lite/durexlab/manifest")]
-        async public static ValueTask<string> Manifest(string args)
+
+        [JSInvokable("lite/lumex/video.m3u8")]
+        async public static ValueTask<string> Video(string args)
         {
             var init = AppInit.VideoDB;
             string? link = parse_arg("link", args);
