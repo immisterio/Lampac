@@ -86,15 +86,15 @@ namespace Lampac
 
             #region tmdb proxy
             var tmdb = AppInit.conf.serverproxy.tmdb;
-            if (!tmdb.useproxy && string.IsNullOrWhiteSpace(tmdb.API_IP))
+            if (!tmdb.useproxy && (string.IsNullOrWhiteSpace(tmdb.API_IP) || string.IsNullOrWhiteSpace(tmdb.IMG_IP)))
             {
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
-                    var lookup = new LookupClient(IPAddress.Parse(tmdb.DNS));
+                    var lookup = new LookupClient(IPAddress.Parse(tmdb.DNS ?? "9.9.9.9"));
 
-                    if (await HttpClient.Get(CrypTo.DecodeBase64("aHR0cDovL2dlby5jdWIucmVkLw=="), timeoutSeconds: 10) == "RU")
+                    #region api.themoviedb.org
+                    if (string.IsNullOrWhiteSpace(tmdb.API_IP))
                     {
-                        #region api.themoviedb.org
                         string uri = "https://api.themoviedb.org/3/movie/1079091?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=content_ratings,release_dates,keywords,alternative_titles&language=ru";
                         string json = await HttpClient.Get(uri, timeoutSeconds: 10);
                         if (json == null || !json.Contains("1079091"))
@@ -102,17 +102,20 @@ namespace Lampac
                             var result = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
                             tmdb.API_IP = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
                         }
-                        #endregion
+                    }
+                    #endregion
 
-                        #region image.tmdb.org
-                        byte[] img = await HttpClient.Download("http://image.tmdb.org/t/p/w300/54U26SA33pxxJ2lf5mRxWeqRTLu.jpg", timeoutSeconds: 10);
+                    #region image.tmdb.org
+                    if (string.IsNullOrWhiteSpace(tmdb.IMG_IP))
+                    {
+                        byte[] img = await HttpClient.Download("https://image.tmdb.org/t/p/w300/54U26SA33pxxJ2lf5mRxWeqRTLu.jpg", timeoutSeconds: 10);
                         if (img == null || img.Length != 13160)
                         {
                             var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
                             tmdb.API_IP = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
                         }
-                        #endregion
                     }
+                    #endregion
                 });
             }
             #endregion

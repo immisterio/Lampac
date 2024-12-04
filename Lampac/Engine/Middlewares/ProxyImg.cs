@@ -44,7 +44,7 @@ namespace Lampac.Engine.Middlewares
                 bool cacheimg = init.cache.img;
 
                 #region Проверки
-                Shared.Models.ProxyLinkModel decryptLink = null;
+                ProxyLinkModel decryptLink = null;
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
 
                 if (init.encrypt)
@@ -127,7 +127,7 @@ namespace Lampac.Engine.Middlewares
                     if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.IMG_IP))
                     {
                         headers.Add(new HeadersModel("Host", "image.tmdb.org"));
-                        href.Replace("image.tmdb.org", AppInit.conf.serverproxy.tmdb.IMG_IP);
+                        href = href.Replace("image.tmdb.org", AppInit.conf.serverproxy.tmdb.IMG_IP);
                     }
                 }
 
