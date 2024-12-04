@@ -4,7 +4,15 @@
     var timer = setInterval(function(){
         if(typeof Lampa !== 'undefined'){
             clearInterval(timer);
-
+			
+            var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+            if (!unic_id) {
+                unic_id = Lampa.Utils.uid(8).toLowerCase();
+                Lampa.Storage.set('lampac_unic_id', unic_id);
+            }
+			
+            Lampa.Utils.putScriptAsync(["{localhost}/privateinit.js?account_email="+encodeURIComponent(Lampa.Storage.get('account_email', ''))+"&uid="+encodeURIComponent(Lampa.Storage.get('lampac_unic_id', ''))], function() {});
+			
             if(!Lampa.Storage.get('lampac_initiale','false')) start();
 			
             window.lampa_settings.torrents_use = true;
@@ -17,19 +25,20 @@
         }
     },200);
 	
-	var dcma_timer = setInterval(function(){
+    var dcma_timer = setInterval(function(){
 	  if(typeof window.lampa_settings != 'undefined' && (window.lampa_settings.fixdcma || window.lampa_settings.dcma)){
 		clearInterval(dcma_timer)
 		if (window.lampa_settings.dcma)
 			window.lampa_settings.dcma = false;
 	  }
-	},100);
+    },100);
 
-	function start(){
+    function start(){
         Lampa.Storage.set('lampac_initiale','true');
         Lampa.Storage.set('source','cub');
-        Lampa.Storage.set('proxy_tmdb','true'); // проксирование постеров и описаний
-        Lampa.Storage.set('poster_size','w500'); // разрешение постеров
+        Lampa.Storage.set('full_btn_priority','{full_btn_priority_hash}');
+        Lampa.Storage.set('proxy_tmdb','{country}'=='RU');
+        Lampa.Storage.set('poster_size','w500');
         
         Lampa.Storage.set('parser_use','true'); // использовать парсер
         Lampa.Storage.set('jackett_url','{jachost}');
@@ -61,8 +70,8 @@
             {"url": "{localhost}/plugins/mult.js", "status": 1,"name": "Mult", "author": "x"}, // Плагин переименования Аниме в Мультфильмы
             {"url": "{localhost}/plugins/pubtorr.js", "status": 1,"name": "PublicParsers", "author": "x"}, // Плагин публичных парсеров
             {"url": "{localhost}/plugins/ts-preload.js", "status": 1,"name": "TorrPreload", "author": "x"}, // Плагин предзагрузки TS
-            {"url": "{localhost}/plugins/backup.js", "status": 1,"name": "Backup", "author": "x"}, // Плагин резервного копирования
-            {"url": "{localhost}/plugins/pirate_store.js", "status": 1,"name": "PirateStore", "author": "x"} // Плагин пиратского стора
+            {"url": "{localhost}/backup.js", "status": 1,"name": "Backup", "author": "x"} // Плагин резервного копирования
+//            {"url": "{localhost}/pirate_store.js", "status": 1,"name": "PirateStore", "author": "x"} // Плагин пиратского стора
         ];
 
         var plugins_push = []
