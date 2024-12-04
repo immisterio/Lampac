@@ -101,7 +101,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
+        public string Html(EmbedModel? result, string args, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false, bool bwa = false)
         {
             if (result?.media == null || result.media.Count == 0)
                 return string.Empty;
@@ -128,7 +128,14 @@ namespace Shared.Engine.Online
 
                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}{args}";
 
-                    mtpl.Append(media.translation_name, link, subtitles: subtitles);
+                    if (bwa)
+                    {
+                        mtpl.Append(media.translation_name, link.Replace("/video.m3u8", "/video"), "call", subtitles: subtitles);
+                    }
+                    else
+                    {
+                        mtpl.Append(media.translation_name, link, subtitles: subtitles);
+                    }
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -213,7 +220,14 @@ namespace Shared.Engine.Online
 
                                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}{args}";
 
-                                    etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
+                                    if (bwa)
+                                    {
+                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace("/video.m3u8", "/video"), "call", subtitles: subtitles);
+                                    }
+                                    else
+                                    {
+                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
+                                    }
                                 }
                             }
                         }

@@ -118,7 +118,7 @@ namespace Lampac.Engine.Middlewares
                     if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.API_IP))
                     {
                         headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
-                        servUri.Replace("api.themoviedb.org", AppInit.conf.serverproxy.tmdb.API_IP);
+                        servUri = servUri.Replace("api.themoviedb.org", AppInit.conf.serverproxy.tmdb.API_IP);
                     }
 
                     string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get(), headers: headers);

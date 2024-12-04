@@ -164,7 +164,10 @@ namespace JinEnergy.Online
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
             if (AppInit.IsWorkReturnHeaders)
+            {
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
+                send("DurexLab - 1080p", "durexlab", AppInit.VideoDB);
+            }
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 

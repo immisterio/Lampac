@@ -115,21 +115,21 @@ namespace JinEnergy.Engine
 
 
         #region Post
-        public static ValueTask<string?> Post(string url, string data, List<HeadersModel>? headers, int timeoutSeconds = 8, bool useDefaultHeaders = true)
+        public static ValueTask<string?> Post(string url, string data, List<HeadersModel>? headers, int timeoutSeconds = 8, bool useDefaultHeaders = true, bool androidHttpReq = true)
         {
-            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), timeoutSeconds: timeoutSeconds, addHeaders: headers, useDefaultHeaders: useDefaultHeaders);
+            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), timeoutSeconds: timeoutSeconds, addHeaders: headers, useDefaultHeaders: useDefaultHeaders, androidHttpReq: androidHttpReq);
         }
 
-        public static ValueTask<string?> Post(string url, string data, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null, bool useDefaultHeaders = true)
+        public static ValueTask<string?> Post(string url, string data, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null, bool useDefaultHeaders = true, bool androidHttpReq = true)
         {
-            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useDefaultHeaders: useDefaultHeaders);
+            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), timeoutSeconds: timeoutSeconds, addHeaders: addHeaders, useDefaultHeaders: useDefaultHeaders, androidHttpReq: androidHttpReq);
         }
 
-        async public static ValueTask<string?> Post(string url, HttpContent data, Encoding? encoding = null, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null, bool useDefaultHeaders = true)
+        async public static ValueTask<string?> Post(string url, HttpContent data, Encoding? encoding = null, int timeoutSeconds = 8, List<HeadersModel>? addHeaders = null, bool useDefaultHeaders = true, bool androidHttpReq = true)
         {
             try
             {
-                if (AppInit.IsAndrod && AppInit.JSRuntime != null)
+                if (androidHttpReq && AppInit.IsAndrod && AppInit.JSRuntime != null)
                     return await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", url, data.ReadAsStringAsync().Result, new { dataType = "text", timeout = timeoutSeconds * 1000, headers = httpReqHeaders(addHeaders, useDefaultHeaders) });
 
                 using (var client = new HttpClient())

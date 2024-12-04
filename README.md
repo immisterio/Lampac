@@ -41,6 +41,7 @@ curl -L -k -s https://lampac.sh/home | bash
 4. DLNA     - "http://IP:9118/dlna.js"
 5. TimeCode - "http://IP:9118/timecode.js"
 6. Tracks   - "http://IP:9118/tracks.js"
+6. Backup   - "http://IP:9118/backup.js"
 7. TorrServer      - "http://IP:9118/ts.js"
 8. Парсер Jackett  - "IP:9118"
 
@@ -76,7 +77,6 @@ curl -L -k -s https://lampac.sh/home | bash
 * Для синхронизации отметок, все устройства должны быть авторизованы в cub.red под одним аккаунтом, либо на устройствах вместо плагина IP:9118/timecode.js, должен использоваться IP:9118/timecode/{uid}, где {uid} это любые символы, например IP:9118/timecode/myhome
 * email или {uid} должен совпадать на устройствах которые вы хотите синхронизовать между собой 
 
-
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере
 
@@ -104,6 +104,13 @@ curl -L -k -s https://lampac.sh/home | bash
 
 # Виджеты
 1. Для Samsung "IP:9118/samsung.wgt"
+
+# Работа с базами данных
+* Microsoft.EntityFrameworkCore - MS SQL Server, SQLite
+* Npgsql - PostgreSQL
+* Pomelo.EntityFrameworkCore.MySql - MariaDB, MySQL
+* MongoDB.Driver - MongoDB
+* StackExchange.Redis - Redis
 
 # Параметры init.conf
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа

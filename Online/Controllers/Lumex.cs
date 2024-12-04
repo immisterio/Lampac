@@ -191,7 +191,7 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
-        [Route("lite/lumex/video.m3u8")]
+        [Route("lite/lumex/video")]
         async public Task<ActionResult> Video(string playlist, string csrf)
         {
             var init = AppInit.conf.Lumex;

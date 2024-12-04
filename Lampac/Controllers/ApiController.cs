@@ -251,11 +251,14 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/ts.js\",\"status\": 1,\"name\": \"TorrServer\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.accsdb.enable)
-                        file = file.Replace("{deny}", FileCache.ReadAllText("plugins/deny.js").Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
+                    if (AppInit.conf.LampaWeb.initPlugins.backup)
+                        initiale += "{\"url\": \"{localhost}/backup.js\",\"status\": 1,\"name\": \"Backup\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.pirate_store) 
                         file = file.Replace("{pirate_store}", FileCache.ReadAllText("plugins/pirate_store.js"));
+
+                    if (AppInit.conf.accsdb.enable)
+                        file = file.Replace("{deny}", FileCache.ReadAllText("plugins/deny.js").Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
                 }
             }
 
@@ -353,6 +356,9 @@ namespace Lampac.Controllers
 
                 if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                     send("ts", true);
+
+                if (AppInit.conf.LampaWeb.initPlugins.backup)
+                    send("backup", true);
             }
 
             if (plugins.Count == 0)
