@@ -61,6 +61,8 @@
             {"url": "{localhost}/plugins/mult.js", "status": 1,"name": "Mult", "author": "x"}, // Плагин переименования Аниме в Мультфильмы
             {"url": "{localhost}/plugins/pubtorr.js", "status": 1,"name": "PublicParsers", "author": "x"}, // Плагин публичных парсеров
             {"url": "{localhost}/plugins/ts-preload.js", "status": 1,"name": "TorrPreload", "author": "x"} // Плагин предзагрузки TS
+            {"url": "{localhost}/plugins/backup.js", "status": 1,"name": "Backup", "author": "x"} // Плагин резервного копирования
+            {"url": "{localhost}/plugins/pirate_store.js", "status": 1,"name": "PirateStore", "author": "x"} // Плагин пиратского стора
         ];
 
         var plugins_push = []
