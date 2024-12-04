@@ -77,49 +77,38 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Video(string args)
         {
             string? playlist = parse_arg("playlist", args);
-            string? csrf = parse_arg("csrf", args);
+            string? csrf = parse_arg("csrf", args)?.Replace("|", "%");
             if (playlist == null || csrf == null)
                 return string.Empty;
 
             AppInit.log($"https://api.{init.iframehost}" + playlist);
             AppInit.log(csrf.Split("%")[0]);
 
-            string? result = await JsHttpClient.Post($"https://api.{init.iframehost}" + playlist, "", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
+            var result = await JsHttpClient.Post<JsonNode>($"https://api.{init.iframehost}" + playlist, "", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("cache-control", "no-cache"),
+                ("cookie", $"x-csrf-token={csrf}"),
+                ("dnt", "1"),
                 ("Origin", $"https://p.{init.iframehost}"),
                 ("Referer", $"https://p.{init.iframehost}/"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site"),
                 ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
                 ("x-csrf-token", csrf.Split("%")[0])
             ));
 
-            AppInit.log("result - " + result);
+            string? url = result?["url"]?.ToString();
+            if (string.IsNullOrEmpty(url))
+                return string.Empty;
 
-            return string.Empty;
-
-            //var result = await JsHttpClient.Post<JsonNode>($"https://api.{init.iframehost}" + playlist, "", addHeaders: HeadersModel.Init(
-            //    ("accept", "*/*"),
-            //    ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-            //    ("cache-control", "no-cache"),
-            //    ("cookie", $"x-csrf-token={csrf}"),
-            //    ("dnt", "1"),
-            //    ("Origin", $"https://p.{init.iframehost}"),
-            //    ("Referer", $"https://p.{init.iframehost}/"),
-            //    ("pragma", "no-cache"),
-            //    ("priority", "u=1, i"),
-            //    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-            //    ("sec-ch-ua-mobile", "?0"),
-            //    ("sec-ch-ua-platform", "\"Windows\""),
-            //    ("sec-fetch-dest", "empty"),
-            //    ("sec-fetch-mode", "cors"),
-            //    ("sec-fetch-site", "same-site"),
-            //    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
-            //    ("x-csrf-token", csrf.Split("%")[0])
-            //));
-
-            //string? url = result?["url"]?.ToString();
-            //if (string.IsNullOrEmpty(url))
-            //    return string.Empty;
-
-            //return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, $"http:{url}") + "\",\"title\":\"1080p\"}";
+            return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, $"http:{url}") + "\",\"title\":\"1080p\"}";
         }
     }
 }
