@@ -166,7 +166,7 @@ namespace JinEnergy.Online
             if (AppInit.IsWorkReturnHeaders)
             {
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
-                send("DurexLab - 1080p", "durexlab", AppInit.VideoDB);
+                send("DurexLab - 1080p", "durexlab", AppInit.VCDN);
             }
 
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
