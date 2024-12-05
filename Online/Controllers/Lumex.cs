@@ -191,6 +191,7 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
+        [Route("lite/lumex/video.mp4")]
         [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf)
         {

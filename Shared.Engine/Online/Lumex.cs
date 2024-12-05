@@ -11,7 +11,7 @@ namespace Shared.Engine.Online
     {
         #region LumexInvoke
         string? host, scheme;
-        string iframeapihost;
+        bool hls;
         string apihost;
         string? token;
         Func<string, string, ValueTask<string?>> onget;
@@ -31,7 +31,7 @@ namespace Shared.Engine.Online
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme ?? "http";
-            this.iframeapihost = init.corsHost();
+            this.hls = init.hls;
             this.apihost = init.cors(init.apihost);
             this.token = init!.token;
             this.onget = onget;
@@ -130,10 +130,13 @@ namespace Shared.Engine.Online
 
                     if (bwa)
                     {
-                        mtpl.Append(media.translation_name, link.Replace("/video.m3u8", "/video"), "call", subtitles: subtitles);
+                        mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles);
                     }
                     else
                     {
+                        if (!hls)
+                            link = link.Replace(".m3u8", ".mp4");
+
                         mtpl.Append(media.translation_name, link, subtitles: subtitles);
                     }
                 }
@@ -222,10 +225,13 @@ namespace Shared.Engine.Online
 
                                     if (bwa)
                                     {
-                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace("/video.m3u8", "/video"), "call", subtitles: subtitles);
+                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace(".m3u8", ""), "call", subtitles: subtitles);
                                     }
                                     else
                                     {
+                                        if (!hls)
+                                            link = link.Replace(".m3u8", ".mp4");
+
                                         etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
                                     }
                                 }
