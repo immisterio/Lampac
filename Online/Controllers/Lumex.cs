@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
             (
                init,
                (url, referer) => HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "lumex"),
+               streamfile => streamfile,
                host,
                requesterror: () => proxyManager.Refresh()
             );
@@ -158,13 +158,13 @@ namespace Lampac.Controllers.LITE
                     ("Accept", "*/*"),
                     ("Origin", $"https://p.{init.iframehost}"),
                     ("Referer", $"https://p.{init.iframehost}/"),
-                    ("Sec-Ch-Ua", "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\""),
+                    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                     ("Sec-Ch-Ua-Mobile", "?0"),
                     ("Sec-Ch-Ua-Platform", "\"Windows\""),
                     ("Sec-Fetch-Dest", "empty"),
                     ("Sec-Fetch-Mode", "cors"),
                     ("Sec-Fetch-Site", "same-site"),
-                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                 )));
 
                 if (string.IsNullOrEmpty(result.content))
@@ -191,7 +191,7 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
-        [Route("lite/lumex/video")]
+        [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf)
         {
             var init = AppInit.conf.Lumex;
@@ -201,10 +201,13 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
+            var proxyManager = new ProxyManager("lumex", init);
+            var proxy = proxyManager.Get();
+
             string memkey = $"lumex/video:{playlist}:{csrf}";
             if (!memoryCache.TryGetValue(memkey, out string location))
             {
-                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", headers: HeadersModel.Init(
+                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                     ("cache-control", "no-cache"),
@@ -214,13 +217,13 @@ namespace Lampac.Controllers.LITE
                     ("Referer", $"https://p.{init.iframehost}/"),
                     ("pragma", "no-cache"),
                     ("priority", "u=1, i"),
-                    ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\""),
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-site"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"),
+                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
                     ("x-csrf-token", csrf.Split("%")[0])
                 ));
 
@@ -235,9 +238,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memkey, location, cacheTime(20, init: init));
             }
 
-            var proxyManager = new ProxyManager("lumex", init);
-
-            return Redirect(HostStreamProxy(init, location, proxy: proxyManager.Get(), plugin: "lumex"));
+            return Redirect(HostStreamProxy(init, location, proxy: proxy, plugin: "lumex"));
         }
         #endregion
     }

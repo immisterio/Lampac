@@ -185,7 +185,7 @@ namespace JinEnergy.Online
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
                 if (arg.kinopoisk_id > 0)
-                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
+                    send("Ashdi (Украинский) - 1080p", "ashdi", AppInit.Ashdi);
 
                 if (!isanime)
                     send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);
