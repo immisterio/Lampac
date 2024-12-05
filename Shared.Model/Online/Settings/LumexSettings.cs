@@ -16,6 +16,7 @@ namespace Lampac.Models.LITE
                 this.token = (token.Contains(":") || token.Contains("{")) ? Decrypt(token) : token;
 
             this.clientId = clientId;
+            hls = true;
         }
 
 
@@ -24,5 +25,7 @@ namespace Lampac.Models.LITE
         public string? clientId { get; set; }
 
         public string? iframehost { get; set; }
+
+        public bool hls { get; set; }
     }
 }

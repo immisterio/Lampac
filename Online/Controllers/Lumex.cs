@@ -207,7 +207,7 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lumex/video:{playlist}:{csrf}";
             if (!memoryCache.TryGetValue(memkey, out string location))
             {
-                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, headers: HeadersModel.Init(
+                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                     ("cache-control", "no-cache"),
@@ -235,6 +235,17 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 location = $"http:{url}";
+
+                if (!init.hls)
+                {
+                    string m3u8 = await HttpClient.Get(location, timeoutSeconds: 8);
+                    if (string.IsNullOrEmpty(m3u8))
+                        return OnError();
+
+                    string q = m3u8.Contains("1080.mp4") ? "1080" : m3u8.Contains("720.mp4") ? "720" : "480";
+                    location = Regex.Replace(location, "/hls\\.m3u8$", $"/{q}.mp4");
+                }
+
                 memoryCache.Set(memkey, location, cacheTime(20, init: init));
             }
 
