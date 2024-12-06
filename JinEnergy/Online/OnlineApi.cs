@@ -168,11 +168,8 @@ namespace JinEnergy.Online
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
                 send("DurexLab - 1080p", "durexlab", new BaseSettings() { enable = true });
             }
-            else
-            {
-                send("DurexLab - 1080p", "durexlab", AppInit.VCDN);
-            }
 
+            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN);
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
             if (!titleSearch)
