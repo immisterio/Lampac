@@ -128,15 +128,12 @@ namespace Shared.Engine.Online
 
                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}{args}";
 
-                    if (bwa)
+                    if (bwa || !hls)
                     {
                         mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles);
                     }
                     else
                     {
-                        if (!hls)
-                            link = link.Replace(".m3u8", ".mp4");
-
                         mtpl.Append(media.translation_name, link, subtitles: subtitles);
                     }
                 }
@@ -223,15 +220,12 @@ namespace Shared.Engine.Online
 
                                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}{args}";
 
-                                    if (bwa)
+                                    if (bwa || !hls)
                                     {
                                         etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace(".m3u8", ""), "call", subtitles: subtitles);
                                     }
                                     else
                                     {
-                                        if (!hls)
-                                            link = link.Replace(".m3u8", ".mp4");
-
                                         etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
                                     }
                                 }

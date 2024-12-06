@@ -257,7 +257,7 @@ namespace Lampac.Controllers.LITE
 
                 try
                 {
-                    System.IO.File.AppendAllText($"cache/logs/MoonAnime/{DateTime.Today.ToString("dd-MM-yyyy")}.txt", $"{DateTime.Today.ToString("dd / mm:HH")} - {requestInfo.IP} / {vod}\n");
+                    System.IO.File.AppendAllText($"cache/logs/MoonAnime/{DateTime.Today.ToString("MM-yyyy")}.txt", $"{DateTime.Now.ToString("dd / mm:HH")} - {requestInfo.IP} / {vod}\n");
                 }
                 catch { }
                 #endregion

@@ -12,6 +12,7 @@ using Shared.Model.Online.Lumex;
 using Shared.Model.Online;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -191,7 +192,7 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
-        [Route("lite/lumex/video.mp4")]
+        [Route("lite/lumex/video")]
         [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf)
         {
@@ -206,7 +207,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
-            if (!memoryCache.TryGetValue(memkey, out string location))
+            if (!memoryCache.TryGetValue(memkey, out (string hls, List<(string quality, string link)> streams) cache))
             {
                 var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: HeadersModel.Init(
                     ("accept", "*/*"),
@@ -235,22 +236,35 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(url))
                     return OnError();
 
-                location = $"http:{url}";
+                cache.hls = $"http:{url}";
 
                 if (!init.hls)
                 {
-                    string m3u8 = await HttpClient.Get(location, timeoutSeconds: 8);
+                    string m3u8 = await HttpClient.Get(cache.hls, timeoutSeconds: 8);
                     if (string.IsNullOrEmpty(m3u8))
                         return OnError();
 
-                    string q = m3u8.Contains("1080.mp4") ? "1080" : m3u8.Contains("720.mp4") ? "720" : "480";
-                    location = Regex.Replace(location, "/hls\\.m3u8$", $"/{q}.mp4");
+                    cache.streams = new List<(string quality, string link)>();
+                    foreach (string q in new string[] { "1080", "720", "480", "360", "240" })
+                    {
+                        if (m3u8.Contains(q))
+                            cache.streams.Add(($"{q}p", Regex.Replace(cache.hls, "/hls\\.m3u8$", $"/{q}.mp4")));
+                    }
+
+                    if (cache.streams.Count == 0)
+                        return OnError();
                 }
 
-                memoryCache.Set(memkey, location, cacheTime(20, init: init));
+                memoryCache.Set(memkey, cache, cacheTime(20, init: init));
             }
 
-            return Redirect(HostStreamProxy(init, location, proxy: proxy, plugin: "lumex"));
+            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy, plugin: "lumex");
+
+            if (init.hls)
+                return Redirect(sproxy(cache.hls));
+
+            string streansquality = "\"quality\": {" + string.Join(",", cache.streams.Select(s => $"\"{s.quality}\":\"{sproxy(s.link)}\"")) + "}";
+            return Content($"{{\"method\":\"play\",\"url\":\"{sproxy(cache.streams[0].link)}\",\"title\":\"{cache.streams[0].quality}\",{streansquality}}}", "application/json; charset=utf-8");
         }
         #endregion
     }
