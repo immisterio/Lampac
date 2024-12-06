@@ -48,13 +48,14 @@
         Lampa.Storage.set('torrserver_url','192.168.10.140:8090'); // LAR IP
         Lampa.Storage.set('torrserver_url_two','192.168.3.240:8090'); // UVA IP
         Lampa.Storage.set('torrserver_auth','false');
-        Lampa.Storage.set('internal_torrclient','true');
+        Lampa.Storage.set('internal_torrclient','false');
         Lampa.Storage.set('background_type','complex'); // Сложный задник
         Lampa.Storage.set('video_quality_default','2160'); // 4К по-умолчанию
         Lampa.Storage.set('Reloadbutton','true'); // Кнопка перезагрузки
         Lampa.Storage.set('screensaver','false'); // Выкл скринсейвера
         Lampa.Storage.set('account_use','true');
         Lampa.Storage.set('torrserver_preload','true'); // Использовать прелоадер TS
+        Lampa.Storage.set('proxy_tmdb','true'); // TMDB proxy
 
         /*
         Lampa.Storage.set('menu_sort','["Главная","Фильмы","Сериалы","Избранное","История"]');
