@@ -93,7 +93,7 @@ namespace Shared.Engine.Online
 
                 string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
-                stpl.Append(name, year, details, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
+                stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
             }
 
             return stpl;
@@ -130,11 +130,11 @@ namespace Shared.Engine.Online
 
                     if (bwa || !hls)
                     {
-                        mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles);
+                        mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles, quality: media.max_quality);
                     }
                     else
                     {
-                        mtpl.Append(media.translation_name, link, subtitles: subtitles);
+                        mtpl.Append(media.translation_name, link, subtitles: subtitles, quality: media.max_quality);
                     }
                 }
 

@@ -9,7 +9,7 @@ namespace Shared.Model.Templates
     {
         string? title, original_title;
 
-        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?)>();
+        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, string? vast_url)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, string?)>();
 
         public MovieTpl(string? title, string? original_title = null, int capacity = 0) 
         {
@@ -19,15 +19,15 @@ namespace Shared.Model.Templates
         }
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null)
+        public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, string? vast_url = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
-                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality));
+                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast_url));
         }
 
-        public string ToHtml(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null)
+        public string ToHtml(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, string? vast_url = null)
         {
-            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality);
+            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast_url);
             return ToHtml();
         }
 
@@ -56,6 +56,7 @@ namespace Shared.Model.Templates
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     i.voice_name,
                     i.details,
+                    i.vast_url,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})",
 
