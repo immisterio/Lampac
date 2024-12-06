@@ -83,7 +83,10 @@ namespace Shared.Engine.Online
         {
             int number_of_seasons = 1;
 
-            var themoviedb = await onget.Invoke($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
+            string? themoviedb = await onget.Invoke($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
+            if (themoviedb == null)
+                themoviedb = await onget.Invoke($"https://tmdb.cub.red/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
+
             if (themoviedb != null)
             {
                 try

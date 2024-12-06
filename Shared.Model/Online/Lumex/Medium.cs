@@ -6,6 +6,8 @@
 
         public string translation_name { get; set; }
 
+        public string max_quality { get; set; }
+
         public string playlist { get; set; }
 
         public List<string>? subtitles { get; set; }

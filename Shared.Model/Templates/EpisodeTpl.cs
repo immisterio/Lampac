@@ -7,16 +7,16 @@ namespace Shared.Model.Templates
 {
     public class EpisodeTpl
     {
-        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name)> data = new List<(string, string, string, string, string, string, StreamQualityTpl, SubtitleTpl, string, string)>();
+        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, string? vast_url)> data = new List<(string, string, string, string, string, string, StreamQualityTpl, SubtitleTpl, string, string, string)>();
 
         public EpisodeTpl() { }
 
         public EpisodeTpl(int capacity) { data.Capacity = capacity; }
 
-        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null)
+        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, string? vast_url = null)
         {
             if (!string.IsNullOrEmpty(name))
-                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name));
+                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast_url));
         }
 
         public string ToHtml()
@@ -38,7 +38,8 @@ namespace Shared.Model.Templates
                     stream = i.streamlink,
                     quality = i.streamquality?.ToObject(),
                     subtitles = i.subtitles?.ToObject(),
-                    i.voice_name
+                    i.voice_name,
+                    i.vast_url
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 

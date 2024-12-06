@@ -24,5 +24,7 @@ namespace Lampac.Models.LITE
         public string? clientId { get; set; }
 
         public string? iframehost { get; set; }
+
+        public bool hls { get; set; }
     }
 }

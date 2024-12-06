@@ -11,7 +11,7 @@ namespace Shared.Engine.Online
     {
         #region LumexInvoke
         string? host, scheme;
-        string iframeapihost;
+        bool hls;
         string apihost;
         string? token;
         Func<string, string, ValueTask<string?>> onget;
@@ -31,7 +31,7 @@ namespace Shared.Engine.Online
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme ?? "http";
-            this.iframeapihost = init.corsHost();
+            this.hls = init.hls;
             this.apihost = init.cors(init.apihost);
             this.token = init!.token;
             this.onget = onget;
@@ -93,7 +93,7 @@ namespace Shared.Engine.Online
 
                 string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
-                stpl.Append(name, year, details, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
+                stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
             }
 
             return stpl;
@@ -128,13 +128,13 @@ namespace Shared.Engine.Online
 
                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}{args}";
 
-                    if (bwa)
+                    if (bwa || !hls)
                     {
-                        mtpl.Append(media.translation_name, link.Replace("/video.m3u8", "/video"), "call", subtitles: subtitles);
+                        mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles, quality: media.max_quality);
                     }
                     else
                     {
-                        mtpl.Append(media.translation_name, link, subtitles: subtitles);
+                        mtpl.Append(media.translation_name, link, subtitles: subtitles, quality: media.max_quality);
                     }
                 }
 
@@ -220,9 +220,9 @@ namespace Shared.Engine.Online
 
                                     string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}{args}";
 
-                                    if (bwa)
+                                    if (bwa || !hls)
                                     {
-                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace("/video.m3u8", "/video"), "call", subtitles: subtitles);
+                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace(".m3u8", ""), "call", subtitles: subtitles);
                                     }
                                     else
                                     {

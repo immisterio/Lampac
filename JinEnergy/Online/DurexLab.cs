@@ -77,36 +77,12 @@ namespace JinEnergy.Online
         async public static ValueTask<string> Video(string args)
         {
             string? playlist = parse_arg("playlist", args);
-            string? csrf = parse_arg("csrf", args)?.Replace("|", "%");
+            string? csrf = parse_arg("csrf", args)?.Replace("|", "%7C");
             if (playlist == null || csrf == null)
                 return string.Empty;
 
-            AppInit.log($"https://api.{init.iframehost}" + playlist);
-            AppInit.log(csrf.Split("%")[0]);
-
-
-
-            string? resultsss = await JsHttpClient.Post($"https://api.{init.iframehost}" + playlist, "", addHeaders: HeadersModel.Init(
-                ("Origin", $"https://p.{init.iframehost}"),
-                ("Referer", $"https://p.{init.iframehost}/"),
-                ("x-csrf-token", csrf.Split("%")[0])
-            ));
-
-            AppInit.log("result - " + resultsss);
-
-            string? resultss2s = await JsHttpClient.Post($"https://api.{init.iframehost}" + playlist, "", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
-                ("Origin", $"https://p.{init.iframehost}"),
-                ("Referer", $"https://p.{init.iframehost}/"),
-                ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
-                ("x-csrf-token", csrf.Split("%")[0])
-            ));
-
-            AppInit.log("result2 - " + resultss2s);
-
-
-            var result = await JsHttpClient.Post<JsonNode>($"https://api.{init.iframehost}" + playlist, "", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
+            var result = await JsHttpClient.Post<JsonNode>($"https://api.{init.iframehost}" + playlist, "{}", useDefaultHeaders: false, addHeaders: HeadersModel.Init(
                 ("accept", "*/*"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("cache-control", "no-cache"),
                 ("cookie", $"x-csrf-token={csrf}"),
                 ("dnt", "1"),

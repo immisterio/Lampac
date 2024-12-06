@@ -166,9 +166,10 @@ namespace JinEnergy.Online
             if (AppInit.IsWorkReturnHeaders)
             {
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
-                send("DurexLab - 1080p", "durexlab", AppInit.VideoDB);
+                send("DurexLab - 1080p", "durexlab", new BaseSettings() { enable = true });
             }
 
+            send("VideoCDN - 1080p", "vcdn", AppInit.VCDN);
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
 
             if (!titleSearch)
@@ -185,7 +186,7 @@ namespace JinEnergy.Online
             if (AppInit.Country != "RU" && AppInit.Country != "BY")
             {
                 if (arg.kinopoisk_id > 0)
-                    send("Ashdi (Украинский) - 4K", "ashdi", AppInit.Ashdi);
+                    send("Ashdi (Украинский) - 1080p", "ashdi", AppInit.Ashdi);
 
                 if (!isanime)
                     send("Kinoukr (Украинский) - 1080p", "kinoukr", AppInit.Kinoukr);

@@ -12,6 +12,7 @@ using Shared.Model.Online.Lumex;
 using Shared.Model.Online;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -43,7 +44,7 @@ namespace Lampac.Controllers.LITE
             (
                init,
                (url, referer) => HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "lumex"),
+               streamfile => streamfile,
                host,
                requesterror: () => proxyManager.Refresh()
             );
@@ -158,13 +159,13 @@ namespace Lampac.Controllers.LITE
                     ("Accept", "*/*"),
                     ("Origin", $"https://p.{init.iframehost}"),
                     ("Referer", $"https://p.{init.iframehost}/"),
-                    ("Sec-Ch-Ua", "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\""),
+                    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                     ("Sec-Ch-Ua-Mobile", "?0"),
                     ("Sec-Ch-Ua-Platform", "\"Windows\""),
                     ("Sec-Fetch-Dest", "empty"),
                     ("Sec-Fetch-Mode", "cors"),
                     ("Sec-Fetch-Site", "same-site"),
-                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                 )));
 
                 if (string.IsNullOrEmpty(result.content))
@@ -192,6 +193,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/lumex/video")]
+        [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf)
         {
             var init = AppInit.conf.Lumex;
@@ -201,10 +203,13 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
+            var proxyManager = new ProxyManager("lumex", init);
+            var proxy = proxyManager.Get();
+
             string memkey = $"lumex/video:{playlist}:{csrf}";
-            if (!memoryCache.TryGetValue(memkey, out string location))
+            if (!memoryCache.TryGetValue(memkey, out (string hls, List<(string quality, string link)> streams) cache))
             {
-                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", headers: HeadersModel.Init(
+                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                     ("cache-control", "no-cache"),
@@ -214,13 +219,13 @@ namespace Lampac.Controllers.LITE
                     ("Referer", $"https://p.{init.iframehost}/"),
                     ("pragma", "no-cache"),
                     ("priority", "u=1, i"),
-                    ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                     ("sec-ch-ua-mobile", "?0"),
                     ("sec-ch-ua-platform", "\"Windows\""),
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-site"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"),
+                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
                     ("x-csrf-token", csrf.Split("%")[0])
                 ));
 
@@ -231,13 +236,35 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(url))
                     return OnError();
 
-                location = $"http:{url}";
-                memoryCache.Set(memkey, location, cacheTime(20, init: init));
+                cache.hls = $"http:{url}";
+
+                if (!init.hls)
+                {
+                    string m3u8 = await HttpClient.Get(cache.hls, timeoutSeconds: 8);
+                    if (string.IsNullOrEmpty(m3u8))
+                        return OnError();
+
+                    cache.streams = new List<(string quality, string link)>();
+                    foreach (string q in new string[] { "1080", "720", "480", "360", "240" })
+                    {
+                        if (m3u8.Contains(q))
+                            cache.streams.Add(($"{q}p", Regex.Replace(cache.hls, "/hls\\.m3u8$", $"/{q}.mp4")));
+                    }
+
+                    if (cache.streams.Count == 0)
+                        return OnError();
+                }
+
+                memoryCache.Set(memkey, cache, cacheTime(20, init: init));
             }
 
-            var proxyManager = new ProxyManager("lumex", init);
+            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy, plugin: "lumex");
 
-            return Redirect(HostStreamProxy(init, location, proxy: proxyManager.Get(), plugin: "lumex"));
+            if (init.hls)
+                return Redirect(sproxy(cache.hls));
+
+            string streansquality = "\"quality\": {" + string.Join(",", cache.streams.Select(s => $"\"{s.quality}\":\"{sproxy(s.link)}\"")) + "}";
+            return Content($"{{\"method\":\"play\",\"url\":\"{sproxy(cache.streams[0].link)}\",\"title\":\"{cache.streams[0].quality}\",{streansquality}}}", "application/json; charset=utf-8");
         }
         #endregion
     }
