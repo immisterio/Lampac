@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
 using Shared.Model.Online.VDBmovies;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
@@ -30,9 +31,11 @@ namespace JinEnergy.Online
 
             EmbedModel? root = await InvokeCache(arg.id, $"cdnmoviesdb:json:{arg.kinopoisk_id}", async () =>
             {
+                string referer = Encoding.UTF8.GetString(Convert.FromBase64String("aHR0cHM6Ly9raW5vZ28ubWVkaWEv"));
+
                 string? html = await JsHttpClient.Get($"{init.corsHost()}/kinopoisk/{arg.kinopoisk_id}/iframe", HeadersModel.Init(
-                    ("Origin", "https://kinogo.media"),
-                    ("Referer", "https://kinogo.media/")
+                    ("Origin", referer), 
+                    ("Referer", $"{referer}/")
                 ));
 
                 string file = Regex.Match(html ?? "", "file: ?'(#[^&']+)").Groups[1].Value;

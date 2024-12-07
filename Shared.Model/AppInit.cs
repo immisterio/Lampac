@@ -86,7 +86,9 @@ namespace Shared.Model
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
+        /// 
         /// a2lub2dvLm1lZGlh
+        /// aHR0cHM6Ly9kNmRkMzg3ZS5vYnJ1dC5zaG93L2VtYmVkL2NqTS9jb250ZW50L2N6TndnVE8=
         /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") { geostreamproxy = new List<string>() { "ALL" } };
 
@@ -95,6 +97,9 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("kwwsv=22frogfgq1{|}");
 
+        /// <summary>
+        /// a2lub2dvLm1lZGlh
+        /// </summary>
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22fgqprylhv0vwuhdp1rqolqh", rip: true) { geostreamproxy = new List<string>() { "ALL" } };
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) { geostreamproxy = new List<string>() { "ALL" } };
