@@ -81,6 +81,29 @@ namespace Lampac.Engine.CORE
         }
 
 
+        #region Eval
+        public ValueTask<string> Eval(string data) => SendHub("eval", data);
+
+        async public ValueTask<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
+        {
+            try
+            {
+                string json = await SendHub("eval", data);
+                if (json == null)
+                    return default;
+
+                if (IgnoreDeserializeObject)
+                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
+
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
+
         #region Get
         public ValueTask<string> Get(string url, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
 
@@ -210,14 +233,14 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region InfoConnected
-        public (int version, string host) InfoConnected()
+        public (int version, string host, string rchtype) InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
             if (client.Value.json == null)
                 return default;
 
             JObject json = client.Value.json;
-            return (json.Value<int>("version"), json.Value<string>("host"));
+            return (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("rchtype"));
         }
         #endregion
     }

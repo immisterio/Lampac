@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.VDBmovies.Clone();
+            var init = AppInit.conf.VDBmovies;
 
             if (!init.enable || init.rip || kinopoisk_id == 0)
                 return OnError();
@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"vdbmovies:{kinopoisk_id}", cacheTime(20, init: init), async res =>
             {
-                string html = await black_magic($"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe");
+                string html = await HttpClient.Get($"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe", timeoutSeconds: 8, httpversion: 2, headers: httpHeaders(init));
                 if (html == null)
                     return res.Fail("html");
 

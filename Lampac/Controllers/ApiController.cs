@@ -12,6 +12,7 @@ using Shared.Engine;
 using System.Web;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace Lampac.Controllers
 {
@@ -299,6 +300,15 @@ namespace Lampac.Controllers
             file = file.Replace("{full_btn_priority_hash}", full_btn_priority_hash);
             #endregion
 
+            #region domain token
+            if (!string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
+            {
+                string token = Regex.Match(HttpContext.Request.Host.Host, AppInit.conf.accsdb.domainId_pattern).Groups[1].Value;
+                file = file.Replace("{token}", token);
+            }
+            else file = file.Replace("{token}", string.Empty);
+            #endregion
+
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
@@ -469,13 +479,17 @@ namespace Lampac.Controllers
         [Route("/api/sync")]
         public ActionResult Sync()
         {
-            if (!requestInfo.IsLocalRequest || !AppInit.conf.sync.enable || AppInit.conf.sync.type != "master")
+            var sync = AppInit.conf.sync;
+            if (!requestInfo.IsLocalRequest || !sync.enable || sync.type != "master")
                 return Content("error");
+
+            if (sync.initconf == "current")
+                return Content(JsonConvert.SerializeObject(AppInit.conf), "application/json; charset=utf-8");
 
             var init = new AppInit();
 
             string confile = "sync.conf";
-            if (AppInit.conf.sync.override_conf != null && AppInit.conf.sync.override_conf.TryGetValue(requestInfo.IP, out string _conf))
+            if (sync.override_conf != null && sync.override_conf.TryGetValue(requestInfo.IP, out string _conf))
                 confile = _conf;
 
             if (IO.File.Exists(confile))

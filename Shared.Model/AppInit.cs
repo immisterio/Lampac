@@ -4,11 +4,16 @@ using Lampac.Models.AppConf;
 using System.Text.RegularExpressions;
 using Shared.Model.Base;
 using Shared.Model.Online.Settings;
+using Shared.Model.Online;
 
 namespace Shared.Model
 {
     public class AppInit
     {
+        public static VastConf _vast;
+
+        public VastConf vast = new VastConf();
+
         public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
         public ApnConf apn { get; set; } = new ApnConf() { host = "https://apn.watch", secure = "none" };
@@ -100,7 +105,11 @@ namespace Shared.Model
         /// <summary>
         /// a2lub2dvLm1lZGlh
         /// </summary>
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22fgqprylhv0vwuhdp1rqolqh", rip: true) { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22wuhphqgrxv0zhhn1fgqprylhv0vwuhdp1rqolqh") 
+        { 
+            geostreamproxy = new List<string>() { "ALL" },
+            headers = HeadersModel.Init(("Origin", "https://kinogo.media"), ("Referer", "https://kinogo.media/"))
+        };
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) { geostreamproxy = new List<string>() { "ALL" } };
 
@@ -109,7 +118,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// </summary>
-        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1sz", "tl6h28Hn1rL5") { enable = true, hls = true, geostreamproxy = new List<string>() { "ALL" } };
+        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1sz", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("kwws=22dsl1yrnlqr1wy", streamproxy: true);
 
