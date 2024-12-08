@@ -54,18 +54,15 @@ namespace Lampac.Engine
 
         public void RchRegistry(string json)
         {
-            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(json))
-                return;
+            JObject job = null;
 
             try
             {
-                var job = JsonConvert.DeserializeObject<JObject>(json);
-                if (job == null || 136 > job.Value<int>("version"))
-                    return;
-
-                RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId, job);
+                job = JsonConvert.DeserializeObject<JObject>(json);
             }
             catch { }
+
+            RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId, job);
         }
 
         public override Task OnConnectedAsync()
