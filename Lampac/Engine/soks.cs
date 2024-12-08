@@ -1,5 +1,7 @@
 ﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -48,6 +50,22 @@ namespace Lampac.Engine
                         RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId);
                     break;
             }
+        }
+
+        public void RchRegistry(string json)
+        {
+            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(json))
+                return;
+
+            try
+            {
+                var job = JsonConvert.DeserializeObject<JObject>(json);
+                if (job == null || 136 > job.Value<int>("version"))
+                    return;
+
+                RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId, job);
+            }
+            catch { }
         }
 
         public override Task OnConnectedAsync()

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Models;
@@ -26,14 +27,14 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers)> hub = null;
 
-        static ConcurrentDictionary<string, string> clients = new ConcurrentDictionary<string, string>();
+        static ConcurrentDictionary<string, (string ip, JObject json)> clients = new ConcurrentDictionary<string, (string, JObject)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
-        public static void Registry(string ip, string connectionId)
+        public static void Registry(string ip, string connectionId, JObject json = null)
         {
-            clients.TryAdd(connectionId, ip);
+            clients.TryAdd(connectionId, (ip, json));
         }
 
 
@@ -58,7 +59,7 @@ namespace Lampac.Engine.CORE
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
             ip = context.Connection.RemoteIpAddress.ToString();
-            connectionId = clients.FirstOrDefault(i => i.Value == ip).Key;
+            connectionId = clients.FirstOrDefault(i => i.Value.ip == ip).Key;
 
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
             {
@@ -181,7 +182,7 @@ namespace Lampac.Engine.CORE
             if (!enableRhub)
                 return false; // rch не используется
 
-            return !clients.Values.Contains(ip);
+            return !clients.Select(i => i.Value.ip).ToList().Contains(ip);
         }
         #endregion
 
@@ -205,6 +206,18 @@ namespace Lampac.Engine.CORE
                 return true;
 
             return rch_deny.Contains(rchtype);
+        }
+        #endregion
+
+        #region InfoConnected
+        public (int version, string host) InfoConnected()
+        {
+            var client = clients.FirstOrDefault(i => i.Value.ip == ip);
+            if (client.Value.json == null)
+                return default;
+
+            JObject json = client.Value.json;
+            return (json.Value<int>("version"), json.Value<string>("host"));
         }
         #endregion
     }
