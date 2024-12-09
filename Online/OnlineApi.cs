@@ -446,10 +446,10 @@ namespace Lampac.Controllers
             }
 
             if (serial == -1 || serial == 0)
+            {
                 send("Vibix", conf.Vibix);
-
-            if (serial == -1 || serial == 0)
                 send("FanCDN", conf.FanCDN);
+            }
 
             send("Kinobase", conf.Kinobase);
 

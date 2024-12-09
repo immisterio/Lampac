@@ -105,8 +105,8 @@ namespace Shared.Model
         /// <summary>
         /// a2lub2dvLm1lZGlh
         /// </summary>
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22wuhphqgrxv0zhhn1fgqprylhv0vwuhdp1rqolqh") 
-        { 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22wuhphqgrxv0zhhn1fgqprylhv0vwuhdp1rqolqh", enable: false) 
+        {
             geostreamproxy = new List<string>() { "ALL" },
             headers = HeadersModel.Init(("Origin", "https://kinogo.media"), ("Referer", "https://kinogo.media/"))
         };

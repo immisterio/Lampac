@@ -247,7 +247,10 @@ namespace Lampac.Controllers.LITE
 
             string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";
 
-            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(AppInit.conf.Filmix));
+            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 8, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
+                ("Accept-Encoding", "gzip")
+            ));
+
             if (json == null)
             {
                 proxyManager.Refresh();
