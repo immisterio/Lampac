@@ -25,7 +25,7 @@ namespace Lampac.Engine.CORE
             return "Только на android";
         }
 
-        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers)> hub = null;
+        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
         static ConcurrentDictionary<string, (string ip, JObject json)> clients = new ConcurrentDictionary<string, (string, JObject)>();
 
@@ -104,6 +104,28 @@ namespace Lampac.Engine.CORE
         }
         #endregion
 
+        #region Headers
+        async public ValueTask<(JObject headers, string currentUrl, string body)> Headers(string url, string data, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
+        {
+            try
+            {
+                string json = await SendHub(url, data, headers, useDefaultHeaders, true);
+                if (json == null)
+                    return default;
+
+                var job = JsonConvert.DeserializeObject<JObject>(json);
+                if (!job.ContainsKey("body"))
+                    return default;
+
+                return (job.Value<JObject>("headers"), job.Value<string>("currentUrl"), job.Value<string>("body"));
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
+
         #region Get
         public ValueTask<string> Get(string url, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
 
@@ -151,7 +173,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
+        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
         {
             if (hub == null)
                 return null;
@@ -180,7 +202,7 @@ namespace Lampac.Engine.CORE
                     }
                 }
 
-                hub.Invoke(null, (connectionId, rchId, url, data, send_headers));
+                hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
 
                 string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 5 : 8));
                 rchIds.TryRemove(rchId, out _);
