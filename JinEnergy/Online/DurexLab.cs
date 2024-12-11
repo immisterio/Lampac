@@ -60,6 +60,9 @@ namespace JinEnergy.Online
                 var json = JsonDocument.Parse(result);
                 var body = JsonDocument.Parse(json.RootElement.GetProperty("body").GetString());
 
+                AppInit.log(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText());
+                AppInit.log(json.RootElement.GetProperty("body").GetString());
+
                 var md = body.RootElement.GetProperty("player").Deserialize<EmbedModel>();
                 if (md == null)
                     return null;
