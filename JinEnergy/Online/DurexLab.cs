@@ -61,15 +61,19 @@ namespace JinEnergy.Online
                 var body = JsonDocument.Parse(json.RootElement.GetProperty("body").GetString());
 
                 AppInit.log(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText());
-                AppInit.log(json.RootElement.GetProperty("body").GetString());
+                AppInit.log(body.RootElement.GetProperty("player").GetString());
 
                 var md = body.RootElement.GetProperty("player").Deserialize<EmbedModel>();
                 if (md == null)
                     return null;
 
+                AppInit.log("111");
+
                 md.csrf = Regex.Match(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText(), "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(md.csrf))
                     return null;
+
+                AppInit.log("222 / " + md.csrf);
 
                 return md;
             });
