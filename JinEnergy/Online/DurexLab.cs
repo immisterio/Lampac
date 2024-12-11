@@ -104,7 +104,7 @@ namespace JinEnergy.Online
             if (string.IsNullOrEmpty(url))
                 return string.Empty;
 
-            return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, $"http:{url}") + "\",\"title\":\"1080p\"}";
+            return "{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, $"https:{url}") + "\",\"title\":\"1080p\"}";
         }
     }
 }
