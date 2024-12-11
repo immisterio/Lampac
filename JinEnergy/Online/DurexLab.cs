@@ -33,17 +33,18 @@ namespace JinEnergy.Online
             string memkey = $"durexlab:view:{arg.kinopoisk_id}";
             var content = await InvokeCache(arg.id, memkey, async () => 
             {
+                AppInit.log($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}");
                 string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}", false, new
                 {
                     dataType = "text",
                     timeout = 8 * 1000,
                     headers = JsHttpClient.httpReqHeaders(HeadersModel.Init(
-                        ("Accept", "*/*"),
+                        //("Accept", "*/*"),
                         ("Origin", $"https://p.{init.iframehost}"),
                         ("Referer", $"https://p.{init.iframehost}/"),
-                        ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                        ("Sec-Ch-Ua-Mobile", "?0"),
-                        ("Sec-Ch-Ua-Platform", "\"Windows\""),
+                        //("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                        //("Sec-Ch-Ua-Mobile", "?0"),
+                        //("Sec-Ch-Ua-Platform", "\"Windows\""),
                         ("Sec-Fetch-Dest", "empty"),
                         ("Sec-Fetch-Mode", "cors"),
                         ("Sec-Fetch-Site", "same-site"),
@@ -52,6 +53,7 @@ namespace JinEnergy.Online
                     returnHeaders = true
                 });
 
+                AppInit.log(result);
                 if (string.IsNullOrEmpty(result))
                     return null;
 

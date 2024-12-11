@@ -164,10 +164,7 @@ namespace JinEnergy.Online
                 VoKinoInvoke.SendOnline(AppInit.VoKino, online, bwa: true);
 
             if (AppInit.IsWorkReturnHeaders)
-            {
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
-                send("DurexLab - 1080p", "durexlab", AppInit.VCDN);
-            }
 
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN);
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
@@ -208,6 +205,9 @@ namespace JinEnergy.Online
 
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
+
+            if (AppInit.IsWorkReturnHeaders)
+                send("DurexLab - 1080p", "durexlab", new BaseSettings() { enable = true });
 
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
