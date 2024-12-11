@@ -166,11 +166,8 @@ namespace JinEnergy.Online
             if (AppInit.IsWorkReturnHeaders)
             {
                 send("JinxЕМ - 1080p", "videodb", AppInit.VideoDB);
-                //send("DurexLab - 1080p", "durexlab", new BaseSettings() { enable = true });
+                send("DurexLab - 1080p", "durexlab", AppInit.VCDN);
             }
-
-            if (arg.kinopoisk_id > 0)
-                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             send("VideoCDN - 1080p", "vcdn", AppInit.VCDN);
             send("HDVB - 1080p", "hdvb", AppInit.HDVB);
@@ -208,6 +205,9 @@ namespace JinEnergy.Online
 
             if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
                 send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
+
+            if (arg.kinopoisk_id > 0)
+                send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
 
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
