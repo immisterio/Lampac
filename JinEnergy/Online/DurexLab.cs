@@ -33,7 +33,7 @@ namespace JinEnergy.Online
             string memkey = $"durexlab:view:{arg.kinopoisk_id}";
             var content = await InvokeCache(arg.id, memkey, async () => 
             {
-                string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.lumex.pw/content?contentType=movie&contentId=69114&clientId=CWfKXLc1ajId&domain=movielab.one&url=movielab.one\r\n", false, new
+                string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.lumex.pw/content?contentType=movie&contentId=69114&clientId=CWfKXLc1ajId&domain=movielab.one&url=movielab.one", false, new
                 {
                     dataType = "text",
                     timeout = 8 * 1000,
