@@ -33,17 +33,17 @@ namespace JinEnergy.Online
             string memkey = $"durexlab:view:{arg.kinopoisk_id}";
             var content = await InvokeCache(arg.id, memkey, async () => 
             {
-                string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.lumex.pw/content?contentType=movie&contentId=69114&clientId=CWfKXLc1ajId&domain=movielab.one&url=movielab.one", false, new
+                string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}", false, new
                 {
                     dataType = "text",
                     timeout = 8 * 1000,
                     headers = JsHttpClient.httpReqHeaders(HeadersModel.Init(
-                        //("Accept", "*/*"),
+                        ("Accept", "*/*"),
                         ("Origin", $"https://p.{init.iframehost}"),
                         ("Referer", $"https://p.{init.iframehost}/"),
-                        //("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                        //("Sec-Ch-Ua-Mobile", "?0"),
-                        //("Sec-Ch-Ua-Platform", "\"Windows\""),
+                        ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                        ("Sec-Ch-Ua-Mobile", "?0"),
+                        ("Sec-Ch-Ua-Platform", "\"Windows\""),
                         ("Sec-Fetch-Dest", "empty"),
                         ("Sec-Fetch-Mode", "cors"),
                         ("Sec-Fetch-Site", "same-site"),
@@ -58,20 +58,15 @@ namespace JinEnergy.Online
                 var json = JsonDocument.Parse(result);
                 var body = JsonDocument.Parse(json.RootElement.GetProperty("body").GetString());
 
-                AppInit.log(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText());
-                AppInit.log("player: " + body.RootElement.GetProperty("player").GetString());
+                AppInit.log("player " + body.RootElement.GetProperty("player").GetString());
 
                 var md = body.RootElement.GetProperty("player").Deserialize<EmbedModel>();
                 if (md == null)
                     return null;
 
-                AppInit.log("111");
-
                 md.csrf = Regex.Match(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText(), "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(md.csrf))
                     return null;
-
-                AppInit.log("222 / " + md.csrf);
 
                 return md;
             });
