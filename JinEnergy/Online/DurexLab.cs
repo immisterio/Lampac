@@ -33,8 +33,7 @@ namespace JinEnergy.Online
             string memkey = $"durexlab:view:{arg.kinopoisk_id}";
             var content = await InvokeCache(arg.id, memkey, async () => 
             {
-                AppInit.log($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}");
-                string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={arg.kinopoisk_id}&domain={domain}&url={domain}", false, new
+                string? result = await AppInit.JSRuntime.InvokeAsync<string?>("httpReq", $"https://api.lumex.pw/content?contentType=movie&contentId=69114&clientId=CWfKXLc1ajId&domain=movielab.one&url=movielab.one\r\n", false, new
                 {
                     dataType = "text",
                     timeout = 8 * 1000,
@@ -53,7 +52,6 @@ namespace JinEnergy.Online
                     returnHeaders = true
                 });
 
-                AppInit.log(result);
                 if (string.IsNullOrEmpty(result))
                     return null;
 
@@ -61,7 +59,7 @@ namespace JinEnergy.Online
                 var body = JsonDocument.Parse(json.RootElement.GetProperty("body").GetString());
 
                 AppInit.log(json.RootElement.GetProperty("headers").GetProperty("set-cookie").GetRawText());
-                AppInit.log(body.RootElement.GetProperty("player").GetString());
+                AppInit.log("player: " + body.RootElement.GetProperty("player").GetString());
 
                 var md = body.RootElement.GetProperty("player").Deserialize<EmbedModel>();
                 if (md == null)
