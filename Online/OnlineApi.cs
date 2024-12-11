@@ -421,8 +421,21 @@ namespace Lampac.Controllers
                 send("AniMedia", conf.AniMedia);
             }
 
+            #region VoKino
             if (kinopoisk_id > 0 && AppInit.conf.VoKino.enable)
-                VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
+            {
+                if (AppInit.conf.accsdb.enable)
+                {
+                    if (user == null || (AppInit.conf.VoKino.group > user.group && AppInit.conf.VoKino.group_hide)) { }
+                    else
+                        VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
+                }
+                else
+                {
+                    VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
+                }
+            }
+            #endregion
 
             send("Filmix", conf.Filmix, arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             send("FilmixTV", conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));

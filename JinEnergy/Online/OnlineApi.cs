@@ -203,11 +203,11 @@ namespace JinEnergy.Online
             if (AppInit.IsDefaultConf)
                 send($"Filmix - 480p", "filmix", AppInit.Filmix);
 
-            if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
-                send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
-
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
+
+            if (arg.kinopoisk_id > 0 && serial == 1 && !isanime)
+                send("CDNmovies - 360p", "cdnmovies", AppInit.CDNmovies);
 
             if (arg.kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send("VideoHUB - 1080p", "cdnvideohub", AppInit.CDNvideohub);
