@@ -12,6 +12,8 @@ namespace Shared.Models.AppConf
         /// </summary>
         public string type { get; set; }
 
+        public string initconf { get; set; }
+
         public bool sync_full { get; set; } = true;
 
         public string api_host { get; set; }

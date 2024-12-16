@@ -10,10 +10,11 @@ using System.Web;
 using Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
-using System.Text.Json;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,7 +22,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(string account_email, long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -40,13 +41,15 @@ namespace Lampac.Controllers.LITE
             if (postid == 0)
             {
                 var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year));
-                postid = res.id;
+
+                if (res != null)
+                    postid = res.id;
 
                 // платный поиск
                 if (!checksearch && postid == 0 && kinopoisk_id > 0)
-                    postid = await search(kinopoisk_id);
+                    postid = await searchKp(kinopoisk_id);
 
-                if (postid == 0 && res.similars != null)
+                if (postid == 0 && res?.similars != null)
                     return ContentTo(rjson ? res.similars.ToJson() : res.similars.ToHtml());
             }
 
@@ -56,11 +59,14 @@ namespace Lampac.Controllers.LITE
             if (checksearch)
                 return Content("data-json=");
 
+            string hashKey = $"fxapi:hashfimix:{requestInfo.IP}";
+            hybridCache.TryGetValue(hashKey, out string hashfimix);
+
             #region video_links
-            string memKey = $"fxapi:{postid}:{requestInfo.IP}";
-            if (!hybridCache.TryGetValue(memKey, out JArray root))
+            string videoKey = $"fxapi:{postid}:{(string.IsNullOrEmpty(hashfimix) ? requestInfo.IP : "")}";
+            if (!hybridCache.TryGetValue(videoKey, out JArray root))
             {
-                string XFXTOKEN = await getXFXTOKEN(account_email);
+                string XFXTOKEN = await getXFXTOKEN(requestInfo.user_uid);
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return OnError();
 
@@ -73,7 +79,18 @@ namespace Lampac.Controllers.LITE
                 if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
                     return OnError();
 
-                hybridCache.Set(memKey, root, DateTime.Now.AddHours(1));
+                if (string.IsNullOrEmpty(hashfimix))
+                {
+                    hashfimix = Regex.Match(root.First.ToString().Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
+
+                    if (!string.IsNullOrEmpty(hashfimix))
+                    {
+                        videoKey = $"fxapi:{postid}";
+                        hybridCache.Set(hashKey, hashfimix, DateTime.Now.AddHours(1));
+                    }
+                }
+
+                hybridCache.Set(videoKey, root, DateTime.Now.AddHours(2));
             }
             #endregion
 
@@ -89,7 +106,11 @@ namespace Lampac.Controllers.LITE
                     foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                     {
                         int q = file.Value<int>("quality");
-                        string l = HostStreamProxy(init, file.Value<string>("url"));
+                        string url = file.Value<string>("url");
+                        if (!string.IsNullOrEmpty(hashfimix))
+                            url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
+
+                        string l = HostStreamProxy(init, url);
 
                         streams.Add((l, $"{q}p"));
                     }
@@ -165,7 +186,11 @@ namespace Lampac.Controllers.LITE
                         foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                         {
                             int q = file.Value<int>("quality");
-                            string l = HostStreamProxy(init, file.Value<string>("url"));
+                            string url = file.Value<string>("url");
+                            if (!string.IsNullOrEmpty(hashfimix))
+                                url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
+
+                            string l = HostStreamProxy(init, url);
 
                             streams.Add((l, $"{q}p"));
                         }
@@ -208,7 +233,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<int> search(long kinopoisk_id)
+        async ValueTask<int> searchKp(long kinopoisk_id)
         {
             if (kinopoisk_id == 0)
                 return 0;
@@ -230,39 +255,43 @@ namespace Lampac.Controllers.LITE
                 if (postid > 0)
                     hybridCache.Set(memKey, postid, DateTime.Now.AddDays(20));
                 else
-                    hybridCache.Set(memKey, postid, DateTime.Now.AddHours(1));
+                    hybridCache.Set(memKey, postid, DateTime.Now.AddDays(1));
             }
 
             return postid;
         }
 
 
-        async ValueTask<(int id, SimilarTpl similars)> Search(string title, string original_title, int year)
+        async ValueTask<SearchResult> Search(string title, string original_title, int year)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
-                return (0, null);
+                return null;
 
             var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
             var proxy = proxyManager.Get();
 
             string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";
 
-            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(AppInit.conf.Filmix));
+            string json = await HttpClient.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 7, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
+                ("Accept-Encoding", "gzip")
+            ));
+
             if (json == null)
             {
                 proxyManager.Refresh();
-                return (0, null);
+                return await Search2(title, original_title, year);
             }
 
-            List<SearchModel>? root;
+            List<SearchModel> root = null;
 
             try
             {
-                root = JsonSerializer.Deserialize<List<SearchModel>>(json);
-                if (root == null || root.Count == 0)
-                    return (0, null);
+                root = JsonConvert.DeserializeObject<List<SearchModel>>(json);
             }
-            catch { return (0, null); }
+            catch { }
+
+            if (root == null || root.Count == 0)
+                return await Search2(title, original_title, year);
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);
@@ -288,9 +317,73 @@ namespace Lampac.Controllers.LITE
             }
 
             if (ids.Count == 1)
-                return (ids[0], null);
+                return new SearchResult() { id = ids[0] };
 
-            return (0, stpl);
+            return new SearchResult() { similars = stpl };
+        }
+
+
+        async ValueTask<SearchResult> Search2(string? title, string? original_title, int year)
+        {
+            async ValueTask<List<SearchModel>> gosearch(string? story)
+            {
+                if (string.IsNullOrEmpty(story))
+                    return null;
+
+                string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
+
+                string json = await HttpClient.Get(uri, timeoutSeconds: 5);
+                if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
+                    return null;
+
+                List<SearchModel> root = null;
+
+                try
+                {
+                    root = JsonConvert.DeserializeObject<List<SearchModel>>(json);
+                }
+                catch { }
+
+                if (root == null || root.Count == 0)
+                    return null;
+
+                return root;
+            }
+
+            var result = await gosearch(original_title);
+            if (result == null)
+                result = await gosearch(title);
+
+            if (result == null)
+                return default;
+
+            var ids = new List<int>();
+            var stpl = new SimilarTpl(result.Count);
+
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            foreach (var item in result)
+            {
+                if (item == null)
+                    continue;
+
+                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+
+                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
+                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                {
+                    if (item.year == year)
+                        ids.Add(item.id);
+                }
+            }
+
+            if (ids.Count == 1)
+                return new SearchResult() { id = ids[0] };
+
+            return new SearchResult() { similars = stpl };
         }
         #endregion
 

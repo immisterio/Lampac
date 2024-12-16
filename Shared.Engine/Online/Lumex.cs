@@ -126,15 +126,15 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}{args}";
+                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(media.playlist)}&csrf={result.csrf}&max_quality={media.max_quality}{args}";
 
                     if (bwa || !hls)
                     {
-                        mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles, quality: media.max_quality);
+                        mtpl.Append(media.translation_name, link.Replace(".m3u8", ""), "call", subtitles: subtitles, quality: media.max_quality?.ToString());
                     }
                     else
                     {
-                        mtpl.Append(media.translation_name, link, subtitles: subtitles, quality: media.max_quality);
+                        mtpl.Append(media.translation_name, link, subtitles: subtitles, quality: media.max_quality?.ToString());
                     }
                 }
 
@@ -218,7 +218,7 @@ namespace Shared.Engine.Online
                                         }
                                     }
 
-                                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}{args}";
+                                    string link = host + $"lite/lumex/video.m3u8?playlist={HttpUtility.UrlEncode(voice.playlist)}&csrf={result.csrf}&max_quality={voice.max_quality}{args}";
 
                                     if (bwa || !hls)
                                     {

@@ -12,6 +12,8 @@
 
         public string? add { get; set; }
 
+        public long id { get; set; }
+
         public string? content_type { get; set; }
     }
 }

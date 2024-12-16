@@ -194,7 +194,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/lumex/video")]
         [Route("lite/lumex/video.m3u8")]
-        async public Task<ActionResult> Video(string playlist, string csrf)
+        async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
             var init = AppInit.conf.Lumex;
             if (!init.enable)
@@ -207,7 +207,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
-            if (!memoryCache.TryGetValue(memkey, out (string hls, List<(string quality, string link)> streams) cache))
+            if (!memoryCache.TryGetValue(memkey, out string hls))
             {
                 var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: HeadersModel.Init(
                     ("accept", "*/*"),
@@ -236,35 +236,26 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(url))
                     return OnError();
 
-                cache.hls = $"http:{url}";
-
-                if (!init.hls)
-                {
-                    string m3u8 = await HttpClient.Get(cache.hls, timeoutSeconds: 8);
-                    if (string.IsNullOrEmpty(m3u8))
-                        return OnError();
-
-                    cache.streams = new List<(string quality, string link)>();
-                    foreach (string q in new string[] { "1080", "720", "480", "360", "240" })
-                    {
-                        if (m3u8.Contains(q))
-                            cache.streams.Add(($"{q}p", Regex.Replace(cache.hls, "/hls\\.m3u8$", $"/{q}.mp4")));
-                    }
-
-                    if (cache.streams.Count == 0)
-                        return OnError();
-                }
-
-                memoryCache.Set(memkey, cache, cacheTime(20, init: init));
+                hls = $"{init.scheme}:{url}";
+                memoryCache.Set(memkey, hls, cacheTime(20, init: init));
             }
 
             string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy, plugin: "lumex");
 
-            if (init.hls)
-                return Redirect(sproxy(cache.hls));
+            if (max_quality > 0 && !init.hls)
+            {
+                var streams = new List<(string quality, string link)>(5);
+                foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
+                {
+                    if (max_quality >= q)
+                        streams.Add(($"{q}p", Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")));
+                }
 
-            string streansquality = "\"quality\": {" + string.Join(",", cache.streams.Select(s => $"\"{s.quality}\":\"{sproxy(s.link)}\"")) + "}";
-            return Content($"{{\"method\":\"play\",\"url\":\"{sproxy(cache.streams[0].link)}\",\"title\":\"{cache.streams[0].quality}\",{streansquality}}}", "application/json; charset=utf-8");
+                string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
+                return ContentTo($"{{\"method\":\"play\",\"url\":\"{streams[0].link}\",\"title\":\"{streams[0].quality}\",{streansquality}}}");
+            }
+
+            return Redirect(sproxy(hls));
         }
         #endregion
     }

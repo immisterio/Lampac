@@ -25,6 +25,9 @@ namespace Shared.Engine.CORE
             if (!string.IsNullOrEmpty(box_mac) && !uri.Contains("box_mac="))
                 args += $"&box_mac={HttpUtility.UrlEncode(box_mac)}";
 
+            if (args == string.Empty)
+                return uri;
+
             if (uri.Contains("?"))
                 return uri + args;
 

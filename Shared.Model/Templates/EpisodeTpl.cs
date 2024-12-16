@@ -7,16 +7,16 @@ namespace Shared.Model.Templates
 {
     public class EpisodeTpl
     {
-        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, string? vast_url)> data = new List<(string, string, string, string, string, string, StreamQualityTpl, SubtitleTpl, string, string, string)>();
+        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, string? vast_url, string? vast_msg)> data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?)>();
 
         public EpisodeTpl() { }
 
         public EpisodeTpl(int capacity) { data.Capacity = capacity; }
 
-        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, string? vast_url = null)
+        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, string? vast_url = null, string? vast_msg = null)
         {
             if (!string.IsNullOrEmpty(name))
-                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast_url));
+                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast_url, vast_msg));
         }
 
         public string ToHtml()
@@ -39,7 +39,8 @@ namespace Shared.Model.Templates
                     quality = i.streamquality?.ToObject(),
                     subtitles = i.subtitles?.ToObject(),
                     i.voice_name,
-                    i.vast_url
+                    vast_url = i.vast_url ?? AppInit._vast?.url,
+                    vast_msg = i.vast_msg ?? AppInit._vast?.msg
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -69,6 +70,8 @@ namespace Shared.Model.Templates
                     s = int.TryParse(i.s, out int _s) ? _s : 0,
                     e = int.TryParse(i.e, out int _e) ? _e : 0,
                     details = i.voice_name,
+                    vast_url = i.vast_url ?? AppInit._vast?.url,
+                    vast_msg = i.vast_msg ?? AppInit._vast?.msg,
                     i.name,
                     i.title
                 })

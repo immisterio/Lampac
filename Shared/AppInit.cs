@@ -46,7 +46,12 @@ namespace Lampac
                     if (!initfile.StartsWith("{"))
                         initfile = "{" + initfile + "}";
 
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
+                    try
+                    {
+                        cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
+                    }
+                    catch { }
+
                     if (cacheconf.Item1 == null)
                         cacheconf.Item1 = new AppInit();
 
@@ -56,6 +61,8 @@ namespace Lampac
                     {
                         if (!string.IsNullOrEmpty(cacheconf.Item1.corsehost))
                             corseuhost = cacheconf.Item1.corsehost;
+
+                        _vast = cacheconf.Item1.vast;
                     }
 
                     #region accounts

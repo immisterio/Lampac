@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Models;
@@ -24,16 +25,16 @@ namespace Lampac.Engine.CORE
             return "Только на android";
         }
 
-        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers)> hub = null;
+        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        static ConcurrentDictionary<string, string> clients = new ConcurrentDictionary<string, string>();
+        static ConcurrentDictionary<string, (string ip, JObject json)> clients = new ConcurrentDictionary<string, (string, JObject)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
-        public static void Registry(string ip, string connectionId)
+        public static void Registry(string ip, string connectionId, JObject json = null)
         {
-            clients.TryAdd(connectionId, ip);
+            clients.TryAdd(connectionId, (ip, json));
         }
 
 
@@ -58,7 +59,7 @@ namespace Lampac.Engine.CORE
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
             ip = context.Connection.RemoteIpAddress.ToString();
-            connectionId = clients.FirstOrDefault(i => i.Value == ip).Key;
+            connectionId = clients.FirstOrDefault(i => i.Value.ip == ip).Key;
 
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
             {
@@ -79,6 +80,51 @@ namespace Lampac.Engine.CORE
             });
         }
 
+
+        #region Eval
+        public ValueTask<string> Eval(string data) => SendHub("eval", data);
+
+        async public ValueTask<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
+        {
+            try
+            {
+                string json = await SendHub("eval", data);
+                if (json == null)
+                    return default;
+
+                if (IgnoreDeserializeObject)
+                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
+
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
+
+        #region Headers
+        async public ValueTask<(JObject headers, string currentUrl, string body)> Headers(string url, string data, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
+        {
+            try
+            {
+                string json = await SendHub(url, data, headers, useDefaultHeaders, true);
+                if (json == null)
+                    return default;
+
+                var job = JsonConvert.DeserializeObject<JObject>(json);
+                if (!job.ContainsKey("body"))
+                    return default;
+
+                return (job.Value<JObject>("headers"), job.Value<string>("currentUrl"), job.Value<string>("body"));
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
 
         #region Get
         public ValueTask<string> Get(string url, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
@@ -127,7 +173,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
+        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
         {
             if (hub == null)
                 return null;
@@ -156,7 +202,7 @@ namespace Lampac.Engine.CORE
                     }
                 }
 
-                hub.Invoke(null, (connectionId, rchId, url, data, send_headers));
+                hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
 
                 string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 5 : 8));
                 rchIds.TryRemove(rchId, out _);
@@ -181,7 +227,7 @@ namespace Lampac.Engine.CORE
             if (!enableRhub)
                 return false; // rch не используется
 
-            return !clients.Values.Contains(ip);
+            return !clients.Select(i => i.Value.ip).ToList().Contains(ip);
         }
         #endregion
 
@@ -205,6 +251,18 @@ namespace Lampac.Engine.CORE
                 return true;
 
             return rch_deny.Contains(rchtype);
+        }
+        #endregion
+
+        #region InfoConnected
+        public (int version, string host, string rchtype) InfoConnected()
+        {
+            var client = clients.FirstOrDefault(i => i.Value.ip == ip);
+            if (client.Value.json == null)
+                return default;
+
+            JObject json = client.Value.json;
+            return (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("rchtype"));
         }
         #endregion
     }
