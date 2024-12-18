@@ -111,7 +111,7 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
-                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы ") : 
+                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы") : 
                                      limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
                                      string.IsNullOrWhiteSpace(requestInfo.user_uid) ? AppInit.conf.accsdb.authMesage :
                                      user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
