@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
-using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Lampac.Controllers
@@ -23,14 +22,10 @@ namespace Lampac.Controllers
         #region timecode.js
         [HttpGet]
         [Route("timecode.js")]
-        [Route("timecode/{uid}")]
         [Route("timecode/js/{token}")]
-        public ActionResult timecode(string uid, string token)
+        public ActionResult timecode(string token)
         {
             string file = FileCache.ReadAllText("plugins/timecode.js").Replace("{localhost}", host);
-            if (!string.IsNullOrEmpty(uid))
-                file = Regex.Replace(file, "'profile=' \\+ encodeURIComponent\\([^\\)]+\\)", $"'profile={HttpUtility.UrlEncode(uid)}'");
-
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
@@ -38,9 +33,9 @@ namespace Lampac.Controllers
         #endregion
 
         [Route("/timecode/all")]
-        public ActionResult Get(string card_id, string profile)
+        public ActionResult Get(string card_id)
         {
-            string path = getFilePath(card_id, profile, false);
+            string path = getFilePath(card_id, requestInfo.user_uid, false);
             if (!IO.File.Exists(path))
                 return Json(new { });
 
@@ -49,12 +44,12 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/timecode/add")]
-        public ActionResult Set([FromQuery] string profile, [FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
+        public ActionResult Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
                 return Content("{\"secuses\": false}", "application/json; charset=utf-8");
 
-            string path = getFilePath(card_id, profile, true);
+            string path = getFilePath(card_id, requestInfo.user_uid, true);
             var db = getData(path);
 
             if (db.ContainsKey(id))

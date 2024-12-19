@@ -279,7 +279,7 @@ namespace Lampac.Controllers
                         initiale += "{\"url\": \"{localhost}/timecode.js\",\"status\": 1,\"name\": \"Синхронизация тайм-кодов\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.sync)
-                        initiale += "{\"url\": \"{localhost}/sync.js\",\"status\": 1,\"name\": \"Синхронизация закладок\",\"author\": \"lampac\"},";
+                        initiale += "{\"url\": \"{localhost}/sync.js\",\"status\": 1,\"name\": \"Синхронизация\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/ts.js\",\"status\": 1,\"name\": \"TorrServer\",\"author\": \"lampac\"},";
@@ -450,10 +450,13 @@ namespace Lampac.Controllers
         [Route("backup/js/{token}")]
         public ActionResult Backup(string token)
         {
+            if (!AppInit.conf.storage.enable)
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
             string file = FileCache.ReadAllText("plugins/backup.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -463,10 +466,13 @@ namespace Lampac.Controllers
         [Route("sync/js/{token}")]
         public ActionResult SyncJS(string token)
         {
+            if (!AppInit.conf.storage.enable)
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
             string file = FileCache.ReadAllText("plugins/sync.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 

@@ -22,7 +22,7 @@ namespace Lampac.Controllers
         {
             string outFile = getFilePath(path, false);
             if (outFile == null || !IO.File.Exists(outFile))
-                Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
             var file = new FileInfo(outFile);
             var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
@@ -39,14 +39,14 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Set([FromQuery]string path)
         {
             if (!AppInit.conf.storage.enable)
-                Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
+                return Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
 
             if (HttpContext.Request.ContentLength > AppInit.conf.storage.max_size)
-                Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
+                return Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
 
             string outFile = getFilePath(path, true);
             if (outFile == null)
-                Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
             byte[] array = null;
             using (var memoryStream = new MemoryStream()) {
