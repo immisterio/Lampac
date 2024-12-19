@@ -20,7 +20,7 @@ curl -L -k -s https://lampac.sh | bash
 ```
 curl -L -k -s https://lampac.sh/home | bash
 ```
-* 84Mb RAM, 200Mb HDD, 50 пользователей
+* 200Mb RAM, 200Mb HDD, 50 пользователей
 * DLNA по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
