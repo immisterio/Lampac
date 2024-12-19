@@ -18,60 +18,58 @@ namespace Lampac.Controllers
 
 
         [Route("/storage/get")]
-        public ActionResult Get(string path, string account_email, string token, string uid, bool responseInfo)
+        public ActionResult Get(string path, bool responseInfo)
         {
-            string outFile = getFilePath(path, account_email, token, uid, false);
+            string outFile = getFilePath(path, false);
             if (outFile == null || !IO.File.Exists(outFile))
                 Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
             var file = new FileInfo(outFile);
-            var info = new { file.Name, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds(), outFile };
+            var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
 
             if (responseInfo)
-                return Json(new { success = true, info });
+                return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo });
 
-            return Json(new { success = true, info, data = BrotliTo.Decompress(outFile) });
+            return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data = BrotliTo.Decompress(outFile) });
         }
 
 
         [HttpPost]
         [Route("/storage/set")]
-        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string account_email, [FromQuery]string token, [FromQuery]string uid, IFormFile file)
+        async public Task<ActionResult> Set([FromQuery]string path)
         {
             if (!AppInit.conf.storage.enable)
                 Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
 
-            if (file == null || file.Length == 0 || file.Length > AppInit.conf.storage.max_size)
-                Content("{\"success\": false, \"msg\": \"file\"}", "application/json; charset=utf-8");
+            if (HttpContext.Request.ContentLength > AppInit.conf.storage.max_size)
+                Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
 
-            string outFile = getFilePath(path, account_email, token, uid, true);
+            string outFile = getFilePath(path, true);
             if (outFile == null)
                 Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
             byte[] array = null;
             using (var memoryStream = new MemoryStream()) {
-                await file.CopyToAsync(memoryStream);
+                await HttpContext.Request.Body.CopyToAsync(memoryStream);
                 array = memoryStream.ToArray();
             }
 
             BrotliTo.Compress(outFile, array);
             var inf = new FileInfo(outFile);
 
-            return Json(new { success = true, info = new { inf.Name, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds(), outFile } });
+            return Json(new 
+            { 
+                success = true,
+                uid = requestInfo?.user_uid,
+                fileInfo = new { inf.Name, path = outFile, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds() }
+            });
         }
 
 
         #region getFilePath
-        string getFilePath(string path, string account_email, string token, string uid, bool createDirectory)
+        string getFilePath(string path, bool createDirectory)
         {
-            string id = token;
-            if (string.IsNullOrEmpty(id))
-            {
-                id = account_email;
-                if (string.IsNullOrEmpty(id))
-                    id = uid;
-            }
-
+            string id = requestInfo.user_uid;
             if (string.IsNullOrEmpty(id))
                 return null;
 

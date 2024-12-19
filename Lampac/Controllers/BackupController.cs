@@ -19,19 +19,6 @@ namespace Lampac.Controllers
             Directory.CreateDirectory("cache/backup");
         }
 
-        #region backup.js
-        [HttpGet]
-        [Route("backup.js")]
-        [Route("backup/js/{token}")]
-        public ActionResult Index(string token)
-        {
-            string file = FileCache.ReadAllText("plugins/backup.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
-
-            return Content(file, contentType: "application/javascript; charset=utf-8");
-        }
-        #endregion
-
         [Route("/backup/import")]
         public ActionResult Import(string account_email, string token, string uid)
         {
