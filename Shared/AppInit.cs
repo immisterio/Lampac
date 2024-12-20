@@ -216,22 +216,23 @@ namespace Lampac
 
         public bool pirate_store = true;
 
-        public SyncConf sync = new SyncConf();
-
-        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
-
         public string apikey = null;
 
         public bool litejac = true;
 
         public bool filelog = false;
 
+        public string anticaptchakey;
+
+        public SyncConf sync = new SyncConf();
+
         public WebLogConf weblog = new WebLogConf();
 
         public RchConf rch = new RchConf() { enable = true, keepalive = 45 };
 
-        public string anticaptchakey;
+        public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000 };
 
+        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 

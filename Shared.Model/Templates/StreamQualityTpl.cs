@@ -10,12 +10,18 @@ namespace Shared.Model.Templates
 
         public StreamQualityTpl(IEnumerable<(string link, string quality)>? streams) { if (streams != null) data = streams.ToList(); }
 
-        public bool IsEmpty() => !data.Any();
+        public bool Any() => data.Any();
 
         public void Append(string? link, string? quality)
         {
             if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
                 data.Add((link, quality));
+        }
+
+        public void Insert(string? link, string? quality)
+        {
+            if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
+                data.Insert(0, (link, quality));
         }
 
         public string ToJson() => JsonSerializer.Serialize(ToObject());
@@ -31,6 +37,14 @@ namespace Shared.Model.Templates
                 return string.Empty;
 
             return data[0].quality;
+        }
+
+        public (string link, string quality) Firts()
+        {
+            if (data.Count == 0)
+                return default;
+
+            return data[0];
         }
     }
 }

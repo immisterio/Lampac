@@ -97,7 +97,7 @@ cat <<EOF > $DEST/Lampac.runtimeconfig.json
       "System.GC.Server": false,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 83886080
+      "System.GC.HeapHardLimit": 200000000
     }
   }
 }

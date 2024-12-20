@@ -12,10 +12,12 @@
 
         public bool sisi { get; set; } = true;
 
-        public bool timecode { get; set; } = true;
+        public bool timecode { get; set; } = false;
 
         public bool torrserver { get; set; } = true;
 
         public bool backup { get; set; } = true;
+
+        public bool sync { get; set; } = true;
     }
 }

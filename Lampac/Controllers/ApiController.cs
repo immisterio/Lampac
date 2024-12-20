@@ -84,13 +84,45 @@ namespace Lampac.Controllers
         [Route("/myip")]
         public ActionResult MyIP() => Content(requestInfo.IP);
 
+        [Route("/reqinfo")]
+        public ActionResult Reqinfo() => Json(requestInfo);
+
         [Route("/testaccsdb")]
-        public ActionResult TestAccsdb() => Content("{\"accsdb\": false}");
+        public ActionResult TestAccsdb() => Content("{\"accsdb\": false}", "application/json; charset=utf-8");
 
         [Route("/personal.lampa")]
         [Route("/lampa-main/personal.lampa")]
         [Route("/{myfolder}/personal.lampa")]
         public ActionResult PersonalLampa(string myfolder) => StatusCode(200);
+        #endregion
+
+        #region Sync
+        [Route("/api/sync")]
+        public ActionResult Sync()
+        {
+            var sync = AppInit.conf.sync;
+            if (!requestInfo.IsLocalRequest || !sync.enable || sync.type != "master")
+                return Content("error");
+
+            if (sync.initconf == "current")
+                return Content(JsonConvert.SerializeObject(AppInit.conf), "application/json; charset=utf-8");
+
+            var init = new AppInit();
+
+            string confile = "sync.conf";
+            if (sync.override_conf != null && sync.override_conf.TryGetValue(requestInfo.IP, out string _conf))
+                confile = _conf;
+
+            if (IO.File.Exists(confile))
+                init = JsonConvert.DeserializeObject<AppInit>(IO.File.ReadAllText(confile));
+
+            init.accsdb.users = AppInit.conf.accsdb.users;
+
+            string json = JsonConvert.SerializeObject(init);
+            json = json.Replace("{server_ip}", requestInfo.IP);
+
+            return Content(json, "application/json; charset=utf-8");
+        }
         #endregion
 
 
@@ -184,7 +216,7 @@ namespace Lampac.Controllers
         [Route("msx/start.json")]
         public ActionResult MSX()
         {
-            return Content(FileCache.ReadAllText("msx.json").Replace("{localhost}", host), contentType: "application/json; charset=utf-8");
+            return Content(FileCache.ReadAllText("msx.json").Replace("{localhost}", host), "application/json; charset=utf-8");
         }
         #endregion
 
@@ -248,6 +280,9 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.LampaWeb.initPlugins.timecode)
                         initiale += "{\"url\": \"{localhost}/timecode.js\",\"status\": 1,\"name\": \"Синхронизация тайм-кодов\",\"author\": \"lampac\"},";
+
+                    if (AppInit.conf.LampaWeb.initPlugins.sync)
+                        initiale += "{\"url\": \"{localhost}/sync.js\",\"status\": 1,\"name\": \"Синхронизация\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/ts.js\",\"status\": 1,\"name\": \"TorrServer\",\"author\": \"lampac\"},";
@@ -364,6 +399,9 @@ namespace Lampac.Controllers
                 if (AppInit.conf.LampaWeb.initPlugins.timecode)
                     send("timecode", true);
 
+                if (AppInit.conf.LampaWeb.initPlugins.sync)
+                    send("sync", true);
+
                 if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                     send("ts", true);
 
@@ -404,6 +442,38 @@ namespace Lampac.Controllers
                 file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
                 file = file.Replace("{jachost}", "redapi.cfhttp.top");
+
+            return Content(file, "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region backup.js
+        [HttpGet]
+        [Route("backup.js")]
+        [Route("backup/js/{token}")]
+        public ActionResult Backup(string token)
+        {
+            if (!AppInit.conf.storage.enable)
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
+            string file = FileCache.ReadAllText("plugins/backup.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region sync.js
+        [HttpGet]
+        [Route("sync.js")]
+        [Route("sync/js/{token}")]
+        public ActionResult SyncJS(string token)
+        {
+            if (!AppInit.conf.storage.enable)
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
+            string file = FileCache.ReadAllText("plugins/sync.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, "application/javascript; charset=utf-8");
         }
@@ -472,35 +542,6 @@ namespace Lampac.Controllers
 </html>";
 
             return Content(html, "text/html; charset=utf-8");
-        }
-        #endregion
-
-        #region Sync
-        [Route("/api/sync")]
-        public ActionResult Sync()
-        {
-            var sync = AppInit.conf.sync;
-            if (!requestInfo.IsLocalRequest || !sync.enable || sync.type != "master")
-                return Content("error");
-
-            if (sync.initconf == "current")
-                return Content(JsonConvert.SerializeObject(AppInit.conf), "application/json; charset=utf-8");
-
-            var init = new AppInit();
-
-            string confile = "sync.conf";
-            if (sync.override_conf != null && sync.override_conf.TryGetValue(requestInfo.IP, out string _conf))
-                confile = _conf;
-
-            if (IO.File.Exists(confile))
-                init = JsonConvert.DeserializeObject<AppInit>(IO.File.ReadAllText(confile));
-
-            init.accsdb.users = AppInit.conf.accsdb.users;
-
-            string json = JsonConvert.SerializeObject(init);
-            json = json.Replace("{server_ip}", requestInfo.IP);
-
-            return Content(json, "application/json; charset=utf-8");
         }
         #endregion
     }

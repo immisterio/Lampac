@@ -59,6 +59,9 @@ namespace Lampac.Engine.Middlewares
             if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && httpContext.Request.Path.Value.StartsWith("/ws"))
                 return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
 
+            if (!AppInit.conf.storage.enable && httpContext.Request.Path.Value.StartsWith("/web-event"))
+                return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
+
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|baibako|hdrezka)";
 
             if (!string.IsNullOrEmpty(AppInit.conf.apikey))
@@ -84,7 +87,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|on/|(online|sisi|timecode|tmdbproxy|dlna|ts|tracks|backup)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|web-event|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|on/|(online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
 
@@ -111,7 +114,7 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
-                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы ") : 
+                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы") : 
                                      limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
                                      string.IsNullOrWhiteSpace(requestInfo.user_uid) ? AppInit.conf.accsdb.authMesage :
                                      user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :

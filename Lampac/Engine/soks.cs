@@ -15,7 +15,7 @@ namespace Lampac.Engine
 
         public static void SendLog(string message, string plugin)
         {
-            if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 700_000)
+            if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 1_000000)
                 return;
 
             hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin);
@@ -38,6 +38,22 @@ namespace Lampac.Engine
             Context.Abort();
         }
 
+        public void RchRegistry(string json)
+        {
+            JObject job = null;
+
+            try
+            {
+                job = JsonConvert.DeserializeObject<JObject>(json);
+            }
+            catch { }
+
+            RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId, job);
+        }
+
+        /// <summary>
+        /// Старые версии online.js
+        /// </summary>
         public void Registry(string type)
         {
             if (string.IsNullOrEmpty(type))
@@ -50,19 +66,6 @@ namespace Lampac.Engine
                         RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId);
                     break;
             }
-        }
-
-        public void RchRegistry(string json)
-        {
-            JObject job = null;
-
-            try
-            {
-                job = JsonConvert.DeserializeObject<JObject>(json);
-            }
-            catch { }
-
-            RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId, job);
         }
 
         public override Task OnConnectedAsync()

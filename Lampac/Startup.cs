@@ -265,6 +265,7 @@ namespace Lampac
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHub<soks>("/ws");
+                endpoints.MapHub<soksEvent>("/web-event");
                 endpoints.MapControllers();
             });
         }

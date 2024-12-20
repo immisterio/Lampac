@@ -7,6 +7,7 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
 using Shared.Model.Online;
+using Newtonsoft.Json;
 
 namespace Lampac.Controllers.LITE
 {
@@ -43,26 +44,35 @@ namespace Lampac.Controllers.LITE
                 string iframe_url = data.Value<string>("iframe_url");
 
                 string memKey = $"vibix:video:{iframe_url}";
-                if (!hybridCache.TryGetValue(memKey, out string file))
+                if (!hybridCache.TryGetValue(memKey, out JArray playlist))
                 {
                     string html = await HttpClient.Get(iframe_url, timeoutSeconds: 8, proxy: proxy);
                     if (html == null)
                         return OnError(proxyManager);
 
-                    file = Regex.Match(html, "file:([^\n\r]+)").Groups[1].Value;
+                    string file = Regex.Match(html, "file:([^\n\r]+)\\}\\)\\;").Groups[1].Value;
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
                         return OnError();
 
-                    hybridCache.Set(memKey, file, cacheTime(20));
+                    playlist = JsonConvert.DeserializeObject<JArray>(file);
+                    hybridCache.Set(memKey, playlist, cacheTime(20));
                 }
 
                 var mtpl = new MovieTpl(title, original_title);
 
-                var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(file);
-                while (match.Success)
+                foreach (var item in playlist)
                 {
-                    mtpl.Append(match.Groups[1].Value, HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "vibix"));
-                    match = match.NextMatch();
+                    var streams = new StreamQualityTpl();
+
+                    var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(item.Value<string>("file"));
+                    while (match.Success)
+                    {
+                        streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "vibix"), match.Groups[1].Value);
+                        match = match.NextMatch();
+                    }
+
+                    if (streams.Any())
+                        mtpl.Append(item.Value<string>("title"), streams.Firts().link, streamquality: streams);
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true));
