@@ -10,7 +10,7 @@ namespace Lampac.Models.LITE
                 this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
 
             if (iframehost != null)
-                this.iframehost = (iframehost.Contains(":") || iframehost.Contains("{")) ? Decrypt(iframehost) : iframehost;
+                this.iframehost = iframehost.StartsWith("http") ? iframehost : (iframehost.Contains("{") ? Decrypt(iframehost) : iframehost);
 
             if (token != null)
                 this.token = (token.Contains(":") || token.Contains("{")) ? Decrypt(token) : token;
