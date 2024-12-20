@@ -53,7 +53,9 @@ namespace Shared.Engine
 
         async private static void Browser_keepopen_Closed(object sender, EventArgs e)
         {
-            browser_keepopen.Closed -= Browser_keepopen_Closed;
+            if (browser_keepopen != null)
+                browser_keepopen.Closed -= Browser_keepopen_Closed;
+
             await Task.Delay(2_000);
             browser_keepopen = await Launch();
 
