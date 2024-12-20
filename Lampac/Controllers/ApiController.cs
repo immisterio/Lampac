@@ -84,8 +84,11 @@ namespace Lampac.Controllers
         [Route("/myip")]
         public ActionResult MyIP() => Content(requestInfo.IP);
 
+        [Route("/reqinfo")]
+        public ActionResult Reqinfo() => Json(requestInfo);
+
         [Route("/testaccsdb")]
-        public ActionResult TestAccsdb() => Content("{\"accsdb\": false}");
+        public ActionResult TestAccsdb() => Content("{\"accsdb\": false}", "application/json; charset=utf-8");
 
         [Route("/personal.lampa")]
         [Route("/lampa-main/personal.lampa")]
@@ -213,7 +216,7 @@ namespace Lampac.Controllers
         [Route("msx/start.json")]
         public ActionResult MSX()
         {
-            return Content(FileCache.ReadAllText("msx.json").Replace("{localhost}", host), contentType: "application/json; charset=utf-8");
+            return Content(FileCache.ReadAllText("msx.json").Replace("{localhost}", host), "application/json; charset=utf-8");
         }
         #endregion
 
