@@ -208,10 +208,9 @@ namespace Shared.Engine
 
         public static void FullDispose()
         {
+            shutdown = true;
             if (browser_keepopen == null)
                 return;
-
-            shutdown = true;
 
             try
             {
