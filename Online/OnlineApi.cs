@@ -448,11 +448,9 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                send("VideoDB", conf.VideoDB);
+                send("VideoDB", conf.VideoDB, rch_access: "apk");
                 send("Lumex", conf.Lumex, "lumex");
-
-                if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
-                    send("VDBmovies", conf.VDBmovies);
+                send("VDBmovies", conf.VDBmovies, rch_access: "apk");
 
                 if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send("Zetflix", conf.Zetflix);
@@ -499,8 +497,8 @@ namespace Lampac.Controllers
                 send("Kinoukr (Украинский)", conf.Kinoukr, "kinoukr", rch_access: "apk,cors");
 
             if (AppInit.conf.Collaps.two && !AppInit.conf.Collaps.dash)
-                send("Collaps (dash)", conf.Collaps, "collaps-dash");
-            send($"Collaps ({(AppInit.conf.Collaps.dash ? "dash" : "hls")})", conf.Collaps, "collaps");
+                send("Collaps (dash)", conf.Collaps, "collaps-dash", rch_access: "apk");
+            send($"Collaps ({(AppInit.conf.Collaps.dash ? "dash" : "hls")})", conf.Collaps, "collaps", rch_access: "apk");
 
             if (serial == -1 || serial == 0)
                 send("Redheadsound", conf.Redheadsound, rch_access: "apk,cors");
@@ -546,7 +544,7 @@ namespace Lampac.Controllers
                     var links = new ConcurrentBag<(string code, int index, bool work)>();
 
                     foreach (var o in online)
-                        tasks.Add(checkSearch(memkey, links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life));
+                        tasks.Add(checkSearch(memkey, links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype));
 
                     if (life)
                         return Json(new { life = true, memkey });
@@ -578,12 +576,12 @@ namespace Lampac.Controllers
         static string checkOnlineSearchKey(long id, string source, int count = 0) => CrypTo.md5($"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{count}");
 
         async Task checkSearch(string memkey, ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
-                               long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life)
+                               long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
             string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
             var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
-            string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&checksearch=true";
+            string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
             string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
             if (string.IsNullOrEmpty(res))
@@ -654,6 +652,7 @@ namespace Lampac.Controllers
                         case "zetflix":
                         case "vcdn":
                         case "lumex":
+                        case "vibix":
                         case "eneyida":
                         case "kinoukr":
                         case "ashdi":

@@ -32,5 +32,15 @@
 
             return h;
         }
+
+        public static List<HeadersModel> Init(Dictionary<string, string> headers)
+        {
+            var h = new List<HeadersModel>(headers.Count);
+
+            foreach (var i in headers)
+                h.Add(new HeadersModel(i.Key, i.Value));
+
+            return h;
+        }
     }
 }

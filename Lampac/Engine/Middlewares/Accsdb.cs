@@ -56,11 +56,11 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && httpContext.Request.Path.Value.StartsWith("/ws"))
-                return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
-
-            if (!AppInit.conf.storage.enable && httpContext.Request.Path.Value.StartsWith("/web-event"))
-                return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
+            if (httpContext.Request.Path.Value.StartsWith("/ws"))
+            {
+                if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && !AppInit.conf.storage.enable)
+                    return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
+            }
 
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|baibako|hdrezka)";
 
@@ -87,7 +87,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|web-event|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|on/|(online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm)(/|$)|(extensions|kit)$|on/|(online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|lampa-(main|lite)/app\\.min\\.js|[a-zA-Z]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
 

@@ -34,14 +34,16 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("cdnmovies", init);
             var proxy = proxyManager.Get();
 
+            var headers = httpHeaders(init, HeadersModel.Init(
+                ("DNT", "1"),
+                ("Upgrade-Insecure-Requests", "1")
+            ));
+
             var oninvk = new CDNmoviesInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
-                   ("DNT", "1"),
-                   ("Upgrade-Insecure-Requests", "1")
-               ))),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), headers) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

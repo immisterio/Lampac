@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotSupport(rchtype, "web", out string rch_error))
                 return ShowError(rch_error);
@@ -151,9 +151,8 @@ namespace Lampac.Controllers.LITE
                     foreach (var l in cache.Value)
                     {
                         string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
-                        string streamlink = rch.enable ? null : accsArgs($"{link}&play=true");
 
-                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
+                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();
@@ -175,7 +174,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {

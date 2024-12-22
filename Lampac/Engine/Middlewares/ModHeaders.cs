@@ -14,6 +14,9 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            if (httpContext.Request.Path.Value.StartsWith("/cors/check"))
+                return Task.CompletedTask;
+
             httpContext.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
             httpContext.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
             httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");

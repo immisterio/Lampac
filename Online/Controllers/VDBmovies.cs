@@ -7,6 +7,7 @@ using Shared.Engine;
 using System.Collections.Generic;
 using Shared.Model.Online.VDBmovies;
 using Lampac.Engine.CORE;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -14,29 +15,41 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vdbmovies")]
-        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string rchtype, string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VDBmovies;
-
             if (!init.enable || init.rip || kinopoisk_id == 0)
                 return OnError();
 
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport(rchtype, "web,cors", out string rch_error))
+                return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager("vdbmovies", init);
+            var proxy = proxyManager.Get();
 
             var oninvk = new VDBmoviesInvoke
             (
                host,
                MaybeInHls(init.hls, init),
-               streamfile => HostStreamProxy(init, streamfile, plugin: "vdbmovies")
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
             );
 
-            var cache = await InvokeCache<EmbedModel>($"vdbmovies:{kinopoisk_id}", cacheTime(20, init: init), async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                string html = await HttpClient.Get($"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe", timeoutSeconds: 8, httpversion: 2, headers: httpHeaders(init));
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
+
+                string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
+                                           await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
                     return res.Fail("html");
 

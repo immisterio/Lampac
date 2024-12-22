@@ -214,7 +214,7 @@ namespace Shared.Engine
 
             try
             {
-                browser_keepopen.CloseAsync().Wait();
+                browser_keepopen.CloseAsync().Wait(2000);
                 browser_keepopen.Dispose();
             }
             catch { }

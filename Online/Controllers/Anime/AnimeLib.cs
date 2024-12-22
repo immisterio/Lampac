@@ -49,8 +49,7 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var rheader = httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (string.IsNullOrWhiteSpace(uri))
             {
@@ -70,8 +69,8 @@ namespace Lampac.Controllers.LITE
                             return null;
 
                         string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
-                        var result = rch.enable ? await rch.Get<JObject>(req_uri, rheader) :
-                                                 await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                        var result = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) :
+                                                  await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                         if (result == null || !result.ContainsKey("data"))
                             return null;
@@ -137,7 +136,7 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, rheader) : 
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) : 
                                             await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                     if (root == null || !root.ContainsKey("data"))
@@ -163,7 +162,7 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, rheader) : 
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) : 
                                             await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                     if (root == null || !root.ContainsKey("data"))
@@ -202,9 +201,8 @@ namespace Lampac.Controllers.LITE
                     name = string.IsNullOrEmpty(name) ? title : $"{title} / {name}";
 
                     string link = $"{host}/lite/animelib/video?id={id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
-                    string streamlink = rch.enable ? null : accsArgs($"{link}&play=true");
 
-                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: streamlink);
+                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: accsArgs($"{link}&play=true"));
                 }
                 
                 if (rjson)
@@ -228,7 +226,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             string memKey = $"animelib:video:{id}";
             if (!memoryCache.TryGetValue(memKey, out JArray players))
@@ -238,7 +236,7 @@ namespace Lampac.Controllers.LITE
 
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
 
-                var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders).ToDictionary(k => k.name, v => v.val)) :
+                var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) :
                                         await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
 
                 if (root == null || !root.ContainsKey("data"))
