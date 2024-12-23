@@ -38,7 +38,7 @@ namespace Lampac
             });
 
             Console.WriteLine(init + "\n");
-            File.WriteAllText("current.conf", init);
+            File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
             
             if (!AppInit.conf.mikrotik) 
             {

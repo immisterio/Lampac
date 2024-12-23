@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(string rchtype, long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Kinotochka.Clone();
 
@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("kinotochka", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+            if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
             // enable 720p

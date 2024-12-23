@@ -239,7 +239,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region IsNotSupport
-        public bool IsNotSupport(string rchtype, string rch_deny, out string rch_msg)
+        public bool IsNotSupport(string rch_deny, out string rch_msg)
         {
             rch_msg = null;
 
@@ -249,15 +249,19 @@ namespace Lampac.Engine.CORE
             if (rhub_fallback)
                 return false; // разрешен возврат на сервер
 
-            if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
+            var info = InfoConnected();
+
+            if (string.IsNullOrEmpty(info.rchtype))
+                rch_msg = "Не удалось определить rchtype";
+            else if (info.rchtype == "web")
                 rch_msg = "На MSX недоступно";
             else
                 rch_msg = "Только на android";
 
-            if (string.IsNullOrEmpty(rchtype))
+            if (string.IsNullOrEmpty(info.rchtype))
                 return true;
 
-            return rch_deny.Contains(rchtype);
+            return rch_deny.Contains(info.rchtype);
         }
         #endregion
 

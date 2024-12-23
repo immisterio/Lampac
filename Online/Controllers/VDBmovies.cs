@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/vdbmovies")]
-        async public Task<ActionResult> Index(string rchtype, string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VDBmovies;
             if (!init.enable || init.rip || kinopoisk_id == 0)
@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
                 return ShowError(RchClient.ErrorMsg);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotSupport(rchtype, "web,cors", out string rch_error))
+            if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
             var proxyManager = new ProxyManager("vdbmovies", init);

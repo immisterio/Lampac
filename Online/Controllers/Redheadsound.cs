@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string rchtype, string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Redheadsound.Clone();
 
@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+            if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
             var oninvk = new RedheadsoundInvoke

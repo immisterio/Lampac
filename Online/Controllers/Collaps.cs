@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/collaps")]
         [Route("lite/collaps-dash")]
-        async public Task<ActionResult> Index(string rchtype, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Collaps.Clone();
             if (!init.enable)
@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("collaps", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport(rchtype, "web,cors", out string rch_error))
+            if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
             var beseheader = HeadersModel.Init(("Origin", init.host), ("Referer", $"{init.host}/"), ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"));

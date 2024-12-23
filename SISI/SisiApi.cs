@@ -63,7 +63,7 @@ namespace SISI
 
 
         [Route("sisi")]
-        async public Task<ActionResult> Index()
+        async public Task<ActionResult> Index(string rchtype)
         {
             var conf = AppInit.conf;
             var channels = new List<ChannelItem>() 

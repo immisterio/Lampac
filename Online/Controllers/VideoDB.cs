@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(string rchtype, long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VideoDB;
 
@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-            if (rch.IsNotSupport(rchtype, "web,cors", out string rch_error))
+            if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
             var oninvk = new VideoDBInvoke

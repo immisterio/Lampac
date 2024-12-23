@@ -37,7 +37,11 @@ namespace Shared.Model
 
         public SisiSettings Eporner { get; set; } = new SisiSettings("kwwsv=22zzz1hsruqhu1frp", streamproxy: true);
 
-        public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp") { geostreamproxy = new List<string>() { "ALL" } };
+        public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp") 
+        { 
+            geostreamproxy = new List<string>() { "ALL" },
+            headers = HeadersModel.Init("referer", "https://m.hqporner.com")
+        };
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("kwwsv=22zzz1sruqwuh{1frp");
 

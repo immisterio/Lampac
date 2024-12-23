@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst.Clone();
             if (!init.enable || string.IsNullOrWhiteSpace(title))
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
-            if (rch.IsNotSupport(rchtype, "cors,web", out string rch_error))
+            if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
             if (string.IsNullOrWhiteSpace(uri))
