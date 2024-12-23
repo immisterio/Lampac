@@ -134,25 +134,30 @@ namespace SISI
 
 
         [Route("sisi/bookmark/remove")]
-        public ActionResult Remove(string box_mac, string account_email, string uid)
+        public ActionResult Remove(string box_mac, string account_email, string buid)
         {
             string md5user = getuser(box_mac, account_email);
-            if (md5user == null || string.IsNullOrEmpty(uid))
+            if (md5user == null || string.IsNullOrEmpty(buid))
                 return OnError("access denied");
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
 
             var bookmarks = bookmarkCache.Read();
 
-            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) is PlaylistItem item)
+            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == buid) is PlaylistItem item)
             {
                 bookmarks.Remove(item);
                 bookmarkCache.Write(bookmarks);
+
+                return Json(new
+                {
+                    result = true,
+                });
             }
 
             return Json(new
             {
-                result = true,
+                result = false,
             });
         }
 
