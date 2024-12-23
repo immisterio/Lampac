@@ -127,6 +127,12 @@ namespace Lampac
                             }
                         }
                     }
+
+                    try
+                    {
+                        File.WriteAllText("current.conf", JsonConvert.SerializeObject(cacheconf.Item1, Formatting.Indented));
+                    }
+                    catch { }
                 }
 
                 return cacheconf.Item1;

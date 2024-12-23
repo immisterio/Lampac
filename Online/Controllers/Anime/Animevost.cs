@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string rchtype, string title, int year, string uri, int s, bool rjson = false)
+        async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false)
         {
             var init = AppInit.conf.Animevost.Clone();
 
@@ -33,9 +33,9 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
-            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+            if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                     goto reset;
 
                 if (cache.Value != null && cache.Value.Count == 1)
-                    return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&rchtype={rchtype}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
+                    return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
 
                 return OnResult(cache, () =>
                 {
@@ -151,9 +151,8 @@ namespace Lampac.Controllers.LITE
                     foreach (var l in cache.Value)
                     {
                         string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
-                        string streamlink = rch.enable ? null : accsArgs($"{link}&play=true");
 
-                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: streamlink);
+                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();
@@ -175,7 +174,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {

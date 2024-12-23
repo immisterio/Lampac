@@ -97,16 +97,9 @@ namespace Online
         }
         #endregion
 
-        #region ContentTo
-        public ActionResult ContentTo(string html)
-        {
-            return Content(html, ((html.StartsWith("{") || html.StartsWith("[")) ? "application/json; charset=utf-8" : "text/html; charset=utf-8"));
-        }
-        #endregion
-
-
         public ActionResult ShowError(string msg) => Json(new { accsdb = true, msg });
 
+        #region IsRhubFallback
         public bool IsRhubFallback<T>(CacheResult<T> cache, BaseSettings init)
         {
             if (cache.IsSuccess)
@@ -123,5 +116,6 @@ namespace Online
 
             return false;
         }
+        #endregion
     }
 }

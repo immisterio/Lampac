@@ -27,7 +27,7 @@ namespace Lampac.Engine
 
             try
             {
-                await hubClients.Clients(clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId).Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty);
+                await hubClients.Clients(clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId).Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
             }
             catch { }
         }

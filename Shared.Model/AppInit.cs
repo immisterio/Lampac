@@ -37,7 +37,11 @@ namespace Shared.Model
 
         public SisiSettings Eporner { get; set; } = new SisiSettings("kwwsv=22zzz1hsruqhu1frp", streamproxy: true);
 
-        public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp") { geostreamproxy = new List<string>() { "ALL" } };
+        public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp") 
+        { 
+            geostreamproxy = new List<string>() { "ALL" },
+            headers = HeadersModel.Init("referer", "https://m.hqporner.com")
+        };
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("kwwsv=22zzz1sruqwuh{1frp");
 
@@ -118,7 +122,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// </summary>
-        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1sz", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
+        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1forxg", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("kwws=22dsl1yrnlqr1wy", streamproxy: true);
 

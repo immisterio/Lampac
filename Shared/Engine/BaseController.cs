@@ -28,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "127";
 
-        public static string minorversion => "6";
+        public static string minorversion => "9";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -305,10 +305,18 @@ namespace Lampac.Engine
         }
         #endregion
 
+
+        #region ContentTo / Dispose
+        public ActionResult ContentTo(string html)
+        {
+            return Content(html, ((html.StartsWith("{") || html.StartsWith("[")) ? "application/json; charset=utf-8" : "text/html; charset=utf-8"));
+        }
+
         public new void Dispose()
         {
             serviceScope?.Dispose();
             base.Dispose();
         }
+        #endregion
     }
 }

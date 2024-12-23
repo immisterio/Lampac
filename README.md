@@ -35,15 +35,15 @@ curl -L -k -s https://lampac.sh/home | bash
 2. BWA - https://bwa.to
 
 # Плагины для Lampa
-1. Все плагины     - "http://IP:9118/on.js"
+1. Все плагины сразу - "http://IP:9118/on.js"
 2. онлайн   - "http://IP:9118/online.js"
 3. xxx      - "http://IP:9118/sisi.js"
 4. DLNA     - "http://IP:9118/dlna.js"
-5. TimeCode - "http://IP:9118/timecode.js"
-6. Tracks   - "http://IP:9118/tracks.js"
+5. Tracks   - "http://IP:9118/tracks.js"
 6. Backup   - "http://IP:9118/backup.js"
-7. TorrServer      - "http://IP:9118/ts.js"
-8. Парсер Jackett  - "IP:9118"
+7. Синхронизация   - "http://IP:9118/sync.js"
+8. TorrServer      - "http://IP:9118/ts.js"
+9. Парсер Jackett  - "IP:9118"
 
 # Плагины для Lampa Lite
 1. онлайн/jackett  - "http://IP:9118/lite.js" 
@@ -63,7 +63,7 @@ curl -L -k -s https://lampac.sh/home | bash
 * Filmix - "http://IP:9118/lite/filmixpro" 
 * KinoPub - "http://IP:9118/lite/kinopubpro" 
 * VoKino - "http://IP:9118/lite/vokinotk" 
-* HDRezka - указать логин и пароль в init.conf
+* HDRezka - "http://IP:9118/lite/rhs/bind" 
 
 # Плагин DLNA.js
 * Просмотр медиа файлов с папки dlna
@@ -72,10 +72,11 @@ curl -L -k -s https://lampac.sh/home | bash
 
 Зажмите кнопку "OK" на выбранном торренте/папке/файле для вызова списка действий
 
-# Плагин Timecode.js
-Синхронизация отметок просмотра между разными устройствами
-* Для синхронизации отметок, все устройства должны быть авторизованы в cub.red под одним аккаунтом, либо на устройствах вместо плагина IP:9118/timecode.js, должен использоваться IP:9118/timecode/js/{uid}, где {uid} это любые символы, либо идентификатор в accsdb, например IP:9118/timecode/js/myhome
+# Плагин Sync.js
+Синхронизация между разными устройствами
+* Для синхронизации все устройства должны быть авторизованы в cub.red под одним аккаунтом, либо на устройствах вместо плагина IP:9118/sync.js, должен использоваться IP:9118/sync/js/{uid}, где {uid} это любые символы, либо идентификатор в accsdb, например IP:9118/sync/js/myhome
 * email или {uid} должен совпадать на устройствах которые вы хотите синхронизовать между собой 
+* Синхронизация куба должна быть отключена
 
 # Плагин Tracks.js
 Заменяет название аудиодорожек и субтитров в плеере

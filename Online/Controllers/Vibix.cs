@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
             if (NoAccessGroup(init, out string error_msg))
@@ -37,18 +37,22 @@ namespace Lampac.Controllers.LITE
                 return Redirect(overridehost);
 
             var proxy = proxyManager.Get();
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             if (data.Value<string>("type") == "movie")
             {
                 #region Фильм
                 string iframe_url = data.Value<string>("iframe_url");
 
-                string memKey = $"vibix:video:{iframe_url}";
+                string memKey = rch.ipkey($"vibix:video:{iframe_url}", proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out JArray playlist))
                 {
-                    string html = await HttpClient.Get(iframe_url, timeoutSeconds: 8, proxy: proxy);
+                    string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) : 
+                                               await HttpClient.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (html == null)
-                        return OnError(proxyManager);
+                        return OnError(rch.enable ? null : proxyManager);
 
                     string file = Regex.Match(html, "file:([^\n\r]+)\\}\\)\\;").Groups[1].Value;
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))

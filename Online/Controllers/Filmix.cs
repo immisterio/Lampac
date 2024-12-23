@@ -24,12 +24,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmixpro")]
         async public Task<ActionResult> Pro()
         {
-            var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=");
+            var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=", useDefaultHeaders: false);
 
             if (token_request == null)
                 return Content($"нет доступа к {AppInit.conf.Filmix.corsHost()}", "text/html; charset=utf-8");
 
-            string html = "1. Откройте <a href='https://filmix.biz/consoles'>https://filmix.biz/consoles</a> <br>";
+            string html = "1. Откройте <a href='https://filmix.my/consoles'>https://filmix.my/consoles</a> <br>";
             html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";
             html += $"<br><br><br>Добавьте в init.conf<br><br>";
             html += "\"Filmix\": {<br>&nbsp;&nbsp;\"token\": \"" + token_request.Value<string>("code") + "\",<br>&nbsp;&nbsp;\"pro\": true<br>}";
@@ -95,9 +95,9 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                token,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), apk_headers.ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), apk_headers, useDefaultHeaders: false) : 
                                           HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: apk_headers, useDefaultHeaders: false),
-               (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers).ToDictionary(k => k.name, v => v.val), useDefaultHeaders: false) : 
+               (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers), useDefaultHeaders: false) : 
                                                  HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : apk_headers, useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },

@@ -12,7 +12,7 @@ namespace Lampac.Controllers.HQporner
     {
         [HttpGet]
         [Route("hqr/vidosik")]
-        async public Task<JsonResult> Index(string uri)
+        async public Task<ActionResult> Index(string uri)
         {
             var init = AppInit.conf.HQporner;
 
@@ -22,20 +22,29 @@ namespace Lampac.Controllers.HQporner
             if (NoAccessGroup(init, out string error_msg))
                 return OnError(error_msg, false);
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("hqr", init);
             var proxy = proxyManager.Get();
 
-            string memKey = $"HQporner:view:{uri}";
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return OnError(error_msg, false);
+
+            string memKey = rch.ipkey($"HQporner:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
                 stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri, 
-                               htmlurl => HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
-                               iframeurl => HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, referer: init.host, headers: httpHeaders(init)));
+                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
+                               iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 
                 if (stream_links == null || stream_links.Count == 0)
-                    return OnError("stream_links", proxyManager);
+                    return OnError("stream_links", rch.enable ? null : proxyManager);
 
-                proxyManager.Success();
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 

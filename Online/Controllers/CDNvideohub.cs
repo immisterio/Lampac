@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                     return ContentTo(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
-                string embed = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
                     return OnError(proxyManager, refresh_proxy: !rch.enable);
 

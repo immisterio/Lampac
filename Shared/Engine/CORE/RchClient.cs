@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Models;
 using System;
 using System.Collections.Concurrent;
@@ -44,6 +45,8 @@ namespace Lampac.Engine.CORE
         }
         #endregion
 
+        HttpContext httpContext;
+
         string ip, connectionId;
 
         bool enableRhub, rhub_fallback;
@@ -54,8 +57,9 @@ namespace Lampac.Engine.CORE
 
         public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy.CurrentProxyIp)}";
 
-        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo)
+        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
         {
+            httpContext = context;
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
             ip = context.Connection.RemoteIpAddress.ToString();
@@ -73,7 +77,7 @@ namespace Lampac.Engine.CORE
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
-                AppInit.conf.rch.keepalive,
+                keepalive = keepalive != null ? keepalive : AppInit.conf.rch.keepalive,
                 result = $"{host}/rch/result",
                 ws = $"{host}/ws",
                 timeout = init.rhub_fallback ? 5 : 8
@@ -105,7 +109,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Headers
-        async public ValueTask<(JObject headers, string currentUrl, string body)> Headers(string url, string data, Dictionary<string, string> headers = null, bool useDefaultHeaders = true)
+        async public ValueTask<(JObject headers, string currentUrl, string body)> Headers(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
         {
             try
             {
@@ -127,9 +131,9 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Get
-        public ValueTask<string> Get(string url, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
+        public ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
 
-        async public ValueTask<T> Get<T>(string url, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
+        async public ValueTask<T> Get<T>(string url, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
@@ -150,9 +154,9 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public ValueTask<string> Post(string url, string data, Dictionary<string, string> headers = null, bool useDefaultHeaders = true) => SendHub(url, data, headers, useDefaultHeaders);
+        public ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) => SendHub(url, data, headers, useDefaultHeaders);
 
-        async public ValueTask<T> Post<T>(string url, string data, Dictionary<string, string> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
+        async public ValueTask<T> Post<T>(string url, string data, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
@@ -173,7 +177,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null, Dictionary<string, string> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
+        async ValueTask<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
         {
             if (hub == null)
                 return null;
@@ -197,8 +201,8 @@ namespace Lampac.Engine.CORE
 
                     foreach (var h in headers)
                     {
-                        if (!send_headers.ContainsKey(h.Key))
-                            send_headers.TryAdd(h.Key, h.Value);
+                        if (!send_headers.ContainsKey(h.name))
+                            send_headers.TryAdd(h.name, h.val);
                     }
                 }
 
@@ -227,12 +231,15 @@ namespace Lampac.Engine.CORE
             if (!enableRhub)
                 return false; // rch не используется
 
+            if (httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+                return true; // заглушка для checksearch
+
             return !clients.Select(i => i.Value.ip).ToList().Contains(ip);
         }
         #endregion
 
         #region IsNotSupport
-        public bool IsNotSupport(string rchtype, string rch_deny, out string rch_msg)
+        public bool IsNotSupport(string rch_deny, out string rch_msg)
         {
             rch_msg = null;
 
@@ -242,15 +249,16 @@ namespace Lampac.Engine.CORE
             if (rhub_fallback)
                 return false; // разрешен возврат на сервер
 
-            if (string.IsNullOrEmpty(rchtype) || rchtype == "web")
+            var info = InfoConnected();
+            if (string.IsNullOrEmpty(info.rchtype))
+                return false; // клиент не в сети
+
+            if (info.rchtype == "web")
                 rch_msg = "На MSX недоступно";
             else
                 rch_msg = "Только на android";
 
-            if (string.IsNullOrEmpty(rchtype))
-                return true;
-
-            return rch_deny.Contains(rchtype);
+            return rch_deny.Contains(info.rchtype);
         }
         #endregion
 

@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string rchtype, string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Redheadsound.Clone();
 
@@ -35,15 +35,15 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport(rchtype, "web", out string rch_error))
+            if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
             var oninvk = new RedheadsoundInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => rch.enable ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => rch.enable ? rch.Post(init.cors(url), data, httpHeaders(init)) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "redheadsound"),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

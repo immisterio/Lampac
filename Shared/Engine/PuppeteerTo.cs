@@ -208,14 +208,13 @@ namespace Shared.Engine
 
         public static void FullDispose()
         {
+            shutdown = true;
             if (browser_keepopen == null)
                 return;
 
-            shutdown = true;
-
             try
             {
-                browser_keepopen.CloseAsync().Wait();
+                browser_keepopen.CloseAsync().Wait(2000);
                 browser_keepopen.Dispose();
             }
             catch { }

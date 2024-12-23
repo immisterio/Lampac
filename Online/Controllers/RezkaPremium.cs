@@ -13,7 +13,6 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using System.Net;
 using System.Management;
-using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -26,7 +25,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.RezkaPrem.Clone();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             var proxyManager = new ProxyManager("rhsprem", init);
             var proxy = proxyManager.Get();
 
@@ -87,8 +86,6 @@ namespace Lampac.Controllers.LITE
                ("User-Agent", requestInfo.UserAgent)
             ));
 
-            var rheaders = headers.ToDictionary(k => k.name, v => v.val);
-
             string country = requestInfo.Country;
 
             if (!rch.enable && country != null)
@@ -104,8 +101,8 @@ namespace Lampac.Controllers.LITE
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 true,
-                ongettourl => rch.enable ? rch.Get(ongettourl, rheaders) : HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers),
-                (url, data) => rch.enable ? rch.Post(url, data, rheaders) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                (url, data) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rhsprem"),
                 requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
@@ -137,7 +134,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    html = "Добавьте в init.conf<br><br>\"RezkaPrem\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"cookie\": \"" + cookie + "\"<br>}";
+                    html = "Добавьте в init.conf<br><br>\"RezkaPrem\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"cookie\": \"" + cookie + "\"<br>},\"Rezka\": {<br>&nbsp;&nbsp;\"enable\": false<br>}";
                 }
             }
 
@@ -154,7 +151,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("disabled");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.enable)
             {
@@ -186,7 +183,7 @@ namespace Lampac.Controllers.LITE
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg ?? "content = null", proxyManager, weblog: oninvk.requestlog);
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, !rch.enable, rjson).Replace("/rezka", "/rhsprem"));
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson).Replace("/rezka", "/rhsprem"));
         }
 
 
@@ -209,7 +206,7 @@ namespace Lampac.Controllers.LITE
             if (oninvk == null)
                 return OnError("authorization error ;(");
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             var cache_root = await InvokeCache<Episodes>($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), null, async res =>
             {
@@ -233,7 +230,7 @@ namespace Lampac.Controllers.LITE
             if (!cache_content.IsSuccess)
                 return OnError(cache_content.ErrorMsg ?? "content = null", weblog: oninvk.requestlog);
 
-            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, !rch.enable, rjson).Replace("/rezka", "/rhsprem"));
+            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson).Replace("/rezka", "/rhsprem"));
         }
         #endregion
 
@@ -255,7 +252,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), proxyManager, async res =>
             {

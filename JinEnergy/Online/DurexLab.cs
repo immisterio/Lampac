@@ -14,7 +14,7 @@ namespace JinEnergy.Online
     public class DurexLabController : BaseController
     {
         static string domain = Encoding.UTF8.GetString(Convert.FromBase64String("bW92aWVsYWIub25l"));
-        static LumexSettings init = new LumexSettings(null, null, "oxph{1sz", Encoding.UTF8.GetString(Convert.FromBase64String("Q1dmS1hMYzFhaklk")));
+        static LumexSettings init = new LumexSettings(null, null, "oxph{1vlwh", Encoding.UTF8.GetString(Convert.FromBase64String("Q1dmS1hMYzFhaklk")));
 
         [JSInvokable("lite/durexlab")]
         async public static ValueTask<string> Index(string args)

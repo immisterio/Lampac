@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string rchtype, string title, string uri, int s, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst.Clone();
             if (!init.enable || string.IsNullOrWhiteSpace(title))
@@ -32,9 +32,9 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
-            if (rch.IsNotSupport(rchtype, "cors,web", out string rch_error))
+            if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -142,9 +142,8 @@ namespace Lampac.Controllers.LITE
                     string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
 
                     string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
-                    string streamlink = rch.enable ? null : $"{link}&play=true";
 
-                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: streamlink, voice_name: Regex.Unescape(voice_name));
+                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: $"{link}&play=true", voice_name: Regex.Unescape(voice_name));
                 }
 
                 return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -166,7 +165,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animebesst:video:{uri}";
             if (!hybridCache.TryGetValue(memKey, out string hls))
             {
-                var rch = new RchClient(HttpContext, host, init, requestInfo);
+                var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -174,7 +173,7 @@ namespace Lampac.Controllers.LITE
                 string iframe;
                 if (rch.enable)
                 {
-                    iframe = await rch.Get(init.cors($"https://{uri}"), headers: new Dictionary<string, string>() { ["referer"] = init.host });
+                    iframe = await rch.Get(init.cors($"https://{uri}"), headers: httpHeaders(init));
                 }
                 else
                 {
