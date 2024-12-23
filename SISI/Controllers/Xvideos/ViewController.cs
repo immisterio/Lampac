@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds/vidosik")]
         async public Task<JsonResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Xvideos;
+            var init = AppInit.conf.Xvideos.Clone();
 
             if (!init.enable)
                 return OnError("disable");

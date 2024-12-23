@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vibix")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Vibix;
+            var init = AppInit.conf.Vibix.Clone();
             if (!init.enable || string.IsNullOrEmpty(init.token))
                 return OnError();
 

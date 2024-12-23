@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = AppInit.conf.Chaturbate;
+            var init = AppInit.conf.Chaturbate.Clone();
 
             if (!init.enable)
                 return OnError("disable");

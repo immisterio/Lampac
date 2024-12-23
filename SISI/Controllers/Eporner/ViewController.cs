@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Eporner
         [Route("epr/vidosik")]
         async public Task<JsonResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Eporner;
+            var init = AppInit.conf.Eporner.Clone();
 
             if (!init.enable)
                 return OnError("disable");

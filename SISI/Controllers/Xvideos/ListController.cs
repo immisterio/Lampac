@@ -18,7 +18,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Xvideos;
+            var init = AppInit.conf.Xvideos.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml/stars")]
         async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
-            var init = AppInit.conf.Xvideos;
+            var init = AppInit.conf.Xvideos.Clone();
 
             if (!init.enable)
                 return OnError("disable");

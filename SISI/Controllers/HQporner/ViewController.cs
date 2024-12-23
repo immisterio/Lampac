@@ -14,7 +14,7 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = AppInit.conf.HQporner;
+            var init = AppInit.conf.HQporner.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -26,8 +26,8 @@ namespace Lampac.Controllers.HQporner
             var proxyManager = new ProxyManager("hqr", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
-                return OnError(error_msg, false);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error, false);
 
             string memKey = rch.ipkey($"HQporner:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))

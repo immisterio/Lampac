@@ -13,26 +13,11 @@ namespace Lampac.Controllers.LITE
 {
     public class VideoDB : BaseOnlineController
     {
-        List<HeadersModel> baseheader = HeadersModel.Init(
-            ("cache-control", "no-cache"),
-            ("dnt", "1"),
-            ("origin", "https://kinoplay2.site"),
-            ("pragma", "no-cache"),
-            ("priority", "u=1, i"),
-            ("referer", "https://kinoplay2.site/"),
-            ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
-            ("sec-ch-ua-mobile", "?0"),
-            ("sec-ch-ua-platform", "\"Windows\""),
-            ("sec-fetch-dest", "empty"),
-            ("sec-fetch-mode", "cors"),
-            ("sec-fetch-site", "cross-site")
-        );
-
         [HttpGet]
         [Route("lite/videodb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.VideoDB;
+            var init = AppInit.conf.VideoDB.Clone();
 
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
@@ -54,7 +39,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init, baseheader)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init, baseheader), proxy: proxy, httpversion: 2),
+               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy, httpversion: 2),
                streamfile => streamfile
             );
 
@@ -75,7 +60,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videodb/manifest.m3u8")]
         async public Task<ActionResult> Manifest(string link)
         {
-            var init = AppInit.conf.VideoDB;
+            var init = AppInit.conf.VideoDB.Clone();
 
             if (!init.enable || string.IsNullOrEmpty(link))
                 return OnError();
@@ -95,12 +80,12 @@ namespace Lampac.Controllers.LITE
 
                 if (rch.enable)
                 {
-                    var res = await rch.Headers(link, null, httpHeaders(init, baseheader));
+                    var res = await rch.Headers(link, null, httpHeaders(init));
                     location = res.currentUrl;
                 }
                 else
                 {
-                    location = await HttpClient.GetLocation(link, httpversion: 2, proxy: proxy, headers: httpHeaders(init, baseheader));
+                    location = await HttpClient.GetLocation(link, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
                 }
 
                 if (string.IsNullOrEmpty(location) || link == location)

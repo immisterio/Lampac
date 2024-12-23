@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = AppInit.conf.Tizam;
+            var init = AppInit.conf.Tizam.Clone();
 
             if (!init.enable)
                 return OnError("disable");

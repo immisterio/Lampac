@@ -45,6 +45,8 @@ namespace Lampac.Engine.CORE
         }
         #endregion
 
+        BaseSettings init;
+
         HttpContext httpContext;
 
         string ip, connectionId;
@@ -59,6 +61,7 @@ namespace Lampac.Engine.CORE
 
         public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
         {
+            this.init = init;
             httpContext = context;
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
@@ -246,12 +249,22 @@ namespace Lampac.Engine.CORE
             if (!enableRhub)
                 return false; // rch не используется
 
-            if (rhub_fallback)
-                return false; // разрешен возврат на сервер
+            if (httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+                return false; // заглушка для checksearch
 
             var info = InfoConnected();
             if (string.IsNullOrEmpty(info.rchtype))
                 return false; // клиент не в сети
+
+            // разрешен возврат на сервер
+            if (rhub_fallback)
+            {
+                if (rch_deny.Contains(info.rchtype)) {
+                    enableRhub = false;
+                    init.rhub = false;
+                }
+                return false;
+            }
 
             if (info.rchtype == "web")
                 rch_msg = "На MSX недоступно";

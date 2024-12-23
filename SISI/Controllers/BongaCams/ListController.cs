@@ -5,7 +5,6 @@ using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
-using Shared.Model.Online;
 using SISI;
 
 namespace Lampac.Controllers.BongaCams
@@ -16,7 +15,7 @@ namespace Lampac.Controllers.BongaCams
         [Route("bgs")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = AppInit.conf.BongaCams;
+            var init = AppInit.conf.BongaCams.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -36,34 +35,33 @@ namespace Lampac.Controllers.BongaCams
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
             {
+                var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
-                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
-                        ("dnt", "1"),
-                        ("cache-control", "no-cache"),
-                        ("pragma", "no-cache"),
-                        ("priority", "u=1, i"),
-                        ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
-                        ("sec-ch-ua-mobile", "?0"),
-                        ("sec-ch-ua-platform", "\"Windows\""),
-                        ("referer", init.host),
-                        ("sec-fetch-dest", "empty"),
-                        ("sec-fetch-mode", "cors"),
-                        ("sec-fetch-site", "same-origin"),
-                        ("x-requested-with", "XMLHttpRequest")
-                    )));
+                    if (rch.enable)
+                        return rch.Get(init.cors(url), httpHeaders(init));
+
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init));
                 });
 
                 if (html == null)
-                    return OnError("html", proxyManager);
+                    return OnError("html", rch.enable ? null : proxyManager);
 
                 cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);
                 cache.total_pages = total_pages;
 
                 if (cache.playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1);
+                    return OnError("playlists", rch.enable ? null : proxyManager, pg > 1);
 
-                proxyManager.Success();
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, cache, cacheTime(5, init: init));
             }
 

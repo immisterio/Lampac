@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg/vidosik")]
         async public Task<JsonResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Spankbang;
+            var init = AppInit.conf.Spankbang.Clone();
 
             if (!init.enable)
                 return OnError("disable");

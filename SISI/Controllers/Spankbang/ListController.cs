@@ -31,7 +31,7 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = AppInit.conf.Spankbang;
+            var init = AppInit.conf.Spankbang.Clone();
 
             if (!init.enable)
                 return OnError("disable");

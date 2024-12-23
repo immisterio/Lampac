@@ -18,7 +18,7 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmrsml")]
         async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
-            var init = AppInit.conf.Xhamster;
+            var init = AppInit.conf.Xhamster.Clone();
 
             if (!init.enable)
                 return OnError("disable");

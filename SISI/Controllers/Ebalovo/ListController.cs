@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Ebalovo;
+            var init = AppInit.conf.Ebalovo.Clone();
 
             if (!init.enable)
                 return OnError("disable");

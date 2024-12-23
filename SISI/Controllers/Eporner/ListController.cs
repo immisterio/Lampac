@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Eporner
         [Route("epr")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Eporner;
+            var init = AppInit.conf.Eporner.Clone();
 
             if (!init.enable)
                 return OnError("disable");

@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmr/vidosik")]
         async public Task<JsonResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Xhamster;
+            var init = AppInit.conf.Xhamster.Clone();
 
             if (!init.enable)
                 return OnError("disable");

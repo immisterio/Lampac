@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
-            var init = AppInit.conf.Xnxx;
+            var init = AppInit.conf.Xnxx.Clone();
 
             if (!init.enable)
                 return OnError("disable");

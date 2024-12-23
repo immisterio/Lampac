@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu/potok")]
         async public Task<JsonResult> Index(string baba)
         {
-            var init = AppInit.conf.Chaturbate;
+            var init = AppInit.conf.Chaturbate.Clone();
 
             if (!init.enable)
                 return OnError("disable");

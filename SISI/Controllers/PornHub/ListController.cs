@@ -38,7 +38,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubsml")]
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
-            var init = AppInit.conf.PornHub;
+            var init = AppInit.conf.PornHub.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -79,7 +79,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
-            var init = AppInit.conf.PornHubPremium;
+            var init = AppInit.conf.PornHubPremium.Clone();
 
             if (!init.enable)
                 return OnError("disable");

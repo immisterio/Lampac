@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo/vidosik")]
         async public Task<JsonResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Ebalovo;
+            var init = AppInit.conf.Ebalovo.Clone();
 
             if (!init.enable)
                 return OnError("disable");

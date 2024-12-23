@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx/vidosik")]
         async public Task<JsonResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Xnxx;
+            var init = AppInit.conf.Xnxx.Clone();
 
             if (!init.enable)
                 return OnError("disable");

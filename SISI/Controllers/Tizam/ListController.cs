@@ -17,7 +17,7 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
-            var init = AppInit.conf.Tizam;
+            var init = AppInit.conf.Tizam.Clone();
 
             if (!init.enable)
                 return OnError("disable");

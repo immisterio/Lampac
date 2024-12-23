@@ -29,7 +29,23 @@ namespace Shared.Model
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("kwwsv=22hh1erqjdfdpv1frp");
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("kwwsv=22hh1erqjdfdpv1frp") 
+        {
+            headers = HeadersModel.Init(
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("referer", "https://ee.bongacams.com"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-origin"),
+                ("x-requested-with", "XMLHttpRequest")
+            )
+        };
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("kwwsv=22fkdwxuedwh1frp");
 
@@ -99,7 +115,24 @@ namespace Shared.Model
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9kNmRkMzg3ZS5vYnJ1dC5zaG93L2VtYmVkL2NqTS9jb250ZW50L2N6TndnVE8=
         /// </summary>
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") 
+        { 
+            geostreamproxy = new List<string>() { "ALL" },
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("origin", "https://kinoplay2.site"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("referer", "https://kinoplay2.site/"),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            )
+        };
 
         /// <summary>
         /// aHR0cHM6Ly9jb2xkZmlsbS5pbmsv

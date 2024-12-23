@@ -16,8 +16,7 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Porntrex;
-
+            var init = AppInit.conf.Porntrex.Clone();
             if (!init.enable)
                 return OnError("disable");
 

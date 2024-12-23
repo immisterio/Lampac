@@ -14,7 +14,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phub/vidosik")]
         async public Task<JsonResult> Index(string vkey, bool related)
         {
-            var init = AppInit.conf.PornHub;
+            var init = AppInit.conf.PornHub.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem/vidosik")]
         async public Task<JsonResult> Prem(string vkey, bool related)
         {
-            var init = AppInit.conf.PornHubPremium;
+            var init = AppInit.conf.PornHubPremium.Clone();
 
             if (!init.enable)
                 return OnError("disable");
