@@ -250,16 +250,13 @@ namespace Lampac.Engine.CORE
                 return false; // разрешен возврат на сервер
 
             var info = InfoConnected();
-
             if (string.IsNullOrEmpty(info.rchtype))
-                rch_msg = "Не удалось определить rchtype";
-            else if (info.rchtype == "web")
+                return false; // клиент не в сети
+
+            if (info.rchtype == "web")
                 rch_msg = "На MSX недоступно";
             else
                 rch_msg = "Только на android";
-
-            if (string.IsNullOrEmpty(info.rchtype))
-                return true;
 
             return rch_deny.Contains(info.rchtype);
         }
