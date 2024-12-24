@@ -102,11 +102,11 @@ namespace JinEnergy
                             if (IsDefaultConf && geo == "RU")
                             {
                                 conf.BongaCams.enable = false;
-                                conf.Xvideos.overridehost = "https://bwa-cloud.apn.monster/xds";
-                                conf.Xnxx.overridehost = "https://bwa-cloud.apn.monster/xnx";
-                                conf.Ebalovo.overridehost = "https://bwa-cloud.apn.monster/elo";
-                                conf.HQporner.overridehost = "https://bwa-cloud.apn.monster/hqr";
-                                conf.Spankbang.overridehost = "https://bwa-cloud.apn.monster/sbg";
+                                conf.Xvideos.overridehost = "https://durex.monster/xds";
+                                conf.Xnxx.overridehost = "https://durex.monster/xnx";
+                                conf.Ebalovo.overridehost = "https://durex.monster/elo";
+                                conf.HQporner.overridehost = "https://durex.monster/hqr";
+                                conf.Spankbang.overridehost = "https://durex.monster/sbg";
                                 conf.Xhamster.corseu = true;
                                 conf.Porntrex.corseu = true;
                                 conf.Eporner.corseu = true;
