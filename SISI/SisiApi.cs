@@ -151,7 +151,7 @@ namespace SISI
             send("xnxx.com", conf.Xnxx, "xnx");
             send("tizam.pw", conf.Tizam, "tizam");
             send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
-            send("chaturbate.com", conf.Chaturbate, "chu");
+            send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
 
             if (conf.sisi.xdb)

@@ -29,7 +29,7 @@ namespace Lampac.Controllers.HQporner
             string memKey = $"hqr:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("hqr", init);
+                reset: var proxyManager = new ProxyManager("hqr", init);
                 var proxy = proxyManager.Get();
 
                 var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -43,13 +43,15 @@ namespace Lampac.Controllers.HQporner
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                if (html == null)
-                    return OnError("html", rch.enable ? null : proxyManager, string.IsNullOrEmpty(search));
-
                 playlists = HQpornerTo.Playlist($"{host}/hqr/vidosik", html);
 
                 if (playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
+                    return OnError("playlists", proxyManager, !rch.enable && pg > 1 && string.IsNullOrEmpty(search));
+                }
 
                 if (!rch.enable)
                     proxyManager.Success();

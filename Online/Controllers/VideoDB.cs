@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Online;
-using System.Collections.Generic;
-using Shared.Model.Online;
 using Shared.Engine.CORE;
 using Shared.Model.Online.VideoDB;
 using Microsoft.Extensions.Caching.Memory;
@@ -28,7 +26,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var proxyManager = new ProxyManager("videodb", init);
+            reset: var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
@@ -51,6 +49,9 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(kinopoisk_id);
             });
 
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
             return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson, rhub: rch.enable), origsource: origsource);
         }
 
@@ -68,7 +69,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
@@ -89,12 +90,18 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (string.IsNullOrEmpty(location) || link == location)
+                {
+                    if (init.rhub && init.rhub_fallback) {
+                        init.rhub = false;
+                        goto reset;
+                    }
                     return OnError();
+                }
 
                 if (!rch.enable)
                     proxyManager.Success();
 
-                memoryCache.Set(memKey, location, cacheTime(20, init: init));
+                memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
             string hls = HostStreamProxy(init, location, proxy: proxy, plugin: "videodb");

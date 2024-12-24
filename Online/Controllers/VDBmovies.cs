@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -41,7 +41,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -76,6 +76,9 @@ namespace Lampac.Controllers.LITE
 
                 return oninvk.Embed(oninvk.DecodeEval(file));
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, rjson: rjson), origsource: origsource);
         }

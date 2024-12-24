@@ -254,7 +254,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("rhsprem", init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
-            var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

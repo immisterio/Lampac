@@ -250,8 +250,11 @@ namespace Lampac.Engine
             return val;
         }
 
-        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null)
+        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null, int rhub = -1)
         {
+            if (init != null && init.rhub && rhub != -1)
+                return TimeSpan.FromMinutes(rhub);
+
             int ctime = AppInit.conf.mikrotik ? mikrotik : AppInit.conf.multiaccess ? (init != null && init.cache_time > 0 ? init.cache_time : multiaccess) : home;
             if (ctime > multiaccess)
                 ctime = multiaccess;

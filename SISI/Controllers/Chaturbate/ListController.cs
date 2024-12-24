@@ -35,16 +35,30 @@ namespace Lampac.Controllers.Chaturbate
                 var proxyManager = new ProxyManager("chu", init);
                 var proxy = proxyManager.Get();
 
-                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
-                if (html == null)
-                    return OnError("html", proxyManager);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
 
                 playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html);
 
                 if (playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", proxyManager, !rch.enable && pg > 1);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, playlists, cacheTime(5, init: init));
             }
 

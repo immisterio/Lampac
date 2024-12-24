@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Chaturbate
     {
         [HttpGet]
         [Route("chu/potok")]
-        async public Task<JsonResult> Index(string baba)
+        async public Task<ActionResult> Index(string baba)
         {
             var init = AppInit.conf.Chaturbate.Clone();
 
@@ -28,11 +28,28 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"chaturbate:stream:{baba}";
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
             {
-                stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
-                if (stream_links == null || stream_links.Count == 0)
-                    return OnError("stream_links", proxyManager);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
 
-                proxyManager.Success();
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
+
+                if (stream_links == null || stream_links.Count == 0)
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
+                    return OnError("stream_links", proxyManager, !init.rhub);
+                }
+
+                if (!init.rhub)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, stream_links, cacheTime(10, init: init));
             }
 

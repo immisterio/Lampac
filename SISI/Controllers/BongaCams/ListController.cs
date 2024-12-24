@@ -35,7 +35,7 @@ namespace Lampac.Controllers.BongaCams
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
             {
-                var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error, false);
 
@@ -50,14 +50,16 @@ namespace Lampac.Controllers.BongaCams
                     return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init));
                 });
 
-                if (html == null)
-                    return OnError("html", rch.enable ? null : proxyManager);
-
                 cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);
                 cache.total_pages = total_pages;
 
                 if (cache.playlists.Count == 0)
-                    return OnError("playlists", rch.enable ? null : proxyManager, pg > 1);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
+                    return OnError("playlists", proxyManager, !rch.enable && pg > 1);
+                }
 
                 if (!rch.enable)
                     proxyManager.Success();

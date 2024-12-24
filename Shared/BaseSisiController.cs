@@ -8,6 +8,7 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
+using Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -120,6 +121,18 @@ namespace SISI
                     json = pl.json
                 })
             });
+        }
+
+
+        public bool IsRhubFallback(BaseSettings init)
+        {
+            if (init.rhub && init.rhub_fallback)
+            {
+                init.rhub = false;
+                return true;
+            }
+
+            return false;
         }
     }
 }

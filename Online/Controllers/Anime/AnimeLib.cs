@@ -7,7 +7,6 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
-using Shared.Model.Online;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -16,21 +15,6 @@ namespace Lampac.Controllers.LITE
     public class AnimeLib : BaseOnlineController
     {
         ProxyManager proxyManager = new ProxyManager("animelib", AppInit.conf.AnimeLib);
-
-        List<HeadersModel> baseHeaders = HeadersModel.Init(
-            ("cache-control", "no-cache"),
-            ("dnt", "1"),
-            ("pragma", "no-cache"),
-            ("priority", "u=0, i"),
-            ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not ? A_Brand\";v=\"99\""),
-            ("sec-ch-ua-mobile", "?0"),
-            ("sec-ch-ua-platform", "\"Windows\""),
-            ("sec-fetch-dest", "document"),
-            ("sec-fetch-mode", "navigate"),
-            ("sec-fetch-site", "none"),
-            ("sec-fetch-user", "?1"),
-            ("upgrade-insecure-requests", "1")
-        );
 
         [HttpGet]
         [Route("lite/animelib")]
@@ -69,8 +53,8 @@ namespace Lampac.Controllers.LITE
                             return null;
 
                         string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
-                        var result = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) :
-                                                  await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                        var result = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
+                                                  await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
                         if (result == null || !result.ContainsKey("data"))
                             return null;
@@ -136,8 +120,8 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) : 
-                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) : 
+                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
                     if (root == null || !root.ContainsKey("data"))
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -162,8 +146,8 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) : 
-                                            await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) : 
+                                            await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
                     if (root == null || !root.ContainsKey("data"))
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -236,8 +220,8 @@ namespace Lampac.Controllers.LITE
 
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
 
-                var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init, baseHeaders)) :
-                                        await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init, baseHeaders));
+                var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
+                                        await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
                 if (root == null || !root.ContainsKey("data"))
                     return OnError(proxyManager, refresh_proxy: !rch.enable);

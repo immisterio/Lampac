@@ -101,13 +101,18 @@ namespace Shared.Model
 
         public PidTorSettings PidTor { get; set; } = new PidTorSettings() { enable = true, redapi = "http://redapi.cfhttp.top", min_sid = 15 };
 
-        public FilmixSettings Filmix { get; set; } = new FilmixSettings("kwws=22ilopl{dss1f|rx");
+        public FilmixSettings Filmix { get; set; } = new FilmixSettings("kwws=22ilopl{dss1f|rx") 
+        {
+            headers = HeadersModel.Init(
+                ("Accept-Encoding", "gzip")
+            )
+        };
 
         public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("kwwsv=22dsl1ilopl{1wy", enable: false);
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("kwws=22819418914;2sduwqhubdsl", enable: false);
 
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("kwwsv=22}hwil{1rqolqh") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("kwwsv=22}hw0iol{1rqolqh") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
@@ -137,7 +142,13 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9jb2xkZmlsbS5pbmsv
         /// </summary>
-        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("kwwsv=22frogfgq1{|}");
+        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("kwwsv=22frogfgq1{|}") 
+        {
+            headers = HeadersModel.Init(
+                ("DNT", "1"),
+                ("Upgrade-Insecure-Requests", "1")
+            )
+        };
 
         /// <summary>
         /// a2lub2dvLm1lZGlh
@@ -184,7 +195,23 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph");
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph") 
+        {
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not ? A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            )
+        };
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true, enable: false);
 
