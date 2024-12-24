@@ -20,6 +20,11 @@ namespace Lampac.Engine
         #region Rch
         public void RchRegistry(string json)
         {
+            if (!AppInit.conf.rch.enable) {
+                Context.Abort();
+                return;
+            }
+            
             JObject job = null;
 
             try
@@ -36,8 +41,10 @@ namespace Lampac.Engine
         /// </summary>
         public void Registry(string type)
         {
-            if (string.IsNullOrEmpty(type))
+            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(type)) {
+                Context.Abort();
                 return;
+            }
 
             switch (type)
             {
@@ -71,7 +78,8 @@ namespace Lampac.Engine
             if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 1_000000)
                 return;
 
-            hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin);
+            if (weblog_clients.Count > 0)
+                hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin);
         }
         #endregion
 
@@ -93,7 +101,9 @@ namespace Lampac.Engine
 
             try
             {
-                await hubClients.Clients(event_clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId).Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
+                var clients = event_clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId);
+                if (clients.Any())
+                    await hubClients.Clients(clients.Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
             }
             catch { }
         }

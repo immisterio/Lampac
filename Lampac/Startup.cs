@@ -87,7 +87,10 @@ namespace Lampac
                 });
             }
 
-            services.AddSignalR();
+            services.AddSignalR(o =>
+            {
+                o.EnableDetailedErrors = true;
+            });
 
             #region mvcBuilder
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
