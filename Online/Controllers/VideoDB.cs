@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
             reset: var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? 0 : -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial  ? -1 : 0);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 

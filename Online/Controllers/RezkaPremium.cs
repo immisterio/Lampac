@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("disabled");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? 0 : -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
 
             if (rch.enable)
             {
@@ -252,7 +252,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? 0 : -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
             {

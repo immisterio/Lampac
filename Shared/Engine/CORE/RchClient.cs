@@ -77,10 +77,14 @@ namespace Lampac.Engine.CORE
                 }
             }
 
+            int kplv = AppInit.conf.rch.keepalive;
+            if (kplv != -1 && keepalive != null)
+                kplv = keepalive == -1 ? 36000 : (int)keepalive;
+
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
-                keepalive = keepalive != null ? keepalive : AppInit.conf.rch.keepalive,
+                keepalive = kplv,
                 result = $"{host}/rch/result",
                 ws = $"{host}/ws",
                 timeout = init.rhub_fallback ? 5 : 8
