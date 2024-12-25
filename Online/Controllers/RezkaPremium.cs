@@ -144,14 +144,14 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
             var init = AppInit.conf.RezkaPrem.Clone();
             if (!init.enable || init.rip)
                 return OnError("disabled");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? 0 : -1);
 
             if (rch.enable)
             {
@@ -252,7 +252,7 @@ namespace Lampac.Controllers.LITE
                 return OnError("authorization error ;(");
 
             var proxyManager = new ProxyManager("rhsprem", init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? 0 : -1);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
             {

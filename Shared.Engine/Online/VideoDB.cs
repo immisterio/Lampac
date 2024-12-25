@@ -237,7 +237,7 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
+                                streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?serial=true&link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)

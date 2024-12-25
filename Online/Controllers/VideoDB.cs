@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
             var init = AppInit.conf.VideoDB.Clone();
 
@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
             reset: var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? 0 : -1);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/videodb/manifest")]
         [Route("lite/videodb/manifest.m3u8")]
-        async public Task<ActionResult> Manifest(string link)
+        async public Task<ActionResult> Manifest(string link, bool serial)
         {
             var init = AppInit.conf.VideoDB.Clone();
 
@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial  ? -1 : 0);
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 

@@ -90,6 +90,7 @@ namespace Lampac
             services.AddSignalR(o =>
             {
                 o.EnableDetailedErrors = true;
+                o.MaximumParallelInvocationsPerClient = 5;
             });
 
             #region mvcBuilder
