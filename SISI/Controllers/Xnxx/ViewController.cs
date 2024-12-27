@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Xnxx
     {
         [HttpGet]
         [Route("xnx/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             var init = AppInit.conf.Xnxx.Clone();
 
@@ -28,12 +28,28 @@ namespace Lampac.Controllers.Xnxx
             string memKey = $"xnxx:view:{uri}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                    return OnError("stream_links", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("stream_links", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 

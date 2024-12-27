@@ -24,7 +24,7 @@ namespace Shared.Model
 
         public SisiConf sisi { get; set; } = new SisiConf()
         {
-            component = "sisi", iconame = "",
+            component = "sisi", iconame = "", push_all = true,
             heightPicture = 240, rsize = true, rsize_disable = new string[] { "bgs", "chu" },
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
@@ -61,21 +61,60 @@ namespace Shared.Model
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("kwwsv=22zzz1sruqwuh{1frp");
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("kwwsv=22ux1vsdqnedqj1frp");
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("kwwsv=22ux1vsdqnedqj1frp") 
+        {
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("sec-ch-ua", "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
+            )
+        };
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("kwwsv=22ux1{kdpvwhu1frp");
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("kwwsv=22zzz1{q{{1frp");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("kwwsv=22jr1wl}dp1lqir");
+        public SisiSettings Tizam { get; set; } = new SisiSettings("kwwsv=22lq1wl}dp1lqir");
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("kwwsv=22zzz1{ylghrv1frp");
 
         public SisiSettings XvideosRED { get; set; } = new SisiSettings("kwwsv=22zzz1{ylghrv1uhg", enable: false);
 
-        public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp");
+        public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp") 
+        {
+            headers = HeadersModel.Init(
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1"),
+                ("cookie", "platform=pc; bs=ukbqk2g03joiqzu68gitadhx5bhkm48j; ss=250837987735652383; fg_0d2ec4cbd943df07ec161982a603817e=56239.100000; atatusScript=hide; _gid=GA1.2.309162272.1686472069; d_fs=1; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uid=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; accessAgeDisclaimerPH=1; cookiesBannerSeen=1; _gat=1; __s=64858645-42FE722901BBA6E6-125476E1; __l=64858645-42FE722901BBA6E6-125476E1; hasVisited=1; fg_f916a4d27adf4fc066cd2d778b4d388e=78731.100000; fg_fa3f0973fd973fca3dfabc86790b408b=12606.100000; _ga_B39RFFWGYY=GS1.1.1686472069.1.1.1686472268.0.0.0; _ga=GA1.1.1515398043.1686472069")
+            )
+        };
 
-        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false);
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false) 
+        {
+            headers = HeadersModel.Init(
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            )
+        };
 
 
 

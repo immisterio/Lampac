@@ -53,7 +53,7 @@ namespace Lampac.Controllers.Chaturbate
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && pg > 1);
+                    return OnError("playlists", proxyManager, !rch.enable);
                 }
 
                 if (!rch.enable)

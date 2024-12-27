@@ -29,17 +29,30 @@ namespace Lampac.Controllers.Tizam
 
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
-                string html = await HttpClient.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
-                if (html == null)
-                    return OnError("html", proxyManager);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
 
-                location = Regex.Match(html, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string html = rch.enable ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init)) : 
+                                           await HttpClient.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                
+                location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(location))
-                    return OnError("location", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, location, cacheTime(360, init: init));
+                    return OnError("location", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
+                hybridCache.Set(memKey, location, cacheTime(240, init: init));
             }
 
             return Redirect(HostStreamProxy(init, location, proxy: proxy));

@@ -29,10 +29,10 @@ namespace Lampac.Controllers.HQporner
             string memKey = $"hqr:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                reset: var proxyManager = new ProxyManager("hqr", init);
+                var proxyManager = new ProxyManager("hqr", init);
                 var proxy = proxyManager.Get();
 
-                var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error, false);
 
@@ -50,7 +50,7 @@ namespace Lampac.Controllers.HQporner
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && pg > 1 && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)

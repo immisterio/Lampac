@@ -29,12 +29,19 @@ namespace Lampac.Controllers.Eporner
             var proxyManager = new ProxyManager("epr", init);
             var proxy = proxyManager.Get();
 
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error, false);
+
             pg += 1;
             var cache = await InvokeCache<List<PlaylistItem>>($"epr:{search}:{sort}:{c}:{pg}", cacheTime(10, init: init), proxyManager, async res => 
             {
-                string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
-                if (html == null)
-                    return res.Fail("html");
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => 
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
 
                 var playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);
 
@@ -45,7 +52,15 @@ namespace Lampac.Controllers.Eporner
             });
 
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, proxyManager, pg > 1 && string.IsNullOrEmpty(search));
+            {
+                if (cache.ErrorMsg == "playlists" && IsRhubFallback(init))
+                    goto reset;
+
+                if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\":true,"))
+                    return ContentTo(cache.ErrorMsg);
+
+                return OnError(cache.ErrorMsg, proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+            }
 
             return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: "epr");
         }

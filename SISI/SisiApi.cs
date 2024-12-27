@@ -40,6 +40,7 @@ namespace SISI
                 file = file.Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
             }
 
+            file = file.Replace("{push_all}", init.push_all.ToString().ToLower());
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
@@ -138,18 +139,18 @@ namespace SISI
             #endregion
 
 
-            send("pornhubpremium.com", conf.PornHubPremium, "phubprem");
-            send("pornhub.com", conf.PornHub, "phub");
-            send("xvideos.com", conf.Xvideos, "xds");
-            send("xhamster.com", conf.Xhamster, "xmr");
-            send("ebalovo.porn", conf.Ebalovo, "elo");
+            send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
+            send("pornhub.com", conf.PornHub, "phub", "apk,cors");
+            send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
+            send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors"); // !rhub - elo/vidosik
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
             send("spankbang.com", conf.Spankbang, "sbg");
-            send("eporner.com", conf.Eporner, "epr");
-            send("porntrex.com", conf.Porntrex, "ptx");
-            send("xdsred", conf.XvideosRED, "xdsred");
-            send("xnxx.com", conf.Xnxx, "xnx");
-            send("tizam.pw", conf.Tizam, "tizam");
+            send("eporner.com", conf.Eporner, "epr", "apk,cors");
+            send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
+            send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
+            send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
+            send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
             send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 

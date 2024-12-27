@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Spankbang
     {
         [HttpGet]
         [Route("sbg/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             var init = AppInit.conf.Spankbang.Clone();
 
@@ -31,13 +31,25 @@ namespace Lampac.Controllers.Spankbang
 
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await SpankbangTo.StreamLinks($"{host}/sbg/vidosik", init.corsHost(), uri, 
-                               url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init, ListController.headers)));
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                stream_links = await SpankbangTo.StreamLinks($"{host}/sbg/vidosik", init.corsHost(), uri, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                    return OnError("stream_links", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("stream_links", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 
