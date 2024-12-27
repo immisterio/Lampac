@@ -16,7 +16,7 @@ namespace Shared.Model
 
         public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
-        public ApnConf apn { get; set; } = new ApnConf() { host = "https://apn.watch", secure = "none" };
+        public ApnConf apn { get; set; } = new ApnConf() { host = "http://apn.cfhttp.top", secure = "none" };
 
         public static bool IsDefaultApnOrCors(string? apn) => apn != null && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
 

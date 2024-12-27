@@ -161,6 +161,7 @@ namespace Lampac
 
                             if (!result.Success)
                             {
+                                Console.WriteLine($"\nError: { mod.dll}");
                                 foreach (var diagnostic in result.Diagnostics)
                                     Console.WriteLine(diagnostic);
                             }
