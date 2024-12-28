@@ -50,7 +50,7 @@ namespace Lampac.Controllers.PornHub
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
                 );
 
-                cache.total_pages = PornHubTo.Pages(html);
+                cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
                 cache.playlists = PornHubTo.Playlist($"{host}/phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
 
                 if (cache.playlists.Count == 0)
