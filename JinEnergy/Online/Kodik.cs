@@ -48,7 +48,7 @@ namespace JinEnergy.Online
                 if (string.IsNullOrEmpty(arg.title))
                     return EmptyError("title");
 
-                var res = await InvokeCache(arg.id, $"kodik:search:{arg.title}", () => oninvk.Embed(arg.title, null));
+                var res = await InvokeCache(arg.id, $"kodik:search:{arg.title}", () => oninvk.Embed(arg.title, null, arg.clarification));
                 if (res?.result == null || res.result.Count == 0)
                     return EmptyError("content");
 

@@ -61,27 +61,32 @@ namespace Lampac.Controllers.LITE
 
             if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
-                if (string.IsNullOrEmpty(title ?? original_title))
-                    return OnError();
-
                 EmbedModel res = null;
 
-                //if (clarification == 1)
+                if (clarification == 1)
                 {
-                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: init), () => oninvk.Embed(title, null), proxyManager);
+                    if (string.IsNullOrEmpty(title))
+                        return OnError();
+
+                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: init), () => oninvk.Embed(title, null, clarification), proxyManager);
                     if (res?.result == null || res.result.Count == 0)
                         return OnError();
                 }
-                //else
-                //{
-                //    res = await InvokeCache($"kodik:search:{original_title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title: null, original_title), proxyManager);
-                //    if (res?.result == null || res.result.Count == 0)
-                //    {
-                //        res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(title, null), proxyManager);
-                //        if (res?.result == null || res.result.Count == 0)
-                //            return OnError();
-                //    }
-                //}
+                else
+                {
+                    if (string.IsNullOrEmpty(pick) && string.IsNullOrEmpty(title ?? original_title))
+                        return OnError();
+
+                    res = await InvokeCache($"kodik:search2:{original_title}:{title}:{clarification}", cacheTime(40, init: AppInit.conf.Kodik), async () => 
+                    {
+                        var i = await oninvk.Embed(null, original_title, clarification);
+                        if (i?.result == null || i.result.Count == 0)
+                            return await oninvk.Embed(title, null, clarification);
+
+                        return i;
+
+                    }, proxyManager);
+                }
 
                 if (string.IsNullOrEmpty(pick))
                     return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.ToJson() : res.stpl.ToHtml()));
