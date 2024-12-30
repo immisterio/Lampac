@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Shared.Model.Base;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -34,7 +35,7 @@ namespace Lampac.Models.AppConf
 
         public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
 
-        public List<AccsUser> users { get; set; } = new List<AccsUser>();
+        public ConcurrentBag<AccsUser> users { get; set; } = new ConcurrentBag<AccsUser>();
 
 
         public AccsUser findUser(HttpContext httpContext, out string uid)

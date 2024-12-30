@@ -48,8 +48,10 @@ namespace Lampac.Controllers.LITE
 
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
 
+                //string html = await black_magic(uri);
                 string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
                                            await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+
                 if (html == null)
                     return res.Fail("html");
 
@@ -99,11 +101,10 @@ namespace Lampac.Controllers.LITE
                         ["accept"] = "*/*",
                         ["cache-control"] = "no-cache",
                         ["dnt"] = "1",
-                        ["origin"] = "https://spider-man-lordfilm.cam",
+                        ["origin"] = "https://kinogo.media",
                         ["pragma"] = "no-cache",
                         ["priority"] = "u=1, i",
-                        ["referer"] = "https://spider-man-lordfilm.cam/",
-                        ["sec-ch-ua"] = "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\"",
+                        ["referer"] = "https://kinogo.media/",
                         ["sec-ch-ua-mobile"] = "?0",
                         ["sec-ch-ua-platform"] = "\"Windows\"",
                         ["sec-fetch-dest"] = "empty",

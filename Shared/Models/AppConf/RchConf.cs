@@ -7,5 +7,7 @@
         public int keepalive { get; set; }
 
         public bool permanent_connection { get; set; }
+
+        public string notSupportMsg { get; set; }
     }
 }
