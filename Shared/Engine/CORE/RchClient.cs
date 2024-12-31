@@ -27,7 +27,7 @@ namespace Lampac.Engine.CORE
 
         public static void Registry(string ip, string connectionId, JObject json = null)
         {
-            clients.TryAdd(connectionId, (ip, json));
+            clients.AddOrUpdate(connectionId, (ip, json), (i,j) => (ip, json));
         }
 
 

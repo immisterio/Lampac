@@ -65,7 +65,7 @@ namespace Lampac.Engine
             {
                 if (string.IsNullOrEmpty(AppInit.conf.weblog.token) || AppInit.conf.weblog.token == token)
                 {
-                    weblog_clients.TryAdd(Context.ConnectionId, 0);
+                    weblog_clients.AddOrUpdate(Context.ConnectionId, 0, (k,v) => 0);
                     return;
                 }
             }
@@ -91,7 +91,7 @@ namespace Lampac.Engine
             if (string.IsNullOrEmpty(uid))
                 return;
 
-            event_clients.TryAdd(Context.ConnectionId, uid);
+            event_clients.AddOrUpdate(Context.ConnectionId, uid, (k,v) => uid);
         }
 
         public async Task events(string uid, string name, string data)
