@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.VDBmovies;
+            var init = AppInit.conf.VDBmovies.Clone();
             if (!init.enable || init.rip || kinopoisk_id == 0)
                 return OnError();
 
@@ -27,7 +27,7 @@ namespace Lampac.Controllers.LITE
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -41,15 +41,17 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
 
+                //string html = await black_magic(uri);
                 string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
                                            await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+
                 if (html == null)
                     return res.Fail("html");
 
@@ -77,6 +79,9 @@ namespace Lampac.Controllers.LITE
                 return oninvk.Embed(oninvk.DecodeEval(file));
             });
 
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
             return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, rjson: rjson), origsource: origsource);
         }
 
@@ -96,11 +101,10 @@ namespace Lampac.Controllers.LITE
                         ["accept"] = "*/*",
                         ["cache-control"] = "no-cache",
                         ["dnt"] = "1",
-                        ["origin"] = "https://spider-man-lordfilm.cam",
+                        ["origin"] = "https://kinogo.media",
                         ["pragma"] = "no-cache",
                         ["priority"] = "u=1, i",
-                        ["referer"] = "https://spider-man-lordfilm.cam/",
-                        ["sec-ch-ua"] = "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\"",
+                        ["referer"] = "https://kinogo.media/",
                         ["sec-ch-ua-mobile"] = "?0",
                         ["sec-ch-ua-platform"] = "\"Windows\"",
                         ["sec-fetch-dest"] = "empty",

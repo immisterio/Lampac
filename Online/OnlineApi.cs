@@ -398,7 +398,7 @@ namespace Lampac.Controllers
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
                         string _p = (plugin ?? name.ToLower());
-                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "fancdn" or "redheadsound" or "kinotochka" or "remux" || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
+                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 

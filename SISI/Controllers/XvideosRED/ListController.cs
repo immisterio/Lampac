@@ -18,7 +18,7 @@ namespace Lampac.Controllers.XvideosRED
         [Route("xdsred")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.XvideosRED;
+            var init = AppInit.conf.XvideosRED.Clone();
 
             if (!init.enable)
                 return OnError("disable");

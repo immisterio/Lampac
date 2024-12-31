@@ -13,7 +13,6 @@ using Shared.Model.Online.Filmix;
 using Shared.Model.Online;
 using System.Text;
 using Lampac.Models.LITE;
-using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -86,19 +85,15 @@ namespace Lampac.Controllers.LITE
                 livehash = await getLiveHash(init);
             #endregion
 
-            var apk_headers = httpHeaders(init, HeadersModel.Init(
-                ("Accept-Encoding", "gzip")
-            ));
-
             var oninvk = new FilmixInvoke
             (
                host,
                init.corsHost(),
                token,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), apk_headers, useDefaultHeaders: false) : 
-                                          HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: apk_headers, useDefaultHeaders: false),
-               (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : apk_headers), useDefaultHeaders: false) : 
-                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : apk_headers, useDefaultHeaders: false),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init), useDefaultHeaders: false) : 
+                                          HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
+               (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) : 
+                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
                rjson: rjson

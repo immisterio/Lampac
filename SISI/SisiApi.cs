@@ -26,10 +26,10 @@ namespace SISI
         public ActionResult Sisi(string token, bool lite)
         {
             if (lite)
-                return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", $"{host}/sisi"), contentType: "application/javascript; charset=utf-8");
+                return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
 
             var init = AppInit.conf.sisi;
-            string file = FileCache.ReadAllText("plugins/sisi.js").Replace("{localhost}", $"{host}/sisi");
+            string file = FileCache.ReadAllText("plugins/sisi.js").Replace("{localhost}", host);
 
             if (init.component != "sisi")
                 file = file.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
@@ -40,6 +40,7 @@ namespace SISI
                 file = file.Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
             }
 
+            file = file.Replace("{push_all}", init.push_all.ToString().ToLower());
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
@@ -71,6 +72,7 @@ namespace SISI
                 new ChannelItem("Закладки", $"{host}/sisi/bookmarks")
             };
 
+            #region modules
             if (AppInit.modules != null)
             {
                 foreach (RootModule mod in AppInit.modules.Where(i => i.sisi != null))
@@ -87,57 +89,71 @@ namespace SISI
                     catch { }
                 }
             }
+            #endregion
 
-            string gourl(BaseSettings init, string @default)
+            #region send
+            void send(string name, BaseSettings init, string plugin = null, string rch_access = null)
             {
-                string url = init.overridehost;
-                if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
-                    return init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
-                else 
-                    return @default;
+                bool enable = init.enable && !init.rip;
+
+                if (enable && init.rhub && !init.rhub_fallback)
+                {
+                    if (rch_access != null && rchtype != null)
+                    {
+                        enable = rch_access.Contains(rchtype);
+                        if (enable && init.rhub_geo_disable != null)
+                        {
+                            if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
+                                enable = false;
+                        }
+                    }
+                }
+
+                if (init.geo_hide != null)
+                {
+                    if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
+                        enable = false;
+                }
+
+                if (enable)
+                {
+                    if (AppInit.conf.accsdb.enable)
+                    {
+                        var user = requestInfo.user;
+                        if (user == null || (init.group > user.group && init.group_hide))
+                            return;
+                    }
+
+                    string url = init.overridehost;
+                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+
+                    string displayname = init.displayname ?? name;
+
+                    if (string.IsNullOrEmpty(url))
+                        url = $"{host}/{plugin ?? name.ToLower()}";
+
+                    channels.Add(new ChannelItem(init.displayname ?? name, url));
+                }
             }
+            #endregion
 
-            if (conf.PornHubPremium.enable)
-                channels.Add(new ChannelItem("pornhubpremium.com", gourl(conf.PornHubPremium, $"{host}/phubprem")));
 
-            if (conf.PornHub.enable)
-                channels.Add(new ChannelItem("pornhub.com", gourl(conf.PornHub, $"{host}/phub")));
+            send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
+            send("pornhub.com", conf.PornHub, "phub", "apk,cors");
+            send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
+            send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors"); // !rhub - elo/vidosik
+            send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
+            send("spankbang.com", conf.Spankbang, "sbg");
+            send("eporner.com", conf.Eporner, "epr", "apk,cors");
+            send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
+            send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
+            send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
+            send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
+            send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
+            send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
-            if (conf.Xvideos.enable)
-                channels.Add(new ChannelItem("xvideos.com", gourl(conf.Xvideos, $"{host}/xds")));
-
-            if (conf.Xhamster.enable)
-                channels.Add(new ChannelItem("xhamster.com", gourl(conf.Xhamster, $"{host}/xmr")));
-
-            if (conf.Ebalovo.enable)
-                channels.Add(new ChannelItem("ebalovo.porn", gourl(conf.Ebalovo, $"{host}/elo")));
-
-            if (conf.HQporner.enable)
-                channels.Add(new ChannelItem("hqporner.com", gourl(conf.HQporner, $"{host}/hqr")));
-
-            if (conf.Spankbang.enable)
-                channels.Add(new ChannelItem("spankbang.com", gourl(conf.Spankbang, $"{host}/sbg")));
-
-            if (conf.Eporner.enable)
-                channels.Add(new ChannelItem("eporner.com", gourl(conf.Eporner, $"{host}/epr")));
-
-            if (conf.Porntrex.enable)
-                channels.Add(new ChannelItem("porntrex.com", gourl(conf.Porntrex, $"{host}/ptx")));
-
-            if (conf.XvideosRED.enable)
-                channels.Add(new ChannelItem("xdsred", gourl(conf.XvideosRED, $"{host}/xdsred")));
-
-            if (conf.Xnxx.enable)
-                channels.Add(new ChannelItem("xnxx.com", gourl(conf.Xnxx, $"{host}/xnx")));
-
-            if (conf.Tizam.enable)
-                channels.Add(new ChannelItem("tizam.pw", gourl(conf.Tizam, $"{host}/tizam")));
-
-            if (conf.BongaCams.enable)
-                channels.Add(new ChannelItem("bongacams.com", gourl(conf.BongaCams, $"{host}/bgs")));
-
-            if (conf.Chaturbate.enable)
-                channels.Add(new ChannelItem("chaturbate.com", gourl(conf.Chaturbate, $"{host}/chu")));
 
             if (conf.sisi.xdb)
             {

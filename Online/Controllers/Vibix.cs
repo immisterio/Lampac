@@ -17,9 +17,9 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vibix")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, bool origsource = false)
         {
-            var init = AppInit.conf.Vibix;
+            var init = AppInit.conf.Vibix.Clone();
             if (!init.enable || string.IsNullOrEmpty(init.token))
                 return OnError();
 
@@ -36,20 +36,19 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var proxy = proxyManager.Get();
+            reset: var proxy = proxyManager.Get();
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
 
             if (data.Value<string>("type") == "movie")
             {
                 #region Фильм
                 string iframe_url = data.Value<string>("iframe_url");
-
-                string memKey = rch.ipkey($"vibix:video:{iframe_url}", proxyManager);
-                if (!hybridCache.TryGetValue(memKey, out JArray playlist))
+                var cache = await InvokeCache<JArray>(rch.ipkey($"vibix:video:{iframe_url}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) : 
+                    if (rch.IsNotConnected())
+                        return res.Fail(rch.connectionMsg);
+
+                    string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
                                                await HttpClient.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (html == null)
                         return OnError(rch.enable ? null : proxyManager);
@@ -58,28 +57,34 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
                         return OnError();
 
-                    playlist = JsonConvert.DeserializeObject<JArray>(file);
-                    hybridCache.Set(memKey, playlist, cacheTime(20));
-                }
+                    return JsonConvert.DeserializeObject<JArray>(file);
+                });
 
-                var mtpl = new MovieTpl(title, original_title);
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                foreach (var item in playlist)
+                return OnResult(cache, () => 
                 {
-                    var streams = new StreamQualityTpl();
+                    var mtpl = new MovieTpl(title, original_title);
 
-                    var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(item.Value<string>("file"));
-                    while (match.Success)
+                    foreach (var item in cache.Value)
                     {
-                        streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "vibix"), match.Groups[1].Value);
-                        match = match.NextMatch();
+                        var streams = new StreamQualityTpl();
+
+                        var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(item.Value<string>("file"));
+                        while (match.Success)
+                        {
+                            streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "vibix"), match.Groups[1].Value);
+                            match = match.NextMatch();
+                        }
+
+                        if (streams.Any())
+                            mtpl.Append(item.Value<string>("title"), streams.Firts().link, streamquality: streams);
                     }
 
-                    if (streams.Any())
-                        mtpl.Append(item.Value<string>("title"), streams.Firts().link, streamquality: streams);
-                }
+                    return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
 
-                return ContentTo(rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true));
+                }, origsource: origsource);
                 #endregion
             }
             else

@@ -18,7 +18,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Xvideos;
+            var init = AppInit.conf.Xvideos.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -37,16 +37,30 @@ namespace Lampac.Controllers.Xvideos
                 var proxyManager = new ProxyManager("xds", init);
                 var proxy = proxyManager.Get();
 
-                string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
-                if (html == null)
-                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
 
                 playlists = XvideosTo.Playlist($"{host}/xds/vidosik", $"{plugin}/stars", html);
 
                 if (playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
@@ -60,7 +74,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml/stars")]
         async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
-            var init = AppInit.conf.Xvideos;
+            var init = AppInit.conf.Xvideos.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -79,12 +93,28 @@ namespace Lampac.Controllers.Xvideos
                 var proxyManager = new ProxyManager("xds", init);
                 var proxy = proxyManager.Get();
 
-                playlists = await XvideosTo.Pornstars($"{host}/xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                playlists = await XvideosTo.Pornstars($"{host}/xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                );
 
                 if (playlists == null || playlists.Count == 0)
-                    return OnError("playlists", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 

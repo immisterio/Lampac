@@ -17,7 +17,7 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
-            var init = AppInit.conf.Tizam;
+            var init = AppInit.conf.Tizam.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -37,22 +37,35 @@ namespace Lampac.Controllers.Tizam
                 var proxyManager = new ProxyManager("tizam", init);
                 var proxy = proxyManager.Get();
 
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
                 string uri = $"{init.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
 
                 int page = pg - 1;
                 if (page > 0)
                     uri += $"?p={page}";
 
-                string html = await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
-                if (html == null)
-                    return OnError("html", proxyManager);
+                string html = rch.enable ? await rch.Get(init.cors(uri), httpHeaders(init)) : 
+                                           await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
 
                 playlists = Playlist(html);
 
                 if (playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, playlists, cacheTime(60, init: init));
             }
 
@@ -63,6 +76,8 @@ namespace Lampac.Controllers.Tizam
         List<PlaylistItem> Playlist(string html)
         {
             var playlists = new List<PlaylistItem>() { Capacity = 25 };
+            if (string.IsNullOrEmpty(html))
+                return playlists;
 
             foreach (string row in Regex.Split(html.Split("id=\"pagination\"")[0], "video-item").Skip(1))
             {

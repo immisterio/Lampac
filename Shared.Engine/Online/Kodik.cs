@@ -72,17 +72,14 @@ namespace Shared.Engine.Online
         }
 
 
-        public async ValueTask<EmbedModel?> Embed(string title, string original_title)
+        public async ValueTask<EmbedModel?> Embed(string title, string original_title, int clarification)
         {
             try
             {
                 if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
                     return null;
 
-                string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(title)}&with_episodes=true";
-
-                if (!string.IsNullOrEmpty(original_title))
-                    url += $"&title_orig={HttpUtility.UrlEncode(original_title)}";
+                string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(original_title ?? title)}&with_episodes=true";
 
                 string? json = await onget(url, null);
                 if (json == null)
@@ -98,6 +95,7 @@ namespace Shared.Engine.Online
                 var hash = new HashSet<string>();
                 var stpl = new SimilarTpl(root.results.Count);
                 string enc_title = HttpUtility.UrlEncode(title);
+                string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 foreach (var similar in root.results)
                 {
@@ -116,7 +114,7 @@ namespace Shared.Engine.Online
                     if (similar.last_season > 0)
                         details += $"{stpl.OnlineSplit} {similar.last_season}й сезон";
 
-                    stpl.Append(name, similar.year.ToString(), details, host + $"lite/kodik?title={enc_title}&clarification=1&pick={HttpUtility.UrlEncode(pick)}");
+                    stpl.Append(name, similar.year.ToString(), details, host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}");
                 }
 
                 return new EmbedModel()

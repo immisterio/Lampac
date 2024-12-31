@@ -234,7 +234,7 @@ namespace Lampac
 
         public WebLogConf weblog = new WebLogConf();
 
-        public RchConf rch = new RchConf() { enable = true, keepalive = 45 };
+        public RchConf rch = new RchConf() { enable = true, keepalive = 45, permanent_connection = true };
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000 };
 

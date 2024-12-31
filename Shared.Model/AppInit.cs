@@ -16,7 +16,7 @@ namespace Shared.Model
 
         public static string corseuhost { get; set; } = "https://cors.apn.monster";
 
-        public ApnConf apn { get; set; } = new ApnConf() { host = "https://apn.watch", secure = "none" };
+        public ApnConf apn { get; set; } = new ApnConf() { host = "http://apn.cfhttp.top", secure = "none" };
 
         public static bool IsDefaultApnOrCors(string? apn) => apn != null && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
 
@@ -24,12 +24,28 @@ namespace Shared.Model
 
         public SisiConf sisi { get; set; } = new SisiConf()
         {
-            component = "sisi", iconame = "",
+            component = "sisi", iconame = "", push_all = true,
             heightPicture = 240, rsize = true, rsize_disable = new string[] { "bgs", "chu" },
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("kwwsv=22hh1erqjdfdpv1frp");
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("kwwsv=22hh1erqjdfdpv1frp") 
+        {
+            headers = HeadersModel.Init(
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("referer", "https://ee.bongacams.com"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-origin"),
+                ("x-requested-with", "XMLHttpRequest")
+            )
+        };
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("kwwsv=22fkdwxuedwh1frp");
 
@@ -45,21 +61,60 @@ namespace Shared.Model
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("kwwsv=22zzz1sruqwuh{1frp");
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("kwwsv=22ux1vsdqnedqj1frp");
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("kwwsv=22ux1vsdqnedqj1frp") 
+        {
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("sec-ch-ua", "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
+            )
+        };
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("kwwsv=22ux1{kdpvwhu1frp");
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("kwwsv=22zzz1{q{{1frp");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("kwwsv=22jr1wl}dp1lqir");
+        public SisiSettings Tizam { get; set; } = new SisiSettings("kwwsv=22lq1wl}dp1lqir");
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("kwwsv=22zzz1{ylghrv1frp");
 
         public SisiSettings XvideosRED { get; set; } = new SisiSettings("kwwsv=22zzz1{ylghrv1uhg", enable: false);
 
-        public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp");
+        public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp") 
+        {
+            headers = HeadersModel.Init(
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1"),
+                ("cookie", "platform=pc; bs=ukbqk2g03joiqzu68gitadhx5bhkm48j; ss=250837987735652383; fg_0d2ec4cbd943df07ec161982a603817e=56239.100000; atatusScript=hide; _gid=GA1.2.309162272.1686472069; d_fs=1; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uid=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; accessAgeDisclaimerPH=1; cookiesBannerSeen=1; _gat=1; __s=64858645-42FE722901BBA6E6-125476E1; __l=64858645-42FE722901BBA6E6-125476E1; hasVisited=1; fg_f916a4d27adf4fc066cd2d778b4d388e=78731.100000; fg_fa3f0973fd973fca3dfabc86790b408b=12606.100000; _ga_B39RFFWGYY=GS1.1.1686472069.1.1.1686472268.0.0.0; _ga=GA1.1.1515398043.1686472069")
+            )
+        };
 
-        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false);
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false) 
+        {
+            headers = HeadersModel.Init(
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            )
+        };
 
 
 
@@ -85,13 +140,18 @@ namespace Shared.Model
 
         public PidTorSettings PidTor { get; set; } = new PidTorSettings() { enable = true, redapi = "http://redapi.cfhttp.top", min_sid = 15 };
 
-        public FilmixSettings Filmix { get; set; } = new FilmixSettings("kwws=22ilopl{dss1f|rx");
+        public FilmixSettings Filmix { get; set; } = new FilmixSettings("kwws=22ilopl{dss1f|rx") 
+        {
+            headers = HeadersModel.Init(
+                ("Accept-Encoding", "gzip")
+            )
+        };
 
         public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("kwwsv=22dsl1ilopl{1wy", enable: false);
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("kwws=22819418914;2sduwqhubdsl", enable: false);
 
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("kwwsv=22}hwil{1rqolqh") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("kwwsv=22}hw0iol{1rqolqh") { geostreamproxy = new List<string>() { "ALL" }, hls = true };
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
@@ -99,12 +159,35 @@ namespace Shared.Model
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9kNmRkMzg3ZS5vYnJ1dC5zaG93L2VtYmVkL2NqTS9jb250ZW50L2N6TndnVE8=
         /// </summary>
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") 
+        { 
+            geostreamproxy = new List<string>() { "ALL" },
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("origin", "https://kinoplay2.site"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("referer", "https://kinoplay2.site/"),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            )
+        };
 
         /// <summary>
         /// aHR0cHM6Ly9jb2xkZmlsbS5pbmsv
         /// </summary>
-        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("kwwsv=22frogfgq1{|}");
+        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("kwwsv=22frogfgq1{|}") 
+        {
+            headers = HeadersModel.Init(
+                ("DNT", "1"),
+                ("Upgrade-Insecure-Requests", "1")
+            )
+        };
 
         /// <summary>
         /// a2lub2dvLm1lZGlh
@@ -122,7 +205,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// </summary>
-        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1forxg", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
+        public LumexSettings Lumex { get; set; } = new LumexSettings("kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1vsdfh", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("kwws=22dsl1yrnlqr1wy", streamproxy: true);
 
@@ -151,7 +234,23 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph");
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph") 
+        {
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not ? A_Brand\";v=\"99\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            )
+        };
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true, enable: false);
 

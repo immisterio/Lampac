@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Online;
-using System.Collections.Generic;
-using Shared.Model.Online;
 using Shared.Engine.CORE;
 using Shared.Model.Online.VideoDB;
 using Microsoft.Extensions.Caching.Memory;
@@ -13,26 +11,11 @@ namespace Lampac.Controllers.LITE
 {
     public class VideoDB : BaseOnlineController
     {
-        List<HeadersModel> baseheader = HeadersModel.Init(
-            ("cache-control", "no-cache"),
-            ("dnt", "1"),
-            ("origin", "https://kinoplay2.site"),
-            ("pragma", "no-cache"),
-            ("priority", "u=1, i"),
-            ("referer", "https://kinoplay2.site/"),
-            ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
-            ("sec-ch-ua-mobile", "?0"),
-            ("sec-ch-ua-platform", "\"Windows\""),
-            ("sec-fetch-dest", "empty"),
-            ("sec-fetch-mode", "cors"),
-            ("sec-fetch-site", "cross-site")
-        );
-
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
-            var init = AppInit.conf.VideoDB;
+            var init = AppInit.conf.VideoDB.Clone();
 
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
@@ -43,10 +26,10 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var proxyManager = new ProxyManager("videodb", init);
+            reset: var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -54,7 +37,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init, baseheader)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init, baseheader), proxy: proxy, httpversion: 2),
+               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy, httpversion: 2),
                streamfile => streamfile
             );
 
@@ -66,6 +49,9 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(kinopoisk_id);
             });
 
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
             return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson, rhub: rch.enable), origsource: origsource);
         }
 
@@ -73,9 +59,9 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/videodb/manifest")]
         [Route("lite/videodb/manifest.m3u8")]
-        async public Task<ActionResult> Manifest(string link)
+        async public Task<ActionResult> Manifest(string link, bool serial)
         {
-            var init = AppInit.conf.VideoDB;
+            var init = AppInit.conf.VideoDB.Clone();
 
             if (!init.enable || string.IsNullOrEmpty(link))
                 return OnError();
@@ -83,7 +69,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
             var proxyManager = new ProxyManager("videodb", init);
             var proxy = proxyManager.Get();
 
@@ -95,21 +81,27 @@ namespace Lampac.Controllers.LITE
 
                 if (rch.enable)
                 {
-                    var res = await rch.Headers(link, null, httpHeaders(init, baseheader));
+                    var res = await rch.Headers(link, null, httpHeaders(init));
                     location = res.currentUrl;
                 }
                 else
                 {
-                    location = await HttpClient.GetLocation(link, httpversion: 2, proxy: proxy, headers: httpHeaders(init, baseheader));
+                    location = await HttpClient.GetLocation(link, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
                 }
 
                 if (string.IsNullOrEmpty(location) || link == location)
+                {
+                    if (init.rhub && init.rhub_fallback) {
+                        init.rhub = false;
+                        goto reset;
+                    }
                     return OnError();
+                }
 
                 if (!rch.enable)
                     proxyManager.Success();
 
-                memoryCache.Set(memKey, location, cacheTime(20, init: init));
+                memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
             string hls = HostStreamProxy(init, location, proxy: proxy, plugin: "videodb");

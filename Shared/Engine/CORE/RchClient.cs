@@ -18,14 +18,6 @@ namespace Lampac.Engine.CORE
         #region static
         public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
 
-        public static string ErrorType(string type)
-        {
-            if (type == "web")
-                return "На MSX недоступно";
-
-            return "Только на android";
-        }
-
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
         static ConcurrentDictionary<string, (string ip, JObject json)> clients = new ConcurrentDictionary<string, (string, JObject)>();
@@ -35,7 +27,7 @@ namespace Lampac.Engine.CORE
 
         public static void Registry(string ip, string connectionId, JObject json = null)
         {
-            clients.TryAdd(connectionId, (ip, json));
+            clients.AddOrUpdate(connectionId, (ip, json), (i,j) => (ip, json));
         }
 
 
@@ -44,6 +36,8 @@ namespace Lampac.Engine.CORE
             clients.TryRemove(connectionId, out _);
         }
         #endregion
+
+        BaseSettings init;
 
         HttpContext httpContext;
 
@@ -55,10 +49,11 @@ namespace Lampac.Engine.CORE
 
         public string connectionMsg { get; private set; }
 
-        public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy.CurrentProxyIp)}";
+        public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
 
         public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
         {
+            this.init = init;
             httpContext = context;
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
@@ -74,10 +69,14 @@ namespace Lampac.Engine.CORE
                 }
             }
 
+            int kplv = AppInit.conf.rch.keepalive;
+            if (AppInit.conf.rch.permanent_connection && kplv != -1 && keepalive != null)
+                kplv = keepalive == -1 ? 36000 : (int)keepalive; // 10h
+
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
-                keepalive = keepalive != null ? keepalive : AppInit.conf.rch.keepalive,
+                keepalive = kplv,
                 result = $"{host}/rch/result",
                 ws = $"{host}/ws",
                 timeout = init.rhub_fallback ? 5 : 8
@@ -246,14 +245,26 @@ namespace Lampac.Engine.CORE
             if (!enableRhub)
                 return false; // rch не используется
 
-            if (rhub_fallback)
-                return false; // разрешен возврат на сервер
+            if (httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+                return false; // заглушка для checksearch
 
             var info = InfoConnected();
             if (string.IsNullOrEmpty(info.rchtype))
                 return false; // клиент не в сети
 
-            if (info.rchtype == "web")
+            // разрешен возврат на сервер
+            if (rhub_fallback)
+            {
+                if (rch_deny.Contains(info.rchtype)) {
+                    enableRhub = false;
+                    init.rhub = false;
+                }
+                return false;
+            }
+
+            if (AppInit.conf.rch.notSupportMsg != null)
+                rch_msg = AppInit.conf.rch.notSupportMsg;
+            else if (info.rchtype == "web")
                 rch_msg = "На MSX недоступно";
             else
                 rch_msg = "Только на android";

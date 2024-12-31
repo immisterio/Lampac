@@ -19,7 +19,7 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/vidosik")]
         async public Task<JsonResult> vidosik(string uri)
         {
-            var init = AppInit.conf.Porntrex;
+            var init = AppInit.conf.Porntrex.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -48,7 +48,7 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/strem")]
         async public Task<ActionResult> strem(string link)
         {
-            var init = AppInit.conf.Porntrex;
+            var init = AppInit.conf.Porntrex.Clone();
 
             if (!init.enable)
                 return OnError("disable");

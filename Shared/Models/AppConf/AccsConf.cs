@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Shared.Model.Base;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -34,12 +35,19 @@ namespace Lampac.Models.AppConf
 
         public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
 
-        public List<AccsUser> users { get; set; } = new List<AccsUser>();
+        public ConcurrentBag<AccsUser> users { get; set; } = new ConcurrentBag<AccsUser>();
 
 
         public AccsUser findUser(HttpContext httpContext, out string uid)
         {
-            var user = findUser(httpContext.Request.Query["account_email"].ToString());
+            var user = findUser(httpContext.Request.Query["token"].ToString());
+            if (user != null)
+            {
+                uid = httpContext.Request.Query["token"].ToString();
+                return user;
+            }
+
+            user = findUser(httpContext.Request.Query["account_email"].ToString());
             if (user != null)
             {
                 uid = httpContext.Request.Query["account_email"].ToString();
@@ -50,13 +58,6 @@ namespace Lampac.Models.AppConf
             if (user != null)
             {
                 uid = httpContext.Request.Query["uid"].ToString();
-                return user;
-            }
-
-            user = findUser(httpContext.Request.Query["token"].ToString());
-            if (user != null)
-            {
-                uid = httpContext.Request.Query["token"].ToString();
                 return user;
             }
 
@@ -77,7 +78,7 @@ namespace Lampac.Models.AppConf
                 return null;
 
             uid = uid.ToLower().Trim();
-            return users.FirstOrDefault(i => i.id == uid || i.id.Contains(uid));
+            return users.FirstOrDefault(i => i.id == uid || (i.ids != null && i.ids.Contains(uid)));
         }
     }
 }

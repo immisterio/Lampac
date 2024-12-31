@@ -13,7 +13,7 @@ namespace JinEnergy
                 new
                 {
                     title = "Закладки",
-                    playlist_url = "https://bwa-cloud.apn.monster/sisi/bookmarks",
+                    playlist_url = "https://durex.monster/sisi/bookmarks",
                     enable = true
                 },
                 new

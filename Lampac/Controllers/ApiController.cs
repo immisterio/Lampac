@@ -351,8 +351,9 @@ namespace Lampac.Controllers
         #region on.js
         [HttpGet]
         [Route("on.js")]
-        [Route("on/{token}")]
+        [Route("on/js/{token}")]
         [Route("on/h/{token}")]
+        [Route("on/{token}")]
         public ActionResult LamOnInit(string token, bool adult = true)
         {
             if (adult && HttpContext.Request.Path.Value.StartsWith("/on/h/"))

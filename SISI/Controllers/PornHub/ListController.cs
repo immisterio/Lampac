@@ -14,31 +14,13 @@ namespace Lampac.Controllers.PornHub
 {
     public class ListController : BaseSisiController
     {
-        #region httpheaders
-        public static List<HeadersModel> defaultheaders(string cookie = null)
-        {
-            return HeadersModel.Init(
-                ("sec-ch-ua", "\"Chromium\";v=\"94\", \"Google Chrome\";v=\"94\", \";Not A Brand\";v=\"99\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "document"),
-                ("sec-fetch-dest", "document"),
-                ("sec-fetch-site", "none"),
-                ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("cookie", cookie ?? "platform=pc; bs=ukbqk2g03joiqzu68gitadhx5bhkm48j; ss=250837987735652383; fg_0d2ec4cbd943df07ec161982a603817e=56239.100000; atatusScript=hide; _gid=GA1.2.309162272.1686472069; d_fs=1; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uid=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; accessAgeDisclaimerPH=1; cookiesBannerSeen=1; _gat=1; __s=64858645-42FE722901BBA6E6-125476E1; __l=64858645-42FE722901BBA6E6-125476E1; hasVisited=1; fg_f916a4d27adf4fc066cd2d778b4d388e=78731.100000; fg_fa3f0973fd973fca3dfabc86790b408b=12606.100000; _ga_B39RFFWGYY=GS1.1.1686472069.1.1.1686472268.0.0.0; _ga=GA1.1.1515398043.1686472069")
-            );
-        }
-        #endregion
-
-
         [HttpGet]
         [Route("phub")]
         [Route("phubgay")]
         [Route("phubsml")]
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
-            var init = AppInit.conf.PornHub;
+            var init = AppInit.conf.PornHub.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -57,17 +39,31 @@ namespace Lampac.Controllers.PornHub
                 var proxyManager = new ProxyManager("phub", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, defaultheaders())));
-                if (html == null)
-                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return OnError(rch_error, false);
 
-                cache.total_pages = PornHubTo.Pages(html);
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
+                );
+
+                cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
                 cache.playlists = PornHubTo.Playlist($"{host}/phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
 
                 if (cache.playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, cache, cacheTime(10, init: init));
             }
 
@@ -79,7 +75,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
-            var init = AppInit.conf.PornHubPremium;
+            var init = AppInit.conf.PornHubPremium.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -96,7 +92,7 @@ namespace Lampac.Controllers.PornHub
                 var proxyManager = new ProxyManager("phubprem", init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, defaultheaders(init.cookie))));
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

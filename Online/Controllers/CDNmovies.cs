@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
-using Shared.Model.Online;
 using System.Collections.Generic;
 using Lampac.Models.LITE.CDNmovies;
 
@@ -34,16 +33,11 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("cdnmovies", init);
             var proxy = proxyManager.Get();
 
-            var headers = httpHeaders(init, HeadersModel.Init(
-                ("DNT", "1"),
-                ("Upgrade-Insecure-Requests", "1")
-            ));
-
             var oninvk = new CDNmoviesInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), headers) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,7 +12,7 @@ namespace Lampac.Engine
     public class soks : Hub
     {
         #region soks
-        static Dictionary<string, HubCallerContext> _connections = new Dictionary<string, HubCallerContext>();
+        static ConcurrentDictionary<string, HubCallerContext> _connections = new ConcurrentDictionary<string, HubCallerContext>();
 
         public static IHubCallerClients hubClients = null;
         #endregion
@@ -20,6 +20,11 @@ namespace Lampac.Engine
         #region Rch
         public void RchRegistry(string json)
         {
+            if (!AppInit.conf.rch.enable) {
+                Context.Abort();
+                return;
+            }
+            
             JObject job = null;
 
             try
@@ -36,8 +41,10 @@ namespace Lampac.Engine
         /// </summary>
         public void Registry(string type)
         {
-            if (string.IsNullOrEmpty(type))
+            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(type)) {
+                Context.Abort();
                 return;
+            }
 
             switch (type)
             {
@@ -50,7 +57,7 @@ namespace Lampac.Engine
         #endregion
 
         #region WebLog
-        static Dictionary<string, byte> weblog_clients = new Dictionary<string, byte>();
+        static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
 
         public void RegistryWebLog(string token)
         {
@@ -58,7 +65,7 @@ namespace Lampac.Engine
             {
                 if (string.IsNullOrEmpty(AppInit.conf.weblog.token) || AppInit.conf.weblog.token == token)
                 {
-                    weblog_clients.TryAdd(Context.ConnectionId, 0);
+                    weblog_clients.AddOrUpdate(Context.ConnectionId, 0, (k,v) => 0);
                     return;
                 }
             }
@@ -71,19 +78,20 @@ namespace Lampac.Engine
             if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 1_000000)
                 return;
 
-            hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin);
+            if (weblog_clients.Count > 0)
+                hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin).ConfigureAwait(false);
         }
         #endregion
 
         #region Events
-        static Dictionary<string, string> event_clients = new Dictionary<string, string>();
+        static ConcurrentDictionary<string, string> event_clients = new ConcurrentDictionary<string, string>();
 
         public void RegistryEvent(string uid)
         {
             if (string.IsNullOrEmpty(uid))
                 return;
 
-            event_clients.TryAdd(Context.ConnectionId, uid);
+            event_clients.AddOrUpdate(Context.ConnectionId, uid, (k,v) => uid);
         }
 
         public async Task events(string uid, string name, string data)
@@ -93,7 +101,9 @@ namespace Lampac.Engine
 
             try
             {
-                await hubClients.Clients(event_clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId).Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
+                var clients = event_clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId);
+                if (clients.Any())
+                    await hubClients.Clients(clients.Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
             }
             catch { }
         }
@@ -103,19 +113,19 @@ namespace Lampac.Engine
         public override Task OnConnectedAsync()
         {
             hubClients = Clients;
-            _connections.TryAdd(Context.ConnectionId, Context);
+            //_connections.TryAdd(Context.ConnectionId, Context);
 
             return base.OnConnectedAsync();
         }
 
         public override Task OnDisconnectedAsync(Exception exception)
         {
-            weblog_clients.Remove(Context.ConnectionId);
-            event_clients.Remove(Context.ConnectionId);
+            weblog_clients.TryRemove(Context.ConnectionId, out _);
+            event_clients.TryRemove(Context.ConnectionId, out _);
             RchClient.OnDisconnected(Context.ConnectionId);
 
             hubClients = Clients;
-            _connections.Remove(Context.ConnectionId);
+            //_connections.TryRemove(Context.ConnectionId, out _);
 
             return base.OnDisconnectedAsync(exception);
         }

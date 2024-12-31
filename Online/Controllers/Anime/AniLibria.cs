@@ -16,8 +16,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.AnilibriaOnline.Clone();
-
-            if (!init.enable || string.IsNullOrWhiteSpace(title))
+            if (!init.enable || string.IsNullOrEmpty(title))
                 return OnError();
 
             if (init.rhub && !AppInit.conf.rch.enable)

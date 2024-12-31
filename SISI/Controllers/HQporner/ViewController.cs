@@ -14,7 +14,7 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = AppInit.conf.HQporner;
+            var init = AppInit.conf.HQporner.Clone();
 
             if (!init.enable)
                 return OnError("disable");
@@ -22,12 +22,12 @@ namespace Lampac.Controllers.HQporner
             if (NoAccessGroup(init, out string error_msg))
                 return OnError(error_msg, false);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("hqr", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
-                return OnError(error_msg, false);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error, false);
 
             string memKey = rch.ipkey($"HQporner:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
@@ -40,7 +40,12 @@ namespace Lampac.Controllers.HQporner
                                iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 
                 if (stream_links == null || stream_links.Count == 0)
-                    return OnError("stream_links", rch.enable ? null : proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
+                    return OnError("stream_links", proxyManager, !rch.enable);
+                }
 
                 if (!rch.enable)
                     proxyManager.Success();

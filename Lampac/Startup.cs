@@ -87,7 +87,11 @@ namespace Lampac
                 });
             }
 
-            services.AddSignalR();
+            services.AddSignalR(o =>
+            {
+                o.EnableDetailedErrors = true;
+                o.MaximumParallelInvocationsPerClient = 5;
+            });
 
             #region mvcBuilder
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
@@ -157,6 +161,7 @@ namespace Lampac
 
                             if (!result.Success)
                             {
+                                Console.WriteLine($"\nError: { mod.dll}");
                                 foreach (var diagnostic in result.Diagnostics)
                                     Console.WriteLine(diagnostic);
                             }
