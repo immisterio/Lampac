@@ -215,6 +215,9 @@ namespace JinEnergy.Online
             if (AppInit.typeConf == "web" && !AppInit.Rezka.premium)
                 send("Rezka - 2160p", "rezka", AppInit.Rezka);
 
+            if (AppInit.IsDefaultConf || string.IsNullOrEmpty(AppInit.Filmix.token))
+                send($"Filmix - 4K HDR", "filmixpro", AppInit.Filmix);
+
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";
         }
         #endregion

@@ -455,7 +455,7 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
             {
-                send("Vibix", conf.Vibix);
+                send("Vibix", conf.Vibix, rch_access: "apk,cors");
                 send("FanCDN", conf.FanCDN);
             }
 
@@ -512,7 +512,7 @@ namespace Lampac.Controllers
                 send("IframeVideo", conf.IframeVideo);
 
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
-                send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
+                send("VideoHUB", conf.CDNvideohub, "cdnvideohub", rch_access: "apk,cors");
 
             if (!life && conf.litejac)
                 online.Add(("Торренты", "{localhost}/lite/jac", "jac", 200));

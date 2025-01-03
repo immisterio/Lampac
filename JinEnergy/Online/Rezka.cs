@@ -3,6 +3,7 @@ using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
@@ -67,16 +68,19 @@ namespace JinEnergy.Online
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
 
-            if (AppInit.typeConf == "web" && !init.premium)
-                return ShowError("Нужен HDRezka Premium");
-
-            if (AppInit.Country == "RU" && string.IsNullOrEmpty(init.cookie))
-                return ShowError("Авторизуйтесь на https://bwa.to/bind/rezka");
-
-            if (!string.IsNullOrEmpty(init.cookie))
+            if (!init.premium)
             {
-                if (AppInit.typeConf != "apk" && !init.premium)
-                    return ShowError("Для cookie нужен apk или HDRezka Premium");
+                if (AppInit.typeConf == "web")
+                    return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
+
+                if (AppInit.Country == "RU")
+                {
+                    if (!AppInit.IsAndrod)
+                        return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
+
+                    if (string.IsNullOrEmpty(init.cookie))
+                        return ShowError("Авторизуйтесь на http://bwa.to/bind/rezka");
+                }
             }
 
             var arg = defaultArgs(args);
