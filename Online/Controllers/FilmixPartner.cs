@@ -15,6 +15,7 @@ using Shared.Model.Online;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -392,7 +393,7 @@ namespace Lampac.Controllers.LITE
 
         static string serverip = null;
 
-        async ValueTask<string> getXFXTOKEN(string account_email = null)
+        async ValueTask<string> getXFXTOKEN(string uid = null)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -409,12 +410,12 @@ namespace Lampac.Controllers.LITE
                 userid = 1;
             userid++;
 
-            if (account_email != null)
+            if (uid != null)
             {
                 using (SHA256 sha256Hash = SHA256.Create())
                 {
                     // Преобразуем строку в байты и вычисляем хэш
-                    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(account_email));
+                    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(uid));
 
                     // Преобразуем первые 8 байт хэша в число
                     long result = BitConverter.ToInt64(bytes, 0);
@@ -422,18 +423,24 @@ namespace Lampac.Controllers.LITE
                 }
             }
 
-            string XNICK = ReverseString(DateTime.Now.ToString("HHmm")) + DateTime.Now.ToString("yyyyMMdd");
-            string XSAM = ReverseString(serverip.Replace(".", "")) + DateTime.Now.ToString("HHmm");
+            if (memoryCache.TryGetValue("fxapi:request-salt", out string _salt))
+            {
+                string XNICK = ReverseString(DateTime.Now.ToString("HHmm")) + DateTime.Now.ToString("yyyyMMdd");
+                string XSAM = ReverseString(serverip.Replace(".", "")) + DateTime.Now.ToString("HHmm");
 
-            var salt = await HttpClient.Post<JObject>($"{init.host}/request-salt", $"key={init.APIKEY}", headers: httpHeaders(init, HeadersModel.Init(
-                ("X-NICK", SHA1(XNICK)),
-                ("X-SAM", SHA1(XSAM))
-            )));
+                var salt = await HttpClient.Post<JObject>($"{init.host}/request-salt", $"key={init.APIKEY}", headers: httpHeaders(init, HeadersModel.Init(
+                    ("X-NICK", SHA1(XNICK)),
+                    ("X-SAM", SHA1(XSAM))
+                )));
 
-            if (salt == null || string.IsNullOrWhiteSpace(salt.Value<string>("salt")))
-                return null;
+                if (salt == null || string.IsNullOrWhiteSpace(salt.Value<string>("salt")))
+                    return null;
 
-            string token = SHA1(init.APISECRET + init.APIKEY + CrypTo.md5(array_sum(serverip) + salt.Value<string>("salt")));
+                _salt = salt.Value<string>("salt");
+                memoryCache.Set("fxapi:request-salt", _salt, DateTime.Today.AddDays(1));
+            }
+
+            string token = SHA1(init.APISECRET + init.APIKEY + CrypTo.md5(array_sum(serverip) + _salt));
 
             var xtk = await HttpClient.Post<JObject>($"{init.host}/request-token", $"user_name={init.user_name}&user_passw={init.user_passw}&key={init.APIKEY}&token={token}", headers: httpHeaders(init, HeadersModel.Init("User-Id", userid.ToString())));
 
