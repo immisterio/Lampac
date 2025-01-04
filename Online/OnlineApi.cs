@@ -65,9 +65,13 @@ namespace Lampac.Controllers
         #region lite.js
         [HttpGet]
         [Route("lite.js")]
-        public ActionResult Lite()
+        [Route("lite/js/{token}")]
+        public ActionResult Lite(string token)
         {
-            return Content(FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite"), contentType: "application/javascript; charset=utf-8");
+            string file = FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite");
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -456,7 +460,7 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
             {
                 send("Vibix", conf.Vibix, rch_access: "apk,cors");
-                send("FanCDN", conf.FanCDN);
+                send("FanCDN", conf.FanCDN, rch_access: "apk");
             }
 
             send("Kinobase", conf.Kinobase);

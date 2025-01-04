@@ -257,6 +257,9 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
                         initiale += "\"{localhost}/sisi.js?lite=true\",";
+
+                    if (AppInit.conf.LampaWeb.initPlugins.sync)
+                        initiale += "\"{localhost}/sync.js?lite=true\",";
                 }
                 else
                 {
@@ -468,12 +471,12 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("sync.js")]
         [Route("sync/js/{token}")]
-        public ActionResult SyncJS(string token)
+        public ActionResult SyncJS(string token, bool lite)
         {
             if (!AppInit.conf.storage.enable)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            string file = FileCache.ReadAllText("plugins/sync.js").Replace("{localhost}", host);
+            string file = FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, "application/javascript; charset=utf-8");

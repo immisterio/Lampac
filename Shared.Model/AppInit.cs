@@ -36,7 +36,7 @@ namespace Shared.Model
                 ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("referer", "https://ee.bongacams.com"),
@@ -67,7 +67,7 @@ namespace Shared.Model
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
@@ -90,7 +90,7 @@ namespace Shared.Model
         public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp") 
         {
             headers = HeadersModel.Init(
-                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
@@ -105,7 +105,7 @@ namespace Shared.Model
         public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false) 
         {
             headers = HeadersModel.Init(
-                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
@@ -169,7 +169,7 @@ namespace Shared.Model
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
                 ("referer", "https://kinoplay2.site/"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
@@ -198,7 +198,24 @@ namespace Shared.Model
             headers = HeadersModel.Init(("Origin", "https://kinogo.media"), ("Referer", "https://kinogo.media/"))
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) { geostreamproxy = new List<string>() { "ALL" } };
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) 
+        { 
+            geostreamproxy = new List<string>() { "ALL" },
+            headers = HeadersModel.Init(
+                ("cache-control", "no-cache"),
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            )
+        };
 
         public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("kwws=2255;;71dqqdfgq1ff2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", rip: true) { scheme = "http", geostreamproxy = new List<string>() { "ALL" } };
 
@@ -241,7 +258,7 @@ namespace Shared.Model
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not ? A_Brand\";v=\"99\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),

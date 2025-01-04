@@ -101,6 +101,7 @@ namespace Lampac.Controllers.Tizam
                         video = $"tizam/vidosik?uri={HttpUtility.UrlEncode(href)}",
                         picture = $"{AppInit.conf.Tizam.host}/{img}",
                         time = duration?.Trim(),
+                        json = true,
                         bookmark = new Bookmark()
                         {
                             site = "tizam",

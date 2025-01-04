@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using SISI;
 using Shared.Engine.CORE;
 using Lampac.Engine.CORE;
+using Lampac.Models.SISI;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.Tizam
 {
@@ -27,7 +29,7 @@ namespace Lampac.Controllers.Tizam
             var proxyManager = new ProxyManager("tizam", init);
             var proxy = proxyManager.Get();
 
-            if (!hybridCache.TryGetValue(memKey, out string location))
+            if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
@@ -39,7 +41,7 @@ namespace Lampac.Controllers.Tizam
                 string html = rch.enable ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init)) : 
                                            await HttpClient.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
                 
-                location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
+                string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
 
                 if (string.IsNullOrEmpty(location))
                 {
@@ -52,10 +54,18 @@ namespace Lampac.Controllers.Tizam
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, location, cacheTime(240, init: init));
+                stream_links = new StreamItem()
+                {
+                    qualitys = new Dictionary<string, string>()
+                    {
+                        ["auto"] = location
+                    }
+                };
+
+                hybridCache.Set(memKey, stream_links, cacheTime(240, init: init));
             }
 
-            return Redirect(HostStreamProxy(init, location, proxy: proxy));
+            return OnResult(stream_links, init, proxy, plugin: "tizam");
         }
     }
 }
