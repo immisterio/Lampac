@@ -58,7 +58,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region Version / Headers / geo / myip / testaccsdb / personal.lampa
+        #region Version / Headers / geo / myip / testaccsdb / reqinfo / personal.lampa
         [Route("/version")]
         public ActionResult Version() => Content($"{appversion}.{minorversion}", contentType: "text/plain; charset=utf-8");
 
