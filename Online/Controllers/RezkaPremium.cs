@@ -180,6 +180,9 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
             });
 
+            if (cache.IsSuccess && cache.Value.IsEmpty && cache.Value.content != null)
+                return ShowError(cache.Value.content);
+
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg ?? "content = null", proxyManager, weblog: oninvk.requestlog);
 

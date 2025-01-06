@@ -26,6 +26,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Hosting;
 using Shared.Engine;
+using Shared.Models.Module;
 
 namespace Lampac
 {
@@ -171,7 +172,12 @@ namespace Lampac
                                 mod.assembly = Assembly.Load(ms.ToArray());
 
                                 if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
-                                    m.Invoke(null, new object[] { });
+                                {
+                                    if (mod.version == 2)
+                                        m.Invoke(null, new object[] { new InitspaceModel() { path = $"module/{mod.dll}" } });
+                                    else
+                                        m.Invoke(null, new object[] { });
+                                }
 
                                 Console.WriteLine("compilation module: " + mod.dll);
                                 AppInit.modules.Add(mod);
@@ -193,7 +199,12 @@ namespace Lampac
 
                     var mod = JsonConvert.DeserializeObject<RootModule>(File.ReadAllText(manifest), jss);
                     if (mod != null)
+                    {
+                        if (mod.dll == null)
+                            mod.dll = folderMod.Split("/")[1];
+
                         CompilationMod(mod);
+                    }
                 }
             }
 

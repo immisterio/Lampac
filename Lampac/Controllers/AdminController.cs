@@ -3,6 +3,7 @@ using Lampac.Engine;
 using IO = System.IO;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System;
 
 namespace Lampac.Controllers
 {
@@ -135,8 +136,6 @@ namespace Lampac.Controllers
 		e.preventDefault()
 
 		try{
-			JSON.parse(json)
-
 			let formData = new FormData()
 				formData.append('json', json)
 
@@ -145,12 +144,21 @@ namespace Lampac.Controllers
 			    body: formData
 			})
 			.then((response)=>{
-				if(response.ok) return response.text();  
-
-				throw new Error('Не удалось сохранить настройки');
+				if (!response.ok) {
+					return response.json().then(err => {
+						throw new Error(err.ex || 'Не удалось сохранить настройки');
+					});
+				}
+				return response.json();
 			 })  
-			.then(()=>{
-				alert('Сохранено')
+			.then((data)=>{
+				if (data.success) {
+					alert('Сохранено');
+				} else if (data.error) {
+					throw new Error(data.ex); 
+				} else {
+					throw new Error('Не удалось сохранить настройки'); 
+				}
 			})
 			.catch((e)=>{
 				alert(e.message)
@@ -174,8 +182,19 @@ namespace Lampac.Controllers
         [Route("admin/init/save")]
         public ActionResult InitSave([FromForm]string json)
         {
+			try
+            {
+				string testjson = json.Trim();
+                if (!testjson.StartsWith("{"))
+                    testjson = "{" + testjson + "}";
+
+                JsonConvert.DeserializeObject<AppInit>(testjson);
+
+            }
+			catch (Exception ex) { return Json(new { error = true, ex = ex.Message }); }
+
             IO.File.WriteAllText("init.conf", json);
-            return Content(json, contentType: "application/json; charset=utf-8");
+            return Json(new { success = true });
         }
 
 

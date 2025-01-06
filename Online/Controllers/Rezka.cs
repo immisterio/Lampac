@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 authCookie != null || !string.IsNullOrEmpty(init.cookie),
-                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
+                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: false),
                 (url, data) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka"),
                 requesterror: () => proxyManager.Refresh()
@@ -82,15 +82,37 @@ namespace Lampac.Controllers.LITE
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (!init.premium && rch.IsNotSupport("web", out string rch_error))
-                return ShowError("Нужен HDRezka Premium");
+            if (!init.premium && rch.enable)
+            {
+                if (rch.IsNotSupport("web", out string rch_error))
+                    return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
+
+                if (requestInfo.Country == "RU")
+                {
+                    if (rch.InfoConnected().rchtype != "apk")
+                        return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
+
+                    if (string.IsNullOrEmpty(await getCookie(init)))
+                        return ShowError("Укажите логин/пароль или cookie");
+                }
+            }
 
             var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);
 
-            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
-            if (content == null)
-                return OnError(proxyManager);
+            string memKey = $"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}";
+            if (!hybridCache.TryGetValue(memKey, out EmbedModel content))
+            {
+                content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+                if (content == null)
+                    return OnError();
+
+                if (content.IsEmpty && content.content != null)
+                    return ShowError(content.content);
+
+                proxyManager.Success();
+                hybridCache.Set(memKey, content, cacheTime(20, init: init));
+            }
 
             return ContentTo(oninvk.Html(content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson));
         }

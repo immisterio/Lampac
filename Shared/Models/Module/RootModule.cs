@@ -7,6 +7,8 @@ namespace Lampac.Models.Module
     {
         public bool enable { get; set; }
 
+        public int version { get; set; }
+
         public string dll { get; set; }
 
         public string initspace { get; set; }
