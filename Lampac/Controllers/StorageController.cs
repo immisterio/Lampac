@@ -6,6 +6,7 @@ using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers
 {
@@ -81,7 +82,7 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(id))
                 return null;
 
-            string md5key = CrypTo.md5(id);
+            string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(id) : Regex.Replace(id, "(\\@|_)", "");
 
             if (createDirectory)
                 Directory.CreateDirectory($"cache/storage/{path}/{md5key.Substring(0, 2)}");

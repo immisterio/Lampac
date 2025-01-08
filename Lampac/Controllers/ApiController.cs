@@ -13,6 +13,7 @@ using System.Web;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers
 {
@@ -66,18 +67,22 @@ namespace Lampac.Controllers
         public ActionResult Headers() => Json(HttpContext.Request.Headers);
 
         [Route("/geo")]
-        public ActionResult Geo(string select)
+        public ActionResult Geo(string select, string ip)
         {
             if (select == "ip")
-                return Content(requestInfo.IP);
+                return Content(ip ?? requestInfo.IP);
+
+            string country = requestInfo.Country;
+            if (ip != null)
+                country = GeoIP2.Country(ip);
 
             if (select == "country")
-                return Content(requestInfo.Country);
+                return Content(country);
 
-            return Json(new 
+            return Json(new
             { 
-                ip = requestInfo.IP,
-                country = requestInfo.Country
+                ip = ip ?? requestInfo.IP,
+                country
             });
         }
 
@@ -142,6 +147,12 @@ namespace Lampac.Controllers
 
                 file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
+
+                if (AppInit.conf.LampaWeb.appReplace != null)
+                {
+                    foreach (var r in AppInit.conf.LampaWeb.appReplace)
+                        file = Regex.Replace(file, r.Key, r.Value, RegexOptions.IgnoreCase);
+                }
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }

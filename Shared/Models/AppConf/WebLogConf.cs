@@ -1,4 +1,6 @@
-﻿namespace Lampac.Models.AppConf
+﻿using System.Collections.Generic;
+
+namespace Lampac.Models.AppConf
 {
     public class WebConf
     {
@@ -11,5 +13,7 @@
         public bool basetag { get; set; }
 
         public InitPlugins initPlugins { get; set; } = new InitPlugins();
+
+        public Dictionary<string, string> appReplace { get; set; } = new Dictionary<string, string>();
     }
 }

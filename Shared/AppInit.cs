@@ -236,7 +236,7 @@ namespace Lampac
 
         public RchConf rch = new RchConf() { enable = true, keepalive = 45, permanent_connection = true };
 
-        public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false };
+        public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
         public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
 
