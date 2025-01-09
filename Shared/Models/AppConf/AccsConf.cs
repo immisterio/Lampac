@@ -40,31 +40,14 @@ namespace Lampac.Models.AppConf
 
         public AccsUser findUser(HttpContext httpContext, out string uid)
         {
-            var user = findUser(httpContext.Request.Query["token"].ToString());
-            if (user != null)
-            {
-                uid = httpContext.Request.Query["token"].ToString();
-                return user;
-            }
+            var user = findUser(httpContext.Request.Query["token"].ToString()) ??
+                       findUser(httpContext.Request.Query["account_email"].ToString()) ??
+                       findUser(httpContext.Request.Query["uid"].ToString()) ??
+                       findUser(httpContext.Request.Query["box_mac"].ToString());
 
-            user = findUser(httpContext.Request.Query["account_email"].ToString());
             if (user != null)
             {
-                uid = httpContext.Request.Query["account_email"].ToString();
-                return user;
-            }
-
-            user = findUser(httpContext.Request.Query["uid"].ToString());
-            if (user != null)
-            {
-                uid = httpContext.Request.Query["uid"].ToString();
-                return user;
-            }
-
-            user = findUser(httpContext.Request.Query["box_mac"].ToString());
-            if (user != null)
-            {
-                uid = httpContext.Request.Query["box_mac"].ToString();
+                uid = user.id;
                 return user;
             }
 
