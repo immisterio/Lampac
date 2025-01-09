@@ -238,7 +238,7 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22dsl1vuyns1frp") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22nsdss1olqn2dsl") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
