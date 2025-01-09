@@ -61,7 +61,7 @@ namespace Lampac.Controllers.LITE
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 
-            }, origsource: origsource);
+            }, origsource: origsource, gbcache: !rch.enable);
         }
     }
 }

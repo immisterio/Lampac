@@ -96,7 +96,8 @@ namespace Lampac.Controllers.LITE
                         stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
 
                     return rjson ? stpl.ToJson() : stpl.ToHtml();
-                });
+
+                }, gbcache: !rch.enable);
                 #endregion
             }
             else 
@@ -156,7 +157,8 @@ namespace Lampac.Controllers.LITE
                     }
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();
-                });
+
+                }, gbcache: !rch.enable);
                 #endregion
             }
         }
@@ -218,7 +220,7 @@ namespace Lampac.Controllers.LITE
             {
                 string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost");
                 return "{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}";
-            });
+            }, gbcache: !rch.enable);
         }
         #endregion
     }

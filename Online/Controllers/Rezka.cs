@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
             {
                 content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
                 if (content == null)
-                    return OnError();
+                    return OnError(null, gbcache: !rch.enable);
 
                 if (content.IsEmpty && content.content != null)
                     return ShowError(content.content);
@@ -142,11 +142,11 @@ namespace Lampac.Controllers.LITE
 
             Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
             if (root == null)
-                return OnError();
+                return OnError(null, gbcache: !rch.enable);
 
             var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
             if (content == null)
-                return OnError();
+                return OnError(null, gbcache: !rch.enable);
 
             return ContentTo(oninvk.Serial(root, content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson));
         }
@@ -176,11 +176,11 @@ namespace Lampac.Controllers.LITE
 
             var md = await InvokeCache(rch.ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", proxyManager), cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
-                return OnError();
+                return OnError(null, gbcache: !rch.enable);
 
             string result = oninvk.Movie(md, title, original_title, play);
             if (result == null)
-                return OnError();
+                return OnError(null, gbcache: !rch.enable);
 
             if (play)
                 return Redirect(result);

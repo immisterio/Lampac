@@ -99,7 +99,8 @@ namespace Lampac.Controllers.LITE
                             tpl.Append(l.name, l.uri, l.season);
 
                         return rjson ? tpl.ToJson() : tpl.ToHtml();
-                    });
+
+                    }, gbcache: !rch.enable);
                     #endregion
                 }
                 else
@@ -168,7 +169,8 @@ namespace Lampac.Controllers.LITE
                             etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy));
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();
-                    });
+
+                    }, gbcache: !rch.enable);
                     #endregion
                 }
             }
@@ -218,7 +220,8 @@ namespace Lampac.Controllers.LITE
                     mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy));
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
-                });
+
+                }, gbcache: !rch.enable);
                 #endregion
             }
         }
