@@ -78,6 +78,9 @@ namespace Shared.Engine.Online
                     return null;
                 }
 
+                if (search.Contains("Ошибка доступа (105)"))
+                    return new EmbedModel() { IsEmpty = true, content = "IP-адрес заблокирован, ошибка 105" };
+
                 log("search OK");
 
                 foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))

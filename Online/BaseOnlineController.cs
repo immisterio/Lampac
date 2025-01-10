@@ -77,18 +77,18 @@ namespace Online
         #endregion
 
         #region OnResult
-        public ActionResult OnResult(CacheResult<string> cache)
+        public ActionResult OnResult(CacheResult<string> cache, bool gbcache = true)
         {
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg);
+                return OnError(cache.ErrorMsg, gbcache: gbcache);
 
             return Content(cache.Value, "text/html; charset=utf-8");
         }
 
-        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool origsource = false)
+        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool origsource = false, bool gbcache = true)
         {
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg);
+                return OnError(cache.ErrorMsg, gbcache: gbcache);
 
             if (origsource && cache.Value != null)
                 return Json(cache.Value);

@@ -238,7 +238,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 #region stats
-                _ = await HttpClient.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, proxy: proxyManager.Get(), headers: HeadersModel.Init(
+                _ = await HttpClient.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, removeContentType: true, proxy: proxyManager.Get(), headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -257,7 +257,7 @@ namespace Lampac.Controllers.LITE
 
                 try
                 {
-                    System.IO.File.AppendAllText($"cache/logs/MoonAnime/{DateTime.Today.ToString("MM-yyyy")}.txt", $"{DateTime.Now.ToString("dd / mm:HH")} - {requestInfo.IP} / {vod}\n");
+                    System.IO.File.AppendAllText($"cache/logs/MoonAnime/{DateTime.Today.ToString("MM-yyyy")}.txt", $"{DateTime.Now.ToString("dd / HH:mm")} - {requestInfo.IP} / {vod}\n");
                 }
                 catch { }
                 #endregion

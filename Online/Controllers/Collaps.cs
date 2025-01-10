@@ -76,7 +76,7 @@ namespace Lampac.Controllers.LITE
 
                 return html;
 
-            }, origsource: origsource);
+            }, origsource: origsource, gbcache: !rch.enable);
         }
     }
 }

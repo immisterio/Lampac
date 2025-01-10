@@ -132,6 +132,7 @@ ExecStart=/usr/bin/dotnet Lampac.dll
 #ExecReload=/bin/kill -s HUP $MAINPID
 #ExecStop=/bin/kill -s QUIT $MAINPID
 Restart=always
+LimitNOFILE=32000
 [Install]
 WantedBy=multi-user.target
 EOF

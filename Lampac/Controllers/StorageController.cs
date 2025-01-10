@@ -6,6 +6,7 @@ using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers
 {
@@ -30,7 +31,11 @@ namespace Lampac.Controllers
             if (responseInfo)
                 return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo });
 
-            return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data = BrotliTo.Decompress(outFile) });
+            string data = BrotliTo.Decompress(outFile);
+            if (data == null)
+                data = IO.File.ReadAllText(outFile);
+
+            return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data });
         }
 
 
@@ -54,7 +59,11 @@ namespace Lampac.Controllers
                 array = memoryStream.ToArray();
             }
 
-            BrotliTo.Compress(outFile, array);
+            if (AppInit.conf.storage.brotli)
+                BrotliTo.Compress(outFile, array);
+            else
+                IO.File.WriteAllBytes(outFile, array);  
+
             var inf = new FileInfo(outFile);
 
             return Json(new 
@@ -73,7 +82,7 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(id))
                 return null;
 
-            string md5key = CrypTo.md5(id);
+            string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(id) : Regex.Replace(id, "(\\@|_)", "");
 
             if (createDirectory)
                 Directory.CreateDirectory($"cache/storage/{path}/{md5key.Substring(0, 2)}");

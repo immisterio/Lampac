@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Post(postid);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
     }
 }

@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Web;
 using System;
@@ -65,9 +64,13 @@ namespace Lampac.Controllers
         #region lite.js
         [HttpGet]
         [Route("lite.js")]
-        public ActionResult Lite()
+        [Route("lite/js/{token}")]
+        public ActionResult Lite(string token)
         {
-            return Content(FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite"), contentType: "application/javascript; charset=utf-8");
+            string file = FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite");
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -285,9 +288,6 @@ namespace Lampac.Controllers
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
-            if (string.IsNullOrEmpty(memkey))
-                memkey = checkOnlineSearchKey(id, source);
-
             if (memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) res))
             {
                 if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
@@ -458,8 +458,8 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
             {
-                send("Vibix", conf.Vibix);
-                send("FanCDN", conf.FanCDN);
+                send("Vibix", conf.Vibix, rch_access: "apk,cors");
+                send("FanCDN", conf.FanCDN, rch_access: "apk");
             }
 
             send("Kinobase", conf.Kinobase);
@@ -515,7 +515,7 @@ namespace Lampac.Controllers
                 send("IframeVideo", conf.IframeVideo);
 
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
-                send("VideoHUB", conf.CDNvideohub, "cdnvideohub");
+                send("VideoHUB", conf.CDNvideohub, "cdnvideohub", rch_access: "apk,cors");
 
             if (!life && conf.litejac)
                 online.Add(("Торренты", "{localhost}/lite/jac", "jac", 200));
@@ -533,15 +533,13 @@ namespace Lampac.Controllers
             if (chos)
             {
                 string memkey = checkOnlineSearchKey(id, source, online.Count);
-                string memkey_old = checkOnlineSearchKey(id, source);
 
-                if ((!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) && !memoryCache.TryGetValue(memkey_old, out cache)) || !conf.multiaccess)
+                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
                 {
                     memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
-                    memoryCache.Set(memkey_old, cache, DateTime.Now.AddSeconds(20));
 
                     var tasks = new List<Task>();
-                    var links = new ConcurrentBag<(string code, int index, bool work)>();
+                    var links = new List<(string code, int index, bool work)>();
 
                     foreach (var o in online)
                         tasks.Add(checkSearch(memkey, links, tasks, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype));
@@ -556,7 +554,6 @@ namespace Lampac.Controllers
                     cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
 
                     memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(5));
-                    memoryCache.Set(memkey_old, cache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (life)
@@ -575,137 +572,140 @@ namespace Lampac.Controllers
         #region checkSearch
         static string checkOnlineSearchKey(long id, string source, int count = 0) => CrypTo.md5($"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{count}");
 
-        async Task checkSearch(string memkey, ConcurrentBag<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
+        async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, List<Task> tasks, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
-            string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
-            var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
-
-            string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
-            string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
-
-            if (string.IsNullOrEmpty(res))
-                res = string.Empty;
-
-            bool rch = res.Contains("\"rch\":true");
-            bool work = res.Contains("data-json=") || rch;
-
-            string quality = string.Empty;
-            string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
-
-            #region определение качества
-            if (work && life)
+            try
             {
-                foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
+                string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
+                var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
+
+                string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
+                string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
+
+                if (string.IsNullOrEmpty(res))
+                    res = string.Empty;
+
+                bool rch = res.Contains("\"rch\":true");
+                bool work = res.Contains("data-json=") || rch;
+
+                string quality = string.Empty;
+                string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
+
+                #region определение качества
+                if (work && life)
                 {
-                    if (res.Contains("<!--q:"))
+                    foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
                     {
-                        quality = " - " + Regex.Match(res, "<!--q:([^>]+)-->").Groups[1].Value;
-                        break;
-                    }
-                    else if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
-                    {
-                        quality = $" - {q}p";
-                        break;
-                    }
-                }
-
-                if (quality == "2160")
-                    quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
-
-                if (balanser == "filmix")
-                {
-                    if (!AppInit.conf.Filmix.pro)
-                        quality = string.IsNullOrEmpty(AppInit.conf.Filmix.token) ? " - 480p" : " - 720p";
-                }
-
-                if (balanser == "alloha")
-                    quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;
-
-                if (balanser == "rezka" || balanser == "rhs")
-                {
-                    string rezkaq = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? " ~ 2160p" : " ~ 720p";
-                    quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
-                }
-
-                if (balanser == "collaps")
-                    quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
-
-                if (quality == string.Empty)
-                {
-                    switch (balanser)
-                    {
-                        case "fxapi":
-                        case "filmix":
-                        case "filmixtv":
-                        case "kinopub":
-                        case "vokino":
-                        case "alloha":
-                        case "remux":
-                        case "pidtor":
-                        case "rhsprem":
-                        case "animelib":
-                            quality = " ~ 2160p";
+                        if (res.Contains("<!--q:"))
+                        {
+                            quality = " - " + Regex.Match(res, "<!--q:([^>]+)-->").Groups[1].Value;
                             break;
-                        case "videodb":
-                        case "kinobase":
-                        case "zetflix":
-                        case "vcdn":
-                        case "lumex":
-                        case "vibix":
-                        case "eneyida":
-                        case "kinoukr":
-                        case "ashdi":
-                        case "hdvb":
-                        case "anilibria":
-                        case "animedia":
-                        case "redheadsound":
-                        case "iframevideo":
-                        case "animego":
-                        case "lostfilmhd":
-                        case "vdbmovies":
-                        case "collaps-dash":
-                        case "fancdn":
-                        case "cdnvideohub":
-                        case "moonanime":
-                            quality = " ~ 1080p";
+                        }
+                        else if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
+                        {
+                            quality = $" - {q}p";
                             break;
-                        case "voidboost":
-                        case "animevost":
-                        case "animebesst":
-                        case "kodik":
-                        case "kinotochka":
-                        case "rhs":
-                            quality = " ~ 720p";
-                            break;
-                        case "kinokrad":
-                        case "kinoprofi":
-                        case "seasonvar":
-                            quality = " - 480p";
-                            break;
-                        case "cdnmovies":
-                            quality = " - 360p";
-                            break;
-                        default:
-                            break;
+                        }
                     }
 
-                    if (balanser == "vokino")
-                        quality = res.Contains("4K HDR") ? " - 4K HDR" : res.Contains("4K ") ? " - 4K" : quality;
+                    if (quality == "2160")
+                        quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
+
+                    if (balanser == "filmix")
+                    {
+                        if (!AppInit.conf.Filmix.pro)
+                            quality = string.IsNullOrEmpty(AppInit.conf.Filmix.token) ? " - 480p" : " - 720p";
+                    }
+
+                    if (balanser == "alloha")
+                        quality = string.IsNullOrEmpty(quality) ? (AppInit.conf.Alloha.m4s ? " ~ 2160p" : " ~ 1080p") : quality;
+
+                    if (balanser == "rezka" || balanser == "rhs")
+                    {
+                        string rezkaq = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? " ~ 2160p" : " ~ 720p";
+                        quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
+                    }
+
+                    if (balanser == "collaps")
+                        quality = AppInit.conf.Collaps.dash ? " ~ 1080p" : " ~ 720p";
+
+                    if (quality == string.Empty)
+                    {
+                        switch (balanser)
+                        {
+                            case "fxapi":
+                            case "filmix":
+                            case "filmixtv":
+                            case "kinopub":
+                            case "vokino":
+                            case "alloha":
+                            case "remux":
+                            case "pidtor":
+                            case "rhsprem":
+                            case "animelib":
+                                quality = " ~ 2160p";
+                                break;
+                            case "videodb":
+                            case "kinobase":
+                            case "zetflix":
+                            case "vcdn":
+                            case "lumex":
+                            case "vibix":
+                            case "eneyida":
+                            case "kinoukr":
+                            case "ashdi":
+                            case "hdvb":
+                            case "anilibria":
+                            case "animedia":
+                            case "redheadsound":
+                            case "iframevideo":
+                            case "animego":
+                            case "lostfilmhd":
+                            case "vdbmovies":
+                            case "collaps-dash":
+                            case "fancdn":
+                            case "cdnvideohub":
+                            case "moonanime":
+                                quality = " ~ 1080p";
+                                break;
+                            case "voidboost":
+                            case "animevost":
+                            case "animebesst":
+                            case "kodik":
+                            case "kinotochka":
+                            case "rhs":
+                                quality = " ~ 720p";
+                                break;
+                            case "kinokrad":
+                            case "kinoprofi":
+                            case "seasonvar":
+                                quality = " - 480p";
+                                break;
+                            case "cdnmovies":
+                                quality = " - 360p";
+                                break;
+                            default:
+                                break;
+                        }
+
+                        if (balanser == "vokino")
+                            quality = res.Contains("4K HDR") ? " - 4K HDR" : res.Contains("4K ") ? " - 4K" : quality;
+                    }
                 }
+                #endregion
+
+                if (!name.Contains(" - ") && !string.IsNullOrEmpty(quality))
+                {
+                    name = Regex.Replace(name, " ~ .*$", "");
+                    name += quality;
+                }
+
+                links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
+
+                memoryCache.Set(memkey, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
             }
-            #endregion
-
-            if (!name.Contains(" - ") && !string.IsNullOrEmpty(quality))
-            {
-                name = Regex.Replace(name, " ~ .*$", "");
-                name += quality;
-            }
-
-            links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
-
-            foreach (string key in new string[] { memkey, checkOnlineSearchKey(id, source) })
-                memoryCache.Set(key, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
+            catch { }
         }
         #endregion
     }

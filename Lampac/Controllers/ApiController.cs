@@ -13,6 +13,7 @@ using System.Web;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers
 {
@@ -58,7 +59,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region Version / Headers / geo / myip / testaccsdb / personal.lampa
+        #region Version / Headers / geo / myip / testaccsdb / reqinfo / personal.lampa
         [Route("/version")]
         public ActionResult Version() => Content($"{appversion}.{minorversion}", contentType: "text/plain; charset=utf-8");
 
@@ -66,18 +67,22 @@ namespace Lampac.Controllers
         public ActionResult Headers() => Json(HttpContext.Request.Headers);
 
         [Route("/geo")]
-        public ActionResult Geo(string select)
+        public ActionResult Geo(string select, string ip)
         {
             if (select == "ip")
-                return Content(requestInfo.IP);
+                return Content(ip ?? requestInfo.IP);
+
+            string country = requestInfo.Country;
+            if (ip != null)
+                country = GeoIP2.Country(ip);
 
             if (select == "country")
-                return Content(requestInfo.Country);
+                return Content(country);
 
-            return Json(new 
+            return Json(new
             { 
-                ip = requestInfo.IP,
-                country = requestInfo.Country
+                ip = ip ?? requestInfo.IP,
+                country
             });
         }
 
@@ -142,6 +147,12 @@ namespace Lampac.Controllers
 
                 file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
+
+                if (AppInit.conf.LampaWeb.appReplace != null)
+                {
+                    foreach (var r in AppInit.conf.LampaWeb.appReplace)
+                        file = Regex.Replace(file, r.Key, r.Value, RegexOptions.IgnoreCase);
+                }
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
@@ -257,6 +268,9 @@ namespace Lampac.Controllers
 
                     if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
                         initiale += "\"{localhost}/sisi.js?lite=true\",";
+
+                    if (AppInit.conf.LampaWeb.initPlugins.sync)
+                        initiale += "\"{localhost}/sync.js?lite=true\",";
                 }
                 else
                 {
@@ -468,12 +482,12 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("sync.js")]
         [Route("sync/js/{token}")]
-        public ActionResult SyncJS(string token)
+        public ActionResult SyncJS(string token, bool lite)
         {
             if (!AppInit.conf.storage.enable)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            string file = FileCache.ReadAllText("plugins/sync.js").Replace("{localhost}", host);
+            string file = FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, "application/javascript; charset=utf-8");

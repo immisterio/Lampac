@@ -52,7 +52,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
     }
 }

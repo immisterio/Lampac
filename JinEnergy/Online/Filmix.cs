@@ -9,7 +9,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/filmixpro")]
         public static string FilmixPro(string args)
         {
-            return ShowError("Нужен Filmix PRO+");
+            return ShowError("Инструкция для подключения <br>http://bwa.to/faq/filmix.html<br><br>");
         }
 
         [JSInvokable("lite/filmix")]

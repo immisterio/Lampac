@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
             if (!init.enable || string.IsNullOrEmpty(init.cookie) || string.IsNullOrEmpty(original_title) || year == 0)
                 return OnError();
 
-            if (init.rhub)
+            if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
 
             if (NoAccessGroup(init, out string error_msg))
@@ -32,23 +32,12 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            var baseheader = HeadersModel.Init(
-                ("cache-control", "no-cache"),
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not = A ? Brand\";v=\"8\", \"Chromium\";v=\"129\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "document"),
-                ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "none"),
-                ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1")
-            );
-
             var proxyManager = new ProxyManager("fancdn", init);
             var proxy = proxyManager.Get();
+
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
 
             var oninvk = new FanCDNInvoke
             (
@@ -56,9 +45,12 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => 
                {
-                   var headers = httpHeaders(init, baseheader);
+                   var headers = httpHeaders(init);
                    if (ongettourl.Contains("fancdn."))
                        headers.Add(new HeadersModel("referer", $"{init.host}/"));
+
+                   if (rch.enable)
+                       return rch.Get(init.cors(ongettourl), httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
 
                    return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, httpversion: 2, cookieContainer: cookieContainer(init.cookie));
                },
@@ -67,10 +59,16 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<List<Episode>>($"fancdn:{original_title}:{year}", cacheTime(20, init: init), proxyManager, async res =>
             {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
                 return await oninvk.Embed(title, original_title, year);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title, rjson: rjson), origsource: origsource);
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
 
 

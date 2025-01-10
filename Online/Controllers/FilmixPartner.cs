@@ -15,6 +15,7 @@ using Shared.Model.Online;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -392,7 +393,7 @@ namespace Lampac.Controllers.LITE
 
         static string serverip = null;
 
-        async ValueTask<string> getXFXTOKEN(string account_email = null)
+        async ValueTask<string> getXFXTOKEN(string uid = null)
         {
             var init = AppInit.conf.FilmixPartner;
 
@@ -409,12 +410,12 @@ namespace Lampac.Controllers.LITE
                 userid = 1;
             userid++;
 
-            if (account_email != null)
+            if (uid != null)
             {
                 using (SHA256 sha256Hash = SHA256.Create())
                 {
                     // Преобразуем строку в байты и вычисляем хэш
-                    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(account_email));
+                    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(uid));
 
                     // Преобразуем первые 8 байт хэша в число
                     long result = BitConverter.ToInt64(bytes, 0);

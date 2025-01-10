@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
 
                     return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
 
-                }, origsource: origsource);
+                }, origsource: origsource, gbcache: !rch.enable);
                 #endregion
             }
             else

@@ -20,11 +20,9 @@ namespace Lampac.Engine
         #region Rch
         public void RchRegistry(string json)
         {
-            if (!AppInit.conf.rch.enable) {
-                Context.Abort();
+            if (!AppInit.conf.rch.enable)
                 return;
-            }
-            
+
             JObject job = null;
 
             try
@@ -41,10 +39,8 @@ namespace Lampac.Engine
         /// </summary>
         public void Registry(string type)
         {
-            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(type)) {
-                Context.Abort();
+            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(type))
                 return;
-            }
 
             switch (type)
             {
@@ -69,8 +65,6 @@ namespace Lampac.Engine
                     return;
                 }
             }
-
-            Context.Abort();
         }
 
         public static void SendLog(string message, string plugin)
