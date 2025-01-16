@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.KinoPub.Clone();
 
@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Post(postid);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
     }
 }
