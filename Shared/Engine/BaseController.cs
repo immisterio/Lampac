@@ -78,7 +78,9 @@ namespace Lampac.Engine
                 if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                string val = h.val.Replace("{account_email}", account_email).Replace("{ip}", ip);
+                string val = h.val.Replace("{account_email}", account_email)
+                                  .Replace("{ip}", ip)
+                                  .Replace("{host}", init.host);
 
                 if (val.Contains("{arg:"))
                 {

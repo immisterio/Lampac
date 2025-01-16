@@ -43,6 +43,7 @@ namespace Lampac.Engine.CRON
                         catch { }
                     }
 
+                    update("https://immisterio.github.io/bwa/fx.js");
                     update("https://nb557.github.io/plugins/online_mod.js");
                     update("http://github.freebie.tom.ru/want.js");
                     update("https://nb557.github.io/plugins/reset_subs.js");
