@@ -255,7 +255,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph") 
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph", streamproxy: true) 
         {
             headers = HeadersModel.Init(
                 ("cache-control", "no-cache"),
@@ -269,7 +269,9 @@ namespace Shared.Model
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1")
+                ("upgrade-insecure-requests", "1"),
+                ("origin", "https://anilib.me"),
+                ("referer", "https://anilib.me/")
             )
         };
 
