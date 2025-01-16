@@ -171,6 +171,8 @@ namespace Shared.Engine.Online
                         if (!string.IsNullOrEmpty(a?.author?.title))
                             voice += $" ({a.author.title})";
 
+                        voice += $" {a.codec}";
+
                         #region subtitle
                         var subtitles = new SubtitleTpl();
 
@@ -285,14 +287,21 @@ namespace Shared.Engine.Online
                         foreach (var a in root.item.seasons.First(i => i.number == s).episodes[0].audios)
                         {
                             string? voice = a?.author?.title ?? a?.type?.title;
-                            if (string.IsNullOrEmpty(voice))
-                                continue;
 
                             int? idt = a?.author?.id;
                             if (idt == null)
                                 idt = a?.type?.id ?? null;
 
                             if (idt == null)
+                            {
+                                if (a.lang != "eng")
+                                    continue;
+
+                                idt = 6;
+                                voice = "Оригинал";
+                            }
+
+                            if (string.IsNullOrEmpty(voice))
                                 continue;
 
                             if (t == -1)
@@ -317,7 +326,8 @@ namespace Shared.Engine.Online
                                 if (idt == null)
                                     idt = a?.type?.id;
 
-                                if (idt != null && t == (int)idt)
+                                if ((idt != null && t == (int)idt) ||
+                                    (t == 6 && a.lang == "eng"))
                                 {
                                     voice_index = a!.index;
                                     break;
