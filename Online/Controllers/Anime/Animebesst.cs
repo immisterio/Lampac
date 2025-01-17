@@ -198,7 +198,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(link);
 
-            return Content("{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}", "application/json; charset=utf-8");
+            return ContentTo(VideoTpl.ToJson("play", link, title, vast: init.vast));
         }
         #endregion
     }

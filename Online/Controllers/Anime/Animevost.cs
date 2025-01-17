@@ -219,7 +219,8 @@ namespace Lampac.Controllers.LITE
             return OnResult(cache, () =>
             {
                 string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost");
-                return "{\"method\":\"play\",\"url\":\"" + link + "\",\"title\":\"" + title + "\"}";
+                return VideoTpl.ToJson("play", link, title);
+
             }, gbcache: !rch.enable);
         }
         #endregion

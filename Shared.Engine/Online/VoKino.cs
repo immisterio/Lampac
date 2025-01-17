@@ -83,7 +83,7 @@ namespace Shared.Engine.Online
                         return null;
                     }
 
-                    if (json.StartsWith("Фильм не найден"))
+                    if (json.Contains("not found"))
                         return new EmbedModel() { IsEmpty = true };
 
                     var similars = new List<Similar>() {  Capacity = 10 };
@@ -121,7 +121,7 @@ namespace Shared.Engine.Online
                         return null;
                     }
 
-                    if (json.StartsWith("{\"error\":"))
+                    if (json.Contains("not found"))
                         return new EmbedModel() { IsEmpty = true };
 
                     var root = JsonSerializer.Deserialize<RootObject>(json);

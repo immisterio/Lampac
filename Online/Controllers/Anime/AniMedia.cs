@@ -149,7 +149,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var l in links)
                     {
                         string link = HostStreamProxy(init, l.uri, proxy: proxy, plugin: "animedia");
-                        etpl.Append(l.name, $"{title} / {l.name.ToLower()}", s.ToString(), Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link);
+                        etpl.Append(l.name, $"{title} / {l.name.ToLower()}", s.ToString(), Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link, vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());

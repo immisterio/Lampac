@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.Filmix;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
@@ -255,7 +256,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s)
+        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf? vast = null)
         {
             var player_links = root?.player_links;
             if (player_links == null)
@@ -302,7 +303,7 @@ namespace Shared.Engine.Online
                     if (streams.Count == 0)
                         continue;
 
-                    mtpl.Append(v.translation, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(v.translation, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -404,7 +405,7 @@ namespace Shared.Engine.Online
 
                         int fis = s == -1 ? 1 : (s ?? 1);
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, fis.ToString(), episode.Key, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, fis.ToString(), episode.Key, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                     }
                     #endregion
 

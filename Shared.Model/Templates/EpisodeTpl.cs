@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online;
+﻿using Shared.Model.Base;
+using Shared.Model.Online;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,16 +9,16 @@ namespace Shared.Model.Templates
 {
     public class EpisodeTpl
     {
-        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, string? vast_url, string? vast_msg, List<HeadersModel>? headers)> data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, List<HeadersModel>?)>();
+        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers)> data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?)>();
 
         public EpisodeTpl() { }
 
         public EpisodeTpl(int capacity) { data.Capacity = capacity; }
 
-        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, string? vast_url = null, string? vast_msg = null, List<HeadersModel>? headers = null)
+        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, VastConf? vast = null, List<HeadersModel>? headers = null)
         {
             if (!string.IsNullOrEmpty(name))
-                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast_url, vast_msg, headers));
+                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers));
         }
 
         public string ToHtml()
@@ -41,8 +42,8 @@ namespace Shared.Model.Templates
                     quality = i.streamquality?.ToObject(),
                     subtitles = i.subtitles?.ToObject(),
                     i.voice_name,
-                    vast_url = i.vast_url ?? AppInit._vast?.url,
-                    vast_msg = i.vast_msg ?? AppInit._vast?.msg
+                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_msg = i.vast?.msg ?? AppInit._vast?.msg
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -73,8 +74,8 @@ namespace Shared.Model.Templates
                     s = int.TryParse(i.s, out int _s) ? _s : 0,
                     e = int.TryParse(i.e, out int _e) ? _e : 0,
                     details = i.voice_name,
-                    vast_url = i.vast_url ?? AppInit._vast?.url,
-                    vast_msg = i.vast_msg ?? AppInit._vast?.msg,
+                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     i.name,
                     i.title
                 })

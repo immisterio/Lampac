@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
                         streams.Add((l, $"{q}p"));
                     }
 
-                    mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -197,7 +197,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         int e = episode.Value<int>("episode");
-                        etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
                     }
                     #endregion
 

@@ -235,8 +235,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streams[0].link);
 
-            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\":" + subtitles.ToJson() + ", " + streansquality + "}", "application/json; charset=utf-8");
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title), streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: init.vast));
         }
         #endregion
 

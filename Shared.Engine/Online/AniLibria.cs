@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.AniLibria;
+using Shared.Model.Base;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -48,7 +49,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject>? result, string title, string? code, int year, bool rjson = false)
+        public string Html(List<RootObject>? result, string title, string? code, int year, bool rjson = false, VastConf? vast = null)
         {
             if (result == null || result.Count == 0)
                 return string.Empty;
@@ -85,7 +86,7 @@ namespace Shared.Engine.Online
                             season = string.IsNullOrEmpty(code) ? "0" : "1";
                     }
 
-                    etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), hls, streamquality: new StreamQualityTpl(streams));
+                    etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), hls, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 return rjson ? etpl.ToJson() : etpl.ToHtml();

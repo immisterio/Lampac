@@ -6,6 +6,7 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Online.VideoDB;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -109,7 +110,7 @@ namespace Lampac.Controllers.LITE
             if (HttpContext.Request.Path.Value.Contains(".m3u8"))
                 return Redirect(hls);
 
-            return ContentTo("{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"1080p\"}");
+            return ContentTo(VideoTpl.ToJson("play", hls, "1080p", vast: init.vast));
         }
 
 

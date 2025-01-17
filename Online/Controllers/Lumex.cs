@@ -251,8 +251,7 @@ namespace Lampac.Controllers.LITE
                         streams.Add(($"{q}p", Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")));
                 }
 
-                string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-                return ContentTo($"{{\"method\":\"play\",\"url\":\"{streams[0].link}\",\"title\":\"{streams[0].quality}\",{streansquality}}}");
+                return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));
             }
 
             return Redirect(sproxy(hls));
