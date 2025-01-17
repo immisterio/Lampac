@@ -198,7 +198,7 @@ namespace Shared.Model
             headers = HeadersModel.Init(("Origin", "https://kinogo.media"), ("Referer", "https://kinogo.media/"))
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v41idqvhuldo1wy", enable: false) 
         { 
             geostreamproxy = new List<string>() { "ALL" },
             headers = HeadersModel.Init(

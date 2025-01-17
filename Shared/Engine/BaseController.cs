@@ -6,19 +6,19 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Web;
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using MonoTorrent.Client;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Models;
+using IO = System.IO;
 
 namespace Lampac.Engine
 {
@@ -28,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "128";
 
-        public static string minorversion => "4";
+        public static string minorversion => "5";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -307,6 +307,57 @@ namespace Lampac.Engine
         public string accsArgs(string uri)
         {
             return AccsDbInvk.Args(uri, HttpContext);
+        }
+        #endregion
+
+        #region loadKit
+        public T loadKit<T>(T init, Func<AppInit, T> select) where T : BaseSettings
+        {
+            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
+                return init;
+
+            string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
+            if (!IO.File.Exists(init_file))
+                return init;
+
+            var appinit = JsonConvert.DeserializeObject<AppInit>(IO.File.ReadAllText(init_file));
+            BaseSettings conf = select.Invoke(appinit);
+
+            init.enable = conf.enable;
+            init.displayname = conf.displayname;
+            init.displayindex = conf.displayindex;
+
+            init.host = conf.host;
+            init.apihost = conf.apihost;
+            init.headers = conf.headers;
+            init.scheme = conf.scheme;
+            init.overridehost = conf.overridehost;
+
+            init.streamproxy = false;
+            init.geostreamproxy = null;
+            init.useproxystream = false;
+
+            init.proxy = conf.proxy;
+            if (init?.proxy?.list != null && init.proxy.list.Count > 0)
+                init.useproxy = conf.useproxy;
+
+            if (init.useproxy)
+            {
+                init.rhub = false;
+                init.rhub_fallback = false;
+            }
+            else if (AppInit.conf.kit.rhub_fallback)
+            {
+                init.rhub = conf.rhub;
+                init.rhub_fallback = conf.rhub_fallback;
+            }
+            else
+            {
+                init.rhub = true;
+                init.rhub_fallback = false;
+            }
+
+            return init;
         }
         #endregion
 

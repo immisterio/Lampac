@@ -230,6 +230,8 @@ namespace Lampac
 
         public string anticaptchakey;
 
+        public KitConf kit = new KitConf();
+
         public SyncConf sync = new SyncConf();
 
         public WebLogConf weblog = new WebLogConf();

@@ -142,7 +142,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, bool rjson = false)
+        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, string? codec = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -171,8 +171,6 @@ namespace Shared.Engine.Online
                         if (!string.IsNullOrEmpty(a?.author?.title))
                             voice += $" ({a.author.title})";
 
-                        voice += $" {a.codec}";
-
                         #region subtitle
                         var subtitles = new SubtitleTpl();
 
@@ -186,7 +184,7 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles);
+                        mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, voice_name: a.codec);
                     }
                 }
                 else
@@ -305,12 +303,15 @@ namespace Shared.Engine.Online
                                 continue;
 
                             if (t == -1)
+                            {
                                 t = (int)idt;
+                                codec = a.codec;
+                            }
 
-                            string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={idt}";
-                            bool active = t == idt;
+                            string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={idt}&codec={a.codec}";
+                            bool active = t == idt && (codec == null || codec == a.codec);
 
-                            vtpl.Append(voice, active, link);
+                            vtpl.Append($"{voice} ({a.codec})", active, link);
                         }
                         #endregion
 
@@ -326,7 +327,7 @@ namespace Shared.Engine.Online
                                 if (idt == null)
                                     idt = a?.type?.id;
 
-                                if ((idt != null && t == (int)idt) ||
+                                if ((idt != null && t == (int)idt && (codec == null || codec == a.codec)) ||
                                     (t == 6 && a.lang == "eng"))
                                 {
                                     voice_index = a!.index;

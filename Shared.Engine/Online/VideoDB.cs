@@ -51,7 +51,7 @@ namespace Shared.Engine.Online
             {
                 try
                 {
-                    string base64 = Regex.Match(html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 3);
+                    string base64 = Regex.Match(html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 73);
                     base64 = Regex.Replace(base64, "//[^=]+=", "");
                     string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
                     //json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
