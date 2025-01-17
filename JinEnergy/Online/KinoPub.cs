@@ -13,7 +13,9 @@ namespace JinEnergy.Online
 
             var arg = defaultArgs(args);
             int s = int.Parse(parse_arg("s", args) ?? "-1");
+            int t = int.Parse(parse_arg("t", args) ?? "-1");
             int postid = int.Parse(parse_arg("postid", args) ?? "0");
+            string? codec = parse_arg("codec", args);
 
             var oninvk = new KinoPubInvoke
             (
@@ -49,7 +51,7 @@ namespace JinEnergy.Online
             string mkey = $"kinopub:post:{postid}";
             refresh: var root = await InvokeCache(arg.id, mkey, () => oninvk.Post(postid));
 
-            string html = oninvk.Html(root, init.filetype, arg.title, arg.original_title, postid, s);
+            string html = oninvk.Html(root, init.filetype, arg.title, arg.original_title, postid, s, t, codec);
             if (string.IsNullOrEmpty(html))
             {
                 IMemoryCache.Remove(mkey);
