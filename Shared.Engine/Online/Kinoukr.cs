@@ -1,4 +1,5 @@
 ﻿using Lampac.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online.Eneyida;
 using Shared.Model.Templates;
 using System.Text;
@@ -236,7 +237,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href, bool rjson = false)
+        public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href, VastConf? vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -293,7 +294,7 @@ namespace Shared.Engine.Online
                 }
                 #endregion
 
-                mtpl.Append(string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel, onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+                mtpl.Append(string.IsNullOrEmpty(result.quel) ? "По умолчанию" : result.quel, onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles, vast: vast);
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
@@ -369,7 +370,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles);
+                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         if (rjson)

@@ -1,6 +1,8 @@
 ﻿using Lampac.Models.LITE;
+using Shared.Model.Base;
 using Shared.Model.Online.Rezka;
 using Shared.Model.Templates;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -564,13 +566,13 @@ namespace Shared.Engine.Online
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
-        public string Movie(MovieModel md, string? title, string? original_title, bool play)
+        public string Movie(MovieModel md, string? title, string? original_title, bool play, VastConf? vast = null)
         {
             if (play)
                 return onstreamfile(md.links[0].stream_url!);
 
             #region subtitles
-            string subtitles = string.Empty;
+            var subtitles = new SubtitleTpl();
 
             try
             {
@@ -580,21 +582,20 @@ namespace Shared.Engine.Online
                     while (m.Success)
                     {
                         if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
-                            subtitles += "{\"label\": \"" + m.Groups[1].Value + "\",\"url\": \"" + onstreamfile(m.Groups[2].Value) + "\"},";
+                            subtitles.Append(m.Groups[1].Value, onstreamfile(m.Groups[2].Value));
 
                         m = m.NextMatch();
                     }
-
-                    if (subtitles != string.Empty)
-                        subtitles = Regex.Replace(subtitles, ",$", "");
                 }
             }
             catch { }
             #endregion
 
-            string streansquality = "\"quality\": {" + string.Join(",", md.links.Select(s => $"\"{s.title}\":\"{onstreamfile(s.stream_url!)}\"")) + "}";
+            var streamquality = new StreamQualityTpl();
+            foreach (var l in md.links)
+                streamquality.Append(onstreamfile(l.stream_url!), l.title);
 
-            return "{\"method\":\"play\",\"url\":\"" + onstreamfile(md.links[0].stream_url!) + "\",\"title\":\"" + (title ?? original_title) + "\",\"subtitles\": [" + subtitles + "]," + streansquality + "}";
+            return VideoTpl.ToJson("play", onstreamfile(md.links[0].stream_url!), (title ?? original_title ?? "auto"), streamquality: streamquality, subtitles: subtitles, vast: vast);
         }
         #endregion
 

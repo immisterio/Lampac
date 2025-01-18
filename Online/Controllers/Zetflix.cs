@@ -126,7 +126,7 @@ namespace Lampac.Controllers.LITE
 
             OnLog(log + "\nStart OnResult");
 
-            return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, rjson: rjson));
+            return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson));
         }
 
 

@@ -1,4 +1,5 @@
 ﻿using Lampac.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online.iRemux;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
@@ -175,10 +176,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        public string Movie(string weblink, string quality, string title, string original_title)
+        public string Movie(string weblink, string quality, string title, string original_title, VastConf? vast = null)
         {
-            string lnk = onstreamfile?.Invoke(weblink);
-            return "{\"method\":\"play\",\"url\":\"" + lnk + "\",\"title\":\"" + (title ?? original_title) + "\", \"quality\": {\""+(quality??"auto") + "\":\""+lnk+ "\"}, \"subtitles\": []}";
+            return VideoTpl.ToJson("play", onstreamfile?.Invoke(weblink), (title ?? original_title), vast: vast);
         }
         #endregion
     }

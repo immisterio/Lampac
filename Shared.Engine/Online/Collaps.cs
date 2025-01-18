@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.Collaps;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Collaps;
 using Shared.Model.Templates;
@@ -61,7 +62,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int s, bool rjson = false, List<HeadersModel>? headers = null)
+        public string Html(EmbedModel? md, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int s, bool rjson = false, List<HeadersModel>? headers = null, VastConf? vast = null)
         {
             if (md == null)
                 return string.Empty;
@@ -106,7 +107,7 @@ namespace Shared.Engine.Online
                 voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
                 voicename = Regex.Replace(voicename, "[, ]+$", "");
 
-                mtpl.Append(name, onstreamfile.Invoke(stream.Replace("\u0026", "&")), subtitles: subtitles, voice_name: voicename, headers: headers);
+                mtpl.Append(name, onstreamfile.Invoke(stream.Replace("\u0026", "&")), subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
@@ -166,7 +167,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(stream.Replace("\u0026", "&"));
-                            etpl.Append($"{episode.episode} серия", title ?? original_title, s.ToString(), episode.episode, file, subtitles: subtitles, voice_name: voicename, headers: headers);
+                            etpl.Append($"{episode.episode} серия", title ?? original_title, s.ToString(), episode.episode, file, subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
                         }
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();

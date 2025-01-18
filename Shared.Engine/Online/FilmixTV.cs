@@ -1,11 +1,10 @@
-﻿using Shared.Model.Online;
+﻿using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Online.FilmixTV;
 using Shared.Model.Templates;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using System.Web;
 
 namespace Shared.Engine.Online
@@ -188,7 +187,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s)
+        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf? vast = null)
         {
             if (root == null)
                 return string.Empty;
@@ -276,7 +275,7 @@ namespace Shared.Engine.Online
                         if (streams.Count == 0)
                             continue;
 
-                        etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                     }
 
                     if (rjson)
@@ -313,7 +312,7 @@ namespace Shared.Engine.Online
                     if (streams.Count == 0)
                         continue;
 
-                    mtpl.Append(item.voiceover, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(item.voiceover, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();

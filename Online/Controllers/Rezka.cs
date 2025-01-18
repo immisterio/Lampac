@@ -178,14 +178,14 @@ namespace Lampac.Controllers.LITE
             if (md == null)
                 return OnError(null, gbcache: !rch.enable);
 
-            string result = oninvk.Movie(md, title, original_title, play);
+            string result = oninvk.Movie(md, title, original_title, play, vast: init.vast);
             if (result == null)
                 return OnError(null, gbcache: !rch.enable);
 
             if (play)
                 return Redirect(result);
 
-            return Content(result, "application/json; charset=utf-8");
+            return ContentTo(result);
         }
         #endregion
 

@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.KinoPub;
+using Shared.Model.Base;
 using Shared.Model.Online.KinoPub;
 using Shared.Model.Templates;
 using System.Text.Json;
@@ -142,7 +143,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, string? codec = null, bool rjson = false)
+        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, string? codec = null, VastConf? vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -184,7 +185,7 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, voice_name: a.codec);
+                        mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, voice_name: a.codec, vast: vast);
                     }
                 }
                 else
@@ -222,7 +223,7 @@ namespace Shared.Engine.Online
                         if (filetype == "hls4")
                         {
                             if (v.files[0].url.hls4 != null)
-                                mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename);
+                                mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename, vast: vast);
                         }
                         else
                         {
@@ -243,7 +244,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http, f.file), f.quality)));
-                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http, v.files[0].file), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
+                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http, v.files[0].file), subtitles: subtitles, voice_name: voicename, streamquality: streamquality, vast: vast);
                         }
                     }
                 }
@@ -362,7 +363,7 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles);
+                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast);
                         }
                         #endregion
 
@@ -398,7 +399,7 @@ namespace Shared.Engine.Online
                                 if (episode.files[0].url.hls4 == null)
                                     continue;
 
-                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename);
+                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename, vast: vast);
                             }
                             else
                             {
@@ -429,7 +430,7 @@ namespace Shared.Engine.Online
                                 #endregion
 
                                 string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
-                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams));
+                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams), vast: vast);
                             }
                         }
 

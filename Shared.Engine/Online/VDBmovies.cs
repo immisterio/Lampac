@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.VDBmovies;
+﻿using Shared.Model.Base;
+using Shared.Model.Online.VDBmovies;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
@@ -132,7 +133,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson = false)
+        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, VastConf? vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -171,7 +172,7 @@ namespace Shared.Engine.Online
                         streams.Insert(0, (onstreamfile.Invoke(link), mf.Groups[1].Value));
                     }
 
-                    mtpl.Append(m.title, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(m.title, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -237,7 +238,7 @@ namespace Shared.Engine.Online
                                 streams.Insert(0, (onstreamfile.Invoke(link), mf.Groups[1].Value));
                             }
 
-                            etpl.Append($"{ename} cерия", title ?? original_title, s.ToString(), ename, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append($"{ename} cерия", title ?? original_title, s.ToString(), ename, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                         }
                     }
 

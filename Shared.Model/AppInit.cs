@@ -239,10 +239,10 @@ namespace Shared.Model
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
         /// <summary>
+        /// kwwsv=22dsl1vuyns1frp
         /// kwwsv=22nsdss1olqn2dsl
-        /// kwwsv=22fgqvhuylfhv1olqn2dsl
         /// </summary>
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22fgqvhuylfhv1olqn2dsl") { filetype = "hls" };
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22dsl1vuyns1frp") { filetype = "hls" };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 

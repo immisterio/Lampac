@@ -76,7 +76,7 @@ namespace Lampac.Controllers.LITE
             if (weblink == null)
                 return OnError();
 
-            return Content(oninvk.Movie(weblink, quality, title, original_title), "application/json; charset=utf-8");
+            return ContentTo(oninvk.Movie(weblink, quality, title, original_title, vast: AppInit.conf.iRemux.vast));
         }
     }
 }

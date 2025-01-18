@@ -166,7 +166,7 @@ namespace Lampac.Controllers.LITE
                         var etpl = new EpisodeTpl();
 
                         foreach (var l in cache.Value)
-                            etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy));
+                            etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy), vast: init.vast);
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();
 
@@ -217,7 +217,7 @@ namespace Lampac.Controllers.LITE
                 return OnResult(cache, () => 
                 {
                     var mtpl = new MovieTpl(title);
-                    mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy));
+                    mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy), vast: init.vast);
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 
