@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.VoKino.Clone();
 
@@ -65,8 +65,11 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            if (balancer is "filmix" or "ashdi" or "alloha")
+            if (balancer is "filmix" or "ashdi" or "alloha" or "vibix")
                 init.streamproxy = false;
+
+            if (checksearch && balancer != "vokino")
+                return Content("data-json=");
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();

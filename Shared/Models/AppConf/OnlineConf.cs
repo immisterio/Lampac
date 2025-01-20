@@ -6,6 +6,8 @@
 
         public bool checkOnlineSearch { get; set; }
 
+        public bool forced_checkRchtype { get; set; }
+
 
         public string component { get; set; }
 

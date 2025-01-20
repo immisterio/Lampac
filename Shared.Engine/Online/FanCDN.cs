@@ -27,7 +27,8 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<List<Episode>?> Embed(string title, string original_title, int year)
         {
-            string? search = await onget($"{apihost}/index.php?do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(original_title)}&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=title&resorder=asc&showposts=0&catlist%5B%5D=10");
+            // index.php?do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(original_title)}&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=title&resorder=asc&showposts=0&catlist%5B%5D=10
+            string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
             if (string.IsNullOrEmpty(search))
                 return null;
 
@@ -36,11 +37,11 @@ namespace Shared.Engine.Online
             foreach (string itemsearch in search.Split("item-search-serial"))
             {
                 string? info = itemsearch.Split("torrent-link")?[0];
-                if (string.IsNullOrEmpty(info) || !info.Contains($"({year}") || !info.Contains(title))
-                    continue;
-
-                href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
-                break;
+                if (!string.IsNullOrEmpty(info) && info.Contains($"({year}") && (info.Contains(title) || info.Contains(original_title)))
+                {
+                    href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                    break;
+                }
             }
 
             if (string.IsNullOrEmpty(href))

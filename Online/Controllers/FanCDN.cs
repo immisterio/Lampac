@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Shared.Model.Online;
 using System.Net;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fancdn")]
         async public Task<ActionResult> Index(string title, string original_title, int year, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.FanCDN;
+            var init = AppInit.conf.FanCDN.Clone();
 
             if (!init.enable || string.IsNullOrEmpty(init.cookie) || string.IsNullOrEmpty(original_title) || year == 0)
                 return OnError();
@@ -93,7 +94,7 @@ namespace Lampac.Controllers.LITE
                 {
                     Path = "/",
                     Expires = DateTime.Now.AddHours(1),
-                    Domain = ".fanserialstv.net",
+                    Domain = $".{Regex.Match(AppInit.conf.FanCDN.host, "https?://([^/]+)").Groups[1].Value}",
                     Name = split[0].Trim(),
                     Value = split[1].Trim(),
                 });
