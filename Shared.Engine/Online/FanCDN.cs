@@ -25,9 +25,12 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<List<Episode>?> Embed(string title, string original_title, int year)
+        async public ValueTask<List<Episode>?> Embed(long kinopoisk_id, string title, string original_title, int year)
         {
-            // index.php?do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(original_title)}&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=title&resorder=asc&showposts=0&catlist%5B%5D=10
+            var episodes = await Embed(null, kinopoisk_id);
+            if (episodes != null)
+                return episodes;
+
             string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
             if (string.IsNullOrEmpty(search))
                 return null;
@@ -37,7 +40,9 @@ namespace Shared.Engine.Online
             foreach (string itemsearch in search.Split("item-search-serial"))
             {
                 string? info = itemsearch.Split("torrent-link")?[0];
-                if (!string.IsNullOrEmpty(info) && info.Contains($"({year}") && (info.Contains(title) || info.Contains(original_title)))
+                if (!string.IsNullOrEmpty(info) && 
+                    (info.Contains($"({year-1}") || info.Contains($"({year}") || info.Contains($"({year+1}")) && 
+                    (info.Contains(title) || info.Contains(original_title)))
                 {
                     href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
                     break;
@@ -55,7 +60,15 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(iframe_url))
                 return null;
 
-            string? iframe = await onget(iframe_url);
+            return await Embed(iframe_url, 0);
+        }
+
+        async public ValueTask<List<Episode>?> Embed(string? iframe_url, long kinopoisk_id)
+        {
+            if (string.IsNullOrEmpty(iframe_url) && kinopoisk_id == 0)
+                return null;
+
+            string? iframe = await onget(iframe_url ?? $"https://fancdn.net/iframe/?kp={kinopoisk_id}");
             if (string.IsNullOrEmpty(iframe))
                 return null;
 

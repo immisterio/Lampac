@@ -449,7 +449,7 @@ namespace Lampac.Controllers.LITE
             string country = requestInfo.Country;
 
             int index = tsid != -1 ? tsid : 1;
-            string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|tsid)=[^&]+", "");
+            string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|tsid)=[^&]+", "");
 
             #region auth_stream
             async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd, string uhost = null)

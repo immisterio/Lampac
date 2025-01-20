@@ -17,11 +17,11 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.FanCDN.Clone();
 
-            if (!init.enable || string.IsNullOrEmpty(init.cookie) || string.IsNullOrEmpty(original_title) || year == 0)
+            if (!init.enable || (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0)))
                 return OnError();
 
             if (init.rhub && !AppInit.conf.rch.enable)
@@ -46,24 +46,24 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => 
                {
-                   var headers = httpHeaders(init);
+                   var headers = rch.enable ? httpHeaders(init, HeadersModel.Init("cookie", init.cookie)) : httpHeaders(init);
                    if (ongettourl.Contains("fancdn."))
                        headers.Add(new HeadersModel("referer", $"{init.host}/"));
 
                    if (rch.enable)
-                       return rch.Get(init.cors(ongettourl), httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
+                       return rch.Get(init.cors(ongettourl), headers);
 
                    return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, httpversion: 2, cookieContainer: cookieContainer(init.cookie));
                },
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "fancdn")
             );
 
-            var cache = await InvokeCache<List<Episode>>($"fancdn:{original_title}:{year}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<List<Episode>>($"fancdn:{title}:{year}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(title, original_title, year);
+                return await oninvk.Embed(kinopoisk_id, title, original_title, year);
             });
 
             if (IsRhubFallback(cache, init))
