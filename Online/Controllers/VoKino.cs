@@ -68,8 +68,12 @@ namespace Lampac.Controllers.LITE
             if (balancer is "filmix" or "ashdi" or "alloha" or "vibix")
                 init.streamproxy = false;
 
-            if (checksearch && balancer != "vokino")
-                return Content("data-json=");
+            if (checksearch)
+            {
+                var o = init.online;
+                if (o.videocdn || o.alloha || o.ashdi || o.vibix || o.filmix || o.hdvb)
+                    return Content("data-json="); // заглушка от 429
+            }
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();

@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                 return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
             }
 
-            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}", cacheTime(20, init: init), proxyManager,  async res =>
+            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}", cacheTime(10, init: init), proxyManager,  async res =>
             {
                 #region chromium
                 //try

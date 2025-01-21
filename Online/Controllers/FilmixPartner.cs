@@ -15,7 +15,6 @@ using Shared.Model.Online;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {

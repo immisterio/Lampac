@@ -161,20 +161,18 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, streams, cacheTime(20, init: init));
             }
 
-            string url = HostStreamProxy(init, streams[0].url, proxy: proxy, plugin: "kodik");
-
-            if (play)
-                return Redirect(url);
-
             var streamquality = new StreamQualityTpl();
             foreach (var l in streams)
                 streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy, plugin: "kodik"), l.q);
+
+            if (play)
+                return Redirect(streamquality.Firts().link);
 
             string name = title ?? original_title;
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            return ContentTo(VideoTpl.ToJson("play", link, name, streamquality: streamquality, vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast));
         }
         #endregion
 
