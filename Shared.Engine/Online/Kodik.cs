@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online;
+﻿using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Model.Online.Kodik;
 using Shared.Model.Templates;
 using System.Text;
@@ -336,7 +337,7 @@ namespace Shared.Engine.Online
             return streams;
         }
 
-        public string VideoParse(List<StreamModel>? streams, string? title, string? original_title, int episode, bool play)
+        public string VideoParse(List<StreamModel>? streams, string? title, string? original_title, int episode, bool play, VastConf? vast = null)
         {
             if (streams == null || streams.Count == 0)
                 return string.Empty;
@@ -344,13 +345,15 @@ namespace Shared.Engine.Online
             if (play)
                 return onstreamfile(streams[0].url);
 
-            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.q}\":\"{onstreamfile(s.url)}\"")) + "}";
-
-            string name = title ?? original_title;
+            string name = title ?? original_title ?? "auto";
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            return "{\"method\":\"play\",\"url\":\"" + onstreamfile(streams[0].url) + "\",\"title\":\"" + name + "\", " + streansquality + "}";
+            var streamquality = new StreamQualityTpl();
+            foreach (var l in streams)
+                streamquality.Append(onstreamfile(l.url), l.q);
+
+            return VideoTpl.ToJson("play", onstreamfile(streams[0].url), name, streamquality: streamquality, vast: vast);
         }
         #endregion
 

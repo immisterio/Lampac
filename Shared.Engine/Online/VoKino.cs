@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE;
+using Shared.Model.Base;
 using Shared.Model.Online.VoKino;
 using Shared.Model.Templates;
 using System.Text.Json;
@@ -83,7 +84,7 @@ namespace Shared.Engine.Online
                         return null;
                     }
 
-                    if (json.StartsWith("Фильм не найден"))
+                    if (json.Contains("not found"))
                         return new EmbedModel() { IsEmpty = true };
 
                     var similars = new List<Similar>() {  Capacity = 10 };
@@ -121,7 +122,7 @@ namespace Shared.Engine.Online
                         return null;
                     }
 
-                    if (json.StartsWith("{\"error\":"))
+                    if (json.Contains("not found"))
                         return new EmbedModel() { IsEmpty = true };
 
                     var root = JsonSerializer.Deserialize<RootObject>(json);
@@ -138,7 +139,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s, bool rjson = false)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s, VastConf? vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -205,7 +206,7 @@ namespace Shared.Engine.Online
                     foreach (var e in result.channels.First(i => i.title.StartsWith($"{s} ") || i.title.EndsWith($" {s}")).submenu)
                     {
                         string ename = Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value;
-                        tpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url));
+                        tpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url), vast: vast);
                     }
 
                     if (rjson)
@@ -229,7 +230,7 @@ namespace Shared.Engine.Online
                             name += $" - {size}";
                     }
 
-                    mtpl.Append(name, onstreamfile(ch.stream_url));
+                    mtpl.Append(name, onstreamfile(ch.stream_url), vast: vast);
                 }
 
                 if (rjson)

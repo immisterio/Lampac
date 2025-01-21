@@ -38,6 +38,8 @@ namespace Shared.Model.Base
 
         public List<HeadersModel>? headers { get; set; }
 
+        public VastConf? vast { get; set; }
+
 
         #region proxy
         public bool useproxy { get; set; }

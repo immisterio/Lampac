@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.Ashdi;
+using Shared.Model.Base;
 using Shared.Model.Templates;
 using System.Text;
 using System.Text.Json;
@@ -73,7 +74,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s, bool rjson = false)
+        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s, VastConf? vast = null, bool rjson = false)
         {
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;
@@ -104,7 +105,7 @@ namespace Shared.Engine.Online
                 }
                 #endregion
 
-                mtpl.Append("По умолчанию", onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles);
+                mtpl.Append("По умолчанию", onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles, vast: vast);
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
@@ -180,7 +181,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles);
+                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         if (rjson)

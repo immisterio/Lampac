@@ -57,6 +57,11 @@ namespace Lampac.Controllers
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
+            if (init.forced_checkRchtype)
+                file = file.Replace("window.rchtype", "Defined.rchtype");
+
+            file = file.Replace("return status$1;", "return true;"); // отключение рекламы
+
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion

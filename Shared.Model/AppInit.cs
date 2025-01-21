@@ -39,7 +39,7 @@ namespace Shared.Model
                 ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("referer", "https://ee.bongacams.com"),
+                ("referer", "{host}"),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-origin"),
@@ -198,7 +198,7 @@ namespace Shared.Model
             headers = HeadersModel.Init(("Origin", "https://kinogo.media"), ("Referer", "https://kinogo.media/"))
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v61idqvhuldovwy1qhw", enable: false) 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v41idqvhuldo1wy", enable: true) 
         { 
             geostreamproxy = new List<string>() { "ALL" },
             headers = HeadersModel.Init(
@@ -238,7 +238,11 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22nsdss1olqn2dsl") { uhd = true, hevc = true, hdr = true, filetype = "hls4" };
+        /// <summary>
+        /// kwwsv=22dsl1vuyns1frp
+        /// kwwsv=22nsdss1olqn2dsl
+        /// </summary>
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("kwwsv=22dsl1vuyns1frp") { filetype = "hls" };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
@@ -251,7 +255,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph") 
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph", streamproxy: true) 
         {
             headers = HeadersModel.Init(
                 ("cache-control", "no-cache"),
@@ -265,7 +269,9 @@ namespace Shared.Model
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1")
+                ("upgrade-insecure-requests", "1"),
+                ("origin", "https://anilib.me"),
+                ("referer", "https://anilib.me/")
             )
         };
 

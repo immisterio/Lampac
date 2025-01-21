@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Web;
 using Shared.Model.Online;
+using Shared.Model.Base;
 
 namespace Shared.Model.Templates
 {
@@ -10,7 +11,7 @@ namespace Shared.Model.Templates
     {
         string? title, original_title;
 
-        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, string? vast_url, string? vast_msg, List<HeadersModel>? headers)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, string?, string?, List<HeadersModel>?)>();
+        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?)>();
 
         public MovieTpl(string? title, string? original_title = null, int capacity = 0) 
         {
@@ -20,15 +21,15 @@ namespace Shared.Model.Templates
         }
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, string? vast_url = null, string? vast_msg = null, List<HeadersModel>? headers = null)
+        public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
-                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast_url, vast_msg, headers));
+                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers));
         }
 
-        public string ToHtml(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, string? vast_url = null, string? vast_msg = null, List<HeadersModel>? headers = null)
+        public string ToHtml(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null)
         {
-            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast_url, vast_msg, headers);
+            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers);
             return ToHtml();
         }
 
@@ -58,8 +59,8 @@ namespace Shared.Model.Templates
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     i.voice_name,
                     i.details,
-                    vast_url = i.vast_url ?? AppInit._vast?.url,
-                    vast_msg = i.vast_msg ?? AppInit._vast?.msg,
+                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})"
 
@@ -98,8 +99,8 @@ namespace Shared.Model.Templates
                     translate = i.voiceOrQuality,
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
-                    vast_url = i.vast_url ?? AppInit._vast?.url,
-                    vast_msg = i.vast_msg ?? AppInit._vast?.msg,
+                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})"
                 })

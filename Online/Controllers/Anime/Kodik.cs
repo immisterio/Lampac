@@ -11,6 +11,7 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using Shared.Model.Online.Kodik;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -160,23 +161,18 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, streams, cacheTime(20, init: init));
             }
 
-            string streansquality = string.Empty;
+            var streamquality = new StreamQualityTpl();
             foreach (var l in streams)
-            {
-                string hls = HostStreamProxy(init, l.url, proxy: proxy, plugin: "kodik");
-                streansquality += $"\"{l.q}\":\"" + hls + "\",";
-            }
+                streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy, plugin: "kodik"), l.q);
+
+            if (play)
+                return Redirect(streamquality.Firts().link);
 
             string name = title ?? original_title;
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            string url = HostStreamProxy(init, streams[0].url, proxy: proxy, plugin: "kodik");
-
-            if (play)
-                return Redirect(url);
-
-            return Content("{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + name + "\", \"quality\": {" + Regex.Replace(streansquality, ",$", "") + "}}", "application/json; charset=utf-8");
+            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast));
         }
         #endregion
 
@@ -199,14 +195,14 @@ namespace Lampac.Controllers.LITE
             if (streams == null)
                 return OnError();
 
-            string result = oninvk.VideoParse(streams, title, original_title, episode, play);
+            string result = oninvk.VideoParse(streams, title, original_title, episode, play, vast: init.vast);
             if (string.IsNullOrEmpty(result))
                 return OnError();
 
             if (play)
                 return Redirect(result);
 
-            return Content(result, "application/json; charset=utf-8");
+            return ContentTo(result);
         }
         #endregion
 

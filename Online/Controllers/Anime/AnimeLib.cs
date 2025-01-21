@@ -210,6 +210,7 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
+            var headers = httpHeaders(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             string memKey = $"animelib:video:{id}";
@@ -220,8 +221,8 @@ namespace Lampac.Controllers.LITE
 
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
 
-                var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
-                                        await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                var root = rch.enable ? await rch.Get<JObject>(req_uri, headers) :
+                                        await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
 
                 if (root == null || !root.ContainsKey("data"))
                     return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -252,7 +253,8 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(href))
                             continue;
 
-                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), plugin: "animelib");
+                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), plugin: "animelib", headers: headers);
+
                         _streams.Add((file, $"{item.Value<int>("quality")}p"));
                     }
 
@@ -269,8 +271,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streams[0].link);
 
-            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + title + "\", " + streansquality + "}", "application/json; charset=utf-8");
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast));
         }
         #endregion
     }

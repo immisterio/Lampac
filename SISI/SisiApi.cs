@@ -43,6 +43,9 @@ namespace SISI
             file = file.Replace("{push_all}", init.push_all.ToString().ToLower());
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
+            if (init.forced_checkRchtype)
+                file = file.Replace("window.rchtype", "Defined.rchtype");
+
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion

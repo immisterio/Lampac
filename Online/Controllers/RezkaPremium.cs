@@ -268,14 +268,14 @@ namespace Lampac.Controllers.LITE
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg ?? "md == null", weblog: oninvk.requestlog);
 
-            string result = oninvk.Movie(cache.Value, title, original_title, play);
+            string result = oninvk.Movie(cache.Value, title, original_title, play, vast: init.vast);
             if (result == null)
                 return OnError("result = null", weblog: oninvk.requestlog);
 
             if (play)
                 return Redirect(result);
 
-            return Content(result.Replace("/rezka", "/rhsprem"), "application/json; charset=utf-8");
+            return ContentTo(result.Replace("/rezka", "/rhsprem"));
         }
         #endregion
 

@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.CDNmovies;
+using Shared.Model.Base;
 using Shared.Model.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -55,7 +56,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Voice>? voices, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid, bool rjson = false)
+        public string Html(List<Voice>? voices, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid, VastConf? vast = null, bool rjson = false)
         {
             if (voices == null || voices.Count == 0)
                 return string.Empty;
@@ -113,7 +114,7 @@ namespace Shared.Engine.Online
                         continue;
 
                     string episode = Regex.Match(item.title, "([0-9]+)$").Groups[1].Value;
-                    etpl.Append($"{episode} cерия", title ?? original_title, s.ToString(), episode, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    etpl.Append($"{episode} cерия", title ?? original_title, s.ToString(), episode, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 if (rjson)

@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/ashdi")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Ashdi.Clone();
+            var init = loadKit(AppInit.conf.Ashdi.Clone(), i => i.Ashdi);
             if (!init.enable || kinopoisk_id == 0)
                 return OnError();
 
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
     }
 }

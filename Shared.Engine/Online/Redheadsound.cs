@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.Redheadsound;
+﻿using Shared.Model.Base;
+using Shared.Model.Online.Redheadsound;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -96,7 +97,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? content, string? title, bool rjson = false)
+        public string Html(EmbedModel? content, string? title, VastConf? vast = null, bool rjson = false)
         {
             if (content == null || content.IsEmpty)
                 return string.Empty;
@@ -118,7 +119,7 @@ namespace Shared.Engine.Online
                     if (!string.IsNullOrEmpty(hls))
                     {
                         hls = $"{Regex.Match(content.iframeUri, "^(https?://[^/]+)").Groups[1].Value}/{hls}";
-                        mtpl.Append(quality, onstreamfile(hls));
+                        mtpl.Append(quality, onstreamfile(hls), vast: vast);
                     }
                 }
             }

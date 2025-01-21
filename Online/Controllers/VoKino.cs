@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.VoKino.Clone();
 
@@ -65,8 +65,15 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            if (balancer is "filmix" or "ashdi" or "alloha")
+            if (balancer is "filmix" or "ashdi" or "alloha" or "vibix")
                 init.streamproxy = false;
+
+            if (checksearch)
+            {
+                var o = init.online;
+                if (o.videocdn || o.alloha || o.ashdi || o.vibix || o.filmix || o.hdvb)
+                    return Content("data-json="); // заглушка от 429
+            }
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();
@@ -92,7 +99,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, t, s, rjson), gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson), gbcache: !rch.enable);
         }
     }
 }

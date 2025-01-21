@@ -42,12 +42,12 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial)
+        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial, int clarification)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
-            string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(original_title ?? title)}";
+            string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
             string? json = await onget.Invoke(uri, apihost);
             if (json == null)
@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
 
             foreach (var item in root.data)
             {
-                if (item.kp_id == 0 && string.IsNullOrEmpty(item.imdb_id))
+                if (item.kp_id == 0 /*&& string.IsNullOrEmpty(item.imdb_id)*/)
                     continue;
 
                 if (serial != -1)
@@ -82,11 +82,14 @@ namespace Shared.Engine.Online
                         continue;
                 }
 
-                bool isok = title != null && title.Length > 3 && item.title != null && item.title.ToLower().Contains(title.ToLower());
-                isok = isok ? true : original_title != null && original_title.Length > 3 && item.orig_title != null && item.orig_title.ToLower().Contains(original_title.ToLower());
+                if (clarification != 1)
+                {
+                    bool isok = title != null && title.Length > 3 && item.title != null && item.title.ToLower().Contains(title.ToLower());
+                    isok = isok ? true : original_title != null && original_title.Length > 3 && item.orig_title != null && item.orig_title.ToLower().Contains(original_title.ToLower());
 
-                if (!isok)
-                    continue;
+                    if (!isok)
+                        continue;
+                }
 
                 string year = item.add?.Split("-")?[0] ?? string.Empty;
                 string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);

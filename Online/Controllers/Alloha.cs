@@ -11,6 +11,7 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Templates;
 using Shared.Model.Online.Alloha;
+using Newtonsoft.Json;
 
 namespace Lampac.Controllers.LITE
 {
@@ -43,7 +44,7 @@ namespace Lampac.Controllers.LITE
                 return Ok();
 
             if (origsource)
-                return Json(result.data);
+                return ContentTo(JsonConvert.SerializeObject(result.data));
 
             JToken data = result.data;
 
@@ -59,7 +60,10 @@ namespace Lampac.Controllers.LITE
                     string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                    bool uhd = translation.Value["uhd"].ToString() == "True" && AppInit.conf.Alloha.m4s;
+                    bool uhd = false;
+                    if (translation.Value.TryGetValue("uhd", out object _uhd))
+                        uhd = _uhd.ToString().ToLower() == "true" && AppInit.conf.Alloha.m4s;
+
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
                 }
 
@@ -235,8 +239,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streams[0].link);
 
-            string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-            return Content("{\"method\":\"play\",\"url\":\"" + streams[0].link + "\",\"title\":\"" + (title ?? original_title) + "\", \"subtitles\":" + subtitles.ToJson() + ", " + streansquality + "}", "application/json; charset=utf-8");
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title), streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: init.vast));
         }
         #endregion
 

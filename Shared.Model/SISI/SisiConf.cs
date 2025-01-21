@@ -21,7 +21,10 @@ namespace Lampac.Models.AppConf
 
         public string? iconame { get; set; }
 
-        public bool push_all { get; set; } 
+
+        public bool push_all { get; set; }
+
+        public bool forced_checkRchtype { get; set; }
 
 
         public BookmarksConf bookmarks { get; set; } = new BookmarksConf();

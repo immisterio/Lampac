@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE.KinoPub;
+using Shared.Model.Base;
 using Shared.Model.Online.KinoPub;
 using Shared.Model.Templates;
 using System.Text.Json;
@@ -142,7 +143,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, bool rjson = false)
+        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, string? codec = null, VastConf? vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -152,52 +153,31 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title, root.item.videos.Count);
 
-                foreach (var v in root.item.videos)
+                if (filetype == "hls")
                 {
-                    #region voicename
-                    string voicename = string.Empty;
-
-                    if (v.audios != null)
+                    foreach (var a in root.item.videos[0].audios)
                     {
-                        foreach (var audio in v.audios)
+                        var streams = new List<(string link, string quality)>(4);
+
+                        foreach (var f in root.item.videos[0].files)
                         {
-                            if (audio.lang == "eng")
-                            {
-                                if (!voicename.Contains(audio.lang))
-                                    voicename += "eng, ";
-                            }
-                            else
-                            {
-                                string? a = audio?.author?.title ?? audio?.type?.title;
-                                if (a != null)
-                                {
-                                    a = $"{a} ({audio.lang})";
-                                    if (!voicename.Contains(a))
-                                        voicename += $"{a}, ";
-                                }
-                            }
+                            if (!string.IsNullOrEmpty(f.url.hls))
+                                streams.Add((onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{a.index}.m3u8"), null), f.quality));
                         }
 
-                        voicename = Regex.Replace(voicename, "[, ]+$", "");
-                    }
-                    #endregion
-
-                    if (filetype == "hls4")
-                    {
-                        if (v.files[0].url.hls4 != null)
-                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename);
-                    }
-                    else
-                    {
-                        if (v.files[0].url.http == null)
+                        if (streams.Count == 0)
                             continue;
+
+                        string voice = a.type.title;
+                        if (!string.IsNullOrEmpty(a?.author?.title))
+                            voice += $" ({a.author.title})";
 
                         #region subtitle
                         var subtitles = new SubtitleTpl();
 
-                        if (v.subtitles != null)
+                        if (root.item.videos[0].subtitles != null)
                         {
-                            foreach (var sub in v.subtitles)
+                            foreach (var sub in root.item.videos[0].subtitles)
                             {
                                 if (sub.url != null)
                                     subtitles.Append(sub.lang, onstreamfile(sub.url, null));
@@ -205,8 +185,67 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http, f.file), f.quality)));
-                        mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http, v.files[0].file), subtitles: subtitles, voice_name: voicename, streamquality: streamquality);
+                        mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, voice_name: a.codec, vast: vast);
+                    }
+                }
+                else
+                {
+                    foreach (var v in root.item.videos)
+                    {
+                        #region voicename
+                        string voicename = string.Empty;
+
+                        if (v.audios != null)
+                        {
+                            foreach (var audio in v.audios)
+                            {
+                                if (audio.lang == "eng")
+                                {
+                                    if (!voicename.Contains(audio.lang))
+                                        voicename += "eng, ";
+                                }
+                                else
+                                {
+                                    string? a = audio?.author?.title ?? audio?.type?.title;
+                                    if (a != null)
+                                    {
+                                        a = $"{a} ({audio.lang})";
+                                        if (!voicename.Contains(a))
+                                            voicename += $"{a}, ";
+                                    }
+                                }
+                            }
+
+                            voicename = Regex.Replace(voicename, "[, ]+$", "");
+                        }
+                        #endregion
+
+                        if (filetype == "hls4")
+                        {
+                            if (v.files[0].url.hls4 != null)
+                                mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename, vast: vast);
+                        }
+                        else
+                        {
+                            if (v.files[0].url.http == null)
+                                continue;
+
+                            #region subtitle
+                            var subtitles = new SubtitleTpl();
+
+                            if (v.subtitles != null)
+                            {
+                                foreach (var sub in v.subtitles)
+                                {
+                                    if (sub.url != null)
+                                        subtitles.Append(sub.lang, onstreamfile(sub.url, null));
+                                }
+                            }
+                            #endregion
+
+                            var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http, f.file), f.quality)));
+                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http, v.files[0].file), subtitles: subtitles, voice_name: voicename, streamquality: streamquality, vast: vast);
+                        }
                     }
                 }
 
@@ -239,36 +278,76 @@ namespace Shared.Engine.Online
                 else
                 {
                     #region Серии
-                    var etpl = new EpisodeTpl();
-
-                    foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
+                    if (filetype == "hls")
                     {
-                        #region voicename
-                        string voicename = string.Empty;
+                        #region Перевод
+                        var vtpl = new VoiceTpl();
 
-                        if (episode.audios != null)
+                        foreach (var a in root.item.seasons.First(i => i.number == s).episodes[0].audios)
                         {
-                            foreach (var audio in episode.audios)
+                            string? voice = a?.author?.title ?? a?.type?.title;
+
+                            int? idt = a?.author?.id;
+                            if (idt == null)
+                                idt = a?.type?.id ?? null;
+
+                            if (idt == null)
                             {
-                                string a = audio.author?.title ?? audio.lang;
-                                if (a != null && !voicename.Contains(a) && a != "rus")
-                                    voicename += $"{a}, ";
+                                if (a.lang != "eng")
+                                    continue;
+
+                                idt = 6;
+                                voice = "Оригинал";
                             }
 
-                            voicename = Regex.Replace(voicename, "[, ]+$", "");
+                            if (string.IsNullOrEmpty(voice))
+                                continue;
+
+                            if (t == -1)
+                            {
+                                t = (int)idt;
+                                codec = a.codec;
+                            }
+
+                            string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={idt}&codec={a.codec}";
+                            bool active = t == idt && (codec == null || codec == a.codec);
+
+                            vtpl.Append($"{voice} ({a.codec})", active, link);
                         }
                         #endregion
 
-                        if (filetype == "hls4")
+                        #region Серии
+                        var etpl = new EpisodeTpl();
+
+                        foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
                         {
-                            if (episode.files[0].url.hls4 == null)
-                                continue;
-                    
-                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename);
-                        }
-                        else
-                        {
-                            if (episode.files[0].url.http == null)
+                            int voice_index = -1;
+                            foreach (var a in episode.audios)
+                            {
+                                int? idt = a?.author?.id;
+                                if (idt == null)
+                                    idt = a?.type?.id;
+
+                                if ((idt != null && t == (int)idt && (codec == null || codec == a.codec)) ||
+                                    (t == 6 && a.lang == "eng"))
+                                {
+                                    voice_index = a!.index;
+                                    break;
+                                }
+                            }
+
+                            if (voice_index == -1)
+                                break;
+
+                            var streams = new List<(string link, string quality)>(4);
+
+                            foreach (var f in episode.files)
+                            {
+                                if (!string.IsNullOrEmpty(f.url.hls))
+                                    streams.Add((onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{voice_index}.m3u8"), null), f.quality));
+                            }
+
+                            if (streams.Count == 0)
                                 continue;
 
                             #region subtitle
@@ -284,22 +363,79 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            #region streams
-                            var streams = new List<(string link, string quality)>() { Capacity = episode.files.Count };
+                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast);
+                        }
+                        #endregion
 
-                            foreach (var f in episode.files)
+                        if (rjson)
+                            return etpl.ToJson(vtpl);
+
+                        return vtpl.ToHtml() + etpl.ToHtml();
+                    }
+                    else
+                    {
+                        var etpl = new EpisodeTpl();
+
+                        foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
+                        {
+                            #region voicename
+                            string voicename = string.Empty;
+
+                            if (episode.audios != null)
                             {
-                                if (f.url.http != null)
-                                    streams.Add((onstreamfile(f.url.http, f.file), f.quality));
+                                foreach (var audio in episode.audios)
+                                {
+                                    string a = audio.author?.title ?? audio.lang;
+                                    if (a != null && !voicename.Contains(a) && a != "rus")
+                                        voicename += $"{a}, ";
+                                }
+
+                                voicename = Regex.Replace(voicename, "[, ]+$", "");
                             }
                             #endregion
 
-                            string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
-                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams));
-                        }
-                    }
+                            if (filetype == "hls4")
+                            {
+                                if (episode.files[0].url.hls4 == null)
+                                    continue;
 
-                    return rjson ? etpl.ToJson() : etpl.ToHtml();
+                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename, vast: vast);
+                            }
+                            else
+                            {
+                                if (episode.files[0].url.http == null)
+                                    continue;
+
+                                #region subtitle
+                                var subtitles = new SubtitleTpl();
+
+                                if (episode.subtitles != null)
+                                {
+                                    foreach (var sub in episode.subtitles)
+                                    {
+                                        if (sub.url != null)
+                                            subtitles.Append(sub.lang, onstreamfile(sub.url, null));
+                                    }
+                                }
+                                #endregion
+
+                                #region streams
+                                var streams = new List<(string link, string quality)>() { Capacity = episode.files.Count };
+
+                                foreach (var f in episode.files)
+                                {
+                                    if (f.url.http != null)
+                                        streams.Add((onstreamfile(f.url.http, f.file), f.quality));
+                                }
+                                #endregion
+
+                                string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
+                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams), vast: vast);
+                            }
+                        }
+
+                        return rjson ? etpl.ToJson() : etpl.ToHtml();
+                    }
                     #endregion
                 }
                 #endregion

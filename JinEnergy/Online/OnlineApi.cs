@@ -155,7 +155,7 @@ namespace JinEnergy.Online
             if (AppInit.typeConf != "web" || AppInit.Rezka.premium)
                 send("Rezka - " + (AppInit.Rezka.premium ? "2160p" : "720p"), "rezka", AppInit.Rezka);
 
-            if (!AppInit.IsDefaultConf)
+            if (!string.IsNullOrEmpty(AppInit.Filmix.token))
                 send($"Filmix - {(AppInit.Filmix.pro ? "4K HDR" : !string.IsNullOrEmpty(AppInit.Filmix.token) ? "720p" : "480p")}", "filmix", AppInit.Filmix, arg_url: (arg.source == "filmix" ? $"?postid={arg.id}" : ""));
 
             send("KinoPub - 4K HDR", "kinopub", AppInit.KinoPub, arg_url: (arg.source == "pub" ? $"?postid={arg.id}" : ""));
@@ -200,8 +200,8 @@ namespace JinEnergy.Online
                 send("RHS - 1080p", "redheadsound", AppInit.Redheadsound);
             }
 
-            if (AppInit.IsDefaultConf)
-                send($"Filmix - 480p", "filmix", AppInit.Filmix);
+            //if (AppInit.IsDefaultConf)
+            //    send($"Filmix - 480p", "filmix", AppInit.Filmix);
 
             if (arg.kinopoisk_id > 0)
                 send("VDBmovies - 1080p", "vdbmovies", AppInit.VDBmovies, argTitle_vpn);
@@ -215,7 +215,7 @@ namespace JinEnergy.Online
             if (AppInit.typeConf == "web" && !AppInit.Rezka.premium)
                 send("Rezka - 2160p", "rezka", AppInit.Rezka);
 
-            if (AppInit.IsDefaultConf || string.IsNullOrEmpty(AppInit.Filmix.token))
+            if (string.IsNullOrEmpty(AppInit.Filmix.token))
                 send($"Filmix - 4K HDR", "filmixpro", AppInit.Filmix);
 
             return $"[{string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"))}]";

@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/lumex")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Lumex;
             if (!init.enable)
@@ -49,17 +49,17 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            if (kinopoisk_id == 0 /*&& string.IsNullOrEmpty(imdb_id)*/)
+            if (clarification == 1 || kinopoisk_id == 0)
             {
-                var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}", cacheTime(40, init: init), async res =>
+                var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
                 {
-                    return await oninvk.Search(title, original_title, serial);
+                    return await oninvk.Search(title, original_title, serial, clarification);
                 });
 
                 return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
             }
 
-            var cache = await InvokeCache<EmbedModel>($"videocdn:{imdb_id}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager,  async res =>
+            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}", cacheTime(10, init: init), proxyManager,  async res =>
             {
                 #region chromium
                 //try
@@ -251,8 +251,7 @@ namespace Lampac.Controllers.LITE
                         streams.Add(($"{q}p", Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")));
                 }
 
-                string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
-                return ContentTo($"{{\"method\":\"play\",\"url\":\"{streams[0].link}\",\"title\":\"{streams[0].quality}\",{streansquality}}}");
+                return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));
             }
 
             return Redirect(sproxy(hls));

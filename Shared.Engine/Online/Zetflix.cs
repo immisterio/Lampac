@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online;
+﻿using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Model.Online.Zetflix;
 using Shared.Model.Templates;
 using System.Text.Json;
@@ -107,7 +108,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false, bool rjson = false)
+        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false, bool rjson = false, VastConf? vast = null)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -147,7 +148,7 @@ namespace Shared.Engine.Online
                     if (streams.Count == 0)
                         continue;
 
-                    mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -230,7 +231,7 @@ namespace Shared.Engine.Online
                             if (streams.Count == 0)
                                 continue;
 
-                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                         }
                     }
 

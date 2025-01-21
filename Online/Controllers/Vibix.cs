@@ -79,7 +79,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         if (streams.Any())
-                            mtpl.Append(item.Value<string>("title"), streams.Firts().link, streamquality: streams);
+                            mtpl.Append(item.Value<string>("title"), streams.Firts().link, streamquality: streams, vast: init.vast);
                     }
 
                     return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);

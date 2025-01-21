@@ -2,6 +2,8 @@
 {
     public class Author
     {
+        public int? id { get; set; }
+
         public string title { get; set; }
     }
 }
