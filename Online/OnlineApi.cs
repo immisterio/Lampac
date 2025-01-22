@@ -710,7 +710,7 @@ namespace Lampac.Controllers
 
                 memoryCache.Set(memkey, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine("checkSearch: " + ex.ToString()); }
         }
         #endregion
     }
