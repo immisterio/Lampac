@@ -158,6 +158,7 @@ namespace Shared.Model
         /// 
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9kNmRkMzg3ZS5vYnJ1dC5zaG93L2VtYmVkL2NqTS9jb250ZW50L2N6TndnVE8=
+        /// aHR0cHM6Ly9maWxtLTIwMjQub3JnLw==
         /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") 
         { 

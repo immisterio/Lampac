@@ -8,7 +8,7 @@ namespace Shared.Model.Templates
     public class SeasonTpl
     {
         #region SeasonTpl
-        string? quality = null;
+        public string? quality = null;
 
         public SeasonTpl() { }
 

@@ -132,18 +132,18 @@ namespace Lampac.Controllers
 
 
         #region app.min.js
-        [Route("lampa-{type}/app.min.js")]
+        [Route("{type}/app.min.js")]
         public ActionResult LampaApp(string type)
         {
             if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:app.min.js", out string file))
             {
-                file = IO.File.ReadAllText($"wwwroot/lampa-{type}/app.min.js");
+                file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
 
-                file = file.Replace("http://lite.lampa.mx", $"{host}/lampa-{type}");
-                file = file.Replace("https://yumata.github.io/lampa-lite", $"{host}/lampa-{type}");
+                file = file.Replace("http://lite.lampa.mx", $"{host}/{type}");
+                file = file.Replace("https://yumata.github.io/lampa-lite", $"{host}/{type}");
 
-                file = file.Replace("http://lampa.mx", $"{host}/lampa-{type}");
-                file = file.Replace("https://yumata.github.io/lampa", $"{host}/lampa-{type}");
+                file = file.Replace("http://lampa.mx", $"{host}/{type}");
+                file = file.Replace("https://yumata.github.io/lampa", $"{host}/{type}");
 
                 file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");

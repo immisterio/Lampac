@@ -74,7 +74,7 @@ namespace Lampac.Engine.Middlewares
                         href = decryptLink.uri;
                 }
 
-                if (string.IsNullOrWhiteSpace(href))
+                if (string.IsNullOrWhiteSpace(href) || !href.StartsWith("http"))
                 {
                     httpContext.Response.StatusCode = 404;
                     return;
