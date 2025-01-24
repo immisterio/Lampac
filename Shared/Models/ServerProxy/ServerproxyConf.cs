@@ -22,6 +22,10 @@ namespace Shared.Models.ServerProxy
 
         public ServerproxyTmdb tmdb { get; set; } = new ServerproxyTmdb();
 
+        public int maxlength_m3u { get; set; }
+
+        public int maxlength_ts { get; set; }
+
         public bool useproxy { get; set; }
 
         public bool useproxystream { get; set; }

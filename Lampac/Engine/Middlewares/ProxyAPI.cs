@@ -41,6 +41,7 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
+            var init = AppInit.conf.serverproxy;
             var requestInfo = httpContext.Features.Get<RequestModel>();
             string reqip = requestInfo.IP;
             string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
@@ -48,14 +49,14 @@ namespace Lampac.Engine.Middlewares
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
                 string dashkey = Regex.Match(servUri, "^([^/]+)").Groups[1].Value;
-                if (!memoryCache.TryGetValue($"proxy-dash:{dashkey}:{(AppInit.conf.serverproxy.verifyip ? reqip : "")}", out string baseURL)) {
+                if (!memoryCache.TryGetValue($"proxy-dash:{dashkey}:{(init.verifyip ? reqip : "")}", out string baseURL)) {
                     httpContext.Response.StatusCode = 403;
                     return;
                 }
 
                 servUri = servUri.Replace($"{dashkey}/", baseURL);
 
-                if (AppInit.conf.serverproxy.showOrigUri)
+                if (init.showOrigUri)
                     httpContext.Response.Headers.Add("PX-Orig", servUri);
 
                 using (var client = _httpClientFactory.CreateClient("proxy"))
@@ -74,11 +75,11 @@ namespace Lampac.Engine.Middlewares
                 #region decryptLink
                 ProxyLinkModel decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
 
-                if (AppInit.conf.serverproxy.encrypt)
+                if (init.encrypt)
                 {
                     if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
                     {
-                        if (!AppInit.conf.serverproxy.allow_tmdb)
+                        if (!init.allow_tmdb)
                         {
                             httpContext.Response.StatusCode = 403;
                             return;
@@ -91,7 +92,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 else
                 {
-                    if (!AppInit.conf.serverproxy.enable)
+                    if (!init.enable)
                     {
                         httpContext.Response.StatusCode = 403;
                         return;
@@ -115,12 +116,12 @@ namespace Lampac.Engine.Middlewares
                 if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
                 {
                     var headers = new List<HeadersModel>();
-                    var proxyManager = new ProxyManager("proxyapi_tmdb", AppInit.conf.serverproxy.tmdb);
+                    var proxyManager = new ProxyManager("proxyapi_tmdb", init.tmdb);
 
-                    if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.API_IP))
+                    if (!string.IsNullOrEmpty(init.tmdb.API_IP))
                     {
                         headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
-                        servUri = servUri.Replace("api.themoviedb.org", AppInit.conf.serverproxy.tmdb.API_IP);
+                        servUri = servUri.Replace("api.themoviedb.org", init.tmdb.API_IP);
                     }
 
                     string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get(), headers: headers);
@@ -137,7 +138,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                if (AppInit.conf.serverproxy.showOrigUri)
+                if (init.showOrigUri)
                     httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
 
                 #region Кеш файла
@@ -145,7 +146,7 @@ namespace Lampac.Engine.Middlewares
                 bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
 
                 string md5key = CORE.CrypTo.md5(ists ? fixuri(decryptLink) : decryptLink.uri);
-                bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && AppInit.conf.serverproxy.encrypt && AppInit.conf.serverproxy.cache.hls;
+                bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && init.encrypt && init.cache.hls;
 
                 string foldercache = cache_stream ? $"cache/hls/{md5key.Substring(0, 3)}" : string.Empty;
                 string cachefile = cache_stream ? ($"{foldercache}/{md5key.Substring(3)}" + Path.GetExtension(md5file)) : string.Empty;
@@ -211,7 +212,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             if (response.StatusCode == HttpStatusCode.OK)
                             {
-                                if (response.Content.Headers.ContentLength > 625000)
+                                if (response.Content.Headers.ContentLength > init.maxlength_m3u)
                                 {
                                     httpContext.Response.ContentType = "text/plain";
                                     await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
@@ -251,7 +252,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             if (response.StatusCode == HttpStatusCode.OK)
                             {
-                                if (response.Content.Headers.ContentLength > 625000)
+                                if (response.Content.Headers.ContentLength > init.maxlength_m3u)
                                 {
                                     httpContext.Response.ContentType = "text/plain";
                                     await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
@@ -262,7 +263,7 @@ namespace Lampac.Engine.Middlewares
                                 string baseURL = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>").Groups[1].Value;
 
                                 string dashkey = CORE.CrypTo.md5(DateTime.Now.ToBinary().ToString());
-                                memoryCache.Set($"proxy-dash:{dashkey}:{(AppInit.conf.serverproxy.verifyip ? reqip : "")}", baseURL, DateTime.Now.AddHours(8));
+                                memoryCache.Set($"proxy-dash:{dashkey}:{(init.verifyip ? reqip : "")}", baseURL, DateTime.Now.AddHours(8));
 
                                 mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{dashkey}/");
 
@@ -286,7 +287,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             if (response.StatusCode == HttpStatusCode.OK)
                             {
-                                if (response.Content.Headers.ContentLength > 10_000000)
+                                if (response.Content.Headers.ContentLength > init.maxlength_ts)
                                 {
                                     httpContext.Response.ContentType = "text/plain";
                                     await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
