@@ -148,13 +148,13 @@ namespace Lampac.Controllers
                 file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
 
-                if (AppInit.conf.LampaWeb.appReplace != null)
-                {
-                    foreach (var r in AppInit.conf.LampaWeb.appReplace)
-                        file = Regex.Replace(file, r.Key, r.Value, RegexOptions.IgnoreCase);
-                }
-
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
+            }
+
+            if (AppInit.conf.LampaWeb.appReplace != null)
+            {
+                foreach (var r in AppInit.conf.LampaWeb.appReplace)
+                    file = Regex.Replace(file, r.Key, r.Value, RegexOptions.IgnoreCase);
             }
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
