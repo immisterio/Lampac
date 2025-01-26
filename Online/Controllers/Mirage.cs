@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
                     string translation = file.Value<string>("translation");
                     string quality = file.Value<string>("quality");
                     long id = file.Value<long>("id");
-                    bool uhd = file.Value<bool>("uhd");
+                    bool uhd = init.m4s ? file.Value<bool>("uhd") : false;
 
                     string link = $"{host}/lite/mirage/video?id_file={id}&token_movie={data.Value<string>("token_movie")}";
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                 {
                     var voice = frame.ToObject<Dictionary<string, Dictionary<string, Dictionary<string, JObject>>>>().First().Value.First().Value.Values.First();
 
-                    var tpl = new SeasonTpl(voice.Value<bool>("uhd") == true ? "2160p" : null);
+                    var tpl = new SeasonTpl(init.m4s && voice.Value<bool>("uhd") == true ? "2160p" : null);
 
                     foreach (var season in frame.ToObject<Dictionary<string, JObject>>())
                         tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
@@ -171,6 +171,9 @@ namespace Lampac.Controllers.LITE
 
             foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
             {
+                if (!init.m4s && (q.Key is "2160" or "1440"))
+                    continue;
+
                 string link = Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
                 streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders), $"{q.Key}p");
             }

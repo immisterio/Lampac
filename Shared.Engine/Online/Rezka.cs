@@ -237,7 +237,7 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                var match = new Regex("<li [^>]+ data-translator_id=\"([0-9]+)\" ([^>]+)>([^<]+)").Match(result.content);
+                var match = new Regex("<li [^>]+ data-translator_id=\"([0-9]+)\" ([^>]+)>([^>]+)").Match(result.content);
                 if (match.Success)
                 {
                     while (match.Success)
@@ -252,9 +252,19 @@ namespace Shared.Engine.Online
 
                             string favs = Regex.Match(result.content, "id=\"ctrl_favs\" value=\"([^\"]+)\"").Groups[1].Value;
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}&favs={favs}";
-                            string voice = match.Groups[3].Value.Trim();
-                            if (voice == "-")
+
+                            #region voice
+                            string voice = match.Groups[3].Value.Split("<")[0].Trim();
+
+                            if (!voice.Contains("Украинский") && match.Groups[3].Value.Contains("/flags/ua.png"))
+                                voice += " (Украинский)";
+
+                            if (match.Groups[3].Value.Contains("реж. версия"))
+                                voice += " (реж. версия)";
+
+                            if (voice == "-" || string.IsNullOrEmpty(voice))
                                 voice = "Оригинал";
+                            #endregion
 
                             if (match.Groups[2].Value.Contains("data-director=\"1\""))
                                 link += "&director=1";

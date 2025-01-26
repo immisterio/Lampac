@@ -378,8 +378,16 @@ namespace Lampac.Controllers
                 {
                     if (AppInit.conf.accsdb.enable)
                     {
-                        if (user == null || (init.group > user.group && init.group_hide))
-                            return;
+                        if (user != null)
+                        {
+                            if (init.group > user.group && init.group_hide)
+                                return;
+                        }
+                        else
+                        {
+                            if (string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
+                                return;
+                        }
                     }
 
                     string url = init.overridehost;
@@ -431,9 +439,17 @@ namespace Lampac.Controllers
             {
                 if (AppInit.conf.accsdb.enable)
                 {
-                    if (user == null || (AppInit.conf.VoKino.group > user.group && AppInit.conf.VoKino.group_hide)) { }
+                    if (user != null)
+                    {
+                        if (AppInit.conf.VoKino.group > user.group && AppInit.conf.VoKino.group_hide) { }
+                        else
+                            VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
+                    }
                     else
-                        VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
+                    {
+                        if (!string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
+                            VoKinoInvoke.SendOnline(AppInit.conf.VoKino, online);
+                    }
                 }
                 else
                 {
@@ -629,7 +645,7 @@ namespace Lampac.Controllers
 
                     if (balanser == "rezka" || balanser == "rhs")
                     {
-                        string rezkaq = !string.IsNullOrEmpty(AppInit.conf.Rezka.login) || !string.IsNullOrEmpty(AppInit.conf.Rezka.cookie) ? " ~ 2160p" : " ~ 720p";
+                        string rezkaq = AppInit.conf.Rezka.premium ? " ~ 2160p" : " ~ 720p";
                         quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
                     }
 
