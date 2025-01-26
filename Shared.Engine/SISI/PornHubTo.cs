@@ -67,7 +67,7 @@ namespace Shared.Engine.SISI
 
             if (related)
             {
-                var ids = html.Split("id=\"relatedVideosCenter\"");
+                var ids = html.Split("id=\"loadMoreRelatedVideosCenter\"");
                 if (ids.Length > 1)
                     videoCategory = ids[1];
             }

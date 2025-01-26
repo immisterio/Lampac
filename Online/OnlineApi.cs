@@ -448,8 +448,9 @@ namespace Lampac.Controllers
             send("KinoPub", conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
 
             send("Alloha", conf.Alloha);
-            send("Rezka", conf.Rezka);
             send("HDRezka", conf.RezkaPrem, "rhsprem");
+            send("Rezka", conf.Rezka);
+            send("Mirage", conf.Mirage);
 
             if (kinopoisk_id > 0)
             {
@@ -649,6 +650,7 @@ namespace Lampac.Controllers
                             case "pidtor":
                             case "rhsprem":
                             case "animelib":
+                            case "mirage":
                                 quality = " ~ 2160p";
                                 break;
                             case "videodb":
