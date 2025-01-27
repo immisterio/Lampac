@@ -63,6 +63,9 @@ namespace Lampac.Engine.Middlewares
                 if (string.IsNullOrEmpty(req.user_uid))
                     req.user_uid = getuid();
 
+                if (req.user != null)
+                    req.@params = AppInit.conf.accsdb.@params;
+
                 httpContext.Features.Set(req);
                 return _next(httpContext);
             }
@@ -74,6 +77,8 @@ namespace Lampac.Engine.Middlewares
 
                 if (req.user == null)
                     return httpContext.Response.WriteAsync("user not found", httpContext.RequestAborted);
+
+                req.@params = AppInit.conf.accsdb.@params;
 
                 httpContext.Features.Set(req);
                 return _next(httpContext);
