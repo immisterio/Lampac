@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"mirage:video:{id_file}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
-                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}&av1={(init.m4s ? "true" : "false")}&autoplay=0&audio=&subtitle=", headers: HeadersModel.Init(
+                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", headers: HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("origin", init.linkhost),
