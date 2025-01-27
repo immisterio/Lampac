@@ -132,9 +132,18 @@ namespace Lampac.Controllers
 
 
         #region app.min.js
+        [Route("/app.min.js")]
         [Route("{type}/app.min.js")]
         public ActionResult LampaApp(string type)
         {
+            if (string.IsNullOrEmpty(type))
+            {
+                if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
+                    return Content(string.Empty, "application/javascript; charset=utf-8");
+
+                type = AppInit.conf.LampaWeb.index.Split("/")[0];
+            }
+
             if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:app.min.js", out string file))
             {
                 file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
@@ -148,6 +157,8 @@ namespace Lampac.Controllers
                 file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
 
+                file = file.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa 
+
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
 
@@ -157,9 +168,24 @@ namespace Lampac.Controllers
                     file = Regex.Replace(file, r.Key, r.Value, RegexOptions.IgnoreCase);
             }
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
+
+        #region app.css
+        [Route("/css/app.css")]
+        public ActionResult LampaAppCss()
+        {
+            if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
+                return Content(string.Empty, "text/css");
+
+            string path = AppInit.conf.LampaWeb.index.Split("/")[0];
+            string css = FileCache.ReadAllText($"wwwroot/{path}/css/app.css");
+
+            return Content(css, "text/css");
+        }
+        #endregion
+
 
         #region samsung.wgt
         [HttpGet]
@@ -254,6 +280,7 @@ namespace Lampac.Controllers
         #region lampainit.js
         [HttpGet]
         [Route("lampainit.js")]
+        [Route("modification.js")]
         public ActionResult LamInit(bool lite)
         {
             string initiale = string.Empty;
