@@ -110,7 +110,7 @@ namespace Lampac.Controllers.LITE
             if (HttpContext.Request.Path.Value.Contains(".m3u8"))
                 return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "1080p", vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));
         }
 
 

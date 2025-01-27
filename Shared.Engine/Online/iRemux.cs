@@ -178,7 +178,7 @@ namespace Shared.Engine.Online
         #region Movie
         public string Movie(string weblink, string quality, string title, string original_title, VastConf? vast = null)
         {
-            return VideoTpl.ToJson("play", onstreamfile?.Invoke(weblink), (title ?? original_title), vast: vast);
+            return VideoTpl.ToJson("play", onstreamfile?.Invoke(weblink), (title ?? original_title), quality: quality, vast: vast);
         }
         #endregion
     }

@@ -177,12 +177,12 @@ namespace Lampac.Controllers
         public ActionResult LampaAppCss()
         {
             if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
-                return Content(string.Empty, "text/css");
+                return Content(string.Empty, "text/css; charset=utf-8");
 
             string path = AppInit.conf.LampaWeb.index.Split("/")[0];
             string css = FileCache.ReadAllText($"wwwroot/{path}/css/app.css");
 
-            return Content(css, "text/css");
+            return Content(css, "text/css; charset=utf-8");
         }
         #endregion
 
