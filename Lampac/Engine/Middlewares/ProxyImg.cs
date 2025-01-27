@@ -44,8 +44,8 @@ namespace Lampac.Engine.Middlewares
                 bool cacheimg = init.cache.img;
 
                 #region Проверки
-                ProxyLinkModel decryptLink = null;
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
+                ProxyLinkModel decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
 
                 if (init.encrypt)
                 {
@@ -59,7 +59,6 @@ namespace Lampac.Engine.Middlewares
                     }
                     else
                     {
-                        decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
                         href = decryptLink?.uri;
                     }
                 }
@@ -70,9 +69,12 @@ namespace Lampac.Engine.Middlewares
                         httpContext.Response.StatusCode = 403;
                         return;
                     }
+
+                    if (decryptLink?.uri != null)
+                        href = decryptLink.uri;
                 }
 
-                if (string.IsNullOrWhiteSpace(href))
+                if (string.IsNullOrWhiteSpace(href) || !href.StartsWith("http"))
                 {
                     httpContext.Response.StatusCode = 404;
                     return;

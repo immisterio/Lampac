@@ -158,6 +158,7 @@ namespace Shared.Model
         /// 
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9kNmRkMzg3ZS5vYnJ1dC5zaG93L2VtYmVkL2NqTS9jb250ZW50L2N6TndnVE8=
+        /// aHR0cHM6Ly9maWxtLTIwMjQub3JnLw==
         /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("kwwsv=2263ei6:<31reuxw1vkrz") 
         { 
@@ -246,6 +247,7 @@ namespace Shared.Model
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
+        public AllohaSettings Mirage { get; set; } = new AllohaSettings("kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "fb7f82fe0ed1bd6d5dea884d57eeca", "", true, true) { enable = true, streamproxy = true };
 
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);

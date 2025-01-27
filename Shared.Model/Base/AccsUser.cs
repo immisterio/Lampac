@@ -17,5 +17,7 @@
         public string? ban_msg { get; set; }
 
         public string? comment { get; set; }
+
+        public Dictionary<string, object> @params { get; set; }
     }
 }

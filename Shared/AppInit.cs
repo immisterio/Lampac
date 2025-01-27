@@ -261,7 +261,9 @@ namespace Lampac
                 {
                     list = new ConcurrentBag<string>() { "socks5://127.0.0.1:9050" }
                 }
-            }
+            },
+            maxlength_m3u = 1900000,
+            maxlength_ts = 10000000
         };
 
         public FileCacheConf fileCacheInactive = new FileCacheConf() { maxcachesize = 400, intervalclear = 4, img = 10, hls = 90, html = 5, torrent = 50 };

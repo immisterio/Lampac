@@ -28,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "128";
 
-        public static string minorversion => "7";
+        public static string minorversion => "9";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -146,7 +146,7 @@ namespace Lampac.Engine
 
         public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
         {
-            if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null || conf.rhub)
+            if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri;
 
             bool streamproxy = conf.streamproxy || conf.useproxystream;
@@ -333,8 +333,9 @@ namespace Lampac.Engine
             init.scheme = conf.scheme;
             init.overridehost = conf.overridehost;
 
-            init.streamproxy = false;
-            init.geostreamproxy = null;
+            init.apnstream = true;
+            init.streamproxy = init.streamproxy;
+            init.geostreamproxy = init.geostreamproxy;
             init.useproxystream = false;
 
             init.proxy = conf.proxy;
