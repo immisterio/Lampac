@@ -74,7 +74,7 @@ namespace Shared.Model.Templates
                     s = int.TryParse(i.s, out int _s) ? _s : 0,
                     e = int.TryParse(i.e, out int _e) ? _e : 0,
                     details = i.voice_name,
-                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     i.name,
                     i.title

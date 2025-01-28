@@ -15,7 +15,7 @@ namespace Shared.Model.Templates
                 url,
                 quality = streamquality?.ToObject() ?? new StreamQualityTpl(new List<(string, string)>() { (url, quality??"auto") }).ToObject(),
                 subtitles = subtitles?.ToObject(),
-                vast_url = vast?.url ?? AppInit._vast?.url,
+                vast_url = (vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                 vast_msg = vast?.msg ?? AppInit._vast?.msg
 
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });

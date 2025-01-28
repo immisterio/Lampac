@@ -59,7 +59,7 @@ namespace Shared.Model.Templates
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     i.voice_name,
                     i.details,
-                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})"
@@ -99,7 +99,7 @@ namespace Shared.Model.Templates
                     translate = i.voiceOrQuality,
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
-                    vast_url = i.vast?.url ?? AppInit._vast?.url,
+                    vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})"
