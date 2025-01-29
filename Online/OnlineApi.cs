@@ -480,10 +480,11 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
             {
-                send("Vibix", conf.Vibix, rch_access: "apk,cors");
                 send("FanCDN", conf.FanCDN, rch_access: "apk");
+                send("Vibix", conf.Vibix, rch_access: "apk,cors");
             }
 
+            send("Videoseed", conf.Videoseed, rch_access: "apk,cors");
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
@@ -675,6 +676,7 @@ namespace Lampac.Controllers
                             case "vcdn":
                             case "lumex":
                             case "vibix":
+                            case "videoseed":
                             case "eneyida":
                             case "kinoukr":
                             case "ashdi":

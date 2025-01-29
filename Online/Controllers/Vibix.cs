@@ -29,12 +29,12 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
             JObject data = await search(imdb_id, kinopoisk_id);
             if (data == null)
                 return OnError();
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             reset: var proxy = proxyManager.Get();
             var rch = new RchClient(HttpContext, host, init, requestInfo);

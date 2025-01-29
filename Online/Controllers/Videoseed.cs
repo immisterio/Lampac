@@ -1,0 +1,157 @@
+﻿using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Lampac.Engine.CORE;
+using Shared.Engine.CORE;
+using Online;
+using Shared.Model.Templates;
+using System.Web;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace Lampac.Controllers.LITE
+{
+    public class Videoseed : BaseOnlineController
+    {
+        ProxyManager proxyManager = new ProxyManager("videoseed", AppInit.conf.Videoseed);
+
+        [HttpGet]
+        [Route("lite/videoseed")]
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false)
+        {
+            var init = AppInit.conf.Videoseed.Clone();
+            if (!init.enable || kinopoisk_id == 0)
+                return OnError();
+
+            if (init.rhub && !AppInit.conf.rch.enable)
+                return ShowError(RchClient.ErrorMsg);
+
+            if (NoAccessGroup(init, out string error_msg))
+                return ShowError(error_msg);
+
+            if (IsOverridehost(init, out string overridehost))
+                return Redirect(overridehost);
+
+            string html = await search(kinopoisk_id);
+            if (html == null)
+                return OnError();
+
+            if (origsource)
+                return Content(html);
+
+            var proxy = proxyManager.Get();
+
+            if (html.Contains("id:\"Video"))
+            {
+                #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+
+                var streams = new StreamQualityTpl();
+
+                var match = new Regex("([0-9]+p)\\](https?://[^,\t\\[ ]+\\.mp4)").Match(html);
+                while (match.Success)
+                {
+                    streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);
+                    match = match.NextMatch();
+                }
+
+                if (streams.Any())
+                    mtpl.Append(title ?? original_title, streams.Firts().link, streamquality: streams, vast: init.vast);
+
+                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                #endregion
+            }
+            else
+            {
+                #region Сериал
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
+
+                var root = JsonConvert.DeserializeObject<JArray>(Regex.Match(html, "file:([^\n\r]+)\\}\\);").Groups[1].Value.Trim());
+
+                if (s == -1)
+                {
+                    var tpl = new SeasonTpl(root.Count);
+
+                    foreach (var season in root)
+                    {
+                        string name = season.Value<string>("title");
+                        if (int.TryParse(Regex.Match(name, "^([0-9]+)").Groups[1].Value, out int _s) && _s > 0)
+                        {
+                            string link = $"{host}/lite/videoseed?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={_s}";
+                            tpl.Append($"{_s} сезон", link, _s);
+                        }
+                    }
+
+                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                }
+                else
+                {
+                    var etpl = new EpisodeTpl();
+
+                    foreach (var season in root)
+                    {
+                        if (!season.Value<string>("title").StartsWith($"{s} "))
+                            continue;
+
+                        foreach (var episode in season["folder"])
+                        {
+                            string name = episode.Value<string>("title");
+                            string file = episode.Value<string>("file");
+
+                            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(file))
+                                continue;
+
+                            var streams = new StreamQualityTpl();
+
+                            var match = new Regex("([0-9]+p)\\](https?://[^,\t\\[ ]+\\.mp4)").Match(file);
+                            while (match.Success)
+                            {
+                                streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);
+                                match = match.NextMatch();
+                            }
+
+                            if (streams.Any())
+                                etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "([0-9]+)").Groups[1].Value, streams.Firts().link, streamquality: streams, vast: init.vast);
+                        }
+                    }
+
+                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                }
+                #endregion
+            }
+        }
+
+
+        #region search
+        async ValueTask<string> search(long kinopoisk_id)
+        {
+            string memKey = $"videoseed:view:{kinopoisk_id}";
+
+            if (!hybridCache.TryGetValue(memKey, out string html))
+            {
+                var init = AppInit.conf.Videoseed;
+                var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+                html = rch.enable ? await rch.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", headers: httpHeaders(init)) : 
+                                    await HttpClient.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
+
+                if (html == null || !html.Contains("Playerjs"))
+                {
+                    if (!rch.enable)
+                        proxyManager.Refresh();
+
+                    return null;
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
+                hybridCache.Set(memKey, html, cacheTime(20, init: init));
+            }
+
+            return html;
+        }
+        #endregion
+    }
+}
