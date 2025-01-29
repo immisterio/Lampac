@@ -53,6 +53,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
+                bool directors_cut = data.Value<bool>("available_directors_cut");
 
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
@@ -62,6 +63,9 @@ namespace Lampac.Controllers.LITE
                     bool uhd = false;
                     if (translation.Value.TryGetValue("uhd", out object _uhd))
                         uhd = _uhd.ToString().ToLower() == "true" && AppInit.conf.Alloha.m4s;
+
+                    if (directors_cut && translation.Key == "66")
+                        mtpl.Append("Режиссерская версия", $"{link}&directors_cut=true", "call", $"{streamlink}&directors_cut=true", voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
 
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
                 }
@@ -133,7 +137,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/alloha/video")]
         [Route("lite/alloha/video.m3u8")]
-        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
+        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = AppInit.conf.Alloha;
             if (!init.enable)
@@ -152,7 +156,7 @@ namespace Lampac.Controllers.LITE
                     return OnError("userIp");
             }
 
-            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}:{init.m4s}";
+            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
             if (!hybridCache.TryGetValue(memKey, out JToken data))
             {
                 #region url запроса
@@ -168,6 +172,9 @@ namespace Lampac.Controllers.LITE
 
                 if (init.m4s)
                     uri += "&av1=true";
+
+                if (directors_cut)
+                    uri += "&directors_cut";
                 #endregion
 
                 var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
