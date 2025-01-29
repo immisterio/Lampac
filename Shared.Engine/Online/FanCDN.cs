@@ -1,4 +1,5 @@
-﻿using Shared.Model.Online.VDBmovies;
+﻿using Shared.Model.Base;
+using Shared.Model.Online.FanCDN;
 using Shared.Model.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -25,7 +26,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<List<Episode>?> Embed(long kinopoisk_id, string title, string original_title, int year)
+        async public ValueTask<EmbedModel?> Embed(long kinopoisk_id, string title, string original_title, int year)
         {
             var episodes = await Embed(null, kinopoisk_id);
             if (episodes != null)
@@ -63,7 +64,7 @@ namespace Shared.Engine.Online
             return await Embed(iframe_url, 0);
         }
 
-        async public ValueTask<List<Episode>?> Embed(string? iframe_url, long kinopoisk_id)
+        async public ValueTask<EmbedModel?> Embed(string? iframe_url, long kinopoisk_id)
         {
             if (string.IsNullOrEmpty(iframe_url) && kinopoisk_id == 0)
                 return null;
@@ -78,53 +79,125 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(playlist))
                 return null;
 
-            List<Episode>? movies = null;
-
             try
             {
-                movies = JsonSerializer.Deserialize<List<Episode>>(playlist);
-                if (movies == null || movies.Count == 0)
-                    return null;
-            }
-            catch { return null; }
+                if (iframe.Contains("\"folder\""))
+                {
+                    var serial = JsonSerializer.Deserialize<List<Voice>>(playlist);
+                    if (serial == null || serial.Count == 0)
+                        return null;
 
-            return movies;
+                    return new EmbedModel() { serial = serial };
+                }
+                else
+                {
+                    var movies = JsonSerializer.Deserialize<List<Episode>>(playlist);
+                    if (movies == null || movies.Count == 0)
+                        return null;
+
+                    return new EmbedModel() { movies = movies };
+                }
+            }
+            catch { }
+
+            return null;
         }
         #endregion
 
         #region Html
-        public string Html(List<Episode>? movies, string? title, string? original_title, bool rjson = false)
+        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf? vast = null)
         {
-            if (movies == null)
+            if (root == null)
                 return string.Empty;
 
-            var mtpl = new MovieTpl(title, original_title, movies.Count);
-
-            foreach (var m in movies)
+            if (root.movies != null)
             {
-                if (string.IsNullOrEmpty(m.file))
-                    continue;
+                var mtpl = new MovieTpl(title, original_title, root.movies.Count);
 
-                #region subtitle
-                var subtitles = new SubtitleTpl();
-
-                if (!string.IsNullOrEmpty(m.subtitles))
+                foreach (var m in root.movies)
                 {
-                    // [rus]rus1.srt,[eng]eng2.srt,[eng]eng3.srt
-                    var match = new Regex("\\[([^\\]]+)\\]([^\\,]+)").Match(m.subtitles);
-                    while (match.Success)
+                    if (string.IsNullOrEmpty(m.file))
+                        continue;
+
+                    #region subtitle
+                    var subtitles = new SubtitleTpl();
+
+                    if (!string.IsNullOrEmpty(m.subtitles))
                     {
-                        string srt = m.file.Replace("/hls.m3u8", "/") + match.Groups[2].Value;
-                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(srt));
-                        match = match.NextMatch();
+                        // [rus]rus1.srt,[eng]eng2.srt,[eng]eng3.srt
+                        var match = new Regex("\\[([^\\]]+)\\]([^\\,]+)").Match(m.subtitles);
+                        while (match.Success)
+                        {
+                            string srt = m.file.Replace("/hls.m3u8", "/") + match.Groups[2].Value;
+                            subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(srt));
+                            match = match.NextMatch();
+                        }
                     }
+                    #endregion
+
+                    mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles, vast: vast);
+                }
+
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+            }
+            else
+            {
+                #region Сериал
+                string? enc_title = HttpUtility.UrlEncode(title);
+                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+                if (s == -1)
+                {
+                    #region Сезоны
+                    var tpl = new SeasonTpl();
+                    var hash = new HashSet<int>();
+
+                    foreach (var voice in root.serial)
+                    {
+                        if (hash.Contains(voice.seasons))
+                            continue;
+
+                        hash.Add(voice.seasons);
+
+                        string link = host + $"lite/fancdn?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={voice.seasons}";
+                        tpl.Append($"{voice.seasons} сезон", link, voice.seasons);
+                    }
+
+                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    #endregion
+                }
+                else
+                {
+                    #region Перевод
+                    var vtpl = new VoiceTpl();
+
+                    foreach (var voice in root.serial)
+                    {
+                        if (s > voice.seasons)
+                            continue;
+
+                        if (t == -1)
+                            t = voice.id;
+
+                        string link = host + $"lite/fancdn?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.id}";
+                        bool active = t == voice.id;
+
+                        vtpl.Append(voice.title, active, link);
+                    }
+                    #endregion
+
+                    var etpl = new EpisodeTpl();
+
+                    foreach (var episode in root.serial.First(i => i.id == t).folder[s.ToString()].folder)
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, episode.Value.file, vast: vast);
+
+                    if (rjson)
+                        return etpl.ToJson(vtpl);
+
+                    return vtpl.ToHtml() + etpl.ToHtml();
                 }
                 #endregion
-
-                mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles);
             }
-
-            return rjson ? mtpl.ToJson() : mtpl.ToHtml();
         }
         #endregion
     }
