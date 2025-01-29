@@ -481,10 +481,10 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
             {
                 send("FanCDN", conf.FanCDN, rch_access: "apk");
-                send("Vibix", conf.Vibix, rch_access: "apk,cors");
             }
 
             send("Videoseed", conf.Videoseed, rch_access: "apk,cors");
+            send("Vibix", conf.Vibix, rch_access: "apk,cors");
             send("Kinobase", conf.Kinobase);
 
             if (serial == -1 || serial == 0)
