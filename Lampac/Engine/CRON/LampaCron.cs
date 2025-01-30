@@ -58,6 +58,12 @@ namespace Lampac.Engine.CRON
                             File.WriteAllText("wwwroot/lampa-main/index.html", html);
                             File.CreateText("wwwroot/lampa-main/personal.lampa");
                             File.Delete("wwwroot/lampa-main.zip");
+
+                            if (!File.Exists("wwwroot/lampa-main/plugins_black_list.json"))
+                                File.WriteAllText("wwwroot/lampa-main/plugins_black_list.json", "[]");
+
+                            if (!File.Exists("wwwroot/lampa-main/modification.js"))
+                                File.WriteAllText("wwwroot/lampa-main/modification.js", string.Empty);
                         }
                     }
                 }
