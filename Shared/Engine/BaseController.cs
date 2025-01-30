@@ -149,6 +149,9 @@ namespace Lampac.Engine
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri;
 
+            if (conf.rhub && !conf.rhub_streamproxy)
+                return uri;
+
             bool streamproxy = conf.streamproxy || conf.useproxystream;
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
             {

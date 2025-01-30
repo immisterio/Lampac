@@ -4,6 +4,8 @@
     {
         public bool rhub { get; set; }
 
+        public bool rhub_streamproxy { get; set; }
+
         public bool useproxystream { get; set; }
 
         public bool streamproxy { get; set; }
