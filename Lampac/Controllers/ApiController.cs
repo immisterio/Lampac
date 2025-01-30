@@ -90,7 +90,11 @@ namespace Lampac.Controllers
         public ActionResult MyIP() => Content(requestInfo.IP);
 
         [Route("/reqinfo")]
-        public ActionResult Reqinfo() => Json(requestInfo);
+        public ActionResult Reqinfo() => ContentTo(JsonConvert.SerializeObject(requestInfo, new JsonSerializerSettings()
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Ignore
+        }));
 
         [Route("/testaccsdb")]
         public ActionResult TestAccsdb() => Content("{\"accsdb\": false}", "application/json; charset=utf-8");

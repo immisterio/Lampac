@@ -18,6 +18,6 @@
 
         public string? comment { get; set; }
 
-        public Dictionary<string, object> @params { get; set; }
+        public Dictionary<string, object>? @params { get; set; }
     }
 }
