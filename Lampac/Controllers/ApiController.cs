@@ -172,7 +172,10 @@ namespace Lampac.Controllers
             if (AppInit.conf.LampaWeb.appReplace != null)
             {
                 foreach (var r in AppInit.conf.LampaWeb.appReplace)
-                    file = Regex.Replace(file, r.Key, r.Value, RegexOptions.IgnoreCase);
+                {
+                    string val = r.Value.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
+                }
             }
 
             return Content(file, "application/javascript; charset=utf-8");
