@@ -10,6 +10,8 @@ namespace Lampac.Models.AppConf
 
         public string index { get; set; }
 
+        public string path { get; set; }
+
         public bool basetag { get; set; }
 
         public InitPlugins initPlugins { get; set; } = new InitPlugins();

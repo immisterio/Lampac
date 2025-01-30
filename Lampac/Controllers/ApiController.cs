@@ -138,10 +138,17 @@ namespace Lampac.Controllers
         {
             if (string.IsNullOrEmpty(type))
             {
-                if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
-                    return Content(string.Empty, "application/javascript; charset=utf-8");
+                if (AppInit.conf.LampaWeb.path != null)
+                {
+                    type = AppInit.conf.LampaWeb.path;
+                }
+                else
+                {
+                    if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
+                        return Content(string.Empty, "application/javascript; charset=utf-8");
 
-                type = AppInit.conf.LampaWeb.index.Split("/")[0];
+                    type = AppInit.conf.LampaWeb.index.Split("/")[0];
+                }
             }
 
             if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:app.min.js", out string file))
@@ -176,10 +183,19 @@ namespace Lampac.Controllers
         [Route("/css/app.css")]
         public ActionResult LampaAppCss()
         {
-            if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
-                return Content(string.Empty, "text/css; charset=utf-8");
+            string path;
+            if (AppInit.conf.LampaWeb.path != null)
+            {
+                path = AppInit.conf.LampaWeb.path;
+            }
+            else
+            {
+                if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
+                    return Content(string.Empty, "text/css; charset=utf-8");
 
-            string path = AppInit.conf.LampaWeb.index.Split("/")[0];
+                path = AppInit.conf.LampaWeb.index.Split("/")[0];
+            }
+
             string css = FileCache.ReadAllText($"wwwroot/{path}/css/app.css");
 
             return Content(css, "text/css; charset=utf-8");
