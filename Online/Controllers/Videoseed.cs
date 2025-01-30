@@ -32,9 +32,33 @@ namespace Lampac.Controllers.LITE
             if (IsOverridehost(init, out string overridehost))
                 return Redirect(overridehost);
 
-            string html = await search(kinopoisk_id);
-            if (html == null)
-                return OnError();
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            #region search
+            string memKey = rch.ipkey($"videoseed:view:{kinopoisk_id}", proxyManager);
+            if (!hybridCache.TryGetValue(memKey, out string html))
+            {
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                html = rch.enable ? await rch.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", headers: httpHeaders(init)) :
+                                    await HttpClient.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
+
+                if (html == null || !html.Contains("Playerjs"))
+                {
+                    if (rch.enable)
+                        return OnError(null, gbcache: !rch.enable);
+
+                    proxyManager.Refresh();
+                    return OnError();
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
+                hybridCache.Set(memKey, html, cacheTime(20, init: init));
+            }
+            #endregion
 
             if (origsource)
                 return Content(html);
@@ -121,37 +145,5 @@ namespace Lampac.Controllers.LITE
                 #endregion
             }
         }
-
-
-        #region search
-        async ValueTask<string> search(long kinopoisk_id)
-        {
-            string memKey = $"videoseed:view:{kinopoisk_id}";
-
-            if (!hybridCache.TryGetValue(memKey, out string html))
-            {
-                var init = AppInit.conf.Videoseed;
-                var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-                html = rch.enable ? await rch.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", headers: httpHeaders(init)) : 
-                                    await HttpClient.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
-
-                if (html == null || !html.Contains("Playerjs"))
-                {
-                    if (!rch.enable)
-                        proxyManager.Refresh();
-
-                    return null;
-                }
-
-                if (!rch.enable)
-                    proxyManager.Success();
-
-                hybridCache.Set(memKey, html, cacheTime(20, init: init));
-            }
-
-            return html;
-        }
-        #endregion
     }
 }
