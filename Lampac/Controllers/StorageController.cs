@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Lampac.Controllers
 {
@@ -41,7 +43,7 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/storage/set")]
-        async public Task<ActionResult> Set([FromQuery]string path)
+        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string events)
         {
             if (!AppInit.conf.storage.enable)
                 return Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
@@ -65,6 +67,16 @@ namespace Lampac.Controllers
                 IO.File.WriteAllBytes(outFile, array);  
 
             var inf = new FileInfo(outFile);
+
+            if (!string.IsNullOrEmpty(events))
+            {
+                try
+                {
+                    var json = JsonConvert.DeserializeObject<JObject>(CrypTo.DecodeBase64(events));
+                    _ = soks.SendEvents(json.Value<string>("connectionId"), requestInfo.user_uid, json.Value<string>("name"), json.Value<string>("data")).ConfigureAwait(false);
+                }
+                catch { }
+            }
 
             return Json(new 
             { 

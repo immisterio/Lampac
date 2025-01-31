@@ -33,7 +33,7 @@ namespace Lampac.Controllers
                     html = IO.File.ReadAllText($"wwwroot/{AppInit.conf.LampaWeb.index}");
                     html = html.Replace("<head>", $"<head><base href=\"/{Regex.Match(AppInit.conf.LampaWeb.index, "^([^/]+)/").Groups[1].Value}/\" />");
 
-                    memoryCache.Set($"LampaWeb.index:{AppInit.conf.LampaWeb.index}", html, DateTime.Now.AddMinutes(5));
+                    memoryCache.Set($"LampaWeb.index:{AppInit.conf.LampaWeb.index}", html, DateTime.Now.AddMinutes(1));
                 }
 
                 return Content(html, contentType: "text/html; charset=utf-8");
@@ -511,6 +511,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
+
         #region backup.js
         [HttpGet]
         [Route("backup.js")]
@@ -537,6 +538,19 @@ namespace Lampac.Controllers
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
             string file = FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js").Replace("{localhost}", host);
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(file, "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region invc-ws.js
+        [HttpGet]
+        [Route("invc-ws.js")]
+        [Route("invc-ws/js/{token}")]
+        public ActionResult InvcSyncJS(string token)
+        {
+            string file = FileCache.ReadAllText("plugins/invc-ws.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(file, "application/javascript; charset=utf-8");
