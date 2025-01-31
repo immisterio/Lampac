@@ -26,9 +26,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "128";
+        public static string appversion => "129";
 
-        public static string minorversion => "12";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -52,7 +52,7 @@ namespace Lampac.Engine
             string key = "BaseController:mylocalip";
             if (!hybridCache.TryGetValue(key, out string userIp))
             {
-                var myip = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/my_ip");
+                var myip = await HttpClient.Get<JObject>("https://api.ipify.org/?format=json");
                 if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
                     return null;
 
