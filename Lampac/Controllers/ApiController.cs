@@ -303,7 +303,6 @@ namespace Lampac.Controllers
         #region lampainit.js
         [HttpGet]
         [Route("lampainit.js")]
-        [Route("modification.js")]
         public ActionResult LamInit(bool lite)
         {
             string initiale = string.Empty;

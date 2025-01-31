@@ -6,6 +6,8 @@ namespace Lampac.Models.AppConf
     {
         public bool autoupdate { get; set; }
 
+        public string tree { get; set; }
+
         public int intervalupdate { get; set; }
 
         public string index { get; set; }
