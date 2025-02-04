@@ -21,9 +21,9 @@ namespace Lampac.Controllers
 
 
         [Route("/storage/get")]
-        public ActionResult Get(string path, bool responseInfo)
+        public ActionResult Get(string path, string pathfile, bool responseInfo)
         {
-            string outFile = getFilePath(path, false);
+            string outFile = getFilePath(path, pathfile, false);
             if (outFile == null || !IO.File.Exists(outFile))
                 return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
@@ -43,7 +43,7 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/storage/set")]
-        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string events)
+        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string pathfile, [FromQuery]string events)
         {
             if (!AppInit.conf.storage.enable)
                 return Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
@@ -51,7 +51,7 @@ namespace Lampac.Controllers
             if (HttpContext.Request.ContentLength > AppInit.conf.storage.max_size)
                 return Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
 
-            string outFile = getFilePath(path, true);
+            string outFile = getFilePath(path, pathfile, true);
             if (outFile == null)
                 return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
@@ -88,12 +88,13 @@ namespace Lampac.Controllers
 
 
         #region getFilePath
-        string getFilePath(string path, bool createDirectory)
+        string getFilePath(string path, string pathfile, bool createDirectory)
         {
             string id = requestInfo.user_uid;
             if (string.IsNullOrEmpty(id))
                 return null;
 
+            id += pathfile;
             string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(id) : Regex.Replace(id, "(\\@|_)", "");
 
             if (createDirectory)

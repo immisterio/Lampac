@@ -57,9 +57,6 @@ namespace Lampac.Controllers
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-            if (init.forced_checkRchtype)
-                file = file.Replace("window.rchtype", "Defined.rchtype");
-
             file = file.Replace("return status$1;", "return true;"); // отключение рекламы
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
@@ -378,14 +375,15 @@ namespace Lampac.Controllers
                 {
                     if (AppInit.conf.accsdb.enable)
                     {
-                        if (user != null)
+                        if (init.group > 0)
                         {
-                            if (init.group > user.group && init.group_hide)
-                                return;
+                            if (init.group_hide)
+                                if (user == null || init.group > user.group)
+                                    return;
                         }
                         else
                         {
-                            if (string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
+                            if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
                                 return;
                         }
                     }

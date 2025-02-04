@@ -12,13 +12,14 @@ namespace Lampac.Engine.CRON
 
         async public static Task Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
 
             while (true)
             {
                 try
                 {
                     var init = AppInit.conf.LampaWeb;
+                    bool istree = !string.IsNullOrEmpty(init.tree);
 
                     async ValueTask<bool> update()
                     {
@@ -28,7 +29,10 @@ namespace Lampac.Engine.CRON
                         if (!File.Exists("wwwroot/lampa-main/app.min.js"))
                             return true;
 
-                        string gitapp = await HttpClient.Get($"https://raw.githubusercontent.com/yumata/lampa/{(string.IsNullOrEmpty(init.tree) ? "main" : init.tree)}/app.min.js", weblog: false);
+                        if (istree && File.Exists($"wwwroot/lampa-main/{init.tree}"))
+                            return false;
+
+                        string gitapp = await HttpClient.Get($"https://raw.githubusercontent.com/yumata/lampa/{(istree ? init.tree : "main")}/app.min.js", weblog: false);
                         if (gitapp == null || !gitapp.Contains("author: 'Yumata'"))
                             return false;
 
@@ -46,9 +50,8 @@ namespace Lampac.Engine.CRON
 
                     if (await update())
                     {
-                        string uri = string.IsNullOrEmpty(init.tree) ? 
-                                     "https://github.com/yumata/lampa/archive/refs/heads/main.zip" :
-                                     $"https://github.com/yumata/lampa/archive/{init.tree}.zip";
+                        string uri = istree ? $"https://github.com/yumata/lampa/archive/{init.tree}.zip" :
+                                              "https://github.com/yumata/lampa/archive/refs/heads/main.zip";
 
                         byte[] array = await HttpClient.Download(uri, MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
                         if (array != null)
@@ -58,13 +61,16 @@ namespace Lampac.Engine.CRON
                             await File.WriteAllBytesAsync("wwwroot/lampa.zip", array);
                             ZipFile.ExtractToDirectory("wwwroot/lampa.zip", "wwwroot/", overwriteFiles: true);
 
-                            if (!string.IsNullOrEmpty(init.tree))
+                            if (istree)
                             {
                                 string plugins_black_list = File.Exists("wwwroot/lampa-main/plugins_black_list.json") ? File.ReadAllText("wwwroot/lampa-main/plugins_black_list.json") : "[]";
                                 string modification = File.Exists("wwwroot/lampa-main/plugins/modification.js") ? File.ReadAllText("wwwroot/lampa-main/plugins/modification.js") : string.Empty;
 
-                                Directory.Move("wwwroot/lampa-main", $"wwwroot/lampa-old-{DateTime.Now.ToFileTime()}");
+                                if (Directory.Exists("wwwroot/lampa-main"))
+                                    Directory.Move("wwwroot/lampa-main", $"wwwroot/lampa-old-{DateTime.Now.ToFileTime()}");
+
                                 Directory.Move($"wwwroot/lampa-{init.tree}", "wwwroot/lampa-main");
+                                File.WriteAllText($"wwwroot/lampa-main/{init.tree}", string.Empty);
 
                                 Directory.CreateDirectory("wwwroot/lampa-main/plugins");
                                 File.WriteAllText("wwwroot/lampa-main/plugins_black_list.json", plugins_black_list);

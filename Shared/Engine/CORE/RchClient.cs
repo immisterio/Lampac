@@ -274,14 +274,14 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region InfoConnected
-        public (int version, string host, string rchtype) InfoConnected()
+        public (int version, string host, string href, string rchtype) InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
             if (client.Value.json == null)
                 return default;
 
             JObject json = client.Value.json;
-            return (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("rchtype"));
+            return (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("href"), json.Value<string>("rchtype"));
         }
         #endregion
     }

@@ -189,7 +189,7 @@ namespace Shared.Engine.Online
                     var etpl = new EpisodeTpl();
 
                     foreach (var episode in root.serial.First(i => i.id == t).folder[s.ToString()].folder)
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, episode.Value.file, vast: vast);
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast);
 
                     if (rjson)
                         return etpl.ToJson(vtpl);
