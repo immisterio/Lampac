@@ -73,28 +73,57 @@ namespace Lampac.Controllers.LITE
 
                 if (s == -1)
                 {
-                    var voice = frame.ToObject<Dictionary<string, Dictionary<string, Dictionary<string, JObject>>>>().First().Value.First().Value.Values.First();
+                    #region Сезоны
+                    string q = null;
+                    try
+                    {
+                        if (init.m4s)
+                        {
+                            var voice = frame.ToObject<Dictionary<string, Dictionary<string, Dictionary<string, JObject>>>>().First().Value.First().Value.Values.First();
+                            q = voice.Value<bool>("uhd") == true ? "2160p" : null;
+                        }
+                    }
+                    catch { }
 
-                    var tpl = new SeasonTpl(init.m4s && voice.Value<bool>("uhd") == true ? "2160p" : null);
+                    var tpl = new SeasonTpl(q);
 
-                    foreach (var season in frame.ToObject<Dictionary<string, JObject>>())
+                    foreach (var season in frame.ToObject<Dictionary<string, object>>())
                         tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
 
                     return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    #endregion
                 }
                 else
                 {
                     var etpl = new EpisodeTpl();
 
-                    foreach (var episode in frame[s.ToString()].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
+                    if (frame[s.ToString()] is JArray)
                     {
-                        var file = episode.Value.First().Value;
-                        string translation = file.Value<string>("translation");
+                        foreach (var episode in frame[s.ToString()])
+                        {
+                            var voice = episode.ToObject<Dictionary<string, JObject>>().First().Value;
+                            string translation = voice.Value<string>("translation");
+                            int e = voice.Value<int>("episode");
 
-                        string link = $"{host}/lite/mirage/video?id_file={file.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
-                        string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+                            string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
+                            string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                            if (e > 0)
+                                etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var episode in frame[s.ToString()].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
+                        {
+                            var voice = episode.Value.First().Value;
+                            string translation = voice.Value<string>("translation");
+
+                            string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
+                            string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+
+                            etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                        }
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -117,7 +146,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"mirage:video:{id_file}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
-                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}&av1={(init.m4s ? "true" : "false")}&autoplay=0&audio=&subtitle=", headers: HeadersModel.Init(
+                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", headers: HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("origin", init.linkhost),

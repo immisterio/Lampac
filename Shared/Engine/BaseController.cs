@@ -26,9 +26,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "128";
+        public static string appversion => "130";
 
-        public static string minorversion => "9";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -52,7 +52,7 @@ namespace Lampac.Engine
             string key = "BaseController:mylocalip";
             if (!hybridCache.TryGetValue(key, out string userIp))
             {
-                var myip = await HttpClient.Get<JObject>($"{AppInit.conf.FilmixPartner.host}/my_ip");
+                var myip = await HttpClient.Get<JObject>("https://api.ipify.org/?format=json");
                 if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
                     return null;
 
@@ -147,6 +147,9 @@ namespace Lampac.Engine
         public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
+                return uri;
+
+            if (conf.rhub && !conf.rhub_streamproxy)
                 return uri;
 
             bool streamproxy = conf.streamproxy || conf.useproxystream;

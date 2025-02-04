@@ -6,16 +6,16 @@ namespace Shared.Model.Templates
 {
     public static class VideoTpl
     {
-        public static string ToJson(string method, string url, string title, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, VastConf? vast = null)
+        public static string ToJson(string method, string url, string title, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? quality = null, VastConf? vast = null)
         {
             return JsonSerializer.Serialize(new
             {
                 title,
                 method,
                 url,
-                quality = streamquality?.ToObject(),
+                quality = streamquality?.ToObject() ?? new StreamQualityTpl(new List<(string, string)>() { (url, quality??"auto") }).ToObject(),
                 subtitles = subtitles?.ToObject(),
-                vast_url = vast?.url ?? AppInit._vast?.url,
+                vast_url = (vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                 vast_msg = vast?.msg ?? AppInit._vast?.msg
 
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });

@@ -16,7 +16,7 @@ namespace Lampac.Controllers
         {
 			if (IO.File.ReadAllText("passwd") == "termux")
 			{
-                HttpContext.Response.Cookies.Append("passwd", parol.Trim());
+                HttpContext.Response.Cookies.Append("passwd", "termux");
                 return Redirect("/admin/init");
             }
 

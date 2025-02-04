@@ -1,11 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Online;
-using Shared.Model.Online.VDBmovies;
+using Shared.Model.Online.FanCDN;
 using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Shared.Engine.CORE;
-using System.Collections.Generic;
 using Shared.Model.Online;
 using System.Net;
 using System;
@@ -17,7 +16,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.FanCDN.Clone();
 
@@ -58,7 +57,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "fancdn")
             );
 
-            var cache = await InvokeCache<List<Episode>>($"fancdn:{title}:{year}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{year}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -69,7 +68,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, original_title, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource, gbcache: !rch.enable);
         }
 
 

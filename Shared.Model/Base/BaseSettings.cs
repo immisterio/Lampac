@@ -12,6 +12,8 @@ namespace Shared.Model.Base
 
         public bool rhub { get; set; }
 
+        public bool rhub_streamproxy { get; set; }
+
         public bool rhub_fallback { get; set; }
 
         public string[]? rhub_geo_disable { get; set; }

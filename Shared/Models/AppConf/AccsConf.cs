@@ -33,6 +33,8 @@ namespace Lampac.Models.AppConf
 
         public string expiresMesage { get; set; }
 
+        public Dictionary<string, object> @params { get; set; }
+
         public Dictionary<string, DateTime> accounts { get; set; } = new Dictionary<string, DateTime>();
 
         public ConcurrentBag<AccsUser> users { get; set; } = new ConcurrentBag<AccsUser>();

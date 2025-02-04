@@ -88,6 +88,12 @@ namespace Lampac.Engine
             event_clients.AddOrUpdate(Context.ConnectionId, uid, (k,v) => uid);
         }
 
+        /// <summary>
+        /// Отправка сообщений через js
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="name"></param>
+        /// <param name="data"></param>
         public async Task events(string uid, string name, string data)
         {
             if (hubClients == null || string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(name) || (data != null && data.Length > 10_000000))
@@ -96,6 +102,27 @@ namespace Lampac.Engine
             try
             {
                 var clients = event_clients.Where(i => i.Value == uid && i.Key != Context.ConnectionId);
+                if (clients.Any())
+                    await hubClients.Clients(clients.Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Отправка сообщений через сервер
+        /// </summary>
+        /// <param name="connectionId"></param>
+        /// <param name="uid"></param>
+        /// <param name="name"></param>
+        /// <param name="data"></param>
+        async public static Task SendEvents(string connectionId, string uid, string name, string data)
+        {
+            if (hubClients == null || string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(name) || (data != null && data.Length > 10_000000))
+                return;
+
+            try
+            {
+                var clients = event_clients.Where(i => i.Value == uid && i.Key != connectionId);
                 if (clients.Any())
                     await hubClients.Clients(clients.Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);
             }

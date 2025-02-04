@@ -10,7 +10,6 @@ using Lampac.Models.LITE.Alloha;
 using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Templates;
-using Shared.Model.Online.Alloha;
 using Newtonsoft.Json;
 
 namespace Lampac.Controllers.LITE
@@ -54,6 +53,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
+                bool directors_cut = data.Value<bool>("available_directors_cut");
 
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
@@ -63,6 +63,9 @@ namespace Lampac.Controllers.LITE
                     bool uhd = false;
                     if (translation.Value.TryGetValue("uhd", out object _uhd))
                         uhd = _uhd.ToString().ToLower() == "true" && AppInit.conf.Alloha.m4s;
+
+                    if (directors_cut && translation.Key == "66")
+                        mtpl.Append("Режиссерская версия", $"{link}&directors_cut=true", "call", $"{streamlink}&directors_cut=true", voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
 
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
                 }
@@ -134,7 +137,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/alloha/video")]
         [Route("lite/alloha/video.m3u8")]
-        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play)
+        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = AppInit.conf.Alloha;
             if (!init.enable)
@@ -142,6 +145,8 @@ namespace Lampac.Controllers.LITE
 
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
+
+            var proxy = proxyManager.Get();
 
             string userIp = requestInfo.IP;
             if (init.localip || init.streamproxy)
@@ -151,11 +156,11 @@ namespace Lampac.Controllers.LITE
                     return OnError("userIp");
             }
 
-            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}";
+            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
             if (!hybridCache.TryGetValue(memKey, out JToken data))
             {
                 #region url запроса
-                string uri = $"{init.linkhost}/link_file.php?secret_token={init.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
+                string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
 
                 uri += $"&ip={userIp}&translation={t}";
 
@@ -164,9 +169,15 @@ namespace Lampac.Controllers.LITE
 
                 if (e > 0)
                     uri += $"&episode={e}";
+
+                if (init.m4s)
+                    uri += "&av1=true";
+
+                if (directors_cut)
+                    uri += "&directors_cut";
                 #endregion
 
-                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null)
                     return OnError("json", proxyManager);
 
@@ -179,62 +190,30 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, data, cacheTime(10, init: init));
             }
 
-            bool uhd = data.Value<bool>("4k");
-            string default_audio = data.Value<string>("default_audio");
-
             #region subtitle
             var subtitles = new SubtitleTpl();
 
             try
             {
-                foreach (var sub in data["subtitle"])
-                    subtitles.Append(sub.Value<string>("label"), sub.Value<string>("url"));
+                foreach (var sub in data["file"]["tracks"])
+                    subtitles.Append(sub.Value<string>("label"), sub.Value<string>("src"));
             }
             catch { }
             #endregion
 
-            var default_streams = new List<(string link, string quality)>() { Capacity = 6 };
-            var streams = new List<(string link, string quality)>() { Capacity = 6 };
+            List<(string link, string quality)> streams = null;
 
-            foreach (var froot in data["file"])
+            foreach (var hlsSource in data["file"]["hlsSource"])
             {
-                void SetVideo(List<(string link, string quality)> list)
+                // first or default
+                if (streams == null || hlsSource.Value<bool>("default"))
                 {
-                    foreach (var file in froot["url"].ToObject<Dictionary<string, FileQ>>())
-                    {
-                        string av1 = file.Value.av1;
-                        string h264 = file.Value.h264;
+                    streams = new List<(string link, string quality)>() { Capacity = 6 };
 
-                        if (uhd && init.m4s && !string.IsNullOrEmpty(av1) && (file.Key is "2160p" or "1440p"))
-                        {
-                            list.Add((HostStreamProxy(init, av1, proxy: proxyManager.Get(), plugin: "alloha"), file.Key));
-                        }
-                        else
-                        {
-                            string _stream = string.IsNullOrEmpty(h264) ? av1 : h264;
-
-                            if (!string.IsNullOrEmpty(_stream))
-                                list.Add((HostStreamProxy(init, _stream, proxy: proxyManager.Get(), plugin: "alloha"), file.Key));
-                        }
-                    }
+                    foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                        streams.Add((HostStreamProxy(init, q.Value, proxy: proxy, plugin: "alloha"), $"{q.Key}p"));
                 }
-
-                if (default_streams.Count == 0)
-                    SetVideo(default_streams);
-
-                if (!string.IsNullOrEmpty(default_audio))
-                {
-                    string audio = froot.Value<string>("audio");
-                    if (string.IsNullOrEmpty(audio) || audio != default_audio)
-                        continue;
-                }
-
-                SetVideo(streams);
-                break;
             }
-
-            if (streams.Count == 0)
-                streams = default_streams;
 
             if (play)
                 return Redirect(streams[0].link);

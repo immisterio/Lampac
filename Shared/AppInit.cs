@@ -274,12 +274,19 @@ namespace Lampac
             autoupdatetrackers = true, addTrackersToMagnet = true, intervalUpdateTrackers = 90
         };
 
-        public WebConf LampaWeb = new WebConf() { autoupdate = true, intervalupdate = 90, basetag = true, index = "lampa-main/index.html" };
+        public WebConf LampaWeb = new WebConf()
+        {
+            autoupdate = true,
+            intervalupdate = 90,
+            basetag = true, index = "lampa-main/index.html",
+            tree = "ab0433fd6d0b6308f588f4aa44c939cfcebf9d4d"
+        };
 
-        public OnlineConf online = new OnlineConf() 
-        { 
+        public OnlineConf online = new OnlineConf()
+        {
             findkp = "all", checkOnlineSearch = true,
-            component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", version = true
+            component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", 
+            version = true, btn_priority_forced = true
         };
 
         public AccsConf accsdb = new AccsConf() 

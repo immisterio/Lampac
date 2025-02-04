@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Base;
+using System.Collections.Generic;
 
 namespace Shared.Models
 {
@@ -15,5 +16,7 @@ namespace Shared.Models
         public AccsUser user { get; set; }
 
         public string user_uid { get; set; }
+
+        public Dictionary<string, object> @params { get; set; }
     }
 }

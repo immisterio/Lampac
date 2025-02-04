@@ -76,12 +76,10 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(cookie))
                 return null;
 
-            string user_id = Regex.Match(cookie, "dle_user_id=([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
-
             var headers = httpHeaders(init, HeadersModel.Init(
                ("X-Lampac-App", "1"),
                ("X-Lampac-Version", $"{appversion}.{minorversion}"),
-               ("X-Lampac-Device-Id", $"lampac:user_id/{user_id}:{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
+               ("X-Lampac-Device-Id", $"{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
                ("X-Lampac-Cookie", cookie),
                ("User-Agent", requestInfo.UserAgent)
             ));

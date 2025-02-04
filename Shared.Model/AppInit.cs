@@ -239,6 +239,8 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("kwwsv=22wy050nlqrvhuldo1qhw", streamproxy: true);
+
         /// <summary>
         /// kwwsv=22dsl1vuyns1frp
         /// kwwsv=22nsdss1olqn2dsl
