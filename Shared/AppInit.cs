@@ -244,9 +244,16 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
+        public TmdbConf tmdb { get; set; } = new TmdbConf()
+        {
+            enable = true, 
+            DNS = "9.9.9.9", DNS_TTL = 20,
+            cache_api = 20, cache_img = 60
+        };
+
         public ServerproxyConf serverproxy = new ServerproxyConf()
         {
-            enable = true, encrypt = true, verifyip = true, allow_tmdb = true,
+            enable = true, encrypt = true, verifyip = true,
             buffering = new ServerproxyBufferingConf()
             {
                 enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
@@ -255,18 +262,15 @@ namespace Lampac
             {
                 img = false, img_rsize = true
             },
-            tmdb = new ServerproxyTmdb() 
-            {
-                proxy = new ProxySettings()
-                {
-                    list = new ConcurrentBag<string>() { "socks5://127.0.0.1:9050" }
-                }
-            },
             maxlength_m3u = 1900000,
             maxlength_ts = 10000000
         };
 
-        public FileCacheConf fileCacheInactive = new FileCacheConf() { maxcachesize = 400, intervalclear = 4, img = 10, hls = 90, html = 5, torrent = 50 };
+        public FileCacheConf fileCacheInactive = new FileCacheConf() 
+        { 
+            maxcachesize = 10_000, // 10GB на папку
+            img = 10, hls = 90, html = 5, torrent = 50 // minute
+        };
 
         public DLNASettings dlna = new DLNASettings() 
         { 
@@ -279,7 +283,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "ab0433fd6d0b6308f588f4aa44c939cfcebf9d4d"
+            tree = "7c901dfac6a7e64907ed42f1d8985fdae493eccb"
         };
 
         public OnlineConf online = new OnlineConf()

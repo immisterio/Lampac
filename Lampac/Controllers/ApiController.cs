@@ -280,18 +280,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region tmdbproxy.js / startpage.js
-        [HttpGet]
-        [Route("tmdbproxy.js")]
-        [Route("tmdbproxy/js/{token}")]
-        public ActionResult TmdbProxy(string token)
-        {
-            string file = FileCache.ReadAllText("plugins/tmdbproxy.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
-
-            return Content(file, contentType: "application/javascript; charset=utf-8");
-        }
-        
+        #region startpage.js
         [HttpGet]
         [Route("startpage.js")]
         public ActionResult StartPage()

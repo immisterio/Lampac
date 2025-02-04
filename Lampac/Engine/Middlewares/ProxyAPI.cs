@@ -46,6 +46,19 @@ namespace Lampac.Engine.Middlewares
             string reqip = requestInfo.IP;
             string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
 
+            #region tmdb proxy
+            if (servUri.Contains(".themoviedb.org"))
+            {
+                httpContext.Response.Redirect($"/tmdb/api/{Regex.Replace(servUri, "^https?://[^/]+/", "")}");
+                return;
+            }
+            else if (servUri.Contains(".tmdb.org"))
+            {
+                httpContext.Response.Redirect($"/tmdb/img/{Regex.Replace(servUri, "^https?://[^/]+/", "")}");
+                return;
+            }
+            #endregion
+
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
                 string dashkey = Regex.Match(servUri, "^([^/]+)").Groups[1].Value;
@@ -77,18 +90,7 @@ namespace Lampac.Engine.Middlewares
 
                 if (init.encrypt)
                 {
-                    if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
-                    {
-                        if (!init.allow_tmdb)
-                        {
-                            httpContext.Response.StatusCode = 403;
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        servUri = decryptLink?.uri;
-                    }
+                    servUri = decryptLink?.uri;
                 }
                 else
                 {
@@ -110,32 +112,6 @@ namespace Lampac.Engine.Middlewares
 
                 if (decryptLink == null)
                     decryptLink = new ProxyLinkModel(reqip, null, null, servUri);
-                #endregion
-
-                #region themoviedb.org
-                if (servUri.Contains(".themoviedb.org") || servUri.Contains(".tmdb.org"))
-                {
-                    var headers = new List<HeadersModel>();
-                    var proxyManager = new ProxyManager("proxyapi_tmdb", init.tmdb);
-
-                    if (!string.IsNullOrEmpty(init.tmdb.API_IP))
-                    {
-                        headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
-                        servUri = servUri.Replace("api.themoviedb.org", init.tmdb.API_IP);
-                    }
-
-                    string json = await CORE.HttpClient.Get(servUri, proxy: proxyManager.Get(), headers: headers);
-                    if (json == null) 
-                    {
-                        proxyManager.Refresh();
-                        httpContext.Response.Redirect(servUri);
-                        return;
-                    }
-
-                    httpContext.Response.ContentType = "application/json;charset=utf-8";
-                    await httpContext.Response.WriteAsync(json, httpContext.RequestAborted);
-                    return;
-                }
                 #endregion
 
                 if (init.showOrigUri)

@@ -409,7 +409,7 @@ namespace Lampac.Engine.CORE
                         using (HttpContent content = response.Content)
                         {
                             byte[] res = await content.ReadAsByteArrayAsync();
-                            if (res.Length == 0)
+                            if (res == null || res.Length == 0)
                                 return null;
 
                             return res;

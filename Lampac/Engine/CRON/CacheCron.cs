@@ -16,13 +16,14 @@ namespace Lampac.Engine.CRON
             {
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.fileCacheInactive.intervalclear, 1))).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMinutes(4)).ConfigureAwait(false);
 
                     foreach (var conf in new List<(string path, int minute)> {
-                        ("html", AppInit.conf.fileCacheInactive.html),
+                        ("tmdb", Math.Max(AppInit.conf.tmdb.cache_img, 5)),
                         ("img", AppInit.conf.fileCacheInactive.img),
-                        ("hls", AppInit.conf.fileCacheInactive.hls),
-                        ("torrent", AppInit.conf.fileCacheInactive.torrent)
+                        ("torrent", AppInit.conf.fileCacheInactive.torrent),
+                        ("html", AppInit.conf.fileCacheInactive.html),
+                        ("hls", AppInit.conf.fileCacheInactive.hls)
                     })
                     {
                         try
