@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            if (clarification == 1 || kinopoisk_id == 0)
+            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
                 var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
                 {
@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                 return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
             }
 
-            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}", cacheTime(10, init: init), proxyManager,  async res =>
+            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}:{imdb_id}", cacheTime(10, init: init), proxyManager,  async res =>
             {
                 #region chromium
                 //try
@@ -155,7 +155,13 @@ namespace Lampac.Controllers.LITE
                 //catch (Exception ex) { log += $"\nex: {ex}\n"; return null; }
                 #endregion
 
-                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                string args = "";
+                if (!string.IsNullOrEmpty(imdb_id))
+                    args += $"&imdbId={imdb_id}";
+                if (kinopoisk_id > 0)
+                    args += $"&kpId={kinopoisk_id}";
+
+                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("Accept", "*/*"),
                     ("Origin", $"https://p.{init.iframehost}"),
                     ("Referer", $"https://p.{init.iframehost}/"),
