@@ -18,6 +18,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.Online;
 using System.Data;
+using System.Collections.Concurrent;
 
 namespace Lampac.Controllers
 {
@@ -81,23 +82,28 @@ namespace Lampac.Controllers
         /// <summary>
         /// imdb_id, kinopoisk_id
         /// </summary>
-        static Dictionary<string, string> externalids = null;
+        static ConcurrentDictionary<string, string> externalids = new ConcurrentDictionary<string, string>();
+
+        static DateTime externalids_lastWriteTime = default;
 
         [Route("externalids")]
         async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
             #region load externalids
-            if (externalids == null && IO.File.Exists("cache/externalids/master.json"))
+            if (IO.File.Exists("cache/externalids/master.json"))
             {
                 try
                 {
-                    externalids = JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json"));
+                    var lastWriteTime = IO.File.GetLastWriteTime("cache/externalids/master.json");
+                    if (lastWriteTime != externalids_lastWriteTime)
+                    {
+                        externalids_lastWriteTime = lastWriteTime;
+                        foreach (var item in JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json")))
+                            externalids.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                    }
                 }
                 catch { }
             }
-
-            if (externalids == null)
-                externalids = new Dictionary<string, string>();
             #endregion
 
             #region KP_
@@ -469,13 +475,13 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0)
             {
                 send("VideoDB", conf.VideoDB, rch_access: "apk");
-                send("Lumex", conf.Lumex, "lumex");
                 send("VDBmovies", conf.VDBmovies, rch_access: "apk");
 
                 if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send("Zetflix", conf.Zetflix);
             }
 
+            send("Lumex", conf.Lumex, "lumex");
             send("FanCDN", conf.FanCDN, rch_access: "apk");
             send("Videoseed", conf.Videoseed, rch_access: "apk,cors");
             send("Vibix", conf.Vibix, rch_access: "apk,cors");
