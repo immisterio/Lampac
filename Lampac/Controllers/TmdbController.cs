@@ -40,14 +40,15 @@ namespace Lampac.Controllers
         [Route("/tmdb/api.themoviedb.org/{*suffix}")]
         public Task<ActionResult> Auto()
         {
-            string uri = Regex.Match(HttpContext.Request.Path.Value + HttpContext.Request.QueryString.Value, "https?://[^/]+/(.*)").Groups[1].Value;
+            string path = Regex.Replace(HttpContext.Request.Path.Value, "^/tmdb/https?://", "").Replace("/tmdb/", "");
+            string uri = Regex.Match(path, "[^/]+/(.*)").Groups[1].Value + HttpContext.Request.QueryString.Value;
 
-            if (HttpContext.Request.Path.Value.Contains("api.themoviedb.org"))
+            if (path.Contains("api.themoviedb.org"))
             {
                 HttpContext.Request.Path = $"/tmdb/api/{uri}";
                 return API();
             }
-            else if (HttpContext.Request.Path.Value.Contains("image.tmdb.org"))
+            else if (path.Contains("image.tmdb.org"))
             {
                 HttpContext.Request.Path = $"/tmdb/img/{uri}";
                 return IMG();
