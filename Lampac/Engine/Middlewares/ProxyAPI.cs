@@ -46,19 +46,6 @@ namespace Lampac.Engine.Middlewares
             string reqip = requestInfo.IP;
             string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
 
-            #region tmdb proxy
-            if (servUri.Contains(".themoviedb.org"))
-            {
-                httpContext.Response.Redirect($"/tmdb/api/{Regex.Replace(servUri, "^https?://[^/]+/", "")}");
-                return;
-            }
-            else if (servUri.Contains(".tmdb.org"))
-            {
-                httpContext.Response.Redirect($"/tmdb/img/{Regex.Replace(servUri, "^https?://[^/]+/", "")}");
-                return;
-            }
-            #endregion
-
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
                 string dashkey = Regex.Match(servUri, "^([^/]+)").Groups[1].Value;
@@ -85,6 +72,19 @@ namespace Lampac.Engine.Middlewares
             }
             else if (httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
+                #region tmdb proxy
+                if (servUri.Contains(".themoviedb.org"))
+                {
+                    httpContext.Response.Redirect($"/tmdb/api/{Regex.Match(servUri, "https?://[^/]+/(.*)").Groups[1].Value}");
+                    return;
+                }
+                else if (servUri.Contains(".tmdb.org"))
+                {
+                    httpContext.Response.Redirect($"/tmdb/img/{Regex.Match(servUri, "https?://[^/]+/(.*)").Groups[1].Value}");
+                    return;
+                }
+                #endregion
+
                 #region decryptLink
                 ProxyLinkModel decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
 

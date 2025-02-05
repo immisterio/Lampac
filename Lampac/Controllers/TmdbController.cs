@@ -35,6 +35,27 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        [Route("/tmdb/{*suffix:regex(^https?://.*$)}")]
+        [Route("/tmdb/image.tmdb.org/{*suffix}")]
+        [Route("/tmdb/api.themoviedb.org/{*suffix}")]
+        public Task<ActionResult> Auto()
+        {
+            string uri = Regex.Match(HttpContext.Request.Path.Value + HttpContext.Request.QueryString.Value, "https?://[^/]+/(.*)").Groups[1].Value;
+
+            if (HttpContext.Request.Path.Value.Contains("api.themoviedb.org"))
+            {
+                HttpContext.Request.Path = $"/tmdb/api/{uri}";
+                return API();
+            }
+            else if (HttpContext.Request.Path.Value.Contains("image.tmdb.org"))
+            {
+                HttpContext.Request.Path = $"/tmdb/img/{uri}";
+                return IMG();
+            }
+
+            return Task.FromResult<ActionResult>(StatusCode(403));
+        }
+
         #region API
         [Route("/tmdb/api/{*suffix}")]
         async public Task<ActionResult> API()
