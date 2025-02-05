@@ -15,17 +15,15 @@ namespace Lampac.Engine.CRON
 
             while (true)
             {
-                await Task.Delay(TimeSpan.FromHours(5)).ConfigureAwait(false);
-
                 try
                 {
                     var externalids = await HttpClient.Get<Dictionary<string, string>>("http://bobr-kurwa.men/externalids.json");
-                    if (externalids == null || externalids.Count == 0)
-                        continue;
-
-                    await File.WriteAllTextAsync("cache/externalids/master.json", JsonConvert.SerializeObject(externalids)).ConfigureAwait(false);
+                    if (externalids != null && externalids.Count > 0)
+                        await File.WriteAllTextAsync("cache/externalids/master.json", JsonConvert.SerializeObject(externalids)).ConfigureAwait(false);
                 }
                 catch { }
+
+                await Task.Delay(TimeSpan.FromHours(5)).ConfigureAwait(false);
             }
         }
     }
