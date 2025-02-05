@@ -71,11 +71,10 @@ namespace Lampac.Controllers.LITE
                 var mtpl = new MovieTpl(title, original_title);
 
                 var streams = new StreamQualityTpl();
-
-                var match = new Regex("([0-9]+p)\\](https?://[^,\t\\[ ]+\\.mp4)").Match(html);
+                var match = new Regex("([0-9]+p)\\](\\{[^\\}]+\\} ?)?(?<link>https?://[^,\t\\;\\[ ]+\\.mp4)").Match(html);
                 while (match.Success)
                 {
-                    streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);
+                    streams.Insert(HostStreamProxy(init, match.Groups["link"].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);
                     match = match.NextMatch();
                 }
 
@@ -128,7 +127,7 @@ namespace Lampac.Controllers.LITE
 
                             var streams = new StreamQualityTpl();
 
-                            var match = new Regex("([0-9]+p)\\](https?://[^,\t\\[ ]+\\.mp4)").Match(file);
+                            var match = new Regex("([0-9]+p)\\](https?://[^,\\;\t\\[ ]+\\.mp4)").Match(file);
                             while (match.Success)
                             {
                                 streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);

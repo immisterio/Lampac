@@ -44,7 +44,7 @@ namespace Lampac.Controllers
                 return Json(new { error = true, msg = "disable"});
 
             string path = HttpContext.Request.Path.Value.Replace("/tmdb/api", "");
-            string query = Regex.Replace(HttpContext.Request.QueryString.Value, "&(account_email|email|uid|token)=[^&]+", "");
+            string query = Regex.Replace(HttpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
             string uri = "https://api.themoviedb.org" + path + query;
 
             string mkey = $"tmdb/api:{path}:{query}";
@@ -108,14 +108,15 @@ namespace Lampac.Controllers
                 return Json(new { error = true, msg = "disable" });
 
             string path = HttpContext.Request.Path.Value.Replace("/tmdb/img", "");
-            string query = Regex.Replace(HttpContext.Request.QueryString.Value, "&(account_email|email|uid|token)=[^&]+", "");
+            string contentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
+            string query = Regex.Replace(HttpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
             string uri = "https://image.tmdb.org" + path + query;
 
             string md5key = CrypTo.md5($"{path}:{query}");
             string outFile = $"cache/tmdb/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
 
             if (IO.File.Exists(outFile))
-                return File(IO.File.OpenRead(outFile), "image/jpeg");
+                return File(IO.File.OpenRead(outFile), contentType);
 
             string tmdb_ip = init.IMG_IP;
 
@@ -148,7 +149,7 @@ namespace Lampac.Controllers
             }
 
             var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
-            if (array == null)
+            if (array == null || array.Length == 0)
             {
                 proxyManager.Refresh();
                 return StatusCode(502);
@@ -160,15 +161,19 @@ namespace Lampac.Controllers
                 {
                     try
                     {
-                        array = image.JpegsaveBuffer();
-                        if (array == null || array.Length == 0)
-                            return StatusCode(502);
+                        if (!path.Contains(".svg"))
+                        {
+                            // тестируем jpg/png на целостность
+                            byte[] temp = image.JpegsaveBuffer();
+                            if (temp == null || temp.Length == 0)
+                                return StatusCode(502);
+                        }
 
                         Directory.CreateDirectory($"cache/tmdb/{md5key.Substring(0, 2)}");
                         await IO.File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
                     }
                     catch 
-                    { 
+                    {
                         try 
                         { 
                             if (IO.File.Exists(outFile))
@@ -180,7 +185,7 @@ namespace Lampac.Controllers
             }
 
             proxyManager.Success();
-            return File(array, "image/jpeg");
+            return File(array, contentType);
         }
         #endregion
     }

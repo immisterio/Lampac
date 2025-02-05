@@ -39,14 +39,11 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
                 string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
-                    return OnError(proxyManager, refresh_proxy: !rch.enable);
+                    return res.Fail("embed");
 
                 string file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
-                    return OnError();
-
-                if (!rch.enable)
-                    proxyManager.Success();
+                    return res.Fail("file");
 
                 return file.Replace("u0026", "&").Replace("\\", "");
             });
