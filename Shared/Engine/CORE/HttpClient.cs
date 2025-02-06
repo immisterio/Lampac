@@ -214,6 +214,30 @@ namespace Lampac.Engine.CORE
         }
         #endregion
 
+
+        #region BaseGetAsync<T>
+        async public static ValueTask<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
+        {
+            try
+            {
+                var result = await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
+                if (result.content == null)
+                    return default;
+
+                JsonSerializerSettings settings = null;
+
+                if (IgnoreDeserializeObject)
+                    settings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
+
+                return (JsonConvert.DeserializeObject<T>(result.content, settings), result.response);
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
+
         #region BaseGetAsync
         async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
         {

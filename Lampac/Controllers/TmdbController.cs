@@ -82,8 +82,8 @@ namespace Lampac.Controllers
                 if (!hybridCache.TryGetValue(dnskey, out string dns_ip))
                 {
                     var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                    var result = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
-                    dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+                    var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
+                    dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
                     if (!string.IsNullOrEmpty(dns_ip))
                         hybridCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
@@ -103,21 +103,26 @@ namespace Lampac.Controllers
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            JObject json = await HttpClient.Get<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
-            if (json == null)
+            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false);
+            if (result.content == null)
             {
                 proxyManager.Refresh();
+                HttpContext.Response.StatusCode = 401;
                 return Json(new { error = true, msg = "json null" });
             }
 
-            if (json.ContainsKey("status_message"))
-                return ContentTo(JsonConvert.SerializeObject(json));
+            if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
+            {
+                proxyManager.Refresh();
+                HttpContext.Response.StatusCode = (int)result.response.StatusCode;
+                return ContentTo(JsonConvert.SerializeObject(result.content));
+            }
 
             if (init.cache_api > 0)
-                hybridCache.Set(mkey, json, DateTime.Now.AddMinutes(init.cache_api));
+                hybridCache.Set(mkey, result.content, DateTime.Now.AddMinutes(init.cache_api));
 
             proxyManager.Success();
-            return ContentTo(JsonConvert.SerializeObject(json));
+            return ContentTo(JsonConvert.SerializeObject(result.content));
         }
         #endregion
 

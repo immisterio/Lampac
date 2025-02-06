@@ -92,7 +92,7 @@ namespace Lampac.Controllers.LITE
                 container.cookies.Add(new Cookie()
                 {
                     Path = "/",
-                    Expires = DateTime.Now.AddHours(1),
+                    Expires = DateTime.Now.AddYears(1),
                     Domain = $".{Regex.Match(AppInit.conf.FanCDN.host, "https?://([^/]+)").Groups[1].Value}",
                     Name = split[0].Trim(),
                     Value = split[1].Trim(),

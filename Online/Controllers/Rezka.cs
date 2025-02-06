@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,15 +25,18 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("rezka", init);
             var proxy = proxyManager.Get();
 
+            string country = init.forceua ? "UA" : requestInfo.Country;
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
             var headers = httpHeaders(init, HeadersModel.Init(
                 ("Origin", init.host),
                 ("Referer", init.host + "/")
             ));
 
-            string cookie = await getCookie(init);
+            var cookie = await getCookie(init);
 
-            if (!string.IsNullOrEmpty(cookie))
-                headers.Add(new HeadersModel("Cookie", cookie));
+            if (rch.enable && cookie != null)
+                headers.Add(new HeadersModel("Cookie", rhubCookie));
 
             if (init.xapp)
                 headers.Add(new HeadersModel("X-App-Hdrezka-App", "1"));
@@ -40,18 +44,17 @@ namespace Lampac.Controllers.LITE
             if (init.xrealip)
                 headers.Add(new HeadersModel("realip", requestInfo.IP));
 
-            string country = init.forceua ? "UA" : requestInfo.Country;
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
             return new RezkaInvoke
             (
                 host,
                 init.corsHost(),
                 init.scheme,
                 MaybeInHls(init.hls, init),
-                authCookie != null || !string.IsNullOrEmpty(init.cookie),
-                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: false),
-                (url, data) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                init.premium,
+                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : 
+                                           HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, cookieContainer: cookieContainer, statusCodeOK: false),
+                (url, data) => rch.enable ? rch.Post(url, data, headers) : 
+                                            HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers, cookieContainer: cookieContainer),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka"),
                 requesterror: () => proxyManager.Refresh()
             );
@@ -92,7 +95,7 @@ namespace Lampac.Controllers.LITE
                     if (rch.InfoConnected().rchtype != "apk")
                         return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
 
-                    if (string.IsNullOrEmpty(await getCookie(init)))
+                    if (await getCookie(init) == null)
                         return ShowError("Укажите логин/пароль или cookie");
                 }
             }
@@ -191,15 +194,70 @@ namespace Lampac.Controllers.LITE
 
 
         #region getCookie
-        static string authCookie = null;
+        static string rhubCookie = string.Empty;
+        static CookieContainer cookieContainer = null;
 
-        async ValueTask<string> getCookie(RezkaSettings init)
+        async ValueTask<CookieContainer> getCookie(RezkaSettings init)
         {
-            if (authCookie != null)
-                return authCookie;
+            if (cookieContainer != null)
+                return cookieContainer;
+
+            string domain = Regex.Match(init.host, "https?://([^/]+)").Groups[1].Value;
+
+            #region setCookieContainer
+            void setCookieContainer(string coks)
+            {
+                cookieContainer = new CookieContainer();
+
+                foreach (string line in coks.Split(";"))
+                {
+                    if (string.IsNullOrEmpty(line) || !line.Contains("="))
+                        continue;
+
+                    var g = Regex.Match(line.Trim(), "^([^=]+)=([^\n\r]+)").Groups;
+                    string name = g[1].Value.Trim();
+                    string value = g[2].Value.Trim();
+
+                    if (name is "CLID" or "MUID" or "_clck" or "_clsk")
+                        continue;
+
+                    if (name != "PHPSESSID")
+                        rhubCookie += $"{name}={value}; ";
+
+                    if (name == "hdmbbs")
+                    {
+                        cookieContainer.Add(new Cookie()
+                        {
+                            Path = "/",
+                            Expires = DateTime.Today.AddYears(1),
+                            Domain = domain,
+                            Name = name,
+                            Value = value
+                        });
+                    }
+                    else
+                    {
+                        cookieContainer.Add(new Cookie()
+                        {
+                            Path = "/",
+                            Expires = name == "PHPSESSID" ? default : DateTime.Today.AddYears(1),
+                            Domain = $".{domain}",
+                            Name = name,
+                            Value = value,
+                            HttpOnly = true
+                        });
+                    }
+                }
+
+                rhubCookie = Regex.Replace(rhubCookie.Trim(), ";$", "");
+            }
+            #endregion
 
             if (!string.IsNullOrEmpty(init.cookie))
-                return $"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+)")}".Trim();
+            {
+                setCookieContainer(init.cookie.Trim());
+                return cookieContainer;
+            }
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
                 return null;
@@ -242,15 +300,38 @@ namespace Lampac.Controllers.LITE
                                     if (string.IsNullOrEmpty(line))
                                         continue;
 
-                                    if (line.Contains("=deleted;"))
+                                    if (line.Contains("=deleted;") || !line.Contains(domain))
                                         continue;
 
-                                    if (line.Contains("dle_user_id") || line.Contains("dle_password"))
-                                        cookie += $"{line.Split(";")[0]}; ";
+                                    string c = line.Split(";")[0];
+                                    if (c.Contains("="))
+                                    {
+                                        string name = c.Split("=")[0];
+                                        if (cookie.Contains(name))
+                                        {
+                                            cookie = Regex.Replace(cookie, $"{name}=[^;]+", $"{name}={c.Split("=")[1]}");
+                                        }
+                                        else
+                                        {
+                                            cookie += $"{c}; ";
+                                        }
+                                    }
                                 }
 
                                 if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
-                                    authCookie = $"dle_user_taken=1; {Regex.Replace(cookie.Trim(), ";$", "")}";
+                                {
+                                    if (!cookie.Contains("dle_user_taken"))
+                                        cookie += "dle_user_taken=1; ";
+
+                                    if (!cookie.Contains("dle_newpm"))
+                                        cookie += "dle_newpm=0; ";
+
+                                    if (!cookie.Contains("hdmbbs"))
+                                        cookie += "hdmbbs=1; ";
+
+                                    setCookieContainer(cookie.Trim());
+                                    return cookieContainer;
+                                }
                             }
                         }
                     }
@@ -258,7 +339,7 @@ namespace Lampac.Controllers.LITE
             }
             catch { }
 
-            return authCookie;
+            return null;
         }
         #endregion
     }
