@@ -3,7 +3,6 @@ using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
-using System.Net;
 using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
@@ -41,7 +40,7 @@ namespace JinEnergy.Online
                 {
                     string c = init.cookie;
                     if (!c.Contains("hdmbbs"))
-                        c = $"hdmbbs=1; {init.cookie}";
+                        c = $"hdmbbs=1; {c}";
 
                     headers.Add(new HeadersModel("cookie", c));
                 }

@@ -32,9 +32,9 @@ namespace Lampac.Engine.CRON
                                 continue;
 
                             long folderSize = 0;
-                            int fileCount = 0;
+                            var files = new Dictionary<string, FileInfo>();
 
-                            foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
+                            foreach (string infile in Directory.EnumerateFiles($"cache{(AppInit.Win32NT ? "\\" : "/")}{conf.path}", "*", SearchOption.AllDirectories))
                             {
                                 try
                                 {
@@ -43,7 +43,7 @@ namespace Lampac.Engine.CRON
                                         fileinfo.Delete();
                                     else
                                     {
-                                        fileCount++;
+                                        files.TryAdd(infile, fileinfo);
                                         folderSize += fileinfo.Length;
                                     }
                                 }
@@ -54,16 +54,15 @@ namespace Lampac.Engine.CRON
 
                             if (folderSize > maxcachesize)
                             {
-                                double averageFileSizeInBytes = (double)folderSize / fileCount;
-                                double exceedinglimit = folderSize - maxcachesize;
-
-                                int deletfiles = (int)(exceedinglimit / averageFileSizeInBytes) * 2;
-
-                                foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories).Take(deletfiles))
+                                foreach (var item in files.OrderBy(i => i.Value.LastWriteTime))
                                 {
                                     try
                                     {
-                                        File.Delete(infile);
+                                        File.Delete(item.Key);
+                                        folderSize += item.Value.Length;
+
+                                        if (maxcachesize > folderSize)
+                                            break;
                                     }
                                     catch { }
                                 }

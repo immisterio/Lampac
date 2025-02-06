@@ -247,7 +247,7 @@ namespace Lampac.Engine.Middlewares
 
         bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
         {
-            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|timecode|ts/)"))
+            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|ts/|storage/|tmdb/|timecode)"))
             {
                 urls = new HashSet<string>();
                 islock = false;
