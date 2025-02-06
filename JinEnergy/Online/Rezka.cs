@@ -38,7 +38,13 @@ namespace JinEnergy.Online
             else
             {
                 if (!string.IsNullOrEmpty(init.cookie))
-                    headers.Add(new HeadersModel("cookie", init.cookie));
+                {
+                    string c = init.cookie;
+                    if (!c.Contains("hdmbbs"))
+                        c = $"hdmbbs=1; {init.cookie}";
+
+                    headers.Add(new HeadersModel("cookie", c));
+                }
 
                 headers.Add(new HeadersModel("Origin", init.host));
                 headers.Add(new HeadersModel("Referer", init.host + "/"));

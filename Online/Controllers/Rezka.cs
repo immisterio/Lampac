@@ -209,6 +209,15 @@ namespace Lampac.Controllers.LITE
             {
                 cookieContainer = new CookieContainer();
 
+                if (!coks.Contains("dle_newpm"))
+                    coks = $"dle_newpm=0; {coks}";
+
+                if (!coks.Contains("dle_user_taken"))
+                    coks = $"dle_user_taken=1; {coks}";
+
+                if (!coks.Contains("hdmbbs"))
+                    coks = $"hdmbbs=1; {coks}";
+
                 foreach (string line in coks.Split(";"))
                 {
                     if (string.IsNullOrEmpty(line) || !line.Contains("="))
@@ -219,6 +228,9 @@ namespace Lampac.Controllers.LITE
                     string value = g[2].Value.Trim();
 
                     if (name is "CLID" or "MUID" or "_clck" or "_clsk")
+                        continue;
+
+                    if (name.StartsWith("_ym_"))
                         continue;
 
                     if (name != "PHPSESSID")
@@ -320,15 +332,6 @@ namespace Lampac.Controllers.LITE
 
                                 if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
                                 {
-                                    if (!cookie.Contains("dle_user_taken"))
-                                        cookie += "dle_user_taken=1; ";
-
-                                    if (!cookie.Contains("dle_newpm"))
-                                        cookie += "dle_newpm=0; ";
-
-                                    if (!cookie.Contains("hdmbbs"))
-                                        cookie += "hdmbbs=1; ";
-
                                     setCookieContainer(cookie.Trim());
                                     return cookieContainer;
                                 }
