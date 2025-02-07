@@ -83,6 +83,13 @@ namespace Shared.Engine.Online
                 if (search.Contains("Ошибка доступа (105)"))
                     return new EmbedModel() { IsEmpty = true, content = "IP-адрес заблокирован, ошибка 105" };
 
+                if (search.Contains("Ошибка доступа (101)"))
+                    return new EmbedModel() { IsEmpty = true, content = "Аккаунт заблокирован, ошибка 101" };
+
+                var accessError = Regex.Match(search, "Ошибка доступа \\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
+                if (!string.IsNullOrEmpty(accessError[1].Value))
+                    return new EmbedModel() { IsEmpty = true, content = $"Ошибка доступа ({accessError[1].Value})" };
+
                 log("search OK");
 
                 foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
