@@ -21,6 +21,17 @@ namespace Lampac.Controllers.LITE
         #region InitRezkaInvoke
         static string uid = null, typeuid = null;
 
+        List<HeadersModel> apiHeaders(string cookie)
+        {
+            return httpHeaders(AppInit.conf.RezkaPrem, HeadersModel.Init(
+               ("X-Lampac-App", "1"),
+               ("X-Lampac-Version", $"{appversion}.{minorversion}"),
+               ("X-Lampac-Device-Id", $"{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
+               ("X-Lampac-Cookie", cookie),
+               ("User-Agent", requestInfo.UserAgent)
+            ));
+        }
+
         async public ValueTask<RezkaInvoke> InitRezkaInvoke()
         {
             var init = AppInit.conf.RezkaPrem.Clone();
@@ -76,13 +87,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(cookie))
                 return null;
 
-            var headers = httpHeaders(init, HeadersModel.Init(
-               ("X-Lampac-App", "1"),
-               ("X-Lampac-Version", $"{appversion}.{minorversion}"),
-               ("X-Lampac-Device-Id", $"{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
-               ("X-Lampac-Cookie", cookie),
-               ("User-Agent", requestInfo.UserAgent)
-            ));
+            var headers = apiHeaders(cookie);
 
             string country = requestInfo.Country;
 
@@ -95,7 +100,7 @@ namespace Lampac.Controllers.LITE
             return new RezkaInvoke
             (
                 host,
-                "kwwsv=22odps1df",
+                init.host,
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 true,
@@ -295,7 +300,7 @@ namespace Lampac.Controllers.LITE
             if (memoryCache.TryGetValue("rhsprem:login", out _))
                 return null;
 
-            memoryCache.Set("rhsprem:login", 0, TimeSpan.FromMinutes(1));
+            memoryCache.Set("rhsprem:login", 0, TimeSpan.FromSeconds(20));
 
             try
             {
@@ -313,8 +318,10 @@ namespace Lampac.Controllers.LITE
                 clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(20);
-                    client.DefaultRequestHeaders.Add("user-agent", HttpClient.UserAgent);
+                    client.Timeout = TimeSpan.FromSeconds(15);
+
+                    foreach (var item in apiHeaders(string.Empty))
+                        client.DefaultRequestHeaders.Add(item.name, item.val);
 
                     var postParams = new Dictionary<string, string>
                     {

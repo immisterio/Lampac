@@ -65,9 +65,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
-            var init = AppInit.conf.Rezka;
-            if (!init.enable)
+            var init = AppInit.conf.Rezka.Clone();
+            if (!init.enable || AppInit.conf.RezkaPrem.enable)
                 return OnError();
+
+            if (init.premium) 
+                return ShowError("Используйте RezkaPremium в init.conf вместо Rezka");
 
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
@@ -85,7 +88,7 @@ namespace Lampac.Controllers.LITE
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (!init.premium && rch.enable)
+            if (rch.enable)
             {
                 if (rch.IsNotSupport("web", out string rch_error))
                     return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
@@ -126,7 +129,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/serial")]
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Rezka;
+            var init = AppInit.conf.Rezka.Clone();
             if (!init.enable)
                 return OnError();
 
@@ -161,7 +164,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            var init = AppInit.conf.Rezka;
+            var init = AppInit.conf.Rezka.Clone();
             if (!init.enable)
                 return OnError();
 

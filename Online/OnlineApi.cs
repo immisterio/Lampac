@@ -469,7 +469,10 @@ namespace Lampac.Controllers
 
             send("Alloha", conf.Alloha);
             send("HDRezka", conf.RezkaPrem, "rhsprem");
-            send("Rezka", conf.Rezka);
+
+            if (!conf.RezkaPrem.enable)
+                send("Rezka", conf.Rezka);
+
             send("Mirage", conf.Mirage);
 
             if (kinopoisk_id > 0)
