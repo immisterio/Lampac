@@ -12,7 +12,7 @@ namespace JinEnergy.Online
         #region RezkaInvoke
         static bool origstream;
 
-        static RezkaInvoke rezkaInvoke(string args, RezkaSettings init)
+        static RezkaInvoke? rezkaInvoke(string args, RezkaSettings init)
         {
             string rhsHost = init.corsHost();
             var headers = httpHeaders(args, init);
@@ -23,8 +23,11 @@ namespace JinEnergy.Online
             }
 
             bool ispremium = false;
-            if (init.premium && !string.IsNullOrEmpty(init.cookie))
+            if (init.premium)
             {
+                if (string.IsNullOrEmpty(init.cookie))
+                    return null;
+
                 ispremium = true;
                 rhsHost = "kwwsv=22odps1df";
                 headers = httpHeaders(args, init, HeadersModel.Init(
@@ -36,14 +39,14 @@ namespace JinEnergy.Online
             }
             else
             {
-                if (!string.IsNullOrEmpty(init.cookie))
-                {
-                    string c = init.cookie;
-                    if (!c.Contains("hdmbbs"))
-                        c = $"hdmbbs=1; {c}";
+                //if (!string.IsNullOrEmpty(init.cookie))
+                //{
+                //    string c = init.cookie;
+                //    if (!c.Contains("hdmbbs"))
+                //        c = $"hdmbbs=1; {c}";
 
-                    headers.Add(new HeadersModel("cookie", c));
-                }
+                //    headers.Add(new HeadersModel("cookie", c));
+                //}
 
                 headers.Add(new HeadersModel("Origin", init.host));
                 headers.Add(new HeadersModel("Referer", init.host + "/"));
@@ -72,20 +75,25 @@ namespace JinEnergy.Online
         {
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
+            if (oninvk == null)
+                return string.Empty;
 
             if (!init.premium)
             {
-                if (AppInit.typeConf == "web")
+                if (AppInit.Country == "RU")
                     return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
 
-                if (AppInit.Country == "RU")
-                {
-                    if (!AppInit.IsAndrod)
-                        return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
+                //if (AppInit.typeConf == "web")
+                //    return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
 
-                    if (string.IsNullOrEmpty(init.cookie))
-                        return ShowError("Авторизуйтесь на http://bwa.to/bind/rezka");
-                }
+                //if (AppInit.Country == "RU")
+                //{
+                //    if (!AppInit.IsAndrod)
+                //        return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
+
+                //    if (string.IsNullOrEmpty(init.cookie))
+                //        return ShowError("Авторизуйтесь на http://bwa.to/bind/rezka");
+                //}
             }
 
             var arg = defaultArgs(args);

@@ -120,7 +120,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("kwwsv=22nlqredvh1ruj") { rip = true, geostreamproxy = new List<string>() { "ALL" } };
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("kwwsv=22kguh}nd1ph") { hls = true, scheme = "http" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("kwwsv=22kguh}nd1ph") { enable = false, hls = true, scheme = "http" };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("kwwsv=22vwdqge|0uh}nd1wy") { enable = false, hls = true, scheme = "http" };
 
