@@ -110,12 +110,12 @@ namespace Lampac.Controllers.LITE
                 if (content == null)
                     return OnError(null, gbcache: !rch.enable);
 
-                if (content.IsEmpty && content.content != null)
-                    return ShowError(content.content);
-
                 proxyManager.Success();
                 hybridCache.Set(memKey, content, cacheTime(20, init: init));
             }
+
+            if (content.IsEmpty && content.content != null)
+                return ShowError(content.content);
 
             return ContentTo(oninvk.Html(content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson));
         }
