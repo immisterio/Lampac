@@ -81,10 +81,10 @@ namespace Shared.Engine.Online
                 }
 
                 if (search.Contains("Ошибка доступа (105)"))
-                    return new EmbedModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован" };
+                    return new EmbedModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
 
                 if (search.Contains("Ошибка доступа (101)"))
-                    return new EmbedModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован" };
+                    return new EmbedModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
 
                 var accessError = Regex.Match(search, "Ошибка доступа \\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
                 if (!string.IsNullOrEmpty(accessError[1].Value))
