@@ -34,6 +34,7 @@ namespace Lampac.Controllers.LITE
 
         async public ValueTask<RezkaInvoke> InitRezkaInvoke()
         {
+            AppInit.conf.RezkaPrem.host = "kwwsv=22odps1df";
             var init = AppInit.conf.RezkaPrem.Clone();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);

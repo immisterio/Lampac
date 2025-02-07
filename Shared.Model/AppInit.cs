@@ -122,7 +122,7 @@ namespace Shared.Model
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("kwwsv=22kguh}nd1ph") { enable = false, hls = true, scheme = "http" };
 
-        public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("kwwsv=22odps1df") { enable = false, hls = true, scheme = "http" };
+        public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings(null) { enable = false, hls = true, scheme = "http" };
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("kwwsv=22dsl1qlqvho1zv", streamproxy: true, two: true);
 

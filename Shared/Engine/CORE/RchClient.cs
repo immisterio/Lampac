@@ -207,7 +207,7 @@ namespace Lampac.Engine.CORE
 
                 hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
 
-                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 5 : 8));
+                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12));
                 rchIds.TryRemove(rchId, out _);
 
                 if (string.IsNullOrWhiteSpace(result))
