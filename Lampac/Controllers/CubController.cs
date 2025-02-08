@@ -29,16 +29,13 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Index()
         {
             var init = AppInit.conf.cub;
-            if (!init.enable)
-            {
-                HttpContext.Response.StatusCode = 401;
-                return Json(new { error = true, msg = "disable" });
-            }
-
-            string domain = CrypTo.DecodeBase64("Y3ViLnJlZA==");
+            string domain = init.domain;
             string path = HttpContext.Request.Path.Value.Replace("/cub/", "");
             string query = Regex.Replace(HttpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
-            string uri = Regex.Match(path, "[^/]+/(.*)").Groups[1].Value + query;
+            string uri = Regex.Match(path, "^[^/]+/(.*)").Groups[1].Value + query;
+
+            if (!init.enable)
+                return Redirect($"https://{path}/{query}");
 
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
                 domain = $"{path.Split(".")[0]}.{domain}";
@@ -49,8 +46,14 @@ namespace Lampac.Controllers
             if (domain is "ws" or "ad")
                 return StatusCode(403); // не уметь
 
+            if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
+                return Content("ok");
+
+            if (uri.StartsWith("api/plugins/blacklist"))
+                return ContentTo("[]");
+
             var proxyManager = new ProxyManager("cub_api", init);
-            var result = await HttpClient.BaseDownload($"https://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), statusCodeOK: false);
+            var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), statusCodeOK: false);
             if (result.array == null || result.array.Length == 0)
             {
                 proxyManager.Refresh();

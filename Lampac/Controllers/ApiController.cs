@@ -173,6 +173,12 @@ namespace Lampac.Controllers
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
 
+            if (AppInit.conf.cub.enable)
+            {
+                file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+                file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/{AppInit.conf.cub.domain}'");
+            }
+
             if (AppInit.conf.LampaWeb.appReplace != null)
             {
                 foreach (var r in AppInit.conf.LampaWeb.appReplace)
@@ -321,7 +327,7 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
                         initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.LampaWeb.initPlugins.cubProxy)
+                    if (AppInit.conf.LampaWeb.initPlugins.cubProxy && AppInit.conf.cub.enable)
                         initiale += "{\"url\": \"{localhost}/cubproxy.js\",\"status\": 1,\"name\": \"CUB Proxy\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)

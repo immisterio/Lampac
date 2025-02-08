@@ -41,7 +41,7 @@ namespace Lampac.Controllers
         public Task<ActionResult> Auto()
         {
             string path = Regex.Replace(HttpContext.Request.Path.Value, "^/tmdb/https?://", "").Replace("/tmdb/", "");
-            string uri = Regex.Match(path, "[^/]+/(.*)").Groups[1].Value + HttpContext.Request.QueryString.Value;
+            string uri = Regex.Match(path, "^[^/]+/(.*)").Groups[1].Value + HttpContext.Request.QueryString.Value;
 
             if (path.Contains("api.themoviedb.org"))
             {

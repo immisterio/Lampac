@@ -13,6 +13,7 @@ using Shared.Model.Base;
 using System.Text.RegularExpressions;
 using Shared.Models.AppConf;
 using Shared.Models.ServerProxy;
+using Lampac.Engine.CORE;
 
 namespace Lampac
 {
@@ -244,11 +245,13 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public TmdbConf cub { get; set; } = new TmdbConf()
+        public CubConf cub { get; set; } = new CubConf()
         {
             enable = true, 
+            domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="),
+            scheme = "https",
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = 60
+            cache_api = 20, cache_img = 60,
         };
 
         public TmdbConf tmdb { get; set; } = new TmdbConf()
