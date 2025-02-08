@@ -414,7 +414,14 @@ namespace Lampac.Engine.CORE
 
 
         #region Download
-        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null)
+        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true)
+        {
+            return (await BaseDownload(url, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, statusCodeOK)).array;
+        }
+        #endregion
+
+        #region BaseDownload
+        async public static ValueTask<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true)
         {
             try
             {
@@ -427,23 +434,23 @@ namespace Lampac.Engine.CORE
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {
-                        if (response.StatusCode != HttpStatusCode.OK)
-                            return null;
+                        if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            return (null, response);
 
                         using (HttpContent content = response.Content)
                         {
                             byte[] res = await content.ReadAsByteArrayAsync();
                             if (res == null || res.Length == 0)
-                                return null;
+                                return (null, response);
 
-                            return res;
+                            return (res, response);
                         }
                     }
                 }
             }
             catch
             {
-                return null;
+                return default;
             }
         }
         #endregion

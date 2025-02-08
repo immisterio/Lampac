@@ -63,7 +63,10 @@ namespace Lampac.Controllers
         {
             var init = AppInit.conf.tmdb;
             if (!init.enable)
-                return Json(new { error = true, msg = "disable"});
+            {
+                HttpContext.Response.StatusCode = 401;
+                return Json(new { error = true, msg = "disable" });
+            }
 
             string path = HttpContext.Request.Path.Value.Replace("/tmdb/api", "");
             string query = Regex.Replace(HttpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");

@@ -244,11 +244,20 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public TmdbConf tmdb { get; set; } = new TmdbConf()
+        public TmdbConf cub { get; set; } = new TmdbConf()
         {
             enable = true, 
             DNS = "9.9.9.9", DNS_TTL = 20,
             cache_api = 20, cache_img = 60
+        };
+
+        public TmdbConf tmdb { get; set; } = new TmdbConf()
+        {
+            enable = true,
+            DNS = "9.9.9.9",
+            DNS_TTL = 20,
+            cache_api = 20,
+            cache_img = 60
         };
 
         public ServerproxyConf serverproxy = new ServerproxyConf()
@@ -283,7 +292,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "cdcebcc76b73e3bf90a029ca8a7b59e1fadad201"
+            tree = "1c72e16b8e2b29c0394c2416439c2f629efb94be"
         };
 
         public OnlineConf online = new OnlineConf()
