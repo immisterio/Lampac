@@ -317,7 +317,40 @@ namespace Lampac.Engine.CORE
             return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, removeContentType: removeContentType);
         }
 
-        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false)
+        async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
+        {
+            return (await BasePost(url, data, encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK)).content;
+        }
+        #endregion
+
+        #region Post<T>
+        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
+        {
+            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
+        }
+
+        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
+        {
+            try
+            {
+                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
+                if (json == null)
+                    return default;
+
+                if (IgnoreDeserializeObject)
+                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
+
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
+
+        #region BasePost
+        async public static ValueTask<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
             string loglines = string.Empty;
 
@@ -350,25 +383,25 @@ namespace Lampac.Engine.CORE
                             {
                                 string res = encoding.GetString(await content.ReadAsByteArrayAsync());
                                 if (string.IsNullOrWhiteSpace(res))
-                                    return null;
+                                    return (null, response);
 
                                 loglines += "\n" + res;
-                                if (response.StatusCode != HttpStatusCode.OK)
-                                    return null;
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                    return (null, response);
 
-                                return res;
+                                return (res, response);
                             }
                             else
                             {
                                 string res = await content.ReadAsStringAsync();
                                 if (string.IsNullOrWhiteSpace(res))
-                                    return null;
+                                    return (null, response);
 
                                 loglines += "\n" + res;
-                                if (response.StatusCode != HttpStatusCode.OK)
-                                    return null;
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                    return (null, response);
 
-                                return res;
+                                return (res, response);
                             }
                         }
                     }
@@ -377,37 +410,15 @@ namespace Lampac.Engine.CORE
             catch (Exception ex)
             {
                 loglines = ex.ToString();
-                return null;
+                return (null, new HttpResponseMessage()
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    RequestMessage = new HttpRequestMessage()
+                });
             }
             finally
             {
                 await WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
-            }
-        }
-        #endregion
-
-        #region Post<T>
-        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
-        {
-            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
-        }
-
-        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
-        {
-            try
-            {
-                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
-                if (json == null)
-                    return default;
-
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
-
-                return JsonConvert.DeserializeObject<T>(json);
-            }
-            catch
-            {
-                return default;
             }
         }
         #endregion
@@ -450,7 +461,11 @@ namespace Lampac.Engine.CORE
             }
             catch
             {
-                return default;
+                return (null, new HttpResponseMessage()
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    RequestMessage = new HttpRequestMessage()
+                });
             }
         }
         #endregion

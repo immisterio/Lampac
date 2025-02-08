@@ -8,6 +8,7 @@ using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Shared.Model.Online;
+using System.Text;
 
 namespace Lampac.Controllers
 {
@@ -20,7 +21,7 @@ namespace Lampac.Controllers
         public ActionResult CubProxy(string token)
         {
             if (!AppInit.conf.cub.enable)
-                Content(string.Empty, contentType: "application/javascript; charset=utf-8");
+                return Content(string.Empty, contentType: "application/javascript; charset=utf-8");
 
             string file = FileCache.ReadAllText("plugins/cubproxy.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
@@ -35,10 +36,10 @@ namespace Lampac.Controllers
             var init = AppInit.conf.cub;
             string domain = init.domain;
             string path = HttpContext.Request.Path.Value.Replace("/cub/", "");
-            string query = Regex.Replace(HttpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
+            string query = HttpContext.Request.QueryString.Value;
             string uri = Regex.Match(path, "^[^/]+/(.*)").Groups[1].Value + query;
 
-            if (!init.enable)
+            if (!init.enable || domain == "ws")
                 return Redirect($"https://{path}/{query}");
 
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
@@ -47,14 +48,13 @@ namespace Lampac.Controllers
             if (domain == "geo")
                 return Content(requestInfo.Country);
 
-            if (domain is "ws" or "ad")
-                return StatusCode(403); // не уметь
-
             if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
                 return Content("ok");
 
             if (uri.StartsWith("api/plugins/blacklist"))
                 return ContentTo("[]");
+
+            var proxyManager = new ProxyManager("cub_api", init);
 
             var headers = HeadersModel.Init();
             foreach (var header in HttpContext.Request.Headers)
@@ -63,16 +63,39 @@ namespace Lampac.Controllers
                     headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
             }
 
-            var proxyManager = new ProxyManager("cub_api", init);
-            var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
-            if (result.array == null || result.array.Length == 0)
+            if (HttpMethods.IsPost(HttpContext.Request.Method))
             {
-                proxyManager.Refresh();
-                return StatusCode(result.response != null ? (int)result.response.StatusCode : 502);
-            }
+                string requestBody;
+                using (var reader = new System.IO.StreamReader(HttpContext.Request.Body, Encoding.UTF8))
+                    requestBody = await reader.ReadToEndAsync();
 
-            HttpContext.Response.StatusCode = (int)result.response.StatusCode;
-            return File(result.array, result.response.Content.Headers.ContentType.ToString());
+                string contentType = "application/x-www-form-urlencoded";
+                if (!string.IsNullOrEmpty(HttpContext.Request.Headers.ContentType))
+                    contentType = HttpContext.Request.Headers.ContentType.ToString().Split(";")[0];
+
+                var streamContent = new System.Net.Http.StringContent(requestBody, Encoding.UTF8, contentType);
+                var result = await HttpClient.BasePost($"{init.scheme}://{domain}/{uri}", streamContent, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
+                if (result.content == null)
+                {
+                    proxyManager.Refresh();
+                    return StatusCode((int)result.response.StatusCode);
+                }
+
+                HttpContext.Response.StatusCode = (int)result.response.StatusCode;
+                return Content(result.content, result.response.Content.Headers.ContentType.ToString());
+            }
+            else
+            {
+                var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
+                if (result.array == null || result.array.Length == 0)
+                {
+                    proxyManager.Refresh();
+                    return StatusCode((int)result.response.StatusCode);
+                }
+
+                HttpContext.Response.StatusCode = (int)result.response.StatusCode;
+                return File(result.array, result.response.Content.Headers.ContentType.ToString());
+            }
         }
     }
 }
