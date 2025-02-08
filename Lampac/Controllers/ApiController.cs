@@ -327,7 +327,7 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
                         initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.LampaWeb.initPlugins.cubProxy && AppInit.conf.cub.enable)
+                    if (AppInit.conf.LampaWeb.initPlugins.cubProxy)
                         initiale += "{\"url\": \"{localhost}/cubproxy.js\",\"status\": 1,\"name\": \"CUB Proxy\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)

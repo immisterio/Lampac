@@ -421,7 +421,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region BaseDownload
-        async public static ValueTask<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true)
+        async public static ValueTask<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
         {
             try
             {
@@ -430,7 +430,7 @@ namespace Lampac.Engine.CORE
 
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers);
+                    DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders: useDefaultHeaders);
 
                     using (HttpResponseMessage response = await client.GetAsync(url))
                     {

@@ -11,11 +11,6 @@ namespace Shared.Models.AppConf
         public string scheme { get; set; }
 
 
-        public string DNS { get; set; }
-
-        public int DNS_TTL { get; set; }
-
-
         public int cache_api { get; set; }
 
         public int cache_img { get; set; }

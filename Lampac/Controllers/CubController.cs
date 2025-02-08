@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
 using Microsoft.AspNetCore.Http;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers
 {
@@ -18,6 +19,9 @@ namespace Lampac.Controllers
         [Route("cubproxy/js/{token}")]
         public ActionResult CubProxy(string token)
         {
+            if (!AppInit.conf.cub.enable)
+                Content(string.Empty, contentType: "application/javascript; charset=utf-8");
+
             string file = FileCache.ReadAllText("plugins/cubproxy.js").Replace("{localhost}", host);
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
@@ -52,8 +56,15 @@ namespace Lampac.Controllers
             if (uri.StartsWith("api/plugins/blacklist"))
                 return ContentTo("[]");
 
+            var headers = HeadersModel.Init();
+            foreach (var header in HttpContext.Request.Headers)
+            {
+                if (header.Key.ToLower() is "cookie" or "token" or "profile" or "user-agent")
+                    headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+            }
+
             var proxyManager = new ProxyManager("cub_api", init);
-            var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), statusCodeOK: false);
+            var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
             if (result.array == null || result.array.Length == 0)
             {
                 proxyManager.Refresh();

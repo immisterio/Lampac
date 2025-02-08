@@ -247,10 +247,9 @@ namespace Lampac
 
         public CubConf cub { get; set; } = new CubConf()
         {
-            enable = true, 
+            enable = false, 
             domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="),
             scheme = "https",
-            DNS = "9.9.9.9", DNS_TTL = 20,
             cache_api = 20, cache_img = 60,
         };
 
