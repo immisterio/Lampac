@@ -361,6 +361,7 @@ namespace Lampac.Controllers
 
             if (IO.File.Exists("plugins/lampainit-invc.my.js"))
                 file = file.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.my.js"));
+            file = file.Replace("{lampainit-invc}", string.Empty);
 
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
             file = file.Replace("{country}", requestInfo.Country);

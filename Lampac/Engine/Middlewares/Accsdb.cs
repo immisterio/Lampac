@@ -120,6 +120,9 @@ namespace Lampac.Engine.Middlewares
                                      user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
                                      AppInit.conf.accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid);
 
+                        if (httpContext.Request.Path.Value.StartsWith("/tmdb"))
+                            httpContext.Response.StatusCode = 403;
+
                         httpContext.Response.ContentType = "application/javascript; charset=utf-8";
                         return httpContext.Response.WriteAsync("{\"accsdb\":true,\"msg\":\"" + msg + "\"}", httpContext.RequestAborted);
                     }
