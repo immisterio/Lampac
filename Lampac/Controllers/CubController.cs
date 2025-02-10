@@ -45,7 +45,7 @@ namespace Lampac.Controllers
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
                 domain = $"{path.Split(".")[0]}.{domain}";
 
-            if (domain == "geo")
+            if (domain.StartsWith("geo"))
                 return Content(requestInfo.Country);
 
             if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
@@ -86,11 +86,20 @@ namespace Lampac.Controllers
             }
             else
             {
-                var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
+                reset: var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
                 if (result.array == null || result.array.Length == 0)
                 {
                     proxyManager.Refresh();
                     return StatusCode((int)result.response.StatusCode);
+                }
+
+                if ((domain.StartsWith("tmdb") || domain.StartsWith("tmapi") || domain.StartsWith("apitmdb")) && result.array.Length == 16)
+                {
+                    if (Encoding.UTF8.GetString(result.array) == "{\"blocked\":true}")
+                    {
+                        domain = "api.themoviedb.org";
+                        goto reset;
+                    }
                 }
 
                 HttpContext.Response.StatusCode = (int)result.response.StatusCode;
