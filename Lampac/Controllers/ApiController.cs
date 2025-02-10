@@ -176,7 +176,8 @@ namespace Lampac.Controllers
             if (AppInit.conf.cub.enable)
             {
                 file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
-                file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/{AppInit.conf.cub.domain}'");
+                file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
+                file = file.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
             }
 
             if (AppInit.conf.LampaWeb.appReplace != null)
@@ -327,9 +328,6 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
                         initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.LampaWeb.initPlugins.cubProxy)
-                        initiale += "{\"url\": \"{localhost}/cubproxy.js\",\"status\": 1,\"name\": \"CUB Proxy\",\"author\": \"lampac\"},";
-
                     if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/online.js\",\"status\": 1,\"name\": \"Онлайн\",\"author\": \"lampac\"},";
 
@@ -359,11 +357,9 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (IO.File.Exists("plugins/lampainit-invc.my.js"))
-                file = file.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.my.js"));
-            file = file.Replace("{lampainit-invc}", string.Empty);
-
+            file = file.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.js"));
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
+
             file = file.Replace("{country}", requestInfo.Country);
             file = file.Replace("{localhost}", host);
             file = file.Replace("{deny}", string.Empty);

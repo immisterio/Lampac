@@ -10,6 +10,8 @@ namespace Shared.Models.AppConf
 
         public string scheme { get; set; }
 
+        public string mirror { get; set; }
+
 
         public int cache_api { get; set; }
 

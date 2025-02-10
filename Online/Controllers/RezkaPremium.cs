@@ -34,8 +34,8 @@ namespace Lampac.Controllers.LITE
 
         async public ValueTask<RezkaInvoke> InitRezkaInvoke()
         {
-            AppInit.conf.RezkaPrem.host = "kwwsv=22odps1df";
             var init = AppInit.conf.RezkaPrem.Clone();
+            init.host = new RezkaSettings("kwwsv=22odps1df").host;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             var proxyManager = new ProxyManager("rhsprem", init);
@@ -126,7 +126,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                string cookie = await getCookie(new RezkaSettings(AppInit.conf.RezkaPrem.host) 
+                string cookie = await getCookie(new RezkaSettings("kwwsv=22odps1df") 
                 {
                     login = login,
                     passwd = pass

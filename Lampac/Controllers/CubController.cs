@@ -81,6 +81,12 @@ namespace Lampac.Controllers
                     return StatusCode((int)result.response.StatusCode);
                 }
 
+                if (result.response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                {
+                    foreach (var cookie in cookies)
+                        HttpContext.Response.Headers.Append("Set-Cookie", cookie);
+                }
+
                 HttpContext.Response.StatusCode = (int)result.response.StatusCode;
                 return Content(result.content, result.response.Content.Headers.ContentType.ToString());
             }
@@ -100,6 +106,12 @@ namespace Lampac.Controllers
                         domain = "api.themoviedb.org";
                         goto reset;
                     }
+                }
+
+                if (result.response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                {
+                    foreach (var cookie in cookies)
+                        HttpContext.Response.Headers.Append("Set-Cookie", cookie);
                 }
 
                 HttpContext.Response.StatusCode = (int)result.response.StatusCode;

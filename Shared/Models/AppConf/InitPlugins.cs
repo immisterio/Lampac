@@ -8,8 +8,6 @@
 
         public bool tmdbProxy { get; set; } = true;
 
-        public bool cubProxy { get; set; } = true;
-
         public bool online { get; set; } = true;
 
         public bool sisi { get; set; } = true;

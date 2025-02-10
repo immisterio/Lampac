@@ -96,17 +96,6 @@ namespace Lampac.Engine.Middlewares
 
                     if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
                     {
-                        if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy/|proxyimg)"))
-                        {
-                            string href = Regex.Replace(httpContext.Request.Path.Value, "^/(proxy|proxyimg([^/]+)?)/", "") + httpContext.Request.QueryString.Value;
-
-                            if (href.Contains(".themoviedb.org") || href.Contains(".tmdb.org") || href.StartsWith("http"))
-                            {
-                                httpContext.Response.Redirect(href);
-                                return Task.CompletedTask;
-                            }
-                        }
-
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
                             httpContext.Response.StatusCode = 404;

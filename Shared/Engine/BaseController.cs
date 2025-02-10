@@ -26,7 +26,7 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "133";
+        public static string appversion => "134";
 
         public static string minorversion => "1";
 
