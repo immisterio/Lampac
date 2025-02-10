@@ -360,11 +360,13 @@ namespace Lampac.Controllers
             }
 
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
-
             file = file.Replace("{country}", requestInfo.Country);
             file = file.Replace("{localhost}", host);
             file = file.Replace("{deny}", string.Empty);
             file = file.Replace("{pirate_store}", string.Empty);
+
+            if (IO.File.Exists("plugins/lampainit-invc.my.js"))
+                file = file.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.my.js"));
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
                 file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
