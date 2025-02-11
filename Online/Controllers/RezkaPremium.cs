@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
             ));
         }
 
-        async public ValueTask<RezkaInvoke> InitRezkaInvoke()
+        async public ValueTask<(RezkaInvoke invk, string log)> InitRezkaInvoke()
         {
             var init = AppInit.conf.RezkaPrem.Clone();
             init.host = new RezkaSettings("kwwsv=22odps1df").host;
@@ -84,11 +84,11 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            string cookie = await getCookie(init, proxy);
-            if (string.IsNullOrEmpty(cookie))
-                return null;
+            var cook = await getCookie(init, proxy);
+            if (string.IsNullOrEmpty(cook.cookie))
+                return (null, cook.log);
 
-            var headers = apiHeaders(cookie);
+            var headers = apiHeaders(cook.cookie);
 
             string country = requestInfo.Country;
 
@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
             if (init.forceua)
                 country = "UA";
 
-            return new RezkaInvoke
+            return (new RezkaInvoke
             (
                 host,
                 init.host,
@@ -109,7 +109,7 @@ namespace Lampac.Controllers.LITE
                 (url, data) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rhsprem"),
                 requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
-            );
+            ), null);
         }
         #endregion
 
@@ -126,11 +126,11 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                string cookie = await getCookie(new RezkaSettings("kwwsv=22odps1df") 
+                string cookie = (await getCookie(new RezkaSettings("kwwsv=22odps1df") 
                 {
                     login = login,
                     passwd = pass
-                });
+                })).cookie;
 
                 if (string.IsNullOrEmpty(cookie))
                 {
@@ -172,9 +172,11 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
 
-            var oninvk = await InitRezkaInvoke();
-            if (oninvk == null)
-                return OnError("authorization error ;(");
+            var onrezka = await InitRezkaInvoke();
+            if (onrezka.invk == null)
+            return OnError("authorization error ;(", weblog: onrezka.log);
+
+            var oninvk = onrezka.invk;
 
             var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), null, async res => 
             {
@@ -209,9 +211,11 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
 
-            var oninvk = await InitRezkaInvoke();
-            if (oninvk == null)
-                return OnError("authorization error ;(");
+            var onrezka = await InitRezkaInvoke();
+            if (onrezka.invk == null)
+                return OnError("authorization error ;(", weblog: onrezka.log);
+
+            var oninvk = onrezka.invk;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -254,9 +258,11 @@ namespace Lampac.Controllers.LITE
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            var oninvk = await InitRezkaInvoke();
-            if (oninvk == null)
-                return OnError("authorization error ;(");
+            var onrezka = await InitRezkaInvoke();
+            if (onrezka.invk == null)
+                return OnError("authorization error ;(", weblog: onrezka.log);
+
+            var oninvk = onrezka.invk;
 
             var proxyManager = new ProxyManager("rhsprem", init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
@@ -287,27 +293,29 @@ namespace Lampac.Controllers.LITE
         #region getCookie
         static string authCookie = null;
 
-        async ValueTask<string> getCookie(RezkaSettings init, WebProxy proxy = null)
+        async ValueTask<(string cookie, string log)> getCookie(RezkaSettings init, WebProxy proxy = null)
         {
             if (authCookie != null)
-                return authCookie;
+                return (authCookie, null);
 
             if (!string.IsNullOrEmpty(init.cookie))
-                return $"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+)")}".Trim();
+                return ($"dle_user_taken=1; {Regex.Match(init.cookie, "(dle_user_id=[^;]+;)")} {Regex.Match(init.cookie, "(dle_password=[^;]+)")}".Trim(), null);
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
-                return null;
+                return default;
 
             if (memoryCache.TryGetValue("rhsprem:login", out _))
-                return null;
+                return default;
 
+            string loglines = string.Empty;
             memoryCache.Set("rhsprem:login", 0, TimeSpan.FromSeconds(20));
 
             try
             {
                 var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
-                    AllowAutoRedirect = false
+                    AllowAutoRedirect = false,
+                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
                 };
 
                 if (proxy != null)
@@ -333,8 +341,13 @@ namespace Lampac.Controllers.LITE
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
+                        loglines += $"POST: {init.host}/ajax/login/\n";
+                        loglines += $"{postContent.ReadAsStringAsync().Result}\n";
+
                         using (var response = await client.PostAsync($"{init.host}/ajax/login/", postContent))
                         {
+                            loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
+
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {
                                 string cookie = string.Empty;
@@ -347,20 +360,25 @@ namespace Lampac.Controllers.LITE
                                     if (line.Contains("=deleted;"))
                                         continue;
 
+                                    loglines += $"Set-Cookie: {line}\n";
+
                                     if (line.Contains("dle_user_id") || line.Contains("dle_password"))
                                         cookie += $"{line.Split(";")[0]}; ";
                                 }
 
                                 if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
                                     authCookie = $"dle_user_taken=1; {Regex.Replace(cookie.Trim(), ";$", "")}";
+
+                                loglines += $"authCookie: {authCookie}\n\n";
+                                loglines += await response.Content.ReadAsStringAsync();
                             }
                         }
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { loglines += $"\n\nException: {ex}"; }
 
-            return authCookie;
+            return (authCookie, loglines);
         }
         #endregion
     }

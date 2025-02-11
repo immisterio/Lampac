@@ -60,7 +60,7 @@ namespace Online
 
                 string log = $"{HttpContext.Request.Path.Value}\n{msg}";
                 if (!string.IsNullOrEmpty(weblog))
-                    log += $"\n\n===================\n\n\n{weblog}";
+                    log += $"\n\n\n===================\n\n{weblog}";
 
                 HttpClient.onlog?.Invoke(null, log);
                 HttpContext.Response.Headers.TryAdd("emsg", msg);

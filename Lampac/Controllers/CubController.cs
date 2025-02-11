@@ -45,7 +45,7 @@ namespace Lampac.Controllers
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
                 domain = $"{path.Split(".")[0]}.{domain}";
 
-            if (domain.StartsWith("geo"))
+            if (domain.StartsWith("geo") && !string.IsNullOrEmpty(requestInfo.Country))
                 return Content(requestInfo.Country);
 
             if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
