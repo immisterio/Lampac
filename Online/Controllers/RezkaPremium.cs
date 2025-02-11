@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 true,
-                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !ongettourl.Contains("do=search")),
                 (url, data) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rhsprem"),
                 requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
