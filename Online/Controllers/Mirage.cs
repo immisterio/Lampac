@@ -204,7 +204,7 @@ namespace Lampac.Controllers.LITE
                     continue;
 
                 string link = Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
-                streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders), $"{q.Key}p");
+                streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders, plugin: "mirage"), $"{q.Key}p");
             }
 
             if (play)

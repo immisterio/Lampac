@@ -110,7 +110,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrEmpty(hashfimix))
                             url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                        string l = HostStreamProxy(init, url);
+                        string l = HostStreamProxy(init, url, plugin: "fxapi");
 
                         streams.Add((l, $"{q}p"));
                     }
@@ -190,7 +190,7 @@ namespace Lampac.Controllers.LITE
                             if (!string.IsNullOrEmpty(hashfimix))
                                 url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                            string l = HostStreamProxy(init, url);
+                            string l = HostStreamProxy(init, url, plugin: "fxapi");
 
                             streams.Add((l, $"{q}p"));
                         }

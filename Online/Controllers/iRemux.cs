@@ -9,7 +9,7 @@ namespace Lampac.Controllers.LITE
 {
     public class iRemux : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("remux", AppInit.conf.iRemux);
+        ProxyManager proxyManager = new ProxyManager("iremux", AppInit.conf.iRemux);
 
         #region iRemuxInvoke
         public iRemuxInvoke InitRemuxInvoke()
@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "remux"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "iremux"),
                requesterror: () => proxyManager.Refresh()
             );
         }

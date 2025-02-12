@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
             return OnResult(cache, () => 
             {
                 var mtpl = new MovieTpl(title, original_title);
-                mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value, proxy: proxy), vast: init.vast);
+                mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value, proxy: proxy, plugin: "cdnvideohub"), vast: init.vast);
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 

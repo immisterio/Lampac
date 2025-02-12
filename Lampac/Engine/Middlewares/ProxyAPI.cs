@@ -122,7 +122,7 @@ namespace Lampac.Engine.Middlewares
                 bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
 
                 string md5key = CORE.CrypTo.md5(ists ? fixuri(decryptLink) : decryptLink.uri);
-                bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && init.encrypt && init.cache.hls;
+                bool cache_stream = !string.IsNullOrEmpty(md5key) && md5key.Length > 3 && init.cache.hls;
 
                 string foldercache = cache_stream ? $"cache/hls/{md5key.Substring(0, 3)}" : string.Empty;
                 string cachefile = cache_stream ? ($"{foldercache}/{md5key.Substring(3)}" + Path.GetExtension(md5file)) : string.Empty;
@@ -274,16 +274,16 @@ namespace Lampac.Engine.Middlewares
 
                                 if (!File.Exists(cachefile))
                                 {
-                                    _ = Task.Factory.StartNew(() =>
+                                    _ = Task.Factory.StartNew(async () =>
                                     {
                                         try
                                         {
                                             Directory.CreateDirectory(foldercache);
-                                            File.WriteAllBytes(cachefile, buffer);
+                                            await File.WriteAllBytesAsync(cachefile, buffer).ConfigureAwait(false);
                                         }
                                         catch { try { File.Delete(cachefile); } catch { } }
 
-                                    }, httpContext.RequestAborted, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                                    }, default, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                                 }
 
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
@@ -550,7 +550,10 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in request.Headers)
                 {
-                    if (header.Key.ToLower() is "origin" or "user-agent" or "referer" or "content-disposition")
+                    if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition")
+                        continue;
+
+                    if (header.Key.ToLower().StartsWith("x-"))
                         continue;
 
                     if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)

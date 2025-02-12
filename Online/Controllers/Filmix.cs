@@ -94,7 +94,7 @@ namespace Lampac.Controllers.LITE
                                           HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
                (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) : 
                                                  HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
-               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
+               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy, plugin: "filmix"),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
                rjson: rjson
             );

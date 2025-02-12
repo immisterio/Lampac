@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                init.token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vokino"),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

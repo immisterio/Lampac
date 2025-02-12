@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "filmixtv"),
                requesterror: () => proxyManager.Refresh(),
                rjson: rjson
             );

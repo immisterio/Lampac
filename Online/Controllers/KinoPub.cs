@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy),
+               (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy, plugin: "kinopub"),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

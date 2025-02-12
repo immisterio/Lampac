@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "cdnmovies"),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
