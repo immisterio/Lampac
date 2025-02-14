@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
                                            HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
                 (url, data, hed) => rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) : 
                                                  HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
-                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka"),
+                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka", headers: RezkaInvoke.StreamProxyHeaders(init.host)),
                 requesterror: () => proxyManager.Refresh()
             );
         }

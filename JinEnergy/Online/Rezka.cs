@@ -37,6 +37,11 @@ namespace JinEnergy.Online
                    ("X-Lampac-Cookie", fixCookie(init.cookie))
                 ));
             }
+            else
+            {
+                if (!string.IsNullOrEmpty(init.cookie))
+                    headers.Add(new HeadersModel("cookie", init.cookie));
+            }
 
             return new RezkaInvoke
             (
@@ -45,8 +50,8 @@ namespace JinEnergy.Online
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 !string.IsNullOrEmpty(init.cookie),
-                (url, head) => JsHttpClient.Get(init.cors(url), ispremium ? headers : head),
-                (url, data, head) => JsHttpClient.Post(init.cors(url), data, ispremium ? headers : head),
+                (url, head) => JsHttpClient.Get(init.cors(url), ispremium ? headers : HeadersModel.Join(head, headers)),
+                (url, data, head) => JsHttpClient.Post(init.cors(url), data, ispremium ? headers : HeadersModel.Join(head, headers)),
                 streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
             );
         }
