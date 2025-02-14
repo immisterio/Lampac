@@ -29,7 +29,7 @@ namespace Shared.Model
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("kwwsv=22hh1erqjdfdpv1frp") 
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("kwwsv=22hh1erqjdfdpv1frp")
         {
             headers = HeadersModel.Init(
                 ("dnt", "1"),
@@ -53,15 +53,15 @@ namespace Shared.Model
 
         public SisiSettings Eporner { get; set; } = new SisiSettings("kwwsv=22zzz1hsruqhu1frp", streamproxy: true);
 
-        public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp") 
-        { 
+        public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp")
+        {
             geostreamproxy = new List<string>() { "ALL" },
-            headers = HeadersModel.Init("referer", "https://m.hqporner.com")
+            headers = HeadersModel.Init("referer", "{host}")
         };
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("kwwsv=22zzz1sruqwuh{1frp");
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("kwwsv=22ux1vsdqnedqj1frp") 
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("kwwsv=22ux1vsdqnedqj1frp")
         {
             headers = HeadersModel.Init(
                 ("cache-control", "no-cache"),
@@ -87,7 +87,7 @@ namespace Shared.Model
 
         public SisiSettings XvideosRED { get; set; } = new SisiSettings("kwwsv=22zzz1{ylghrv1uhg", enable: false);
 
-        public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp") 
+        public SisiSettings PornHub { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxe1frp")
         {
             headers = HeadersModel.Init(
                 ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
@@ -102,7 +102,7 @@ namespace Shared.Model
             )
         };
 
-        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false) 
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false)
         {
             headers = HeadersModel.Init(
                 ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
@@ -134,7 +134,10 @@ namespace Shared.Model
 
         public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false);
 
-        public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("kwwsv=22uhgkhdgvrxqg1vwxglr");
+        public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("kwwsv=22uhgkhdgvrxqg1vwxglr") 
+        {
+            headers = HeadersModel.Init("referer", "{host}/")
+        };
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("kwwsv=22phjdreodnr1frp") { corseu = true, geostreamproxy = new List<string>() { "UA" } };
 
@@ -164,18 +167,20 @@ namespace Shared.Model
         { 
             geostreamproxy = new List<string>() { "ALL" },
             headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "https://kinoplay2.site"),
+                ("origin", "{encrypt:kwwsv=22nlqrsod|51vlwh}"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("referer", "https://kinoplay2.site/"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                ("referer", "{encrypt:kwwsv=22nlqrsod|51vlwh2}"),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
             )
         };
 
@@ -190,31 +195,45 @@ namespace Shared.Model
             )
         };
 
-        /// <summary>
-        /// a2lub2dvLm1lZGlh
-        /// </summary>
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22wuhphqgrxv0zhhn1fgqprylhv0vwuhdp1rqolqh") 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22odylvk0vpdvk1fgqprylhv0vwuhdp1rqolqh") 
         {
             geostreamproxy = new List<string>() { "ALL" },
-            headers = HeadersModel.Init(("Origin", "https://kinogo.media"), ("Referer", "https://kinogo.media/"))
+            headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("referer", "{encrypt:kwwsv=22eroo|zrrgwy1foxe2}"),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "iframe"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "cross-site"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+            )
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v41idqvhuldo1wy", enable: true) 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v41idqvhuldo1wy") 
         { 
             geostreamproxy = new List<string>() { "ALL" },
             headers = HeadersModel.Init(
-                ("cache-control", "no-cache"),
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                ("referer", "{host}/"),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "document"),
+                ("sec-fetch-dest", "iframe"),
                 ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "none"),
-                ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1")
+                ("sec-fetch-site", "cross-site"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
             )
         };
 
@@ -262,11 +281,14 @@ namespace Shared.Model
         public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("kwwsv=22dsl1pdqjdole1ph", streamproxy: true) 
         {
             headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
+                ("origin", "{encrypt:kwwsv=22dqlole1ph}"),
+                ("referer", "{encrypt:kwwsv=22dqlole1ph2}"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
@@ -274,8 +296,7 @@ namespace Shared.Model
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1"),
-                ("origin", "https://anilib.me"),
-                ("referer", "https://anilib.me/")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
             )
         };
 

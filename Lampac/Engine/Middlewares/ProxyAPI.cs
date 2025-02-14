@@ -159,7 +159,7 @@ namespace Lampac.Engine.Middlewares
 
                 using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient("proxy"))
                 {
-                    var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), httpContext.Request.Path.Value.Contains(".m3u") || httpContext.Request.Path.Value.Contains(".ts"));
+                    var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
                     if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
@@ -406,7 +406,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<HeadersModel> headers, Uri uri, bool ishls)
+        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
         {
             var request = context.Request;
 
@@ -420,7 +420,13 @@ namespace Lampac.Engine.Middlewares
             }
 
             #region Headers
-            if (!ishls)
+            if (headers != null && headers.Count > 0)
+            {
+                foreach (var item in headers)
+                    requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
+            }
+
+            if (ismedia == false)
             {
                 foreach (var header in request.Headers)
                 {
@@ -436,12 +442,6 @@ namespace Lampac.Engine.Middlewares
                         requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
                     }
                 }
-            }
-
-            if (headers != null && headers.Count > 0)
-            {
-                foreach (var item in headers)
-                    requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
             if (!requestMessage.Headers.Contains("User-Agent"))

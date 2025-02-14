@@ -8,11 +8,14 @@ using System.Collections.Generic;
 using Shared.Model.Online.VDBmovies;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
     public class VDBmovies : BaseOnlineController
     {
+        static CookieContainer cookieContainer = new CookieContainer();
+
         [HttpGet]
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
@@ -50,7 +53,7 @@ namespace Lampac.Controllers.LITE
 
                 //string html = await black_magic(uri);
                 string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
-                                           await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+                                           await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init), cookieContainer: cookieContainer);
 
                 if (html == null)
                     return res.Fail("html");

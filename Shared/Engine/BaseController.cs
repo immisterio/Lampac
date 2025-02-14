@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Lampac.Engine.CORE;
+using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -28,7 +29,7 @@ namespace Lampac.Engine
 
         public static string appversion => "134";
 
-        public static string minorversion => "3";
+        public static string minorversion => "4";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -78,9 +79,17 @@ namespace Lampac.Engine
                 if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                string val = h.val.Replace("{account_email}", account_email)
-                                  .Replace("{ip}", ip)
-                                  .Replace("{host}", init.host);
+                string val = h.val;
+
+                if (val.Contains("{encrypt:"))
+                {
+                    string encrypt = Regex.Match(val, "\\{encrypt:([^\\}]+)").Groups[1].Value;
+                    val = new OnlinesSettings(encrypt).host;
+                }
+
+                val = val.Replace("{account_email}", account_email)
+                         .Replace("{ip}", ip)
+                         .Replace("{host}", init.host);
 
                 if (val.Contains("{arg:"))
                 {
@@ -109,7 +118,8 @@ namespace Lampac.Engine
                     }
                 }
 
-                headers.Add(new HeadersModel(h.name, val));
+                if (headers.Find(i => i.name == h.name) == null)
+                    headers.Add(new HeadersModel(h.name, val));
             }
 
             return headers;

@@ -81,18 +81,18 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string iframeUri = Regex.Match(news, "<iframe data-src=\"((https?://)(player\\.cdnvideohub|redheadsound)\\.[^\"]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "<iframe data-src=\"(https?://[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
 
             string? iframe = await onget(iframeUri);
-            if (string.IsNullOrWhiteSpace(iframe))
+            if (string.IsNullOrWhiteSpace(iframe) || !iframe.Contains("sources:"))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            return new EmbedModel() { iframe = iframe.Replace("\\", ""), iframeUri = iframeUri };
+            return new EmbedModel() { iframe = iframe.Split("sources:")[1].Split("poster")[0], iframeUri = iframeUri };
         }
         #endregion
 
@@ -102,27 +102,12 @@ namespace Shared.Engine.Online
             if (content == null || content.IsEmpty)
                 return string.Empty;
 
-            var mtpl = new MovieTpl(title, null, 4);
+            var mtpl = new MovieTpl(title, null);
 
-            if (content.iframe.Contains("forbidden_quality"))
-            {
-                string quality = Regex.Match(content.iframe, "'forbidden_quality': ?'([^']+)'").Groups[1].Value;
-                string hls = Regex.Match(content.iframe, "'file': ?'([^']+)'").Groups[1].Value;
-                if (!string.IsNullOrEmpty(quality) && !string.IsNullOrEmpty(hls))
-                    mtpl.Append(quality, onstreamfile(hls));
-            }
-            else
-            {
-                foreach (var quality in new List<string> { "1080p", "720p", "480p", "360p" })
-                {
-                    string hls = new Regex($"\\[{quality}\\]" + "/([^\\[\\|\",;\n\r\t ]+.m3u8)").Match(content.iframe).Groups[1].Value;
-                    if (!string.IsNullOrEmpty(hls))
-                    {
-                        hls = $"{Regex.Match(content.iframeUri, "^(https?://[^/]+)").Groups[1].Value}/{hls}";
-                        mtpl.Append(quality, onstreamfile(hls), vast: vast);
-                    }
-                }
-            }
+            string quality = content.iframe.Contains("1080p") ? "1080p": content.iframe.Contains("720p") ? "720p" : "360p";
+            string hls = Regex.Match(content.iframe, "\"src\":\"([^\"]+)\"").Groups[1].Value;
+            if (!string.IsNullOrEmpty(hls))
+                mtpl.Append(quality, onstreamfile(hls.Replace("\u0026", "&")));
 
             return rjson ? mtpl.ToJson() : mtpl.ToHtml();
         }

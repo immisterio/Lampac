@@ -45,14 +45,10 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => 
                {
-                   var headers = rch.enable ? httpHeaders(init, HeadersModel.Init("cookie", init.cookie)) : httpHeaders(init);
-                   if (ongettourl.Contains("fancdn."))
-                       headers.Add(new HeadersModel("referer", $"{init.host}/"));
-
                    if (rch.enable)
-                       return rch.Get(init.cors(ongettourl), headers);
+                       return rch.Get(init.cors(ongettourl), httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
 
-                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, httpversion: 2, cookieContainer: cookieContainer(init.cookie));
+                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2, cookieContainer: cookieContainer(init.cookie));
                },
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "fancdn")
             );
