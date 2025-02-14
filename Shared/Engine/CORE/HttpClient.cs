@@ -251,6 +251,16 @@ namespace Lampac.Engine.CORE
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
 
+                    if (cookieContainer != null)
+                    {
+                        var cookiesString = new StringBuilder();
+                        foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
+                            cookiesString.Append($"{c.Name}={c.Value}; ");
+
+                        if (!string.IsNullOrEmpty(cookiesString.ToString()))
+                            loglines += $"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n";
+                    }
+
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
                         Version = new Version(httpversion, 0)
@@ -260,7 +270,15 @@ namespace Lampac.Engine.CORE
                     {
                         loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
                         foreach (var h in response.Headers)
-                            loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
+                        {
+                            if (h.Key == "Set-Cookie")
+                            {
+                                foreach (string v in h.Value)
+                                    loglines += $"{h.Key}: {v}\n";
+                            }
+                            else
+                                loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
+                        }
 
                         using (HttpContent content = response.Content)
                         {
@@ -362,6 +380,16 @@ namespace Lampac.Engine.CORE
                 {
                     DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, headers, ref loglines, useDefaultHeaders);
 
+                    if (cookieContainer != null)
+                    {
+                        var cookiesString = new StringBuilder();
+                        foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
+                            cookiesString.Append($"{c.Name}={c.Value}; ");
+
+                        if (!string.IsNullOrEmpty(cookiesString.ToString()))
+                            loglines += $"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n";
+                    }
+
                     var req = new HttpRequestMessage(HttpMethod.Post, url)
                     {
                         Version = new Version(httpversion, 0),
@@ -375,7 +403,15 @@ namespace Lampac.Engine.CORE
                     {
                         loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
                         foreach (var h in response.Headers)
-                            loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
+                        {
+                            if (h.Key == "Set-Cookie")
+                            {
+                                foreach (string v in h.Value)
+                                    loglines += $"{h.Key}: {v}\n";
+                            }
+                            else
+                                loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
+                        }
 
                         using (HttpContent content = response.Content)
                         {

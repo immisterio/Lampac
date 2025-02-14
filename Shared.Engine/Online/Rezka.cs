@@ -1,8 +1,10 @@
 ﻿using Lampac.Models.LITE;
 using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Model.Online.Rezka;
 using Shared.Model.Templates;
 using System.IO;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -16,13 +18,15 @@ namespace Shared.Engine.Online
         string? host, scheme;
         string apihost;
         bool usehls, userprem;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, ValueTask<string?>> onpost;
+        Func<string, List<HeadersModel>, ValueTask<string?>> onget;
+        Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Action? requesterror;
 
         public string requestlog = string.Empty;
+
+        static Dictionary<long, string> basereferer = new Dictionary<long, string>();
 
         void log(string msg)
         {
@@ -30,7 +34,7 @@ namespace Shared.Engine.Online
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -63,6 +67,24 @@ namespace Shared.Engine.Online
             var result = new EmbedModel();
             string? link = href, reservedlink = null;
 
+            var base_headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "same-origin"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+            );
+
+            string search_uri = $"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
+
             if (string.IsNullOrWhiteSpace(link))
             {
                 //if (kinopoisk_id > 0 || !string.IsNullOrEmpty(imdb_id))
@@ -72,7 +94,7 @@ namespace Shared.Engine.Online
                 //        return res;
                 //}
 
-                string? search = await onget($"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}");
+                string? search = await onget(search_uri, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", $"{apihost}/"))));
                 if (search == null)
                 {
                     log("search error");
@@ -136,7 +158,10 @@ namespace Shared.Engine.Online
             }
 
             result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
-            result.content = await onget(link);
+            if (long.TryParse(result.id, out long id) && id > 0)
+                basereferer.TryAdd(id, link);
+
+            result.content = await onget(link, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", search_uri))));
             if (result.content == null || string.IsNullOrEmpty(result.id))
             {
                 if (result.content == null)
@@ -154,7 +179,7 @@ namespace Shared.Engine.Online
         #region EmbedID
         async public ValueTask<EmbedModel?> EmbedID(long kinopoisk_id, string? imdb_id)
         {
-            string? search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()));
+            string? search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()), null);
             if (search == null)
             {
                 requesterror?.Invoke();
@@ -192,7 +217,7 @@ namespace Shared.Engine.Online
             }
 
             result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
-            result.content = await onget(link);
+            result.content = await onget(link, null);
             if (result.content == null || string.IsNullOrEmpty(result.id))
             {
                 if (result.content == null)
@@ -392,14 +417,33 @@ namespace Shared.Engine.Online
         #region Serial
         async public ValueTask<Episodes?> SerialEmbed(long id, int t)
         {
-            string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
+            string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
             string data = $"id={id}&translator_id={t}&action=get_episodes";
 
             Episodes? root = null;
 
             try
             {
-                string? json = await onpost(uri, data);
+                var headers = HeadersModel.Init(
+                    ("accept", "application/json, text/javascript, */*; q=0.01"),
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("origin", apihost),
+                    ("pragma", "no-cache"),
+                    ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"),
+                    ("x-requested-with", "XMLHttpRequest")
+                );
+
+                if (basereferer.TryGetValue(id, out string? referer) && !string.IsNullOrEmpty(referer))
+                    headers = HeadersModel.Join(headers, HeadersModel.Init(("referer", referer)));
+
+                string? json = await onpost(uri, data, headers);
                 if (json == null)
                 {
                     log("json null");
@@ -523,7 +567,7 @@ namespace Shared.Engine.Online
         async public ValueTask<MovieModel?> Movie(long id, int t, int director, int s, int e, string? favs)
         {
             string? data = null;
-            string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
+            string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
 
             if (s == -1)
             {
@@ -534,7 +578,26 @@ namespace Shared.Engine.Online
                 data = $"id={id}&translator_id={t}&season={s}&episode={e}&favs={favs}&action=get_stream";
             }
 
-            string? json = await onpost(uri, data);
+            var headers = HeadersModel.Init(
+                ("accept", "application/json, text/javascript, */*; q=0.01"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("origin", apihost),
+                ("pragma", "no-cache"),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-origin"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"),
+                ("x-requested-with", "XMLHttpRequest")
+            );
+
+            if (basereferer.TryGetValue(id, out string? referer) && !string.IsNullOrEmpty(referer))
+                headers = HeadersModel.Join(headers, HeadersModel.Init(("referer", referer)));
+
+            string? json = await onpost(uri, data, headers);
             if (string.IsNullOrEmpty(json))
             {
                 log("json null");

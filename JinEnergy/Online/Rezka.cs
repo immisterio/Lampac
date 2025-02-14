@@ -37,22 +37,6 @@ namespace JinEnergy.Online
                    ("X-Lampac-Cookie", fixCookie(init.cookie))
                 ));
             }
-            else
-            {
-                //if (!string.IsNullOrEmpty(init.cookie))
-                //{
-                //    string c = init.cookie;
-                //    if (!c.Contains("hdmbbs"))
-                //        c = $"hdmbbs=1; {c}";
-
-                //    headers.Add(new HeadersModel("cookie", c));
-                //}
-
-                headers.Add(new HeadersModel("Origin", init.host));
-                headers.Add(new HeadersModel("Referer", init.host + "/"));
-            }
-
-            //bool userapn = IsApnIncluded(init);
 
             return new RezkaInvoke
             (
@@ -61,11 +45,9 @@ namespace JinEnergy.Online
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 !string.IsNullOrEmpty(init.cookie),
-                ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
-                (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
-                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile)),
-                AppInit.log
-                //streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+                (url, head) => JsHttpClient.Get(init.cors(url), ispremium ? headers : head),
+                (url, data, head) => JsHttpClient.Post(init.cors(url), data, ispremium ? headers : head),
+                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
             );
         }
         #endregion
@@ -80,20 +62,17 @@ namespace JinEnergy.Online
 
             if (!init.premium)
             {
-                if (AppInit.Country == "RU")
+                if (AppInit.typeConf == "web")
                     return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
 
-                //if (AppInit.typeConf == "web")
-                //    return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
+                if (AppInit.Country == "RU")
+                {
+                    if (!AppInit.IsAndrod)
+                        return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
 
-                //if (AppInit.Country == "RU")
-                //{
-                //    if (!AppInit.IsAndrod)
-                //        return ShowError("Инструкция для подключения <br>http://bwa.to/faq/rezka.html<br><br>");
-
-                //    if (string.IsNullOrEmpty(init.cookie))
-                //        return ShowError("Авторизуйтесь на http://bwa.to/bind/rezka");
-                //}
+                    if (string.IsNullOrEmpty(init.cookie))
+                        return ShowError("Авторизуйтесь на http://bwa.to/bind/rezka");
+                }
             }
 
             var arg = defaultArgs(args);

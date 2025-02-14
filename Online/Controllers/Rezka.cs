@@ -28,11 +28,7 @@ namespace Lampac.Controllers.LITE
             string country = init.forceua ? "UA" : requestInfo.Country;
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
-            var headers = httpHeaders(init, HeadersModel.Init(
-                ("Origin", init.host),
-                ("Referer", init.host + "/")
-            ));
-
+            var headers = httpHeaders(init);
             var cookie = await getCookie(init);
 
             if (rch.enable && cookie != null)
@@ -51,10 +47,10 @@ namespace Lampac.Controllers.LITE
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 init.premium,
-                ongettourl => rch.enable ? rch.Get(ongettourl, headers) : 
-                                           HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, cookieContainer: cookieContainer, statusCodeOK: false),
-                (url, data) => rch.enable ? rch.Post(url, data, headers) : 
-                                            HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers, cookieContainer: cookieContainer),
+                (url, hed) => rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) : 
+                                           HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
+                (url, data, hed) => rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) : 
+                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka"),
                 requesterror: () => proxyManager.Refresh()
             );
@@ -212,14 +208,11 @@ namespace Lampac.Controllers.LITE
             {
                 cookieContainer = new CookieContainer();
 
-                if (!coks.Contains("dle_newpm"))
-                    coks = $"dle_newpm=0; {coks}";
+                if (coks != string.Empty && !coks.Contains("hdmbbs"))
+                    coks = $"hdmbbs=1; {coks}";
 
                 if (!coks.Contains("dle_user_taken"))
                     coks = $"dle_user_taken=1; {coks}";
-
-                if (!coks.Contains("hdmbbs"))
-                    coks = $"hdmbbs=1; {coks}";
 
                 foreach (string line in coks.Split(";"))
                 {
@@ -275,7 +268,10 @@ namespace Lampac.Controllers.LITE
             }
 
             if (string.IsNullOrEmpty(init.login) || string.IsNullOrEmpty(init.passwd))
-                return null;
+            {
+                setCookieContainer(string.Empty);
+                return cookieContainer;
+            }
 
             if (memoryCache.TryGetValue("rezka:login", out _))
                 return null;
