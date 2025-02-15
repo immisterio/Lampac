@@ -256,10 +256,8 @@ namespace Lampac
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
-            DNS = "9.9.9.9",
-            DNS_TTL = 20,
-            cache_api = 20,
-            cache_img = 60
+            DNS = "9.9.9.9", DNS_TTL = 20,
+            cache_api = 20, cache_img = 60
         };
 
         public ServerproxyConf serverproxy = new ServerproxyConf()
