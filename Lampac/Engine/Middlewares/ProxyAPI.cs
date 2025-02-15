@@ -426,7 +426,18 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
-            if (ismedia == false)
+            if (ismedia)
+            {
+                foreach (var header in request.Headers)
+                {
+                    if (header.Key.ToLower() is "range")
+                    {
+                        if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
+                            requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    }
+                }
+            }
+            else
             {
                 foreach (var header in request.Headers)
                 {
