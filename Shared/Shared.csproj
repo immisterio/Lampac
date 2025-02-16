@@ -9,38 +9,19 @@
   <ItemGroup>
     <PackageReference Include="BencodeNET" Version="4.0.0" />
     <PackageReference Include="Chaos.NaCl.Standard" Version="1.0.0" />
-    <PackageReference Include="LinqKit.Microsoft.EntityFrameworkCore" Version="6.1.8" />
+    <PackageReference Include="PuppeteerSharp" Version="14.0.0" />
     <PackageReference Include="MaxMind.GeoIP2" Version="5.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="6.0.36" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Analyzers" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.36">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="6.0.36" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.36">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="6.0.36" />
-    <PackageReference Include="MongoDB.Driver" Version="3.2.0" />
     <PackageReference Include="MonoTorrent" Version="2.0.7" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="Npgsql" Version="9.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.36" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.36" />
+    <PackageReference Include="MongoDB.Driver" Version="3.2.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.3" />
-    <PackageReference Include="PuppeteerSharp" Version="14.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="NetVips" Version="2.2.0" />
+    <PackageReference Include="NetVips.Native" Version="8.13.2" />
   </ItemGroup>
 
   <ItemGroup>

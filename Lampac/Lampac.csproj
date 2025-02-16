@@ -18,8 +18,6 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.0.4" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
-    <PackageReference Include="NetVips" Version="2.2.0" />
-    <PackageReference Include="NetVips.Native" Version="8.13.2" />
   </ItemGroup>
 
   <ItemGroup>
