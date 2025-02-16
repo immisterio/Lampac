@@ -24,7 +24,7 @@ mkdir -p out/
 cp -R Build/cloudflare/functions .
 cp -R JinEnergy/bin/Release/net9.0/publish/wwwroot/_framework/* out/
 
-if test -f "out/JinEnergy.wasm"; then
+if test -f "out/blazor.boot.json"; then
 	cat Build/cloudflare/_headers > out/_headers
 
 	cd out/
