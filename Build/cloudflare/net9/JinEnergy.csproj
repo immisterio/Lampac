@@ -3,13 +3,13 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
 	<Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
-    <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
-    <WasmEnableSIMD>false</WasmEnableSIMD>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <WasmEnableSIMD>false</WasmEnableSIMD>
+    <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
+    <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
 
   <ItemGroup>
