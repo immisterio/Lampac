@@ -5,13 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>partial</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <WasmEnableSIMD>false</WasmEnableSIMD>
-    <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
-    <WasmBuildNative>true</WasmBuildNative>
-    <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>
 
   <ItemGroup>
