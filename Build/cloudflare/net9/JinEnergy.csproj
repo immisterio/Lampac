@@ -11,6 +11,7 @@
     <WasmEnableSIMD>false</WasmEnableSIMD>
     <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
     <WasmBuildNative>true</WasmBuildNative>
+    <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>
 
   <ItemGroup>
