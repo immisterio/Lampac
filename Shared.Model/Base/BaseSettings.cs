@@ -1,6 +1,4 @@
-﻿using Shared.Model.Online;
-
-namespace Shared.Model.Base
+﻿namespace Shared.Model.Base
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup
     {
