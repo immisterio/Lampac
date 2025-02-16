@@ -15,16 +15,8 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = AppInit.conf.Spankbang.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.Spankbang, out ActionResult action))
+                return action;
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
@@ -47,7 +39,7 @@ namespace Lampac.Controllers.Spankbang
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)

@@ -62,20 +62,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
             var init = AppInit.conf.Rezka.Clone();
-            if (!init.enable || AppInit.conf.RezkaPrem.enable)
-                return OnError();
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (init.premium) 
+            if (init.premium || AppInit.conf.RezkaPrem.enable) 
                 return ShowError("Используйте RezkaPremium в init.conf вместо Rezka");
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
@@ -126,11 +117,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Rezka.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
@@ -161,11 +149,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = AppInit.conf.Rezka.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var oninvk = await InitRezkaInvoke();
             var proxyManager = new ProxyManager("rezka", init);

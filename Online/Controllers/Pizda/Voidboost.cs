@@ -6,6 +6,7 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online;
 using Lampac.Models.LITE;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +19,7 @@ namespace Lampac.Controllers.LITE
         {
             var init = AppInit.conf.Voidboost.Clone();
 
-            if (init.geostreamproxy != null && init.geostreamproxy.Count > 0)
+            if (init.geostreamproxy != null && init.geostreamproxy.Length > 0)
             {
                 string country = requestInfo.Country;
                 if (country != null && init.geostreamproxy.Contains(country))

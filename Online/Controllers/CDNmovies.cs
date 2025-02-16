@@ -16,18 +16,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.CDNmovies.Clone();
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || kinopoisk_id == 0)
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("cdnmovies", init);

@@ -33,13 +33,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="6.0.36" />
-    <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.2.0" />
     <PackageReference Include="MonoTorrent" Version="2.0.7" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="Npgsql" Version="9.0.1" />
+    <PackageReference Include="Npgsql" Version="9.0.2" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.3" />
     <PackageReference Include="PuppeteerSharp" Version="14.0.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.8.22" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 

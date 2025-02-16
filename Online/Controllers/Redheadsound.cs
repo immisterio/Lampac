@@ -15,18 +15,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Redheadsound.Clone();
-
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
@@ -35,7 +25,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager("redheadsound", init);
             var proxy = proxyManager.Get();
 
-            if (rch.IsNotSupport("web", out string rch_error))
+            if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
             var oninvk = new RedheadsoundInvoke

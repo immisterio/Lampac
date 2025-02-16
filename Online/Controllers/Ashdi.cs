@@ -15,17 +15,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = loadKit(AppInit.conf.Ashdi.Clone(), i => i.Ashdi);
-            if (!init.enable || kinopoisk_id == 0)
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
+
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("ashdi", init);

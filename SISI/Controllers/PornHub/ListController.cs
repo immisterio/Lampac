@@ -20,16 +20,8 @@ namespace Lampac.Controllers.PornHub
         [Route("phubsml")]
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
-            var init = AppInit.conf.PornHub.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.PornHub, out ActionResult action))
+                return action;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
@@ -41,7 +33,7 @@ namespace Lampac.Controllers.PornHub
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -58,7 +50,7 @@ namespace Lampac.Controllers.PornHub
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)
@@ -75,16 +67,8 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
-            var init = AppInit.conf.PornHubPremium.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.PornHubPremium, out ActionResult action))
+                return action;
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))

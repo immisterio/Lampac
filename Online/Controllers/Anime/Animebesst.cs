@@ -20,17 +20,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
         {
             var init = AppInit.conf.Animebesst.Clone();
-            if (!init.enable || string.IsNullOrWhiteSpace(title))
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
+
+            if (string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -158,9 +152,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string uri, string title, bool play)
         {
             var init = AppInit.conf.Animebesst.Clone();
-
-            if (!init.enable)
-                return OnError();
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             string memKey = $"animebesst:video:{uri}";
             if (!hybridCache.TryGetValue(memKey, out string hls))

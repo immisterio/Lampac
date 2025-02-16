@@ -15,16 +15,8 @@ namespace Lampac.Controllers.BongaCams
         [Route("bgs")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = AppInit.conf.BongaCams.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.BongaCams, out ActionResult action))
+                return action;
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
@@ -37,7 +29,7 @@ namespace Lampac.Controllers.BongaCams
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -58,7 +50,7 @@ namespace Lampac.Controllers.BongaCams
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable);
+                    return OnError("playlists", proxyManager);
                 }
 
                 if (!rch.enable)

@@ -37,7 +37,7 @@ namespace Lampac
                 {
                     var jss = new JsonSerializerSettings { Error = (se, ev) => 
                     { 
-                        ev.ErrorContext.Handled = true; 
+                        ev.ErrorContext.Handled = true;
                         Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
                     }};
 
@@ -292,7 +292,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "e0f96aabf11134b148e1c1837a25b8eeb6adcb30"
+            tree = "72f294e860ca3ff003be7cde7f068e11858242e1"
         };
 
         public OnlineConf online = new OnlineConf()

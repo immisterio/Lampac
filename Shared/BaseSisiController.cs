@@ -8,7 +8,6 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
-using Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,9 +17,39 @@ namespace SISI
 {
     public class BaseSisiController : BaseController
     {
+        public SisiSettings init { get; private set; }
+
+        #region IsBadInitialization
+        public bool IsBadInitialization(SisiSettings init, out ActionResult result)
+        {
+            this.init = init.Clone();
+
+            if (!init.enable)
+            {
+                result = OnError("disable");
+                return true;
+            }
+
+            if (NoAccessGroup(init, out string error_msg))
+            {
+                result = OnError(error_msg, false);
+                return true;
+            }
+
+            if (IsOverridehost(init, out string overridehost))
+            {
+                result = Redirect(overridehost);
+                return true;
+            }
+
+            return IsCacheError(init, out result);
+        }
+        #endregion
+
+        #region OnError
         public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true)
         {
-            if (refresh_proxy)
+            if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();
 
             return OnError(msg);
@@ -30,7 +59,7 @@ namespace SISI
         {
             var model = new OnErrorResult() { msg = msg };
 
-            if (AppInit.conf.multiaccess && rcache)
+            if (AppInit.conf.multiaccess && rcache && !init.rhub)
             {
                 var gbc = new ResponseCache();
                 memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddMinutes(1));
@@ -38,7 +67,9 @@ namespace SISI
 
             return Json(model);
         }
+        #endregion
 
+        #region OnResult
         public JsonResult OnResult(List<PlaylistItem> playlists, Istreamproxy conf, List<MenuItem> menu, WebProxy proxy = null, string plugin = null, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
@@ -100,7 +131,7 @@ namespace SISI
         {
             Dictionary<string, string> qualitys_proxy = null;
 
-            if (!proxyconf.streamproxy && (proxyconf.geostreamproxy == null || proxyconf.geostreamproxy.Count == 0))
+            if (!proxyconf.streamproxy && (proxyconf.geostreamproxy == null || proxyconf.geostreamproxy.Length == 0))
             {
                 if (proxyconf.qualitys_proxy)
                 {
@@ -122,8 +153,9 @@ namespace SISI
                 })
             });
         }
+        #endregion
 
-
+        #region IsRhubFallback
         public bool IsRhubFallback(BaseSettings init)
         {
             if (init.rhub && init.rhub_fallback)
@@ -134,5 +166,6 @@ namespace SISI
 
             return false;
         }
+        #endregion
     }
 }

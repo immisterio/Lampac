@@ -17,9 +17,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
             var init = AppInit.conf.Kinobase.Clone();
-
-            if (!init.enable || init.rip)
-                return OnError();
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             if (string.IsNullOrEmpty(title) || year == 0)
                 return OnError();

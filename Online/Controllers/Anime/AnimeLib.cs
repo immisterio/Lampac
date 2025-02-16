@@ -21,17 +21,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
             var init = AppInit.conf.AnimeLib.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -204,11 +195,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string title, long id, string voice, bool play)
         {
             var init = AppInit.conf.AnimeLib.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var headers = httpHeaders(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);

@@ -45,17 +45,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Kodik;
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
             List<Result> content = null;
             var oninvk = InitKodikInvoke();
@@ -111,11 +102,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = AppInit.conf.Kodik;
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {
@@ -183,11 +171,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = AppInit.conf.Kodik;
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var oninvk = InitKodikInvoke();
 

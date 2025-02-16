@@ -21,17 +21,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.AniMedia;
-            if (!init.enable || string.IsNullOrWhiteSpace(title))
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
+
+            if (string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             if (string.IsNullOrWhiteSpace(code))
             {

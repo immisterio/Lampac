@@ -16,15 +16,8 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Porntrex.Clone();
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.Porntrex, out ActionResult action))
+                return action;
 
             string memKey = $"ptx:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
@@ -47,7 +40,7 @@ namespace Lampac.Controllers.Porntrex
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)

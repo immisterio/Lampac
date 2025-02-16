@@ -14,13 +14,8 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Xvideos.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
+            if (IsBadInitialization(AppInit.conf.Xvideos, out ActionResult action))
+                return action;
 
             var proxyManager = new ProxyManager("xds", init);
             var proxy = proxyManager.Get();
@@ -30,7 +25,7 @@ namespace Lampac.Controllers.Xvideos
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -44,7 +39,7 @@ namespace Lampac.Controllers.Xvideos
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)

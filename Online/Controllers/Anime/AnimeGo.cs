@@ -22,17 +22,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
         {
             var init = AppInit.conf.AnimeGo;
-            if (!init.enable || init.rip || string.IsNullOrWhiteSpace(title))
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
+
+            if (string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
 
             if (pid == 0)
             {
@@ -182,11 +176,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
             var init = AppInit.conf.AnimeGo;
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!hybridCache.TryGetValue(memKey, out string hls))

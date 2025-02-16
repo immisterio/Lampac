@@ -29,18 +29,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.MoonAnime;
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
-            if (!init.enable || string.IsNullOrEmpty(init.token))
+            if (string.IsNullOrEmpty(init.token))
                 return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             if (animeid == 0)
             {
@@ -204,11 +197,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
             var init = AppInit.conf.MoonAnime;
-            if (!init.enable || string.IsNullOrEmpty(init.token))
-                return OnError();
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (string.IsNullOrEmpty(init.token))
+                return OnError();
 
             string memKey = $"moonanime:vod:{vod}";
             if (!hybridCache.TryGetValue(memKey, out (string file, string subtitle) cache))

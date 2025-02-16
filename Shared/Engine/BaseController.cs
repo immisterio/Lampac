@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Http;
@@ -15,9 +16,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
+using Shared.Model.SISI;
 using Shared.Models;
 using IO = System.IO;
 
@@ -27,9 +30,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "134";
+        public static string appversion => "135";
 
-        public static string minorversion => "6";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -163,7 +166,7 @@ namespace Lampac.Engine
                 return uri;
 
             bool streamproxy = conf.streamproxy || conf.useproxystream;
-            if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
             {
                 string country = requestInfo.Country;
                 if (!string.IsNullOrEmpty(country) && country.Length == 2)
@@ -275,6 +278,38 @@ namespace Lampac.Engine
                 ctime = multiaccess;
 
             return TimeSpan.FromMinutes(ctime);
+        }
+        #endregion
+
+        #region IsCacheError
+        public bool IsCacheError(BaseSettings init, out ActionResult result)
+        {
+            result = null;
+            if (!AppInit.conf.multiaccess || init.rhub)
+                return false;
+
+            var gbc = new ResponseCache();
+            if (memoryCache.TryGetValue(gbc.ErrorKey(HttpContext), out object errorCache))
+            {
+                HttpContext.Response.Headers.TryAdd("X-RCache", "true");
+
+                if (errorCache is OnErrorResult)
+                {
+                    result = Json(errorCache);
+                    return true;
+                }
+                else if (errorCache is string)
+                {
+                    string msg = errorCache.ToString();
+                    if (!string.IsNullOrEmpty(msg))
+                        HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
+                }
+
+                result = Ok();
+                return true;
+            }
+
+            return false;
         }
         #endregion
 

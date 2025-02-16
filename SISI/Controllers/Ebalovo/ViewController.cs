@@ -12,15 +12,10 @@ namespace Lampac.Controllers.Ebalovo
     {
         [HttpGet]
         [Route("elo/vidosik")]
-        async public Task<JsonResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Ebalovo.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
+            if (IsBadInitialization(AppInit.conf.Ebalovo, out ActionResult action))
+                return action;
 
             var proxyManager = new ProxyManager("elo", init);
             var proxy = proxyManager.Get();

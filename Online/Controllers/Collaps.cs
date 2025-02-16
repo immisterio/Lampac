@@ -17,17 +17,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Collaps.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();

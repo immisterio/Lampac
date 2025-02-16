@@ -23,17 +23,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.HDVB;
-            if (kinopoisk_id == 0 || !init.enable)
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
+
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             JArray data = await search(kinopoisk_id);
             if (data == null)
@@ -126,11 +120,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             var init = AppInit.conf.HDVB;
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var proxy = proxyManager.Get();
 
@@ -202,11 +193,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             var init = AppInit.conf.HDVB;
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var proxy = proxyManager.Get();
 

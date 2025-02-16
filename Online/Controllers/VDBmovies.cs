@@ -21,14 +21,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.VDBmovies.Clone();
-            if (!init.enable || init.rip || kinopoisk_id == 0)
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
+
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))

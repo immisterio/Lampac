@@ -22,18 +22,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Lumex;
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = AppInit.conf.Lumex.Clone();
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
@@ -203,11 +194,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
             var init = AppInit.conf.Lumex;
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var proxyManager = new ProxyManager("lumex", init);
             var proxy = proxyManager.Get();

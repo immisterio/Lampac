@@ -527,7 +527,7 @@ namespace Lampac.Controllers
             send($"Collaps ({(AppInit.conf.Collaps.dash ? "dash" : "hls")})", conf.Collaps, "collaps", rch_access: "apk");
 
             if (serial == -1 || serial == 0)
-                send("Redheadsound", conf.Redheadsound, rch_access: "apk,cors");
+                send("Redheadsound", conf.Redheadsound, rch_access: "apk");
 
             if (kinopoisk_id > 0)
                 send("HDVB", conf.HDVB);

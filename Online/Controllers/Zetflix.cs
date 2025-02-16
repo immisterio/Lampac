@@ -19,18 +19,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.Zetflix.Clone();
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
-            if (!init.enable || kinopoisk_id == 0)
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 

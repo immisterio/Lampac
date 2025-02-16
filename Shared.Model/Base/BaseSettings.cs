@@ -38,7 +38,7 @@ namespace Shared.Model.Base
 
         public string? scheme { get; set; }
 
-        public List<HeadersModel>? headers { get; set; }
+        public HeadersModel[]? headers { get; set; }
 
         public VastConf? vast { get; set; }
 
@@ -56,7 +56,7 @@ namespace Shared.Model.Base
 
         public bool apnstream { get; set; }
 
-        public List<string>? geostreamproxy { get; set; }
+        public string[]? geostreamproxy { get; set; }
 
         public ApnConf? apn { get; set; }
 

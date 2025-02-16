@@ -18,16 +18,8 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmrsml")]
         async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
-            var init = AppInit.conf.Xhamster.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.Xhamster, out ActionResult action))
+                return action;
 
             pg++;
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -40,7 +32,7 @@ namespace Lampac.Controllers.Xhamster
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -56,7 +48,7 @@ namespace Lampac.Controllers.Xhamster
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)

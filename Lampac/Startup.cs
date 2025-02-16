@@ -280,7 +280,6 @@ namespace Lampac
             app.UseProxyIMG();
             app.UseProxyAPI();
             app.UseModule();
-            app.UseCache();
 
             app.UseEndpoints(endpoints =>
             {

@@ -18,16 +18,8 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Xvideos.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.Xvideos, out ActionResult action))
+                return action;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
@@ -39,7 +31,7 @@ namespace Lampac.Controllers.Xvideos
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -55,7 +47,7 @@ namespace Lampac.Controllers.Xvideos
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)
@@ -74,16 +66,8 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml/stars")]
         async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
-            var init = AppInit.conf.Xvideos.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            if (IsBadInitialization(AppInit.conf.Xvideos, out ActionResult action))
+                return action;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
@@ -95,7 +79,7 @@ namespace Lampac.Controllers.Xvideos
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -109,7 +93,7 @@ namespace Lampac.Controllers.Xvideos
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable);
+                    return OnError("playlists", proxyManager);
                 }
 
                 if (!rch.enable)

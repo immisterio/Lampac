@@ -21,18 +21,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Kinotochka.Clone();
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager("kinotochka", init);

@@ -21,17 +21,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
         {
             var init = AppInit.conf.Vibix.Clone();
-            if (!init.enable || string.IsNullOrEmpty(init.token))
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
+
+            if (string.IsNullOrEmpty(init.token))
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             JObject data = await search(imdb_id, kinopoisk_id);
             if (data == null)

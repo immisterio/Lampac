@@ -19,18 +19,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = AppInit.conf.FanCDN.Clone();
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0)))
+            if (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0))
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             var proxyManager = new ProxyManager("fancdn", init);
             var proxy = proxyManager.Get();

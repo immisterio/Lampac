@@ -151,8 +151,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
             var init = AppInit.conf.RezkaPrem.Clone();
-            if (!init.enable || init.rip)
-                return OnError("disabled");
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var proxyManager = new ProxyManager("rhsprem", init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
@@ -165,9 +165,6 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(init.cookie))
                     return ShowError("rhub работает через cookie - IP:9118/lite/rhs/bind");
             }
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
@@ -202,11 +199,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.RezkaPrem.Clone();
-            if (!init.enable || init.rip)
-                return OnError("disabled");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
@@ -252,11 +246,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = AppInit.conf.RezkaPrem.Clone();
-            if (!init.enable || init.rip)
-                return OnError("disabled");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var onrezka = await InitRezkaInvoke();
             if (onrezka.invk == null)

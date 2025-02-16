@@ -95,7 +95,7 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings init, string plugin = null, string rch_access = null)
+            void send(string name, BaseSettings init, string plugin = null, string rch_access = null, string media_access = null)
             {
                 bool enable = init.enable && !init.rip;
 
@@ -111,6 +111,9 @@ namespace SISI
                         }
                     }
                 }
+
+                if (enable && !init.qualitys_proxy && media_access != null && rchtype != null)
+                    enable = media_access.Contains(rchtype);
 
                 if (init.geo_hide != null)
                 {
@@ -143,17 +146,17 @@ namespace SISI
 
 
             send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
-            send("pornhub.com", conf.PornHub, "phub", "apk,cors");
+            send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
             send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
             send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors"); // !rhub - elo/vidosik
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
             send("spankbang.com", conf.Spankbang, "sbg");
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
             send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
             send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
-            send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
+            send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
             send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
