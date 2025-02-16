@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <CompressionEnabled>false</CompressionEnabled>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
 
   <ItemGroup>
