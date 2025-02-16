@@ -212,7 +212,7 @@ namespace JinEnergy.Engine
             if (conf.streamproxy || conf.apnstream)
                 return $"{apn}/{uri}";
 
-            if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            if (conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
             {
                 if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
                     return $"{apn}/{uri}";
@@ -227,7 +227,7 @@ namespace JinEnergy.Engine
             if (conf == null || string.IsNullOrEmpty(apn))
                 return false;
 
-            if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            if (conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
             {
                 if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
                     return true;
