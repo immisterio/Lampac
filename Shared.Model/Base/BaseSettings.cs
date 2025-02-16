@@ -38,7 +38,7 @@ namespace Shared.Model.Base
 
         public string? scheme { get; set; }
 
-        public HeadersModel[]? headers { get; set; }
+        public Dictionary<string, string>? headers { get; set; }
 
         public VastConf? vast { get; set; }
 

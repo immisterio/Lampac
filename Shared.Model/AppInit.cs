@@ -44,7 +44,7 @@ namespace Shared.Model
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-origin"),
                 ("x-requested-with", "XMLHttpRequest")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("kwwsv=22fkdwxuedwh1frp");
@@ -56,7 +56,7 @@ namespace Shared.Model
         public SisiSettings HQporner { get; set; } = new SisiSettings("kwwsv=22p1ktsruqhu1frp")
         {
             geostreamproxy = new string[] { "ALL" },
-            headers = HeadersModel.Init("referer", "{host}").ToArray()
+            headers = HeadersModel.Init("referer", "{host}").ToDictionary()
         };
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("kwwsv=22zzz1sruqwuh{1frp");
@@ -74,7 +74,7 @@ namespace Shared.Model
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("kwwsv=22ux1{kdpvwhu1frp");
@@ -94,12 +94,11 @@ namespace Shared.Model
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
-                ("sec-fetch-dest", "document"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1"),
                 ("cookie", "platform=pc; bs=ukbqk2g03joiqzu68gitadhx5bhkm48j; ss=250837987735652383; fg_0d2ec4cbd943df07ec161982a603817e=56239.100000; atatusScript=hide; _gid=GA1.2.309162272.1686472069; d_fs=1; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uid=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; d_uidb=2f5e522a-fa28-a0fe-0ab2-fd90f45d96c0; accessAgeDisclaimerPH=1; cookiesBannerSeen=1; _gat=1; __s=64858645-42FE722901BBA6E6-125476E1; __l=64858645-42FE722901BBA6E6-125476E1; hasVisited=1; fg_f916a4d27adf4fc066cd2d778b4d388e=78731.100000; fg_fa3f0973fd973fca3dfabc86790b408b=12606.100000; _ga_B39RFFWGYY=GS1.1.1686472069.1.1.1686472268.0.0.0; _ga=GA1.1.1515398043.1686472069")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public SisiSettings PornHubPremium { get; set; } = new SisiSettings("kwwsv=22uw1sruqkxesuhplxp1frp", enable: false)
@@ -109,11 +108,10 @@ namespace Shared.Model
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
-                ("sec-fetch-dest", "document"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1")
-            ).ToArray()
+            ).ToDictionary()
         };
 
 
@@ -136,7 +134,7 @@ namespace Shared.Model
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("kwwsv=22uhgkhdgvrxqg1vwxglr") 
         {
-            headers = HeadersModel.Init("referer", "{host}/").ToArray()
+            headers = HeadersModel.Init("referer", "{host}/").ToDictionary()
         };
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("kwwsv=22phjdreodnr1frp") { corseu = true, geostreamproxy = new string[] { "UA" } };
@@ -147,7 +145,7 @@ namespace Shared.Model
         {
             headers = HeadersModel.Init(
                 ("Accept-Encoding", "gzip")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("kwwsv=22dsl1ilopl{1wy", enable: false);
@@ -179,7 +177,7 @@ namespace Shared.Model
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         /// <summary>
@@ -190,7 +188,7 @@ namespace Shared.Model
             headers = HeadersModel.Init(
                 ("DNT", "1"),
                 ("Upgrade-Insecure-Requests", "1")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("kwwsv=22odylvk0vpdvk1fgqprylhv0vwuhdp1rqolqh") 
@@ -211,7 +209,7 @@ namespace Shared.Model
                 ("sec-fetch-site", "cross-site"),
                 ("upgrade-insecure-requests", "1"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("kwwsv=22v41idqvhuldo1wy") 
@@ -232,7 +230,7 @@ namespace Shared.Model
                 ("sec-fetch-site", "cross-site"),
                 ("upgrade-insecure-requests", "1"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         /// <summary>
@@ -293,7 +291,7 @@ namespace Shared.Model
                 ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
-            ).ToArray()
+            ).ToDictionary()
         };
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true, enable: false);

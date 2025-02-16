@@ -79,10 +79,10 @@ namespace Lampac.Engine
 
             foreach (var h in init.headers)
             {
-                if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
+                if (string.IsNullOrEmpty(h.Value) || string.IsNullOrEmpty(h.Key))
                     continue;
 
-                string val = h.val;
+                string val = h.Value;
 
                 if (val.Contains("{encrypt:"))
                 {
@@ -121,8 +121,8 @@ namespace Lampac.Engine
                     }
                 }
 
-                if (headers.Find(i => i.name == h.name) == null)
-                    headers.Add(new HeadersModel(h.name, val));
+                if (headers.Find(i => i.name == h.Key) == null)
+                    headers.Add(new HeadersModel(h.Key, val));
             }
 
             return headers;
