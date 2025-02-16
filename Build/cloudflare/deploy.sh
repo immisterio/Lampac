@@ -1,6 +1,12 @@
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 9.0.103 -InstallDir ./dotnet
+./dotnet-install.sh --channel 9.0.1x -InstallDir ./dotnet
+
+
+./dotnet/dotnet --version
+return;
+
+
 #./dotnet-install.sh --version 8.0.110 -InstallDir ./dotnet
 ./dotnet-install.sh --version 6.0.133 -InstallDir ./dotnet6
 
