@@ -154,6 +154,19 @@ namespace Lampac
                             references = assemblies.Select(assembly => MetadataReference.CreateFromFile(assembly.Location)).ToList();
                         }
 
+                        if (mod.references != null)
+                        {
+                            foreach (string refns in mod.references)
+                            {
+                                string dlrns = Path.Combine(Environment.CurrentDirectory, "module", mod.dll, refns);
+                                if (File.Exists(dlrns) && references.FirstOrDefault(a => Path.GetFileName(a.FilePath) == refns) == null)
+                                {
+                                    var assembly = Assembly.LoadFrom(dlrns);
+                                    references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                                }
+                            }
+                        }
+
                         CSharpCompilation compilation = CSharpCompilation.Create(Path.GetFileName(mod.dll), syntaxTree, references: references, options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
                         using (var ms = new MemoryStream())
@@ -175,6 +188,10 @@ namespace Lampac
                                 ms.Seek(0, SeekOrigin.Begin);
                                 mod.assembly = Assembly.Load(ms.ToArray());
 
+                                Console.WriteLine("compilation module: " + mod.dll);
+                                AppInit.modules.Add(mod);
+                                mvcBuilder.AddApplicationPart(mod.assembly);
+
                                 if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                 {
                                     if (mod.version == 2)
@@ -182,10 +199,6 @@ namespace Lampac
                                     else
                                         m.Invoke(null, new object[] { });
                                 }
-
-                                Console.WriteLine("compilation module: " + mod.dll);
-                                AppInit.modules.Add(mod);
-                                mvcBuilder.AddApplicationPart(mod.assembly);
                             }
                         }
                     }
