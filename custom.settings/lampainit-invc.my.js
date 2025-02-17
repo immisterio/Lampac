@@ -30,5 +30,5 @@ window.lampainit_invc.first_initiale = function firstinitiale() {
 
 // Ниже код выполняется до загрузки лампы, например можно изменить настройки 
 // window.lampa_settings.push_state = false;
-// localStorage.setItem('cub_domain', 'cub.rip');
-// localStorage.setItem('cub_mirrors', '["cub.rip", "mirror-kurwa.men", "lampadev.ru"]');
+ localStorage.setItem('cub_domain', 'cub.rip');
+ localStorage.setItem('cub_mirrors', '["cub.rip", "mirror-kurwa.men", "lampadev.ru"]');
