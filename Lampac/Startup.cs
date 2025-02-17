@@ -141,7 +141,12 @@ namespace Lampac
                         var syntaxTree = new List<SyntaxTree>();
 
                         foreach (string file in Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories))
+                        {
+                            if (file.Contains("/obj/"))
+                                continue;
+
                             syntaxTree.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(file)));
+                        }
 
                         if (references == null)
                         {

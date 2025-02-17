@@ -39,7 +39,7 @@ namespace Lampac.Controllers.Xhamster
                     return ContentTo(rch.connectionMsg);
 
                 string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = XhamsterTo.Playlist($"{host}/xmr/vidosik", html);

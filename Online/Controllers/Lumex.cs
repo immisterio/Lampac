@@ -166,14 +166,23 @@ namespace Lampac.Controllers.LITE
                 )));
 
                 if (string.IsNullOrEmpty(result.content))
-                    return OnError(proxyManager);
+                {
+                    proxyManager.Refresh();
+                    return res.Fail("content");
+                }
 
                 if (!result.response.Headers.TryGetValues("Set-Cookie", out var cook))
-                    return OnError(proxyManager);
+                {
+                    proxyManager.Refresh();
+                    return res.Fail("cook");
+                }
 
                 string csrf = Regex.Match(cook.FirstOrDefault() ?? "", "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(csrf))
-                    return OnError(proxyManager);
+                {
+                    proxyManager.Refresh();
+                    return res.Fail("csrf");
+                }
 
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
                 md.csrf = csrf;

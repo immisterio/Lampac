@@ -38,7 +38,7 @@ namespace Lampac
                     var jss = new JsonSerializerSettings { Error = (se, ev) => 
                     { 
                         ev.ErrorContext.Handled = true;
-                        Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
+                        Console.WriteLine($"DeserializeObject Exception init.conf:\n{ev.ErrorContext.Error}\n\n"); 
                     }};
 
                     string initfile = File.ReadAllText("init.conf").Trim();
@@ -49,14 +49,17 @@ namespace Lampac
 
                     try
                     {
+                        cacheconf.Item2 = lastWriteTime;
                         cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
                     }
-                    catch { }
+                    catch
+                    {
+                        if (cacheconf != default)
+                            return cacheconf.Item1;
+                    }
 
                     if (cacheconf.Item1 == null)
                         cacheconf.Item1 = new AppInit();
-
-                    cacheconf.Item2 = lastWriteTime;
 
                     if (cacheconf.Item1 != null)
                     {
