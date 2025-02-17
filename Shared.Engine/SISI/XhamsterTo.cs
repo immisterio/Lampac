@@ -43,7 +43,7 @@ namespace Shared.Engine.SISI
                         url += "/newest";
                         break;
                     case "best":
-                        url = "/best/weekly";
+                        url += "/best/weekly";
                         break;
                     default:
                         break;

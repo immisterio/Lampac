@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
 {
     public class VoKino : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("vokino", AppInit.conf.VoKino);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.VoKino);
 
         #region vokinotk
         [HttpGet]
@@ -51,19 +51,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.VoKino.Clone();
+            var init = loadKit(AppInit.conf.VoKino.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
+            if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             if (balancer is "filmix" or "ashdi" or "alloha" or "vibix")
                 init.streamproxy = false;

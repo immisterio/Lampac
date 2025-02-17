@@ -4,9 +4,10 @@ namespace Shared.Model.Online.Settings
 {
     public class CollapsSettings : BaseSettings
     {
-        public CollapsSettings(string host, bool enable = true, bool streamproxy = false, bool two = false)
+        public CollapsSettings(string plugin, string host, bool enable = true, bool streamproxy = false, bool two = false)
         {
             this.enable = enable;
+            this.plugin = plugin;
             this.streamproxy = streamproxy;
             this.two = two;
 

@@ -16,24 +16,15 @@ namespace Lampac.Controllers.LITE
 {
     public class Alloha : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Alloha);
 
         [HttpGet]
         [Route("lite/alloha")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Alloha;
-            if (!init.enable)
-                return OnError("disable");
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.Alloha);
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
             var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
@@ -139,12 +130,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha/video.m3u8")]
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
-            var init = AppInit.conf.Alloha;
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            var init = loadKit(AppInit.conf.Alloha.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var proxy = proxyManager.Get();
 
@@ -211,7 +199,7 @@ namespace Lampac.Controllers.LITE
                     streams = new List<(string link, string quality)>() { Capacity = 6 };
 
                     foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
-                        streams.Add((HostStreamProxy(init, q.Value, proxy: proxy, plugin: "alloha"), $"{q.Key}p"));
+                        streams.Add((HostStreamProxy(init, q.Value, proxy: proxy), $"{q.Key}p"));
                 }
             }
 
@@ -225,7 +213,7 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
-            var init = AppInit.conf.Alloha;
+            var init = loadKit(AppInit.conf.Alloha.Clone());
 
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))

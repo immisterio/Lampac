@@ -15,16 +15,9 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = AppInit.conf.Chaturbate.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.Chaturbate.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
@@ -32,12 +25,12 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"Chaturbate:list:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("chu", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -53,7 +46,7 @@ namespace Lampac.Controllers.Chaturbate
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable);
+                    return OnError("playlists", proxyManager);
                 }
 
                 if (!rch.enable)
@@ -62,7 +55,7 @@ namespace Lampac.Controllers.Chaturbate
                 hybridCache.Set(memKey, playlists, cacheTime(5, init: init));
             }
 
-            return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: "chu");
+            return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: init.plugin);
         }
     }
 }

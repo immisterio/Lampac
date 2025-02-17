@@ -47,20 +47,15 @@ namespace Lampac.Engine.Middlewares
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
                 ProxyLinkModel decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
 
+                if (href.Contains("image.tmdb.org"))
+                {
+                    httpContext.Response.Redirect($"/tmdb/img/{Regex.Replace(href, "^https?://[^/]+/", "")}");
+                    return;
+                }
+
                 if (init.encrypt)
                 {
-                    if (href.Contains(".tmdb.org"))
-                    {
-                        if (!init.allow_tmdb)
-                        {
-                            httpContext.Response.StatusCode = 403;
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        href = decryptLink?.uri;
-                    }
+                    href = decryptLink?.uri;
                 }
                 else
                 {
@@ -105,7 +100,7 @@ namespace Lampac.Engine.Middlewares
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
 
                     using (var fs = new FileStream(outFile, FileMode.Open, FileAccess.Read))
-                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
+                        await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
 
                     return;
                 }
@@ -117,23 +112,10 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var headers = decryptLink?.headers ?? new List<HeadersModel>();
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
                 var proxy = proxyManager.Get();
 
-                if (href.Contains("image.tmdb.org"))
-                {
-                    if (AppInit.conf.serverproxy.tmdb.useproxy)
-                        proxyManager = new ProxyManager("proxyimg_tmdb", AppInit.conf.serverproxy.tmdb);
-
-                    if (!string.IsNullOrEmpty(AppInit.conf.serverproxy.tmdb.IMG_IP))
-                    {
-                        headers.Add(new HeadersModel("Host", "image.tmdb.org"));
-                        href = href.Replace("image.tmdb.org", AppInit.conf.serverproxy.tmdb.IMG_IP);
-                    }
-                }
-
-                var array = await Download(href, proxy: proxy, headers: headers);
+                var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
                 if (array == null)
                 {
                     if (cacheimg)
@@ -158,12 +140,12 @@ namespace Lampac.Engine.Middlewares
                         }
                     }
 
-                    if (array != null && cacheimg && !File.Exists(outFile))
+                    if (array != null && cacheimg)
                     {
                         try
                         {
                             Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
-                            File.WriteAllBytes(outFile, array);
+                            await File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
                         }
                         catch { try { File.Delete(outFile); } catch { } }
                     }

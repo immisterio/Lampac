@@ -14,26 +14,19 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = AppInit.conf.Tizam.Clone();
+            var init = loadKit(AppInit.conf.Tizam.Clone());
+            if (IsBadInitialization(AppInit.conf.Tizam, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            string memKey = $"tizam:view:{uri}";
-            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
-                return OnError(errormsg);
-
-            var proxyManager = new ProxyManager("tizam", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            string memKey = $"tizam:view:{uri}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -48,7 +41,7 @@ namespace Lampac.Controllers.Tizam
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("location", proxyManager, !rch.enable);
+                    return OnError("location", proxyManager);
                 }
 
                 if (!rch.enable)
@@ -62,10 +55,10 @@ namespace Lampac.Controllers.Tizam
                     }
                 };
 
-                hybridCache.Set(memKey, stream_links, cacheTime(240, init: init));
+                hybridCache.Set(memKey, stream_links, cacheTime(180, init: init));
             }
 
-            return OnResult(stream_links, init, proxy, plugin: "tizam");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

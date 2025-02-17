@@ -4,9 +4,10 @@ namespace Lampac.Models.SISI
 {
     public class SisiSettings : BaseSettings
     {
-        public SisiSettings(string host, bool enable = true, bool useproxy = false, bool streamproxy = false)
+        public SisiSettings(string plugin, string host, bool enable = true, bool useproxy = false, bool streamproxy = false)
         {
             this.enable = enable;
+            this.plugin = plugin;
             this.useproxy = useproxy;
             this.streamproxy = streamproxy;
 

@@ -14,15 +14,11 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Xnxx.Clone();
+            var init = loadKit(AppInit.conf.Xnxx.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            var proxyManager = new ProxyManager("xnx", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"xnxx:view:{uri}";
@@ -30,7 +26,7 @@ namespace Lampac.Controllers.Xnxx
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -44,7 +40,7 @@ namespace Lampac.Controllers.Xnxx
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)
@@ -54,9 +50,9 @@ namespace Lampac.Controllers.Xnxx
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "xnx", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "xnx");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

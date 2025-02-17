@@ -41,22 +41,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Filmix.Clone();
-
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.Filmix.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("filmix", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string token = init.token;

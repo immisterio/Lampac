@@ -11,6 +11,8 @@ namespace Lampac.Models.Module
 
         public string dll { get; set; }
 
+        public string[] references { get; set; }
+
         public string initspace { get; set; }
 
         public string middlewares { get; set; }

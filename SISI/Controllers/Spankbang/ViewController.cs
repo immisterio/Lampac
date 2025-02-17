@@ -14,21 +14,14 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Spankbang.Clone();
+            var init = loadKit(AppInit.conf.Spankbang.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            string memKey = $"spankbang:view:{uri}";
-            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
-                return OnError(errormsg);
-
-            var proxyManager = new ProxyManager("sbg", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            string memKey = $"spankbang:view:{uri}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -44,7 +37,7 @@ namespace Lampac.Controllers.Spankbang
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)
@@ -54,9 +47,9 @@ namespace Lampac.Controllers.Spankbang
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "sbg", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "sbg");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

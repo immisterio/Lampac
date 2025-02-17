@@ -23,21 +23,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmixtv")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.FilmixTV.Clone();
+            var init = loadKit(AppInit.conf.FilmixTV.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
-            if (!init.enable || string.IsNullOrEmpty(init.user_apitv))
+            if (string.IsNullOrEmpty(init.user_apitv))
                 return OnError();
 
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            var proxyManager = new ProxyManager("filmixtv", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             #region accessToken

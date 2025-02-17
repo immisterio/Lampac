@@ -8,37 +8,37 @@ using System.Collections.Generic;
 using Shared.Model.Online.VDBmovies;
 using Lampac.Engine.CORE;
 using Shared.Engine.CORE;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
     public class VDBmovies : BaseOnlineController
     {
+        static CookieContainer cookieContainer = new CookieContainer();
+
         [HttpGet]
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.VDBmovies.Clone();
-            if (!init.enable || init.rip || kinopoisk_id == 0)
+            var init = loadKit(AppInit.conf.VDBmovies.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
+
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
-            var proxyManager = new ProxyManager("vdbmovies", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new VDBmoviesInvoke
             (
                host,
                MaybeInHls(init.hls, init),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
@@ -50,7 +50,7 @@ namespace Lampac.Controllers.LITE
 
                 //string html = await black_magic(uri);
                 string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
-                                           await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+                                           await HttpClient.Get(uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init), cookieContainer: cookieContainer);
 
                 if (html == null)
                     return res.Fail("html");

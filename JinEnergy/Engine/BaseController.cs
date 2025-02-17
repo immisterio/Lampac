@@ -212,7 +212,7 @@ namespace JinEnergy.Engine
             if (conf.streamproxy || conf.apnstream)
                 return $"{apn}/{uri}";
 
-            if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            if (conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
             {
                 if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
                     return $"{apn}/{uri}";
@@ -227,7 +227,7 @@ namespace JinEnergy.Engine
             if (conf == null || string.IsNullOrEmpty(apn))
                 return false;
 
-            if (conf.geostreamproxy != null && conf.geostreamproxy.Count > 0)
+            if (conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
             {
                 if (!string.IsNullOrEmpty(AppInit.Country) && conf.geostreamproxy.Contains(AppInit.Country))
                     return true;
@@ -263,10 +263,10 @@ namespace JinEnergy.Engine
 
             foreach (var h in init.headers)
             {
-                if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
+                if (string.IsNullOrEmpty(h.Value) || string.IsNullOrEmpty(h.Key))
                     continue;
 
-                string val = h.name.Contains("{") ? h.name.Replace("{account_email}", account_email) : h.name;
+                string val = h.Key.Contains("{") ? h.Key.Replace("{account_email}", account_email) : h.Key;
 
                 if (val.Contains("{arg:"))
                 {
@@ -274,7 +274,7 @@ namespace JinEnergy.Engine
                         val = val.Replace(m.Groups[0].Value, parse_arg(m.Groups[1].Value, args));
                 }
 
-                headers.Add(new HeadersModel(h.val, val));
+                headers.Add(new HeadersModel(h.Key, val));
             }
 
             return headers;

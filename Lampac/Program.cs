@@ -13,8 +13,6 @@ using PuppeteerSharp;
 using Shared.Engine;
 using Lampac.Engine;
 using Microsoft.AspNetCore.SignalR;
-using DnsClient;
-using System.Linq;
 
 namespace Lampac
 {
@@ -83,42 +81,7 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
-
-            #region tmdb proxy
-            var tmdb = AppInit.conf.serverproxy.tmdb;
-            if (!tmdb.useproxy && (string.IsNullOrWhiteSpace(tmdb.API_IP) || string.IsNullOrWhiteSpace(tmdb.IMG_IP)))
-            {
-                ThreadPool.QueueUserWorkItem(async _ =>
-                {
-                    var lookup = new LookupClient(IPAddress.Parse(tmdb.DNS ?? "9.9.9.9"));
-
-                    #region api.themoviedb.org
-                    if (string.IsNullOrWhiteSpace(tmdb.API_IP))
-                    {
-                        string uri = "https://api.themoviedb.org/3/movie/1079091?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=content_ratings,release_dates,keywords,alternative_titles&language=ru";
-                        string json = await HttpClient.Get(uri, timeoutSeconds: 10);
-                        if (json == null || !json.Contains("1079091"))
-                        {
-                            var result = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
-                            tmdb.API_IP = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
-                        }
-                    }
-                    #endregion
-
-                    #region image.tmdb.org
-                    if (string.IsNullOrWhiteSpace(tmdb.IMG_IP))
-                    {
-                        byte[] img = await HttpClient.Download("https://image.tmdb.org/t/p/w300/54U26SA33pxxJ2lf5mRxWeqRTLu.jpg", timeoutSeconds: 10);
-                        if (img == null || img.Length != 13160)
-                        {
-                            var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
-                            tmdb.API_IP = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
-                        }
-                    }
-                    #endregion
-                });
-            }
-            #endregion
+            ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run());
 
             while (_reload)
             {

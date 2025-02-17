@@ -3,7 +3,6 @@ using Lampac.Models.LITE;
 using Microsoft.JSInterop;
 using Shared.Engine.Online;
 using Shared.Model.Online;
-using System.Net;
 using System.Text.RegularExpressions;
 
 namespace JinEnergy.Online
@@ -13,7 +12,7 @@ namespace JinEnergy.Online
         #region RezkaInvoke
         static bool origstream;
 
-        static RezkaInvoke rezkaInvoke(string args, RezkaSettings init)
+        static RezkaInvoke? rezkaInvoke(string args, RezkaSettings init)
         {
             string rhsHost = init.corsHost();
             var headers = httpHeaders(args, init);
@@ -24,8 +23,11 @@ namespace JinEnergy.Online
             }
 
             bool ispremium = false;
-            if (init.premium && !string.IsNullOrEmpty(init.cookie))
+            if (init.premium)
             {
+                if (string.IsNullOrEmpty(init.cookie))
+                    return null;
+
                 ispremium = true;
                 rhsHost = "kwwsv=22odps1df";
                 headers = httpHeaders(args, init, HeadersModel.Init(
@@ -38,13 +40,8 @@ namespace JinEnergy.Online
             else
             {
                 if (!string.IsNullOrEmpty(init.cookie))
-                    headers.Add(new HeadersModel("cookie", fixCookie(init.cookie)));
-
-                headers.Add(new HeadersModel("Origin", init.host));
-                headers.Add(new HeadersModel("Referer", init.host + "/"));
+                    headers.Add(new HeadersModel("cookie", init.cookie));
             }
-
-            //bool userapn = IsApnIncluded(init);
 
             return new RezkaInvoke
             (
@@ -53,11 +50,9 @@ namespace JinEnergy.Online
                 init.scheme,
                 MaybeInHls(init.hls, init),
                 !string.IsNullOrEmpty(init.cookie),
-                ongettourl => JsHttpClient.Get(init.cors(ongettourl), headers),
-                (url, data) => JsHttpClient.Post(init.cors(url), data, headers),
-                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile)),
-                AppInit.log
-                //streamfile => userapn ? HostStreamProxy(init, streamfile) : DefaultStreamProxy(streamfile, origstream)
+                (url, head) => JsHttpClient.Get(init.cors(url), ispremium ? headers : HeadersModel.Join(head, headers)),
+                (url, data, head) => JsHttpClient.Post(init.cors(url), data, ispremium ? headers : HeadersModel.Join(head, headers)),
+                streamfile => HostStreamProxy(init, ispremium ? streamfile : RezkaInvoke.fixcdn(init.forceua ? "UA" : AppInit.Country, init.uacdn, streamfile))
             );
         }
         #endregion
@@ -67,6 +62,8 @@ namespace JinEnergy.Online
         {
             var init = AppInit.Rezka.Clone();
             var oninvk = rezkaInvoke(args, init);
+            if (oninvk == null)
+                return string.Empty;
 
             if (!init.premium)
             {

@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
 
             foreach (var item in root.data)
             {
-                if (item.kp_id == 0 /*&& string.IsNullOrEmpty(item.imdb_id)*/)
+                if (item.kp_id == 0 && string.IsNullOrEmpty(item.imdb_id))
                     continue;
 
                 if (serial != -1)

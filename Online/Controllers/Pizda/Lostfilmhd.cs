@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Lostfilmhd : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("lostfilmhd", AppInit.conf.Lostfilmhd);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Lostfilmhd);
 
         [HttpGet]
         [Route("lite/lostfilmhd")]

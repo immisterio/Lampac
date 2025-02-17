@@ -15,24 +15,18 @@ namespace Lampac.Controllers.LITE
 {
     public class AnimeGo : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animego", AppInit.conf.AnimeGo);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeGo);
 
         [HttpGet]
         [Route("lite/animego")]
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
         {
-            var init = AppInit.conf.AnimeGo;
-            if (!init.enable || init.rip || string.IsNullOrWhiteSpace(title))
+            var init = loadKit(AppInit.conf.AnimeGo.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
+
+            if (string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
 
             if (pid == 0)
             {
@@ -181,12 +175,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animego/video.m3u8")]
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
-            var init = AppInit.conf.AnimeGo;
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            var init = loadKit(AppInit.conf.AnimeGo.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!hybridCache.TryGetValue(memKey, out string hls))
@@ -217,10 +208,7 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, hls, cacheTime(30, init: init));
             }
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: HeadersModel.Init(
-                ("origin", "https://aniboom.one"),
-                ("referer", "https://aniboom.one/")
-            )));
+            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get()));
         }
         #endregion
     }

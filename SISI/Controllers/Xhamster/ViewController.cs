@@ -14,15 +14,11 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmr/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Xhamster.Clone();
+            var init = loadKit(AppInit.conf.Xhamster.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            var proxyManager = new ProxyManager("xmr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"xhamster:view:{uri}";
@@ -30,13 +26,13 @@ namespace Lampac.Controllers.Xhamster
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await XhamsterTo.StreamLinks($"{host}/xmr/vidosik", init.corsHost(), uri, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
@@ -44,7 +40,7 @@ namespace Lampac.Controllers.Xhamster
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)
@@ -54,9 +50,9 @@ namespace Lampac.Controllers.Xhamster
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "xmr", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "xmr");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

@@ -13,6 +13,7 @@ using Shared.Model.Base;
 using System.Text.RegularExpressions;
 using Shared.Models.AppConf;
 using Shared.Models.ServerProxy;
+using Lampac.Engine.CORE;
 
 namespace Lampac
 {
@@ -36,8 +37,8 @@ namespace Lampac
                 {
                     var jss = new JsonSerializerSettings { Error = (se, ev) => 
                     { 
-                        ev.ErrorContext.Handled = true; 
-                        Console.WriteLine("init.conf - " + ev.ErrorContext.Error + "\n\n"); 
+                        ev.ErrorContext.Handled = true;
+                        Console.WriteLine($"DeserializeObject Exception init.conf:\n{ev.ErrorContext.Error}\n\n"); 
                     }};
 
                     string initfile = File.ReadAllText("init.conf").Trim();
@@ -48,14 +49,17 @@ namespace Lampac
 
                     try
                     {
+                        cacheconf.Item2 = lastWriteTime;
                         cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
                     }
-                    catch { }
+                    catch
+                    {
+                        if (cacheconf != default)
+                            return cacheconf.Item1;
+                    }
 
                     if (cacheconf.Item1 == null)
                         cacheconf.Item1 = new AppInit();
-
-                    cacheconf.Item2 = lastWriteTime;
 
                     if (cacheconf.Item1 != null)
                     {
@@ -244,9 +248,24 @@ namespace Lampac
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
+        public CubConf cub { get; set; } = new CubConf()
+        {
+            enable = false, 
+            domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "https",
+            mirror = "mirror-kurwa.men",
+            cache_api = 20, cache_img = 60,
+        };
+
+        public TmdbConf tmdb { get; set; } = new TmdbConf()
+        {
+            enable = true,
+            DNS = "9.9.9.9", DNS_TTL = 20,
+            cache_api = 20, cache_img = 60
+        };
+
         public ServerproxyConf serverproxy = new ServerproxyConf()
         {
-            enable = true, encrypt = true, verifyip = true, allow_tmdb = true,
+            enable = true, encrypt = true, verifyip = true,
             buffering = new ServerproxyBufferingConf()
             {
                 enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
@@ -255,18 +274,15 @@ namespace Lampac
             {
                 img = false, img_rsize = true
             },
-            tmdb = new ServerproxyTmdb() 
-            {
-                proxy = new ProxySettings()
-                {
-                    list = new ConcurrentBag<string>() { "socks5://127.0.0.1:9050" }
-                }
-            },
             maxlength_m3u = 1900000,
             maxlength_ts = 10000000
         };
 
-        public FileCacheConf fileCacheInactive = new FileCacheConf() { maxcachesize = 400, intervalclear = 4, img = 10, hls = 90, html = 5, torrent = 50 };
+        public FileCacheConf fileCacheInactive = new FileCacheConf() 
+        { 
+            maxcachesize = 10_000, // 10GB на папку
+            img = 10, hls = 90, html = 5, torrent = 50 // minute
+        };
 
         public DLNASettings dlna = new DLNASettings() 
         { 
@@ -279,7 +295,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "ab0433fd6d0b6308f588f4aa44c939cfcebf9d4d"
+            tree = "72f294e860ca3ff003be7cde7f068e11858242e1"
         };
 
         public OnlineConf online = new OnlineConf()

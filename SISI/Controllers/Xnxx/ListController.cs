@@ -15,26 +15,19 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
-            var init = AppInit.conf.Xnxx.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.Xnxx.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             string memKey = $"xnx:list:{search}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xnx", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -50,7 +43,7 @@ namespace Lampac.Controllers.Xnxx
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)
@@ -59,7 +52,7 @@ namespace Lampac.Controllers.Xnxx
                 hybridCache.Set(memKey, playlists, cacheTime(10));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: "xnx");
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: init.plugin);
         }
     }
 }

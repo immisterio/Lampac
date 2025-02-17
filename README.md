@@ -107,11 +107,11 @@ curl -L -k -s https://lampac.sh/home | bash
 1. Для Samsung "IP:9118/samsung.wgt"
 
 # Работа с базами данных
-* Microsoft.EntityFrameworkCore - MS SQL Server, SQLite
-* Npgsql - PostgreSQL
-* Pomelo.EntityFrameworkCore.MySql - MariaDB, MySQL
-* MongoDB.Driver - MongoDB
-* StackExchange.Redis - Redis
+* Microsoft.EntityFrameworkCore 6.0.36 - MS SQL Server, SQLite
+* Npgsql 9.0.2 - PostgreSQL
+* Pomelo.EntityFrameworkCore.MySql 6.0.3 - MariaDB, MySQL
+* MongoDB.Driver 3.2.0 - MongoDB
+* StackExchange.Redis 2.8.24 - Redis
 
 # Параметры init.conf
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа

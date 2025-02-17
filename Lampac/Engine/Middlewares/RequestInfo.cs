@@ -33,7 +33,7 @@ namespace Lampac.Engine.Middlewares
                 UserAgent = httpContext.Request.Headers.UserAgent
             };
 
-            if (!Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy-dash/|proxy/|proxyimg|lifeevents|externalids|ts|ws|weblog|rch/result|merchant/payconfirm)"))
+            if (!Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy-dash/|proxy/|proxyimg|lifeevents|externalids|ts|ws|weblog|rch/result|merchant/payconfirm|tmdb/)"))
                 req.Country = GeoIP2.Country(httpContext.Connection.RemoteIpAddress.ToString());
 
             if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))

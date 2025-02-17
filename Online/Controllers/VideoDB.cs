@@ -16,18 +16,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videodb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
-            var init = AppInit.conf.VideoDB.Clone();
+            var init = loadKit(AppInit.conf.VideoDB.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || kinopoisk_id == 0)
+            if (kinopoisk_id == 0)
                 return OnError();
 
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            reset: var proxyManager = new ProxyManager("videodb", init);
+            reset: var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
@@ -62,16 +58,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videodb/manifest.m3u8")]
         async public Task<ActionResult> Manifest(string link, bool serial)
         {
-            var init = AppInit.conf.VideoDB.Clone();
+            var init = loadKit(AppInit.conf.VideoDB.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable || string.IsNullOrEmpty(link))
+            if (string.IsNullOrEmpty(link))
                 return OnError();
 
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
-            var proxyManager = new ProxyManager("videodb", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);
@@ -105,7 +100,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
-            string hls = HostStreamProxy(init, location, proxy: proxy, plugin: "videodb");
+            string hls = HostStreamProxy(init, location, proxy: proxy);
 
             if (HttpContext.Request.Path.Value.Contains(".m3u8"))
                 return Redirect(hls);

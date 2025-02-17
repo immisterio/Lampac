@@ -18,21 +18,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fancdn")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.FanCDN.Clone();
+            var init = loadKit(AppInit.conf.FanCDN.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0)))
+            if (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0))
                 return OnError();
 
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            var proxyManager = new ProxyManager("fancdn", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -45,16 +38,12 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => 
                {
-                   var headers = rch.enable ? httpHeaders(init, HeadersModel.Init("cookie", init.cookie)) : httpHeaders(init);
-                   if (ongettourl.Contains("fancdn."))
-                       headers.Add(new HeadersModel("referer", $"{init.host}/"));
-
                    if (rch.enable)
-                       return rch.Get(init.cors(ongettourl), headers);
+                       return rch.Get(init.cors(ongettourl), httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
 
-                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers, httpversion: 2, cookieContainer: cookieContainer(init.cookie));
+                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2, cookieContainer: cookieContainer(init.cookie));
                },
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "fancdn")
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{year}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
@@ -92,7 +81,7 @@ namespace Lampac.Controllers.LITE
                 container.cookies.Add(new Cookie()
                 {
                     Path = "/",
-                    Expires = DateTime.Now.AddHours(1),
+                    Expires = DateTime.Now.AddYears(1),
                     Domain = $".{Regex.Match(AppInit.conf.FanCDN.host, "https?://([^/]+)").Groups[1].Value}",
                     Name = split[0].Trim(),
                     Value = split[1].Trim(),

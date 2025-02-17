@@ -14,21 +14,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnvideohub")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.CDNvideohub.Clone();
-            if (!init.enable || init.rip)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.CDNvideohub.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("cdnvideohub", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var cache = await InvokeCache<string>(rch.ipkey($"cdnvideohub:view:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
@@ -39,14 +30,11 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
                 string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
-                    return OnError(proxyManager, refresh_proxy: !rch.enable);
+                    return res.Fail("embed");
 
                 string file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(file))
-                    return OnError();
-
-                if (!rch.enable)
-                    proxyManager.Success();
+                    return res.Fail("file");
 
                 return file.Replace("u0026", "&").Replace("\\", "");
             });

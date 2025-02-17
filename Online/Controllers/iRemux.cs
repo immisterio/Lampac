@@ -9,7 +9,7 @@ namespace Lampac.Controllers.LITE
 {
     public class iRemux : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("remux", AppInit.conf.iRemux);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.iRemux);
 
         #region iRemuxInvoke
         public iRemuxInvoke InitRemuxInvoke()
@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "remux"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => proxyManager.Refresh()
             );
         }
@@ -33,19 +33,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/remux")]
         async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
         {
-            var init = AppInit.conf.iRemux;
-
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.iRemux.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return OnError();
@@ -64,11 +54,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/remux/movie")]
         async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
-            if (!AppInit.conf.iRemux.enable)
-                return OnError();
-
-            if (NoAccessGroup(AppInit.conf.iRemux, out string error_msg))
-                return ShowError(error_msg);
+            var init = loadKit(AppInit.conf.iRemux.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var oninvk = InitRemuxInvoke();
 
@@ -76,7 +64,7 @@ namespace Lampac.Controllers.LITE
             if (weblink == null)
                 return OnError();
 
-            return ContentTo(oninvk.Movie(weblink, quality, title, original_title, vast: AppInit.conf.iRemux.vast));
+            return ContentTo(oninvk.Movie(weblink, quality, title, original_title, vast: init.vast));
         }
     }
 }

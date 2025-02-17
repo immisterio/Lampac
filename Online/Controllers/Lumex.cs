@@ -22,22 +22,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Lumex;
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.Lumex.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
-            var proxyManager = new ProxyManager("lumex", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new LumexInvoke
@@ -49,7 +40,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            if (clarification == 1 || kinopoisk_id == 0)
+            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
                 var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
                 {
@@ -59,7 +50,7 @@ namespace Lampac.Controllers.LITE
                 return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
             }
 
-            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}", cacheTime(10, init: init), proxyManager,  async res =>
+            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}:{imdb_id}", cacheTime(10, init: init), proxyManager,  async res =>
             {
                 #region chromium
                 //try
@@ -155,7 +146,13 @@ namespace Lampac.Controllers.LITE
                 //catch (Exception ex) { log += $"\nex: {ex}\n"; return null; }
                 #endregion
 
-                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                string args = "";
+                if (!string.IsNullOrEmpty(imdb_id))
+                    args += $"&imdbId={imdb_id}";
+                if (kinopoisk_id > 0)
+                    args += $"&kpId={kinopoisk_id}";
+
+                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("Accept", "*/*"),
                     ("Origin", $"https://p.{init.iframehost}"),
                     ("Referer", $"https://p.{init.iframehost}/"),
@@ -169,14 +166,23 @@ namespace Lampac.Controllers.LITE
                 )));
 
                 if (string.IsNullOrEmpty(result.content))
-                    return OnError(proxyManager);
+                {
+                    proxyManager.Refresh();
+                    return res.Fail("content");
+                }
 
                 if (!result.response.Headers.TryGetValues("Set-Cookie", out var cook))
-                    return OnError(proxyManager);
+                {
+                    proxyManager.Refresh();
+                    return res.Fail("cook");
+                }
 
                 string csrf = Regex.Match(cook.FirstOrDefault() ?? "", "x-csrf-token=([^\n\r; ]+)").Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(csrf))
-                    return OnError(proxyManager);
+                {
+                    proxyManager.Refresh();
+                    return res.Fail("csrf");
+                }
 
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
                 md.csrf = csrf;
@@ -196,14 +202,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
-            var init = AppInit.conf.Lumex;
-            if (!init.enable)
-                return OnError("disable");
+            var init = loadKit(AppInit.conf.Lumex.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            var proxyManager = new ProxyManager("lumex", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
@@ -240,7 +243,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memkey, hls, cacheTime(20, init: init));
             }
 
-            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy, plugin: "lumex");
+            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy);
 
             if (max_quality > 0 && !init.hls)
             {

@@ -18,19 +18,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/zetflix")]
         async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Zetflix.Clone();
+            var init = loadKit(AppInit.conf.Zetflix.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: false))
+                return action;
 
-            if (!init.enable || kinopoisk_id == 0)
+            if (kinopoisk_id == 0)
                 return OnError();
-
-            if (init.rhub)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
@@ -40,7 +33,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                MaybeInHls(init.hls, init),
                (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, plugin: "zetflix")
+               onstreamtofile => HostStreamProxy(init, onstreamtofile)
                //AppInit.log
             );
 

@@ -15,26 +15,19 @@ namespace Lampac.Controllers.PornHub
         [Route("phub/vidosik")]
         async public Task<ActionResult> Index(string vkey, bool related)
         {
-            var init = AppInit.conf.PornHub.Clone();
+            var init = loadKit(AppInit.conf.PornHub.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            string memKey = $"phub:vidosik:{vkey}";
-            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
-                return OnError(errormsg);
-
-            var proxyManager = new ProxyManager("phub", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            string memKey = $"phub:vidosik:{vkey}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -48,7 +41,7 @@ namespace Lampac.Controllers.PornHub
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)
@@ -58,31 +51,24 @@ namespace Lampac.Controllers.PornHub
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "phub", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "phub");
+            return OnResult(stream_links, init, proxy);
         }
 
 
         [HttpGet]
         [Route("phubprem/vidosik")]
-        async public Task<JsonResult> Prem(string vkey, bool related)
+        async public Task<ActionResult> Prem(string vkey, bool related)
         {
-            var init = AppInit.conf.PornHubPremium.Clone();
+            var init = loadKit(AppInit.conf.PornHubPremium.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            string memKey = $"phubprem:vidosik:{vkey}";
-            if (hybridCache.TryGetValue($"error:{memKey}", out string errormsg))
-                return OnError(errormsg);
-
-            var proxyManager = new ProxyManager("phubprem", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            string memKey = $"phubprem:vidosik:{vkey}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", "phubprem", init.corsHost(), vkey, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
@@ -95,9 +81,9 @@ namespace Lampac.Controllers.PornHub
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "phubprem", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "phubprem");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

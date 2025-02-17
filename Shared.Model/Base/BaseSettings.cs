@@ -1,10 +1,10 @@
-﻿using Shared.Model.Online;
-
-namespace Shared.Model.Base
+﻿namespace Shared.Model.Base
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup
     {
         public bool enable { get; set; }
+
+        public string plugin { get; set; }
 
         public int group { get; set; }
 
@@ -38,7 +38,11 @@ namespace Shared.Model.Base
 
         public string? scheme { get; set; }
 
-        public List<HeadersModel>? headers { get; set; }
+        public bool hls { get; set; }
+
+        public Dictionary<string, string>? headers { get; set; }
+
+        public Dictionary<string, string>? headers_stream { get; set; }
 
         public VastConf? vast { get; set; }
 
@@ -56,7 +60,7 @@ namespace Shared.Model.Base
 
         public bool apnstream { get; set; }
 
-        public List<string>? geostreamproxy { get; set; }
+        public string[]? geostreamproxy { get; set; }
 
         public ApnConf? apn { get; set; }
 

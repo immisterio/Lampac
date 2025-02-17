@@ -14,20 +14,16 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = AppInit.conf.HQporner.Clone();
-
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
+            var init = loadKit(AppInit.conf.HQporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("hqr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             if (rch.IsNotSupport("web", out string rch_error))
-                return OnError(rch_error, false);
+                return OnError(rch_error);
 
             string memKey = rch.ipkey($"HQporner:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
@@ -44,7 +40,7 @@ namespace Lampac.Controllers.HQporner
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)

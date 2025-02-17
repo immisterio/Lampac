@@ -15,21 +15,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/anilibria")]
         async public Task<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.AnilibriaOnline.Clone();
-            if (!init.enable || string.IsNullOrEmpty(title))
+            var init = loadKit(AppInit.conf.AnilibriaOnline.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
+
+            if (string.IsNullOrEmpty(title))
                 return OnError();
 
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("anilibria", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new AniLibriaInvoke
@@ -37,7 +31,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "anilibria"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

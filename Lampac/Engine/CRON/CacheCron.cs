@@ -16,13 +16,14 @@ namespace Lampac.Engine.CRON
             {
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.fileCacheInactive.intervalclear, 1))).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMinutes(4)).ConfigureAwait(false);
 
                     foreach (var conf in new List<(string path, int minute)> {
-                        ("html", AppInit.conf.fileCacheInactive.html),
+                        ("tmdb", Math.Max(AppInit.conf.tmdb.cache_img, 5)),
                         ("img", AppInit.conf.fileCacheInactive.img),
-                        ("hls", AppInit.conf.fileCacheInactive.hls),
-                        ("torrent", AppInit.conf.fileCacheInactive.torrent)
+                        ("torrent", AppInit.conf.fileCacheInactive.torrent),
+                        ("html", AppInit.conf.fileCacheInactive.html),
+                        ("hls", AppInit.conf.fileCacheInactive.hls)
                     })
                     {
                         try
@@ -31,9 +32,9 @@ namespace Lampac.Engine.CRON
                                 continue;
 
                             long folderSize = 0;
-                            int fileCount = 0;
+                            var files = new Dictionary<string, FileInfo>();
 
-                            foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories))
+                            foreach (string infile in Directory.EnumerateFiles($"cache{(AppInit.Win32NT ? "\\" : "/")}{conf.path}", "*", SearchOption.AllDirectories))
                             {
                                 try
                                 {
@@ -42,7 +43,7 @@ namespace Lampac.Engine.CRON
                                         fileinfo.Delete();
                                     else
                                     {
-                                        fileCount++;
+                                        files.TryAdd(infile, fileinfo);
                                         folderSize += fileinfo.Length;
                                     }
                                 }
@@ -53,16 +54,15 @@ namespace Lampac.Engine.CRON
 
                             if (folderSize > maxcachesize)
                             {
-                                double averageFileSizeInBytes = (double)folderSize / fileCount;
-                                double exceedinglimit = folderSize - maxcachesize;
-
-                                int deletfiles = (int)(exceedinglimit / averageFileSizeInBytes) * 2;
-
-                                foreach (string infile in Directory.EnumerateFiles($"cache/{conf.path}", "*", SearchOption.AllDirectories).Take(deletfiles))
+                                foreach (var item in files.OrderBy(i => i.Value.LastWriteTime))
                                 {
                                     try
                                     {
-                                        File.Delete(infile);
+                                        File.Delete(item.Key);
+                                        folderSize += item.Value.Length;
+
+                                        if (maxcachesize > folderSize)
+                                            break;
                                     }
                                     catch { }
                                 }

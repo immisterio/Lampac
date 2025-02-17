@@ -10,11 +10,58 @@ using Shared.Model.Base;
 using Shared.Models;
 using System;
 using System.Collections.Generic;
+using System.Web;
 
 namespace Online
 {
     public class BaseOnlineController : BaseController
     {
+        #region IsBadInitialization
+        public bool IsBadInitialization(BaseSettings init, out ActionResult result, bool? rch = null)
+        {
+            if (!init.enable || init.rip)
+            {
+                result = OnError("disable");
+                return true;
+            }
+
+            if (NoAccessGroup(init, out string error_msg))
+            {
+                result = OnError(error_msg, gbcache: false);
+                return true;
+            }
+
+            if (IsOverridehost(init, out string overridehost))
+            {
+                result = Redirect(overridehost);
+                return true;
+            }
+
+            if (rch != null)
+            {
+                if ((bool)rch)
+                {
+                    if (init.rhub && !AppInit.conf.rch.enable)
+                    {
+                        result = ShowError(RchClient.ErrorMsg);
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (init.rhub)
+                    {
+                        result = ShowError(RchClient.ErrorMsg);
+                        return true;
+                    }
+                }
+            }
+
+            return IsCacheError(init, out result);
+        }
+        #endregion
+
+
         #region MaybeInHls
         public bool MaybeInHls(bool hls, BaseSettings init)
         {
@@ -60,10 +107,10 @@ namespace Online
 
                 string log = $"{HttpContext.Request.Path.Value}\n{msg}";
                 if (!string.IsNullOrEmpty(weblog))
-                    log += $"\n\n===================\n\n\n{weblog}";
+                    log += $"\n\n\n===================\n\n{weblog}";
 
                 HttpClient.onlog?.Invoke(null, log);
-                HttpContext.Response.Headers.TryAdd("emsg", msg);
+                HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
             }
 
             if (AppInit.conf.multiaccess && gbcache)

@@ -13,25 +13,18 @@ namespace Lampac.Controllers.LITE
 {
     public class Animevost : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animevost", AppInit.conf.Animevost);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Animevost);
 
         [HttpGet]
         [Route("lite/animevost")]
         async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false)
         {
-            var init = AppInit.conf.Animevost.Clone();
+            var init = loadKit(AppInit.conf.Animevost.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
-            if (!init.enable || string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(title))
                 return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -169,12 +162,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost/video")]
         async public Task<ActionResult> Video(int id, string title, bool play)
         {
-            var init = AppInit.conf.Animevost.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            var init = loadKit(AppInit.conf.Animevost.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -214,11 +204,11 @@ namespace Lampac.Controllers.LITE
                 goto reset;
 
             if (cache.IsSuccess && play)
-                return Redirect(HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost"));
+                return Redirect(HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get()));
 
             return OnResult(cache, () =>
             {
-                string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost");
+                string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get());
                 return VideoTpl.ToJson("play", link, title, vast: init.vast);
 
             }, gbcache: !rch.enable);

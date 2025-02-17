@@ -14,15 +14,11 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu/potok")]
         async public Task<ActionResult> Index(string baba)
         {
-            var init = AppInit.conf.Chaturbate.Clone();
+            var init = loadKit(AppInit.conf.Chaturbate.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            var proxyManager = new ProxyManager("chu", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"chaturbate:stream:{baba}";
@@ -30,7 +26,7 @@ namespace Lampac.Controllers.Chaturbate
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -44,7 +40,7 @@ namespace Lampac.Controllers.Chaturbate
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !init.rhub);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!init.rhub)

@@ -4,8 +4,10 @@ namespace Lampac.Models.LITE
 {
     public class KinoPubSettings : BaseSettings
     {
-        public KinoPubSettings(string? host = null)
+        public KinoPubSettings(string plugin, string? host = null)
         {
+            this.plugin = plugin;
+
             if (host != null)
                 this.host = host.StartsWith("http") ? host : Decrypt(host);
         }

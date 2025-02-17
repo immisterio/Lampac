@@ -15,23 +15,16 @@ namespace Lampac.Controllers.Eporner
         [Route("epr")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = AppInit.conf.Eporner.Clone();
+            var init = loadKit(AppInit.conf.Eporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
-
-            var proxyManager = new ProxyManager("epr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
-                return OnError(rch_error, false);
+                return OnError(rch_error);
 
             pg += 1;
             var cache = await InvokeCache<List<PlaylistItem>>($"epr:{search}:{sort}:{c}:{pg}", cacheTime(10, init: init), proxyManager, async res => 
@@ -59,10 +52,10 @@ namespace Lampac.Controllers.Eporner
                 if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\":true,"))
                     return ContentTo(cache.ErrorMsg);
 
-                return OnError(cache.ErrorMsg, proxyManager, !rch.enable && string.IsNullOrEmpty(search));
+                return OnError(cache.ErrorMsg, proxyManager, string.IsNullOrEmpty(search));
             }
 
-            return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: "epr");
+            return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: init.plugin);
         }
     }
 }

@@ -16,18 +16,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/collaps-dash")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Collaps.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.Collaps.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();
@@ -39,21 +30,19 @@ namespace Lampac.Controllers.LITE
                 init.dash = false;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("collaps", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
-
-            var beseheader = HeadersModel.Init(("Origin", init.host), ("Referer", $"{init.host}/"), ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"));
 
             var oninvk = new CollapsInvoke
             (
                host,
                init.corsHost(),
                init.dash,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, beseheader)),
-               onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "collaps", headers: beseheader),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
@@ -70,7 +59,7 @@ namespace Lampac.Controllers.LITE
 
             return OnResult(cache, () => 
             {
-                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s, vast: init.vast, rjson: rjson, headers: beseheader);
+                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s, vast: init.vast, rjson: rjson, headers: HeadersModel.Init(init.headers));
                 if (module == "dash")
                     html = html.Replace("lite/collaps", "lite/collaps-dash");
 

@@ -14,24 +14,15 @@ namespace Lampac.Controllers.LITE
 {
     public class AnimeLib : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animelib", AppInit.conf.AnimeLib);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeLib);
 
         [HttpGet]
         [Route("lite/animelib")]
         async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
-            var init = AppInit.conf.AnimeLib.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (init.rhub && !AppInit.conf.rch.enable)
-                return ShowError(RchClient.ErrorMsg);
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
+            var init = loadKit(AppInit.conf.AnimeLib.Clone());
+            if (IsBadInitialization(init, out ActionResult action, rch: true))
+                return action;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -203,12 +194,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animelib/video")]
         async public Task<ActionResult> Video(string title, long id, string voice, bool play)
         {
-            var init = AppInit.conf.AnimeLib.Clone();
-            if (!init.enable)
-                return OnError();
-
-            if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+            var init = loadKit(AppInit.conf.AnimeLib.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
             var headers = httpHeaders(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
@@ -253,7 +241,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(href))
                             continue;
 
-                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), plugin: "animelib", headers: headers);
+                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), headers: headers);
 
                         _streams.Add((file, $"{item.Value<int>("quality")}p"));
                     }

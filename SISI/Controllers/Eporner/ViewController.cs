@@ -14,15 +14,11 @@ namespace Lampac.Controllers.Eporner
         [Route("epr/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = AppInit.conf.Eporner.Clone();
+            var init = loadKit(AppInit.conf.Eporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
+                return action;
 
-            if (!init.enable)
-                return OnError("disable");
-
-            if (NoAccessGroup(init, out string error_msg))
-                return OnError(error_msg, false);
-
-            var proxyManager = new ProxyManager("epr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"eporner:view:{uri}";
@@ -30,7 +26,7 @@ namespace Lampac.Controllers.Eporner
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error, false);
+                    return OnError(rch_error);
 
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -54,9 +50,9 @@ namespace Lampac.Controllers.Eporner
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "epr", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "epr");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

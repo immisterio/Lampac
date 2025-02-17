@@ -173,6 +173,13 @@ namespace Lampac.Controllers
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
 
+            if (AppInit.conf.cub.enable)
+            {
+                file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+                file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
+                file = file.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
+            }
+
             if (AppInit.conf.LampaWeb.appReplace != null)
             {
                 foreach (var r in AppInit.conf.LampaWeb.appReplace)
@@ -280,18 +287,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region tmdbproxy.js / startpage.js
-        [HttpGet]
-        [Route("tmdbproxy.js")]
-        [Route("tmdbproxy/js/{token}")]
-        public ActionResult TmdbProxy(string token)
-        {
-            string file = FileCache.ReadAllText("plugins/tmdbproxy.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
-
-            return Content(file, contentType: "application/javascript; charset=utf-8");
-        }
-        
+        #region startpage.js
         [HttpGet]
         [Route("startpage.js")]
         public ActionResult StartPage()
@@ -361,6 +357,7 @@ namespace Lampac.Controllers
                 }
             }
 
+            file = file.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.js"));
             file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
 
             file = file.Replace("{country}", requestInfo.Country);

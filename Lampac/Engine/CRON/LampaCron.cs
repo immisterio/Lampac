@@ -16,11 +16,11 @@ namespace Lampac.Engine.CRON
 
             while (true)
             {
+                var init = AppInit.conf.LampaWeb;
+                bool istree = !string.IsNullOrEmpty(init.tree);
+
                 try
                 {
-                    var init = AppInit.conf.LampaWeb;
-                    bool istree = !string.IsNullOrEmpty(init.tree);
-
                     async ValueTask<bool> update()
                     {
                         if (!init.autoupdate)
@@ -29,7 +29,7 @@ namespace Lampac.Engine.CRON
                         if (!File.Exists("wwwroot/lampa-main/app.min.js"))
                             return true;
 
-                        if (istree && File.Exists($"wwwroot/lampa-main/{init.tree}"))
+                        if (istree && File.Exists("wwwroot/lampa-main/tree") && init.tree == File.ReadAllText("wwwroot/lampa-main/tree"))
                             return false;
 
                         string gitapp = await HttpClient.Get($"https://raw.githubusercontent.com/yumata/lampa/{(istree ? init.tree : "main")}/app.min.js", weblog: false);
@@ -45,6 +45,9 @@ namespace Lampac.Engine.CRON
                         if (CrypTo.md5(gitapp) != currentapp)
                             return true;
 
+                        if (istree)
+                            File.WriteAllText("wwwroot/lampa-main/teee", init.tree);
+
                         return false;
                     }
 
@@ -58,34 +61,20 @@ namespace Lampac.Engine.CRON
                         {
                             currentapp = null;
 
-                            await File.WriteAllBytesAsync("wwwroot/lampa.zip", array);
+                            await File.WriteAllBytesAsync("wwwroot/lampa.zip", array).ConfigureAwait(false);
                             ZipFile.ExtractToDirectory("wwwroot/lampa.zip", "wwwroot/", overwriteFiles: true);
 
                             if (istree)
                             {
-                                string plugins_black_list = File.Exists("wwwroot/lampa-main/plugins_black_list.json") ? File.ReadAllText("wwwroot/lampa-main/plugins_black_list.json") : "[]";
-                                string modification = File.Exists("wwwroot/lampa-main/plugins/modification.js") ? File.ReadAllText("wwwroot/lampa-main/plugins/modification.js") : string.Empty;
-
-                                if (Directory.Exists("wwwroot/lampa-main"))
-                                    Directory.Move("wwwroot/lampa-main", $"wwwroot/lampa-old-{DateTime.Now.ToFileTime()}");
-
-                                Directory.Move($"wwwroot/lampa-{init.tree}", "wwwroot/lampa-main");
-                                File.WriteAllText($"wwwroot/lampa-main/{init.tree}", string.Empty);
-
-                                Directory.CreateDirectory("wwwroot/lampa-main/plugins");
-                                File.WriteAllText("wwwroot/lampa-main/plugins_black_list.json", plugins_black_list);
-                                File.WriteAllText("wwwroot/lampa-main/plugins/modification.js", modification);
-                            }
-                            else
-                            {
-                                if (!File.Exists("wwwroot/lampa-main/plugins_black_list.json"))
-                                    File.WriteAllText("wwwroot/lampa-main/plugins_black_list.json", "[]");
-
-                                if (!File.Exists("wwwroot/lampa-main/plugins/modification.js"))
+                                foreach (string infilePath in Directory.GetFiles($"wwwroot/lampa-{init.tree}", "*", SearchOption.AllDirectories))
                                 {
-                                    Directory.CreateDirectory("wwwroot/lampa-main/plugins");
-                                    File.WriteAllText("wwwroot/lampa-main/plugins/modification.js", string.Empty);
+                                    string outfile = infilePath.Replace($"lampa-{init.tree}", "lampa-main");
+                                    Directory.CreateDirectory(Path.GetDirectoryName(outfile));
+                                    File.Copy(infilePath, outfile, true);
                                 }
+
+                                File.WriteAllText("wwwroot/lampa-main/teee", init.tree);
+                                Directory.Delete($"wwwroot/lampa-{init.tree}", true);
                             }
 
                             string html = File.ReadAllText("wwwroot/lampa-main/index.html");
@@ -93,13 +82,26 @@ namespace Lampac.Engine.CRON
 
                             File.WriteAllText("wwwroot/lampa-main/index.html", html);
                             File.CreateText("wwwroot/lampa-main/personal.lampa");
+
+                            if (!File.Exists("wwwroot/lampa-main/plugins_black_list.json"))
+                                File.WriteAllText("wwwroot/lampa-main/plugins_black_list.json", "[]");
+
+                            if (!File.Exists("wwwroot/lampa-main/plugins/modification.js"))
+                            {
+                                Directory.CreateDirectory("wwwroot/lampa-main/plugins");
+                                File.WriteAllText("wwwroot/lampa-main/plugins/modification.js", string.Empty);
+                            }
+
                             File.Delete("wwwroot/lampa.zip");
                         }
                     }
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(Math.Max(AppInit.conf.LampaWeb.intervalupdate, 1))).ConfigureAwait(false);
+                if (!istree)
+                    await Task.Delay(TimeSpan.FromMinutes(Math.Max(init.intervalupdate, 1))).ConfigureAwait(false);
+
+                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
             }
         }
     }

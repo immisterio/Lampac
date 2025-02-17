@@ -26,14 +26,14 @@ namespace Lampac.Controllers.LITE
                 return Redirect(overridehost);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("vcdn", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new VideoCDNInvoke
             (
                init,
                (url, referer) => rch.enable ? rch.Get(init.cors(url)) : HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vcdn"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                host,
                requesterror: () => proxyManager.Refresh()
             );

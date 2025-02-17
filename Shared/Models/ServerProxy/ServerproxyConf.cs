@@ -12,15 +12,11 @@ namespace Shared.Models.ServerProxy
 
         public bool verifyip { get; set; }
 
-        public bool allow_tmdb { get; set; }
-
         public bool showOrigUri { get; set; }
 
         public ServerproxyCacheConf cache { get; set; } = new ServerproxyCacheConf();
 
         public ServerproxyBufferingConf buffering { get; set; } = new ServerproxyBufferingConf();
-
-        public ServerproxyTmdb tmdb { get; set; } = new ServerproxyTmdb();
 
         public int maxlength_m3u { get; set; }
 

@@ -6,19 +6,20 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online;
 using Lampac.Models.LITE;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
     public class Voidboost : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("voidboost", AppInit.conf.Voidboost);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Voidboost);
 
         #region getInit
         public RezkaSettings getInit()
         {
             var init = AppInit.conf.Voidboost.Clone();
 
-            if (init.geostreamproxy != null && init.geostreamproxy.Count > 0)
+            if (init.geostreamproxy != null && init.geostreamproxy.Length > 0)
             {
                 string country = requestInfo.Country;
                 if (country != null && init.geostreamproxy.Contains(country))
@@ -54,7 +55,7 @@ namespace Lampac.Controllers.LITE
                 MaybeInHls(init.hls, init),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
-                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "voidboost"),
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                 requesterror: () => proxyManager.Refresh()
             );
         }
