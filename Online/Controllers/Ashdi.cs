@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/ashdi")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Ashdi.Clone(), i => i.Ashdi);
+            var init = loadKit(AppInit.conf.Ashdi.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("ashdi", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new AshdiInvoke
@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), statusCodeOK: false),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "ashdi"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

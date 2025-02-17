@@ -41,12 +41,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Filmix.Clone();
+            var init = loadKit(AppInit.conf.Filmix.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("filmix", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string token = init.token;
@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
                                           HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
                (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) : 
                                                  HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
-               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy, plugin: "filmix"),
+               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
                rjson: rjson
             );

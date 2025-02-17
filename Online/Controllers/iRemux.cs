@@ -9,7 +9,7 @@ namespace Lampac.Controllers.LITE
 {
     public class iRemux : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("iremux", AppInit.conf.iRemux);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.iRemux);
 
         #region iRemuxInvoke
         public iRemuxInvoke InitRemuxInvoke()
@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
                (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "iremux"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => proxyManager.Refresh()
             );
         }
@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/remux")]
         async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
         {
-            var init = AppInit.conf.iRemux;
+            var init = loadKit(AppInit.conf.iRemux.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -54,7 +54,8 @@ namespace Lampac.Controllers.LITE
         [Route("lite/remux/movie")]
         async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
-            if (IsBadInitialization(AppInit.conf.iRemux, out ActionResult action))
+            var init = loadKit(AppInit.conf.iRemux.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             var oninvk = InitRemuxInvoke();
@@ -63,7 +64,7 @@ namespace Lampac.Controllers.LITE
             if (weblink == null)
                 return OnError();
 
-            return ContentTo(oninvk.Movie(weblink, quality, title, original_title, vast: AppInit.conf.iRemux.vast));
+            return ContentTo(oninvk.Movie(weblink, quality, title, original_title, vast: init.vast));
         }
     }
 }

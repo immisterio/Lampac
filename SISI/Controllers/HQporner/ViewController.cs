@@ -14,11 +14,12 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            if (IsBadInitialization(AppInit.conf.HQporner, out ActionResult action))
+            var init = loadKit(AppInit.conf.HQporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("hqr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             if (rch.IsNotSupport("web", out string rch_error))

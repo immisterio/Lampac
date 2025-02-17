@@ -15,13 +15,14 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.Spankbang, out ActionResult action))
+            var init = loadKit(AppInit.conf.Spankbang.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("sbg", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -48,7 +49,7 @@ namespace Lampac.Controllers.Spankbang
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null, plugin: "sbg");
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null, plugin: init.plugin);
         }
     }
 }

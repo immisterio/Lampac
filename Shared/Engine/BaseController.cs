@@ -87,7 +87,7 @@ namespace Lampac.Engine
                 if (val.Contains("{encrypt:"))
                 {
                     string encrypt = Regex.Match(val, "\\{encrypt:([^\\}]+)").Groups[1].Value;
-                    val = new OnlinesSettings(encrypt).host;
+                    val = new OnlinesSettings(null, encrypt).host;
                 }
 
                 val = val.Replace("{account_email}", account_email)
@@ -157,7 +157,7 @@ namespace Lampac.Engine
             return $"{host}/proxyimg:{width}:{height}/{uri}";
         }
 
-        public string HostStreamProxy(Istreamproxy conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool sisi = false)
+        public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri;
@@ -210,7 +210,10 @@ namespace Lampac.Engine
                     return apnlink(AppInit.conf.apn);
                 #endregion
 
-                uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, conf != null && conf.useproxystream ? proxy : null, plugin);
+                if (conf.headers_stream != null && conf.headers_stream.Count > 0)
+                    headers = HeadersModel.Init(conf.headers_stream);
+
+                uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
                 if (AppInit.conf.accsdb.enable)
                     uri = AccsDbInvk.Args(uri, HttpContext);
@@ -359,7 +362,7 @@ namespace Lampac.Engine
         #endregion
 
         #region loadKit
-        public T loadKit<T>(T init, Func<AppInit, T> select) where T : BaseSettings
+        public T loadKit<T>(T init) where T : BaseSettings
         {
             if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
                 return init;
@@ -368,27 +371,49 @@ namespace Lampac.Engine
             if (!IO.File.Exists(init_file))
                 return init;
 
-            var appinit = JsonConvert.DeserializeObject<AppInit>(IO.File.ReadAllText(init_file));
-            BaseSettings conf = select.Invoke(appinit);
+            JObject conf;
 
-            init.enable = conf.enable;
-            init.displayname = conf.displayname;
-            init.displayindex = conf.displayindex;
+            try
+            {
+                var appinit = JsonConvert.DeserializeObject<JObject>(IO.File.ReadAllText(init_file));
+                if (init.plugin == null || !appinit.ContainsKey(init.plugin))
+                    return init;
 
-            init.host = conf.host;
-            init.apihost = conf.apihost;
-            init.headers = conf.headers;
-            init.scheme = conf.scheme;
-            init.overridehost = conf.overridehost;
+                conf = appinit.Value<JObject>(init.plugin);
+            }
+            catch { return init; }
+
+            void update<T>(string key, Action<T> updateAction)
+            {
+                if (conf.ContainsKey(key))
+                    updateAction(conf.Value<T>(key));
+            }
+
+            update<bool>("enable", v => init.enable = v);
+            update<string>("displayname", v => init.displayname = v);
+            update<int>("displayindex", v => init.displayindex = v);
+
+            update<string>("host", v => init.host = v);
+            update<string>("apihost", v => init.apihost = v);
+            update<string>("scheme", v => init.scheme = v);
+            update<bool>("hls", v => init.hls = v);
+            update<Dictionary<string, string>>("headers", v => init.headers = v);
+            update<string>("overridehost", v => init.overridehost = v);
 
             init.apnstream = true;
-            init.streamproxy = init.streamproxy;
-            init.geostreamproxy = init.geostreamproxy;
-            init.useproxystream = false;
+            if (conf.ContainsKey("apn"))
+                init.apn = conf["apn"].ToObject<ApnConf>();
 
-            init.proxy = conf.proxy;
-            if (init?.proxy?.list != null && init.proxy.list.Count > 0)
-                init.useproxy = conf.useproxy;
+            init.useproxystream = false;
+            update<bool>("streamproxy", v => init.streamproxy = v);
+            update<string[]>("geostreamproxy", v => init.geostreamproxy = v);
+
+            if (conf.ContainsKey("proxy"))
+            {
+                init.proxy = conf["proxy"].ToObject<ProxySettings>();
+                if (init?.proxy?.list != null && init.proxy.list.Count > 0)
+                    update<bool>("useproxy", v => init.useproxy = v);
+            }
 
             if (init.useproxy)
             {
@@ -397,13 +422,8 @@ namespace Lampac.Engine
             }
             else if (AppInit.conf.kit.rhub_fallback)
             {
-                init.rhub = conf.rhub;
-                init.rhub_fallback = conf.rhub_fallback;
-            }
-            else
-            {
-                init.rhub = true;
-                init.rhub_fallback = false;
+                update<bool>("rhub", v => init.rhub = v);
+                update<bool>("rhub_fallback", v => init.rhub_fallback = v);
             }
 
             return init;

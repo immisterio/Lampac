@@ -4,9 +4,10 @@ namespace Lampac.Models.LITE
 {
     public class RezkaSettings : BaseSettings
     {
-        public RezkaSettings(string host, bool streamproxy = false)
+        public RezkaSettings(string plugin, string host, bool streamproxy = false)
         {
             enable = true;
+            this.plugin = plugin;
             this.streamproxy = streamproxy;
 
             if (host != null)
@@ -29,8 +30,6 @@ namespace Lampac.Models.LITE
         public bool xrealip { get; set; }
 
         public bool xapp { get; set; }
-
-        public bool hls { get; set; }
 
         public RezkaSettings Clone()
         {

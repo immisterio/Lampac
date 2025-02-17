@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmr/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.Xhamster, out ActionResult action))
+            var init = loadKit(AppInit.conf.Xhamster.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("xmr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"xhamster:view:{uri}";
@@ -49,9 +50,9 @@ namespace Lampac.Controllers.Xhamster
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "xmr", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "xmr");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

@@ -22,13 +22,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Lumex.Clone();
+            var init = loadKit(AppInit.conf.Lumex.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
-            var proxyManager = new ProxyManager("lumex", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new LumexInvoke
@@ -193,11 +193,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
-            var init = AppInit.conf.Lumex;
+            var init = loadKit(AppInit.conf.Lumex.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("lumex", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
@@ -234,7 +234,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memkey, hls, cacheTime(20, init: init));
             }
 
-            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy, plugin: "lumex");
+            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy);
 
             if (max_quality > 0 && !init.hls)
             {

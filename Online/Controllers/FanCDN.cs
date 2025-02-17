@@ -18,14 +18,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fancdn")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.FanCDN.Clone();
+            var init = loadKit(AppInit.conf.FanCDN.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
             if (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0))
                 return OnError();
 
-            var proxyManager = new ProxyManager("fancdn", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
 
                    return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2, cookieContainer: cookieContainer(init.cookie));
                },
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "fancdn")
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{year}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>

@@ -37,6 +37,13 @@ namespace Shared.Engine.CORE
             this.conf = conf;
             this.refresh = refresh;
         }
+
+        public ProxyManager(BaseSettings conf, bool refresh = true)
+        {
+            plugin = !string.IsNullOrEmpty(conf.plugin) ? conf.plugin : (conf.host ?? conf.apihost);
+            this.conf = conf;
+            this.refresh = refresh;
+        }
         #endregion
 
         #region Get

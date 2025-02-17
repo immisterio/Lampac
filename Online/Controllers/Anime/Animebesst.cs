@@ -13,13 +13,13 @@ namespace Lampac.Controllers.LITE
 {
     public class Animebesst : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animebesst", AppInit.conf.Animebesst);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Animebesst);
 
         [HttpGet]
         [Route("lite/animebesst")]
         async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
         {
-            var init = AppInit.conf.Animebesst.Clone();
+            var init = loadKit(AppInit.conf.Animebesst.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst/video.m3u8")]
         async public Task<ActionResult> Video(string uri, string title, bool play)
         {
-            var init = AppInit.conf.Animebesst.Clone();
+            var init = loadKit(AppInit.conf.Animebesst.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -186,7 +186,7 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, hls, cacheTime(30, init: init));
             }
 
-            string link = HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animebesst");
+            string link = HostStreamProxy(init, hls, proxy: proxyManager.Get());
 
             if (play)
                 return Redirect(link);

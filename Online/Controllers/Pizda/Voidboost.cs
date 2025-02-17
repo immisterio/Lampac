@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Voidboost : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("voidboost", AppInit.conf.Voidboost);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Voidboost);
 
         #region getInit
         public RezkaSettings getInit()
@@ -55,7 +55,7 @@ namespace Lampac.Controllers.LITE
                 MaybeInHls(init.hls, init),
                 ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
                 (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
-                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "voidboost"),
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                 requesterror: () => proxyManager.Refresh()
             );
         }

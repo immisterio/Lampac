@@ -15,13 +15,14 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.HQporner, out ActionResult action))
+            var init = loadKit(AppInit.conf.HQporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string memKey = $"hqr:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("hqr", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -51,7 +52,7 @@ namespace Lampac.Controllers.HQporner
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? HQpornerTo.Menu(host, sort, c) : null, plugin: "hqr");
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? HQpornerTo.Menu(host, sort, c) : null, plugin: init.plugin);
         }
     }
 }

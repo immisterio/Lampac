@@ -4,9 +4,10 @@ namespace Lampac.Models.LITE
 {
     public class FilmixSettings : BaseSettings
     {
-        public FilmixSettings(string host, bool enable = true)
+        public FilmixSettings(string plugin, string host, bool enable = true)
         {
             this.enable = enable;
+            this.plugin = plugin;
 
             if (host != null)
                 this.host = host.StartsWith("http") ? host : Decrypt(host);

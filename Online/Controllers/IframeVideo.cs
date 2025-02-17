@@ -12,22 +12,19 @@ namespace Lampac.Controllers.LITE
 {
     public class IframeVideo : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("iframevideo", AppInit.conf.IframeVideo);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.IframeVideo);
 
         [HttpGet]
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            var init = AppInit.conf.IframeVideo;
+            var init = loadKit(AppInit.conf.IframeVideo);
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
             var frame = await iframe(imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
                 return OnError();
-
-            if (IsOverridehost(AppInit.conf.IframeVideo, out string overridehost))
-                return Redirect(overridehost);
 
             bool firstjson = true;
             string html = "<div class=\"videos__line\">";
@@ -73,7 +70,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo/video.m3u8")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
-            var init = AppInit.conf.IframeVideo;
+            var init = loadKit(AppInit.conf.IframeVideo);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

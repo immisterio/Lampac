@@ -4,8 +4,9 @@ namespace Lampac.Models.LITE
 {
     public class AllohaSettings : BaseSettings
     {
-        public AllohaSettings(string apihost, string linkhost, string token, string secret_token, bool localip, bool m4s)
+        public AllohaSettings(string plugin, string apihost, string linkhost, string token, string secret_token, bool localip, bool m4s)
         {
+            this.plugin = plugin;
             this.token = token;
             this.secret_token = secret_token;
             this.localip = localip;
@@ -25,5 +26,11 @@ namespace Lampac.Models.LITE
         public bool localip { get; set; }
 
         public bool m4s { get; set; }
+
+
+        public AllohaSettings Clone()
+        {
+            return (AllohaSettings)MemberwiseClone();
+        }
     }
 }

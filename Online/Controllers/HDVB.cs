@@ -16,13 +16,13 @@ namespace Lampac.Controllers.LITE
 {
     public class HDVB : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("hdvb", AppInit.conf.HDVB);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.HDVB);
 
         [HttpGet]
         [Route("lite/hdvb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.HDVB;
+            var init = loadKit(AppInit.conf.HDVB.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -119,7 +119,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/video.m3u8")]
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
-            var init = AppInit.conf.HDVB;
+            var init = loadKit(AppInit.conf.HDVB.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -177,7 +177,7 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
             }
 
-            string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy, plugin: "hdvb");
+            string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy);
 
             if (play)
                 return Redirect(m3u8);
@@ -192,7 +192,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/serial.m3u8")]
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
-            var init = AppInit.conf.HDVB;
+            var init = loadKit(AppInit.conf.HDVB.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -264,7 +264,7 @@ namespace Lampac.Controllers.LITE
 
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
-                var init = AppInit.conf.HDVB;
+                var init = loadKit(AppInit.conf.HDVB.Clone());
 
                 root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                 if (root == null)

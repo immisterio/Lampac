@@ -22,13 +22,13 @@ namespace Lampac.Controllers.LITE
             Directory.CreateDirectory("cache/logs/MoonAnime");
         }
 
-        ProxyManager proxyManager = new ProxyManager("moonanime", AppInit.conf.MoonAnime);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.MoonAnime);
 
         [HttpGet]
         [Route("lite/moonanime")]
         async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.MoonAnime;
+            var init = loadKit(AppInit.conf.MoonAnime.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -196,7 +196,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/moonanime/video.m3u8")]
         async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
-            var init = AppInit.conf.MoonAnime;
+            var init = loadKit(AppInit.conf.MoonAnime.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -280,7 +280,7 @@ namespace Lampac.Controllers.LITE
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0")
-            ), plugin: "moonanime");
+            ));
 
 
             if (play)

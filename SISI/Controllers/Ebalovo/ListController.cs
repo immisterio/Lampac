@@ -15,13 +15,14 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.Ebalovo, out ActionResult action))
+            var init = loadKit(AppInit.conf.Ebalovo.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("elo", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -51,7 +52,7 @@ namespace Lampac.Controllers.Ebalovo
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null, plugin: "elo");
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null, plugin: init.plugin);
         }
     }
 }

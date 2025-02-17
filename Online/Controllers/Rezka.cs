@@ -20,9 +20,9 @@ namespace Lampac.Controllers.LITE
         #region InitRezkaInvoke
         async public ValueTask<RezkaInvoke> InitRezkaInvoke()
         {
-            var init = AppInit.conf.Rezka;
+            var init = loadKit(AppInit.conf.Rezka.Clone());
 
-            var proxyManager = new ProxyManager("rezka", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string country = init.forceua ? "UA" : requestInfo.Country;
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
                                            HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
                 (url, data, hed) => rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) : 
                                                  HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
-                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, plugin: "rezka", headers: RezkaInvoke.StreamProxyHeaders(init.host)),
+                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, headers: RezkaInvoke.StreamProxyHeaders(init.host)),
                 requesterror: () => proxyManager.Refresh()
             );
         }
@@ -61,7 +61,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
-            var init = AppInit.conf.Rezka.Clone();
+            var init = loadKit(AppInit.conf.Rezka.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
             }
 
             var oninvk = await InitRezkaInvoke();
-            var proxyManager = new ProxyManager("rezka", init);
+            var proxyManager = new ProxyManager(init);
 
             string memKey = $"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}";
             if (!hybridCache.TryGetValue(memKey, out EmbedModel content))
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/serial")]
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Rezka.Clone();
+            var init = loadKit(AppInit.conf.Rezka.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -124,7 +124,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var oninvk = await InitRezkaInvoke();
-            var proxyManager = new ProxyManager("rezka", init);
+            var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected())
@@ -148,12 +148,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            var init = AppInit.conf.Rezka.Clone();
+            var init = loadKit(AppInit.conf.Rezka.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             var oninvk = await InitRezkaInvoke();
-            var proxyManager = new ProxyManager("rezka", init);
+            var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
             if (rch.IsNotConnected())

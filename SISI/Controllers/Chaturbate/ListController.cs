@@ -15,7 +15,8 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.Chaturbate, out ActionResult action))
+            var init = loadKit(AppInit.conf.Chaturbate.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             if (!string.IsNullOrEmpty(search))
@@ -24,7 +25,7 @@ namespace Lampac.Controllers.Chaturbate
             string memKey = $"Chaturbate:list:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("chu", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -54,7 +55,7 @@ namespace Lampac.Controllers.Chaturbate
                 hybridCache.Set(memKey, playlists, cacheTime(5, init: init));
             }
 
-            return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: "chu");
+            return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: init.plugin);
         }
     }
 }

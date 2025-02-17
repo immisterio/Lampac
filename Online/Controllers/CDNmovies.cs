@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnmovies")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.CDNmovies.Clone();
+            var init = loadKit(AppInit.conf.CDNmovies.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("cdnmovies", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new CDNmoviesInvoke
@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "cdnmovies"),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

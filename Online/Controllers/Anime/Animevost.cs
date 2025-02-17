@@ -13,13 +13,13 @@ namespace Lampac.Controllers.LITE
 {
     public class Animevost : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animevost", AppInit.conf.Animevost);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Animevost);
 
         [HttpGet]
         [Route("lite/animevost")]
         async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false)
         {
-            var init = AppInit.conf.Animevost.Clone();
+            var init = loadKit(AppInit.conf.Animevost.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -162,7 +162,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost/video")]
         async public Task<ActionResult> Video(int id, string title, bool play)
         {
-            var init = AppInit.conf.Animevost.Clone();
+            var init = loadKit(AppInit.conf.Animevost.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -204,11 +204,11 @@ namespace Lampac.Controllers.LITE
                 goto reset;
 
             if (cache.IsSuccess && play)
-                return Redirect(HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost"));
+                return Redirect(HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get()));
 
             return OnResult(cache, () =>
             {
-                string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get(), plugin: "animevost");
+                string link = HostStreamProxy(init, cache.Value[0].l, proxy: proxyManager.Get());
                 return VideoTpl.ToJson("play", link, title, vast: init.vast);
 
             }, gbcache: !rch.enable);

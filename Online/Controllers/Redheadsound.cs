@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/redheadsound")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Redheadsound.Clone();
+            var init = loadKit(AppInit.conf.Redheadsound.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("redheadsound", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             if (rch.IsNotSupport("web,cors", out string rch_error))
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data) => rch.enable ? rch.Post(init.cors(url), data, httpHeaders(init)) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "redheadsound"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

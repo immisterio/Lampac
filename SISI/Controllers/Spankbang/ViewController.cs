@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.Spankbang, out ActionResult action))
+            var init = loadKit(AppInit.conf.Spankbang.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("sbg", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"spankbang:view:{uri}";
@@ -46,9 +47,9 @@ namespace Lampac.Controllers.Spankbang
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "sbg", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "sbg");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

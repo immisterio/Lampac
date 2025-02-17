@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
 {
     public class VoKino : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("vokino", AppInit.conf.VoKino);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.VoKino);
 
         #region vokinotk
         [HttpGet]
@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.VoKino.Clone();
+            var init = loadKit(AppInit.conf.VoKino.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                init.token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vokino"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

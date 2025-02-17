@@ -15,13 +15,13 @@ namespace Lampac.Controllers.LITE
 {
     public class AnimeGo : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animego", AppInit.conf.AnimeGo);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeGo);
 
         [HttpGet]
         [Route("lite/animego")]
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
         {
-            var init = AppInit.conf.AnimeGo;
+            var init = loadKit(AppInit.conf.AnimeGo.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -175,7 +175,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animego/video.m3u8")]
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
-            var init = AppInit.conf.AnimeGo;
+            var init = loadKit(AppInit.conf.AnimeGo.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -208,10 +208,7 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, hls, cacheTime(30, init: init));
             }
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get(), plugin: "animego", headers: HeadersModel.Init(
-                ("origin", "https://aniboom.one"),
-                ("referer", "https://aniboom.one/")
-            )));
+            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get()));
         }
         #endregion
     }

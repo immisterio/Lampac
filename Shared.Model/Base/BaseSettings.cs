@@ -4,6 +4,8 @@
     {
         public bool enable { get; set; }
 
+        public string plugin { get; set; }
+
         public int group { get; set; }
 
         public bool group_hide { get; set; } = true;
@@ -36,7 +38,11 @@
 
         public string? scheme { get; set; }
 
+        public bool hls { get; set; }
+
         public Dictionary<string, string>? headers { get; set; }
+
+        public Dictionary<string, string>? headers_stream { get; set; }
 
         public VastConf? vast { get; set; }
 

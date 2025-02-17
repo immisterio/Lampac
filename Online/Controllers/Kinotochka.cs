@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinotochka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Kinotochka.Clone();
+            var init = loadKit(AppInit.conf.Kinotochka.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("kinotochka", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             if (rch.IsNotSupport("web", out string rch_error))
@@ -159,7 +159,7 @@ namespace Lampac.Controllers.LITE
                         var etpl = new EpisodeTpl();
 
                         foreach (var l in cache.Value)
-                            etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy, plugin: "kinotochka"), vast: init.vast);
+                            etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy), vast: init.vast);
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();
 
@@ -210,7 +210,7 @@ namespace Lampac.Controllers.LITE
                 return OnResult(cache, () => 
                 {
                     var mtpl = new MovieTpl(title);
-                    mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy, plugin: "kinotochka"), vast: init.vast);
+                    mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy), vast: init.vast);
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 

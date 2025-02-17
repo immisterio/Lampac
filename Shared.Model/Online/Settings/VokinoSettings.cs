@@ -5,9 +5,10 @@ namespace Lampac.Models.LITE
 {
     public class VokinoSettings : BaseSettings
     {
-        public VokinoSettings(string host, bool streamproxy, bool rip = false)
+        public VokinoSettings(string plugin, string host, bool streamproxy, bool rip = false)
         {
             this.streamproxy = streamproxy;
+            this.plugin = plugin;
             this.rip = rip;
 
             if (host != null)

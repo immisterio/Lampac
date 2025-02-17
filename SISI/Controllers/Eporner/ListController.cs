@@ -15,10 +15,11 @@ namespace Lampac.Controllers.Eporner
         [Route("epr")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.Eporner, out ActionResult action))
+            var init = loadKit(AppInit.conf.Eporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("epr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -54,7 +55,7 @@ namespace Lampac.Controllers.Eporner
                 return OnError(cache.ErrorMsg, proxyManager, string.IsNullOrEmpty(search));
             }
 
-            return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: "epr");
+            return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: init.plugin);
         }
     }
 }

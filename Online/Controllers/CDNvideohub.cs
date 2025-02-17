@@ -14,12 +14,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnvideohub")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.CDNvideohub.Clone();
+            var init = loadKit(AppInit.conf.CDNvideohub.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("cdnvideohub", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var cache = await InvokeCache<string>(rch.ipkey($"cdnvideohub:view:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
@@ -45,7 +45,7 @@ namespace Lampac.Controllers.LITE
             return OnResult(cache, () => 
             {
                 var mtpl = new MovieTpl(title, original_title);
-                mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value, proxy: proxy, plugin: "cdnvideohub"), vast: init.vast);
+                mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value, proxy: proxy), vast: init.vast);
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 

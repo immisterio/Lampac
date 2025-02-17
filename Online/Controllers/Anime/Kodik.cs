@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Kodik : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("kodik", AppInit.conf.Kodik);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Kodik);
 
         #region InitKodikInvoke
         public KodikInvoke InitKodikInvoke()
@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                 string.IsNullOrEmpty(init.secret_token) ? "videoparse" : "video",
                 (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "kodik"),
+                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                 requesterror: () => proxyManager.Refresh()
             );
         }
@@ -44,7 +44,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Kodik;
+            var init = loadKit(AppInit.conf.Kodik.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -101,7 +101,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/video.m3u8")]
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
-            var init = AppInit.conf.Kodik;
+            var init = loadKit(AppInit.conf.Kodik.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
 
             var streamquality = new StreamQualityTpl();
             foreach (var l in streams)
-                streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy, plugin: "kodik"), l.q);
+                streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy), l.q);
 
             if (play)
                 return Redirect(streamquality.Firts().link);
@@ -170,7 +170,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/videoparse.m3u8")]
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
-            var init = AppInit.conf.Kodik;
+            var init = loadKit(AppInit.conf.Kodik.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

@@ -23,14 +23,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmixtv")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.FilmixTV.Clone();
+            var init = loadKit(AppInit.conf.FilmixTV.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
             if (string.IsNullOrEmpty(init.user_apitv))
                 return OnError();
 
-            var proxyManager = new ProxyManager("filmixtv", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             #region accessToken
@@ -62,7 +62,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "filmixtv"),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => proxyManager.Refresh(),
                rjson: rjson
             );

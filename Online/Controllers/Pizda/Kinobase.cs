@@ -10,13 +10,13 @@ namespace Lampac.Controllers.LITE
 {
     public class Kinobase : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("kinobase", AppInit.conf.Kinobase);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Kinobase);
 
         [HttpGet]
         [Route("lite/kinobase")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
-            var init = AppInit.conf.Kinobase.Clone();
+            var init = loadKit(AppInit.conf.Kinobase.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

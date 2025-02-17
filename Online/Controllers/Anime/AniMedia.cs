@@ -14,13 +14,13 @@ namespace Lampac.Controllers.LITE
 {
     public class AniMedia : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("animedia", AppInit.conf.AniMedia);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AniMedia);
 
         [HttpGet]
         [Route("lite/animedia")]
         async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.AniMedia;
+            var init = loadKit(AppInit.conf.AniMedia.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -142,7 +142,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var l in links)
                     {
-                        string link = HostStreamProxy(init, l.uri, proxy: proxy, plugin: "animedia");
+                        string link = HostStreamProxy(init, l.uri, proxy: proxy);
                         etpl.Append(l.name, $"{title} / {l.name.ToLower()}", s.ToString(), Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link, vast: init.vast);
                     }
 

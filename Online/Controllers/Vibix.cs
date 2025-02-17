@@ -14,13 +14,13 @@ namespace Lampac.Controllers.LITE
 {
     public class Vibix : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("vibix", AppInit.conf.Vibix);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Vibix);
 
         [HttpGet]
         [Route("lite/vibix")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
         {
-            var init = AppInit.conf.Vibix.Clone();
+            var init = loadKit(AppInit.conf.Vibix.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                         var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(item.Value<string>("file"));
                         while (match.Success)
                         {
-                            streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "vibix"), match.Groups[1].Value);
+                            streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
                             match = match.NextMatch();
                         }
 
@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
                                 var match = new Regex("([0-9]+p)\\](https?://[^,\t\\[ ]+\\.mp4)").Match(file);
                                 while (match.Success)
                                 {
-                                    streams.Append(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "vibix"), match.Groups[1].Value);
+                                    streams.Append(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
                                     match = match.NextMatch();
                                 }
 

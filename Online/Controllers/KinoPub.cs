@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
 {
     public class KinoPub : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("kinopub", AppInit.conf.KinoPub);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.KinoPub);
 
         #region kinopubpro
         [HttpGet]
@@ -56,7 +56,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinopub")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.KinoPub.Clone();
+            var init = loadKit(AppInit.conf.KinoPub.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -73,7 +73,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy, plugin: "kinopub"),
+               (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

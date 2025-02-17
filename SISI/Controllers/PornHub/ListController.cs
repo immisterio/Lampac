@@ -20,7 +20,8 @@ namespace Lampac.Controllers.PornHub
         [Route("phubsml")]
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.PornHub, out ActionResult action))
+            var init = loadKit(AppInit.conf.PornHub.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -28,7 +29,7 @@ namespace Lampac.Controllers.PornHub
             string memKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
             {
-                var proxyManager = new ProxyManager("phub", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -59,7 +60,7 @@ namespace Lampac.Controllers.PornHub
                 hybridCache.Set(memKey, cache, cacheTime(10, init: init));
             }
 
-            return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, plugin: "phub", total_pages: cache.total_pages);
+            return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, plugin: init.plugin, total_pages: cache.total_pages);
         }
 
 
@@ -67,13 +68,14 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.PornHubPremium, out ActionResult action))
+            var init = loadKit(AppInit.conf.PornHubPremium.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
             {
-                var proxyManager = new ProxyManager("phubprem", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));

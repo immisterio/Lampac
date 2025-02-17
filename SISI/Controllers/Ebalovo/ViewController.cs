@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.Ebalovo, out ActionResult action))
+            var init = loadKit(AppInit.conf.Ebalovo.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("elo", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"ebalovo:view:{uri}";
@@ -37,7 +38,7 @@ namespace Lampac.Controllers.Ebalovo
             if (related)
                 return OnResult(stream_links?.recomends, null, plugin: "elo", total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "elo");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

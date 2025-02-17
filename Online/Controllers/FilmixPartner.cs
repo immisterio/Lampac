@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fxapi")]
         async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.FilmixPartner;
+            var init = loadKit(AppInit.conf.FilmixPartner.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -100,7 +100,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrEmpty(hashfimix))
                             url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                        string l = HostStreamProxy(init, url, plugin: "fxapi");
+                        string l = HostStreamProxy(init, url);
 
                         streams.Add((l, $"{q}p"));
                     }
@@ -180,7 +180,7 @@ namespace Lampac.Controllers.LITE
                             if (!string.IsNullOrEmpty(hashfimix))
                                 url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                            string l = HostStreamProxy(init, url, plugin: "fxapi");
+                            string l = HostStreamProxy(init, url);
 
                             streams.Add((l, $"{q}p"));
                         }

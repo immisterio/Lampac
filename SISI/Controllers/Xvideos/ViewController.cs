@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.Xvideos, out ActionResult action))
+            var init = loadKit(AppInit.conf.Xvideos.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("xds", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"xvideos:view:{uri}";
@@ -49,9 +50,9 @@ namespace Lampac.Controllers.Xvideos
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "xds", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "xds");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

@@ -4,8 +4,10 @@ namespace Lampac.Models.LITE
 {
     public class LumexSettings : BaseSettings
     {
-        public LumexSettings(string apihost, string token, string iframehost, string clientId)
+        public LumexSettings(string plugin, string apihost, string token, string iframehost, string clientId)
         {
+            this.plugin = plugin;
+
             if (apihost != null)
                 this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
 
@@ -24,8 +26,6 @@ namespace Lampac.Models.LITE
         public string? clientId { get; set; }
 
         public string? iframehost { get; set; }
-
-        public bool hls { get; set; }
 
         public LumexSettings Clone()
         {

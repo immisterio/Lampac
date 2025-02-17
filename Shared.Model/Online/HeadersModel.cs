@@ -36,6 +36,9 @@
 
         public static List<HeadersModel> Init(Dictionary<string, string> headers)
         {
+            if (headers == null || headers.Count == 0)
+                return new List<HeadersModel>();
+
             var h = new List<HeadersModel>(headers.Count);
 
             foreach (var i in headers)

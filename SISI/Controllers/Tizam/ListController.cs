@@ -17,6 +17,7 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
+            var init = loadKit(AppInit.conf.Tizam.Clone());
             if (IsBadInitialization(AppInit.conf.Tizam, out ActionResult action))
                 return action;
 
@@ -26,7 +27,7 @@ namespace Lampac.Controllers.Tizam
             string memKey = $"tizam:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("tizam", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -61,7 +62,7 @@ namespace Lampac.Controllers.Tizam
                 hybridCache.Set(memKey, playlists, cacheTime(60, init: init));
             }
 
-            return OnResult(playlists, null, plugin: "tizam");
+            return OnResult(playlists, null, plugin: init.plugin);
         }
 
 

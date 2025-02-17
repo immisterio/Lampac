@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
+            var init = loadKit(AppInit.conf.Tizam.Clone());
             if (IsBadInitialization(AppInit.conf.Tizam, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("tizam", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"tizam:view:{uri}";
@@ -57,7 +58,7 @@ namespace Lampac.Controllers.Tizam
                 hybridCache.Set(memKey, stream_links, cacheTime(180, init: init));
             }
 
-            return OnResult(stream_links, init, proxy, plugin: "tizam");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

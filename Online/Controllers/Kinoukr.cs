@@ -5,8 +5,6 @@ using Shared.Engine.Online;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online.Eneyida;
-using Shared.Model.Online;
-using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinoukr")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.Kinoukr.Clone();
+            var init = loadKit(AppInit.conf.Kinoukr.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -24,7 +22,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("kinoukr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             if (rch.IsNotSupport("web", out string rch_error))
@@ -35,31 +33,8 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => rch.enable ? rch.Post(init.cors(url), data, httpHeaders(init)) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: url.Contains("bobr-kurwa") ? httpHeaders(init) : httpHeaders(init, HeadersModel.Init
-               (
-                    ("cache-control", "no-cache"),
-                    ("cookie", $"PHPSESSID={CrypTo.md5(DateTime.Now.ToBinary().ToString())}; legit_user=1;"),
-                    ("dnt", "1"),
-                    ("origin", init.host),
-                    ("pragma", "no-cache"),
-                    ("priority", "u=0, i"),
-                    ("referer", $"{init.host}/{CrypTo.unic(4, true)}-{CrypTo.unic(Random.Shared.Next(4, 8))}-{CrypTo.unic(Random.Shared.Next(5, 10))}.html"),
-                    ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not ? A_Brand\";v=\"99\""),
-                    ("sec-ch-ua-arch", "\"x86\""),
-                    ("sec-ch-ua-bitness", "\"64\""),
-                    ("sec-ch-ua-full-version", "\"130.0.6723.70\""),
-                    ("sec-ch-ua-full-version-list", "\"Chromium\";v=\"130.0.6723.70\", \"Google Chrome\";v=\"130.0.6723.70\", \"Not ? A_Brand\";v=\"99.0.0.0\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-model", "\"\""),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-ch-ua-platform-version", "\"10.0.0\""),
-                    ("sec-fetch-dest", "document"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("sec-fetch-user", "?1"),
-                    ("upgrade-insecure-requests", "1")
-               ))),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "kinoukr"),
+               (url, data) => rch.enable ? rch.Post(init.cors(url), data, httpHeaders(init)) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
                //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
             );

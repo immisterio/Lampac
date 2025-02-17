@@ -14,10 +14,11 @@ namespace Lampac.Controllers.XvideosRED
         [Route("xdsred/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.XvideosRED, out ActionResult action))
+            var init = loadKit(AppInit.conf.XvideosRED.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("xdsred", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"xdsred:view:{uri}";
@@ -33,9 +34,9 @@ namespace Lampac.Controllers.XvideosRED
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "xdsred", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "xdsred");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

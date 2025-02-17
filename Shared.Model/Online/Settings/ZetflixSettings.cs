@@ -4,9 +4,10 @@ namespace Shared.Model.Online.Settings
 {
     public class ZetflixSettings : BaseSettings
     {
-        public ZetflixSettings(string host, bool enable = true, bool streamproxy = false, bool rip = false)
+        public ZetflixSettings(string plugin, string host, bool enable = true, bool streamproxy = false, bool rip = false)
         {
             this.enable = enable;
+            this.plugin = plugin;
             this.streamproxy = streamproxy;
             this.rip = rip;
 
@@ -14,8 +15,6 @@ namespace Shared.Model.Online.Settings
                 this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
-
-        public bool hls { get; set; }
 
         public bool black_magic { get; set; }
 

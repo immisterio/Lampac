@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.VDBmovies.Clone();
+            var init = loadKit(AppInit.conf.VDBmovies.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -31,14 +31,14 @@ namespace Lampac.Controllers.LITE
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
-            var proxyManager = new ProxyManager("vdbmovies", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new VDBmoviesInvoke
             (
                host,
                MaybeInHls(init.hls, init),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy, plugin: "vdbmovies")
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>

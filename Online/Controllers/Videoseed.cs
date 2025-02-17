@@ -13,13 +13,13 @@ namespace Lampac.Controllers.LITE
 {
     public class Videoseed : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("videoseed", AppInit.conf.Videoseed);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Videoseed);
 
         [HttpGet]
         [Route("lite/videoseed")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false)
         {
-            var init = AppInit.conf.Videoseed.Clone();
+            var init = loadKit(AppInit.conf.Videoseed.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
                 var match = new Regex("([0-9]+p)\\](\\{[^\\}]+\\} ?)?(?<link>https?://[^,\t\\;\\[ ]+\\.mp4)").Match(html);
                 while (match.Success)
                 {
-                    streams.Insert(HostStreamProxy(init, match.Groups["link"].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);
+                    streams.Insert(HostStreamProxy(init, match.Groups["link"].Value, proxy: proxy), match.Groups[1].Value);
                     match = match.NextMatch();
                 }
 
@@ -124,7 +124,7 @@ namespace Lampac.Controllers.LITE
                             var match = new Regex("([0-9]+p)\\](https?://[^,\\;\t\\[ ]+\\.mp4)").Match(file);
                             while (match.Success)
                             {
-                                streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy, plugin: "videoseed"), match.Groups[1].Value);
+                                streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
                                 match = match.NextMatch();
                             }
 

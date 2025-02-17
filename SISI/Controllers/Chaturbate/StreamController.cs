@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu/potok")]
         async public Task<ActionResult> Index(string baba)
         {
-            if (IsBadInitialization(AppInit.conf.Chaturbate, out ActionResult action))
+            var init = loadKit(AppInit.conf.Chaturbate.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("chu", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"chaturbate:stream:{baba}";

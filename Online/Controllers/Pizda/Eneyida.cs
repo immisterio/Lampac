@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/eneyida")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null)
         {
-            var init = AppInit.conf.Eneyida.Clone();
+            var init = loadKit(AppInit.conf.Eneyida.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager("eneyida", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var oninvk = new EneyidaInvoke
@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                (url, data) => rch.enable ? rch.Post(init.cors(url), data) : HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy, plugin: "eneyida"),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 

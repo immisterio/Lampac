@@ -18,7 +18,8 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.Xvideos, out ActionResult action))
+            var init = loadKit(AppInit.conf.Xvideos.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -26,7 +27,7 @@ namespace Lampac.Controllers.Xvideos
             string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xds", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -56,7 +57,7 @@ namespace Lampac.Controllers.Xvideos
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, plugin: "xds");
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, plugin: init.plugin);
         }
 
 
@@ -66,7 +67,8 @@ namespace Lampac.Controllers.Xvideos
         [Route("xdssml/stars")]
         async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
-            if (IsBadInitialization(AppInit.conf.Xvideos, out ActionResult action))
+            var init = loadKit(AppInit.conf.Xvideos.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -74,7 +76,7 @@ namespace Lampac.Controllers.Xvideos
             string memKey = $"{plugin}:stars:{uri}:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xds", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -104,7 +106,7 @@ namespace Lampac.Controllers.Xvideos
 
 
             // XvideosTo.PornstarsMenu(host, plugin, sort)
-            return OnResult(playlists, null, plugin: "xds");
+            return OnResult(playlists, null, plugin: init.plugin);
         }
     }
 }

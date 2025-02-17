@@ -14,10 +14,11 @@ namespace Lampac.Controllers.Eporner
         [Route("epr/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.Eporner, out ActionResult action))
+            var init = loadKit(AppInit.conf.Eporner.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("epr", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"eporner:view:{uri}";
@@ -49,9 +50,9 @@ namespace Lampac.Controllers.Eporner
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "epr", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "epr");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

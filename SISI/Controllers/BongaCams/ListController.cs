@@ -15,13 +15,14 @@ namespace Lampac.Controllers.BongaCams
         [Route("bgs")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.BongaCams, out ActionResult action))
+            var init = loadKit(AppInit.conf.BongaCams.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var proxyManager = new ProxyManager("bgs", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"BongaCams:list:{sort}:{pg}";
@@ -59,7 +60,7 @@ namespace Lampac.Controllers.BongaCams
                 hybridCache.Set(memKey, cache, cacheTime(5, init: init));
             }
 
-            return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy, plugin: "bgs", total_pages: cache.total_pages);
+            return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy, total_pages: cache.total_pages);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Seasonvar : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager("seasonvar", AppInit.conf.Seasonvar, refresh: false);
+        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Seasonvar, refresh: false);
 
         [HttpGet]
         [Route("lite/seasonvar")]

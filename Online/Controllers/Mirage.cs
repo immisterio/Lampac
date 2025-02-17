@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/mirage")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Mirage;
+            var init = loadKit(AppInit.conf.Mirage.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -130,7 +130,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/mirage/video.m3u8")]
         async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
         {
-            var init = AppInit.conf.Mirage;
+            var init = loadKit(AppInit.conf.Mirage.Clone());
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -195,7 +195,7 @@ namespace Lampac.Controllers.LITE
                     continue;
 
                 string link = Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
-                streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders, plugin: "mirage"), $"{q.Key}p");
+                streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders), $"{q.Key}p");
             }
 
             if (play)
@@ -208,7 +208,7 @@ namespace Lampac.Controllers.LITE
         #region iframe
         async ValueTask<JToken> iframe(string token_movie)
         {
-            var init = AppInit.conf.Mirage;
+            var init = loadKit(AppInit.conf.Mirage.Clone());
             string memKey = $"mirage:iframe:{token_movie}";
 
             if (!hybridCache.TryGetValue(memKey, out JToken res))
@@ -255,7 +255,7 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
-            var init = AppInit.conf.Mirage;
+            var init = loadKit(AppInit.conf.Mirage.Clone());
 
             string memKey = $"mirage:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))

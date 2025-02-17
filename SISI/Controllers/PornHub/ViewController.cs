@@ -15,10 +15,11 @@ namespace Lampac.Controllers.PornHub
         [Route("phub/vidosik")]
         async public Task<ActionResult> Index(string vkey, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.PornHub, out ActionResult action))
+            var init = loadKit(AppInit.conf.PornHub.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("phub", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"phub:vidosik:{vkey}";
@@ -50,9 +51,9 @@ namespace Lampac.Controllers.PornHub
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "phub", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "phub");
+            return OnResult(stream_links, init, proxy);
         }
 
 
@@ -60,10 +61,11 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem/vidosik")]
         async public Task<ActionResult> Prem(string vkey, bool related)
         {
-            if (IsBadInitialization(AppInit.conf.PornHubPremium, out ActionResult action))
+            var init = loadKit(AppInit.conf.PornHubPremium.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var proxyManager = new ProxyManager("phubprem", init);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"phubprem:vidosik:{vkey}";
@@ -79,9 +81,9 @@ namespace Lampac.Controllers.PornHub
             }
 
             if (related)
-                return OnResult(stream_links?.recomends, null, plugin: "phubprem", total_pages: 1);
+                return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-            return OnResult(stream_links, init, proxy, plugin: "phubprem");
+            return OnResult(stream_links, init, proxy);
         }
     }
 }

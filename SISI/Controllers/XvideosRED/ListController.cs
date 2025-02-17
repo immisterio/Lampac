@@ -18,16 +18,17 @@ namespace Lampac.Controllers.XvideosRED
         [Route("xdsred")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.XvideosRED, out ActionResult action))
+            var init = loadKit(AppInit.conf.XvideosRED.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            string plugin = "xdsred";
+            string plugin = init.plugin;
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
             string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}";
 
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager(plugin, init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 #region Генерируем url

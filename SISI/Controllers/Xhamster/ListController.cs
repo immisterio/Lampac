@@ -18,7 +18,8 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmrsml")]
         async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
-            if (IsBadInitialization(AppInit.conf.Xhamster, out ActionResult action))
+            var init = loadKit(AppInit.conf.Xhamster.Clone());
+            if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             pg++;
@@ -27,7 +28,7 @@ namespace Lampac.Controllers.Xhamster
             string memKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
-                var proxyManager = new ProxyManager("xmr", init);
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -57,7 +58,7 @@ namespace Lampac.Controllers.Xhamster
                 hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
             }
 
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null, plugin: "xmr");
+            return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null, plugin: init.plugin);
         }
     }
 }
