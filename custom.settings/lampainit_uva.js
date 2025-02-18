@@ -92,7 +92,8 @@
       Lampa.Storage.set('account_use','true');
       Lampa.Storage.set('torrserver_preload','true'); // Использовать прелоадер TS
       Lampa.Storage.set('proxy_tmdb','true'); // TMDB proxy
-  
+      Lampa.Storage.set('full_btn_priority','1329165215'); // Torrent button priority
+
       /*
       Lampa.Storage.set('menu_sort','["Главная","Фильмы","Сериалы","Избранное","История"]');
       Lampa.Storage.set('menu_hide','["Лента","Персона","Аниме","Релизы"]');
