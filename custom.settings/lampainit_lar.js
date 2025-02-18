@@ -38,8 +38,8 @@
         if (window.lampainit_invc)
           window.lampainit_invc.appload();
   
-        if ({btn_priority_forced})
-          Lampa.Storage.set('full_btn_priority', '{full_btn_priority_hash}');
+//        if ({btn_priority_forced})
+//          Lampa.Storage.set('full_btn_priority', '{full_btn_priority_hash}');
   
         var unic_id = Lampa.Storage.get('lampac_unic_id', '');
         if (!unic_id) {
@@ -72,7 +72,7 @@
     function start() {		
       Lampa.Storage.set('lampac_initiale','true');
       Lampa.Storage.set('source','cub');
-      Lampa.Storage.set('full_btn_priority','{full_btn_priority_hash}');
+//      Lampa.Storage.set('full_btn_priority','{full_btn_priority_hash}');
       Lampa.Storage.set('proxy_tmdb','{country}'=='RU');
       Lampa.Storage.set('poster_size','w500');
   
