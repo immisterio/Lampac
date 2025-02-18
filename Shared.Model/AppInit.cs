@@ -211,10 +211,10 @@ namespace Shared.Model
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "{encrypt:kwwsv=22nlqrsod|51vlwh}"),
+                ("origin", "encrypt:kwwsv=22nlqrsod|51vlwh"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("referer", "{encrypt:kwwsv=22nlqrsod|51vlwh2}"),
+                ("referer", "encrypt:kwwsv=22nlqrsod|51vlwh2"),
                 ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
@@ -245,7 +245,7 @@ namespace Shared.Model
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "{encrypt:kwwsv=22eroo|zrrgwy1foxe2}"),
+                ("referer", "encrypt:kwwsv=22eroo|zrrgwy1foxe2"),
                 ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
@@ -259,29 +259,49 @@ namespace Shared.Model
 
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v41idqvhuldo1wy") 
         { 
-            geostreamproxy = new string[] { "ALL" },
+            streamproxy = true,
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("referer", "encrypt:kwwsv=22idqfgq1qhw2"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary(),
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "{host}/"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("referer", "encrypt:kwwsv=22nlqrjr1n}2"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "iframe"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "cross-site"),
+                ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
         /// <summary>
         /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// </summary>
-        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1vsdfh", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" } };
+        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1vsdfh", "fReBbuvVF6Rv") 
+        {
+            enable = false, 
+            args_api = "&domain=kinogo.bet&url=kinogo.bet",
+            hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" } 
+        };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "kwws=22dsl1yrnlqr1wy", streamproxy: true);
 
@@ -323,8 +343,8 @@ namespace Shared.Model
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "{encrypt:kwwsv=22dqlole1ph}"),
-                ("referer", "{encrypt:kwwsv=22dqlole1ph2}"),
+                ("origin", "encrypt:kwwsv=22dqlole1ph"),
+                ("referer", "encrypt:kwwsv=22dqlole1ph2"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
                 ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),

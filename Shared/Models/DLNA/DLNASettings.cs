@@ -16,12 +16,10 @@
 
         public int downloadSpeed { get; set; }
 
+        public int uploadSpeed { get; set; }
+
         public int maximumDiskReadRate { get; set; }
 
         public int maximumDiskWriteRate { get; set; }
-
-        public bool allowedEncryption { get; set; }
-
-        public int listenPort { get; set; }
     }
 }

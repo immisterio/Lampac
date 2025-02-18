@@ -286,8 +286,9 @@ namespace Lampac
 
         public DLNASettings dlna = new DLNASettings() 
         { 
-            enable = true, allowedEncryption = true, path = "dlna",
-            autoupdatetrackers = true, addTrackersToMagnet = true, intervalUpdateTrackers = 90
+            enable = true, path = "dlna",
+            uploadSpeed = 125000 * 10,
+            autoupdatetrackers = true, intervalUpdateTrackers = 90, addTrackersToMagnet = true, 
         };
 
         public WebConf LampaWeb = new WebConf()
@@ -295,7 +296,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "72f294e860ca3ff003be7cde7f068e11858242e1"
+            tree = "b231a81ffe9cb32697d815000f2b219e953c8383"
         };
 
         public OnlineConf online = new OnlineConf()

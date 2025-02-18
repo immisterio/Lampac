@@ -27,6 +27,8 @@ namespace Lampac.Models.LITE
 
         public string? iframehost { get; set; }
 
+        public string? args_api { get; set; }
+
         public LumexSettings Clone()
         {
             return (LumexSettings)MemberwiseClone();

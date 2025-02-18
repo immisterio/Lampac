@@ -33,4 +33,5 @@ if test -f "out/blazor.boot.json"; then
 	
 	mkdir -p lpc
 	cp -R ../lpc/* lpc/
+	cp lpc/update.sh ver.sh
 fi
