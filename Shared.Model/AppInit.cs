@@ -296,7 +296,12 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// </summary>
-        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1vsdfh", "tl6h28Hn1rL5") { enable = true, hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" } };
+        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1vsdfh", "fReBbuvVF6Rv") 
+        {
+            enable = false, 
+            args_api = "&domain=kinogo.bet&url=kinogo.bet",
+            hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" } 
+        };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "kwws=22dsl1yrnlqr1wy", streamproxy: true);
 

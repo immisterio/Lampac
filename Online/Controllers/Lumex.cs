@@ -152,17 +152,21 @@ namespace Lampac.Controllers.LITE
                 if (kinopoisk_id > 0)
                     args += $"&kpId={kinopoisk_id}";
 
-                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
-                    ("Accept", "*/*"),
-                    ("Origin", $"https://p.{init.iframehost}"),
-                    ("Referer", $"https://p.{init.iframehost}/"),
-                    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                    ("Sec-Ch-Ua-Mobile", "?0"),
-                    ("Sec-Ch-Ua-Platform", "\"Windows\""),
-                    ("Sec-Fetch-Dest", "empty"),
-                    ("Sec-Fetch-Mode", "cors"),
-                    ("Sec-Fetch-Site", "same-site"),
-                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args+init.args_api, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                    ("accept", "*/*"),
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("origin", $"https://p.{init.iframehost}"),
+                    ("pragma", "no-cache"),
+                    ("priority", "u=1, i"),
+                    ("referer", $"https://p.{init.iframehost}/"),
+                    ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-site"),
+                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
                 )));
 
                 if (string.IsNullOrEmpty(result.content))

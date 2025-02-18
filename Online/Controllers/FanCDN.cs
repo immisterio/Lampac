@@ -16,14 +16,11 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = loadKit(AppInit.conf.FanCDN.Clone());
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
-
-            if (kinopoisk_id == 0 && (string.IsNullOrEmpty(title) || year == 0))
-                return OnError();
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
@@ -46,18 +43,18 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{year}:{kinopoisk_id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{imdb_id}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, title, original_title, year);
+                return await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year);
             });
 
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource, gbcache: !rch.enable);
         }
 
 

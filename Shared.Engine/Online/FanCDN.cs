@@ -26,11 +26,14 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(long kinopoisk_id, string title, string original_title, int year)
+        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year)
         {
-            var episodes = await Embed(null, kinopoisk_id);
+            var episodes = await Embed(null, imdb_id, kinopoisk_id);
             if (episodes != null)
                 return episodes;
+
+            if (string.IsNullOrEmpty(title) || year == 0)
+                return null;
 
             string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
             if (string.IsNullOrEmpty(search))
@@ -61,16 +64,28 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(iframe_url))
                 return null;
 
-            return await Embed(iframe_url, 0);
+            return await Embed(iframe_url, null, 0);
         }
 
 
-        async public ValueTask<EmbedModel?> Embed(string? iframe_url, long kinopoisk_id)
+        async public ValueTask<EmbedModel?> Embed(string? iframe_url, string imdb_id, long kinopoisk_id)
         {
-            if (string.IsNullOrEmpty(iframe_url) && kinopoisk_id == 0)
+            if (string.IsNullOrEmpty(iframe_url) && string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                 return null;
 
-            string? iframe = await onget(iframe_url ?? $"https://fancdn.net/iframe/?kinopoisk={kinopoisk_id}");
+            if (string.IsNullOrEmpty(iframe_url))
+            {
+                iframe_url = "https://fancdn.net/iframe/";
+
+                if (kinopoisk_id > 0)
+                    iframe_url += $"?kinopoisk={kinopoisk_id}";
+
+                if (!string.IsNullOrEmpty(imdb_id))
+                    iframe_url += (iframe_url.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
+            }
+
+            // &imdb_id=
+            string? iframe = await onget(iframe_url);
             if (string.IsNullOrEmpty(iframe))
                 return null;
 
@@ -106,7 +121,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf? vast = null)
+        public string Html(EmbedModel? root, string imdb_id, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf? vast = null)
         {
             if (root == null)
                 return string.Empty;
@@ -160,7 +175,7 @@ namespace Shared.Engine.Online
 
                         hash.Add(voice.seasons);
 
-                        string link = host + $"lite/fancdn?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={voice.seasons}";
+                        string link = host + $"lite/fancdn?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={voice.seasons}";
                         tpl.Append($"{voice.seasons} сезон", link, voice.seasons);
                     }
 
@@ -180,7 +195,7 @@ namespace Shared.Engine.Online
                         if (t == -1)
                             t = voice.id;
 
-                        string link = host + $"lite/fancdn?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.id}";
+                        string link = host + $"lite/fancdn?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.id}";
                         bool active = t == voice.id;
 
                         vtpl.Append(voice.title, active, link);

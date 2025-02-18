@@ -293,7 +293,7 @@ namespace JacRed.Engine
                         continue;
 
                     var magnetLink = MagnetLink.Parse(torrent.magnet);
-                    string hex = magnetLink.InfoHash.ToHex();
+                    string hex = magnetLink.InfoHashes.V1.ToHex();
 
                     if (!temp.TryGetValue(hex, out _))
                     {
