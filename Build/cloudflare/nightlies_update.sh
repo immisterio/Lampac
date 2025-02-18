@@ -11,18 +11,20 @@ cd /home/lampac || { echo "Failed to change directory to /home/lampac. Exiting."
 
 rm -f update.zip
 
+echo "Download $UPDATEURI"
+
 if ! curl -L -k -o update.zip "$UPDATEURI"; then
-	echo "Failed to download update.zip. Exiting."
+	echo "\n\nFailed to download update.zip. Exiting."
 	exit 1
 fi
 if ! unzip -t update.zip; then
-	echo "Failed to test update.zip. Exiting."
+	echo "\n\nFailed to test update.zip. Exiting."
 	exit 1
 fi
 
-systemctl stop lampac || { echo "Failed to stop lampac service. Exiting."; exit 1; }
+systemctl stop lampac || { echo "\n\nFailed to stop lampac service. Exiting."; exit 1; }
 unzip -o update.zip
 rm -f update.zip
-systemctl start lampac || { echo "Failed to start lampac service. Exiting."; exit 1; }
+systemctl start lampac || { echo "\n\nFailed to start lampac service. Exiting."; exit 1; }
 
-echo "Update completed successfully."
+echo "\n\nUpdate completed successfully."
