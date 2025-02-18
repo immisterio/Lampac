@@ -64,12 +64,13 @@ namespace Shared.Engine.Online
             return await Embed(iframe_url, 0);
         }
 
+
         async public ValueTask<EmbedModel?> Embed(string? iframe_url, long kinopoisk_id)
         {
             if (string.IsNullOrEmpty(iframe_url) && kinopoisk_id == 0)
                 return null;
 
-            string? iframe = await onget(iframe_url ?? $"https://fancdn.net/iframe/?kp={kinopoisk_id}");
+            string? iframe = await onget(iframe_url ?? $"https://fancdn.net/iframe/?kinopoisk={kinopoisk_id}");
             if (string.IsNullOrEmpty(iframe))
                 return null;
 

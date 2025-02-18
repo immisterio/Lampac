@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "135";
 
-        public static string minorversion => "2";
+        public static string minorversion => "3";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -84,9 +84,9 @@ namespace Lampac.Engine
 
                 string val = h.Value;
 
-                if (val.Contains("{encrypt:"))
+                if (val.StartsWith("encrypt:"))
                 {
-                    string encrypt = Regex.Match(val, "\\{encrypt:([^\\}]+)").Groups[1].Value;
+                    string encrypt = Regex.Match(val, "^encrypt:([^\n\r]+)").Groups[1].Value;
                     val = new OnlinesSettings(null, encrypt).host;
                 }
 
