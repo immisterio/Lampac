@@ -74,15 +74,25 @@ namespace Lampac.Engine
             if (init.headers == null)
                 return headers;
 
+            return httpHeaders(init.host, HeadersModel.Join(HeadersModel.Init(init.headers), headers));
+        }
+
+        public List<HeadersModel> httpHeaders(string site, List<HeadersModel> _headers)
+        {
+            if (_headers == null)
+                return _headers;
+
+            var headers = new List<HeadersModel>(_headers.Count);
+
             string ip = requestInfo.IP;
             string account_email = HttpContext.Request.Query["account_email"].ToString() ?? string.Empty;
 
-            foreach (var h in init.headers)
+            foreach (var h in _headers)
             {
-                if (string.IsNullOrEmpty(h.Value) || string.IsNullOrEmpty(h.Key))
+                if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                string val = h.Value;
+                string val = h.val;
 
                 if (val.StartsWith("encrypt:"))
                 {
@@ -92,7 +102,7 @@ namespace Lampac.Engine
 
                 val = val.Replace("{account_email}", account_email)
                          .Replace("{ip}", ip)
-                         .Replace("{host}", init.host);
+                         .Replace("{host}", site);
 
                 if (val.Contains("{arg:"))
                 {
@@ -121,8 +131,8 @@ namespace Lampac.Engine
                     }
                 }
 
-                if (headers.Find(i => i.name == h.Key) == null)
-                    headers.Add(new HeadersModel(h.Key, val));
+                if (headers.Find(i => i.name == h.name) == null)
+                    headers.Add(new HeadersModel(h.name, val));
             }
 
             return headers;
@@ -213,7 +223,7 @@ namespace Lampac.Engine
                 if (conf.headers_stream != null && conf.headers_stream.Count > 0)
                     headers = HeadersModel.Init(conf.headers_stream);
 
-                uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+                uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
                 if (AppInit.conf.accsdb.enable)
                     uri = AccsDbInvk.Args(uri, HttpContext);
