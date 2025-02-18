@@ -33,3 +33,4 @@ python -m zipfile -c update.zip *
 
 cd ../
 cat Build/cloudflare/nightlies_update.sh > lpc/update.sh
+cat Build/cloudflare/nightlies_update.sh > ver.sh
