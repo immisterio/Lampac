@@ -280,7 +280,8 @@ namespace Shared.Model
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "encrypt:kwwsv=22kguh}nd1n}2"),
+                ("referer", "{host}/"),
+                ("cookie", "cf_clearance={cf_clearance}"),
                 ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
@@ -293,14 +294,27 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        /// <summary>
-        /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
-        /// </summary>
-        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "oxph{1vsdfh", "fReBbuvVF6Rv") 
+        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "lumex.space", "fReBbuvVF6Rv") 
         {
             enable = false, 
             args_api = "&domain=kinogo.bet&url=kinogo.bet",
-            hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" } 
+            hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" },
+            headers = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("Origin", "https://p.lumex.space"),
+                ("Referer", "https://p.lumex.space/"),
+                ("pragma", "no-cache"),
+                ("priority", "u=1, i"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary()
         };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "kwws=22dsl1yrnlqr1wy", streamproxy: true);
