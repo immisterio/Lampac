@@ -255,7 +255,7 @@ namespace Lampac.Controllers.LITE
                 foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                 {
                     if (max_quality >= q)
-                        streams.Add(($"{q}p", Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")));
+                        streams.Add(($"{q}p", sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4"))));
                 }
 
                 return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));
