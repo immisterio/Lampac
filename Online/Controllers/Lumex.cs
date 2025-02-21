@@ -152,22 +152,7 @@ namespace Lampac.Controllers.LITE
                 if (kinopoisk_id > 0)
                     args += $"&kpId={kinopoisk_id}";
 
-                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args+init.args_api, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
-                    ("accept", "*/*"),
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("origin", $"https://p.{init.iframehost}"),
-                    ("pragma", "no-cache"),
-                    ("priority", "u=1, i"),
-                    ("referer", $"https://p.{init.iframehost}/"),
-                    ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-site"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
-                )));
+                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args+init.args_api, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (string.IsNullOrEmpty(result.content))
                 {
@@ -216,25 +201,10 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lumex/video:{playlist}:{csrf}";
             if (!memoryCache.TryGetValue(memkey, out string hls))
             {
-                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: HeadersModel.Init(
-                    ("accept", "*/*"),
-                    ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                    ("cache-control", "no-cache"),
+                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("cookie", $"x-csrf-token={csrf}"),
-                    ("dnt", "1"),
-                    ("Origin", $"https://p.{init.iframehost}"),
-                    ("Referer", $"https://p.{init.iframehost}/"),
-                    ("pragma", "no-cache"),
-                    ("priority", "u=1, i"),
-                    ("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-site"),
-                    ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
                     ("x-csrf-token", csrf.Split("%")[0])
-                ));
+                )));
 
                 if (result == null || !result.ContainsKey("url"))
                     return OnError();
@@ -255,7 +225,7 @@ namespace Lampac.Controllers.LITE
                 foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                 {
                     if (max_quality >= q)
-                        streams.Add(($"{q}p", Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")));
+                        streams.Add(($"{q}p", sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4"))));
                 }
 
                 return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));

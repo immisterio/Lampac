@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "135";
 
-        public static string minorversion => "4";
+        public static string minorversion => "6";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -102,7 +102,8 @@ namespace Lampac.Engine
 
                 val = val.Replace("{account_email}", account_email)
                          .Replace("{ip}", ip)
-                         .Replace("{host}", site);
+                         .Replace("{host}", site)
+                         .Replace("{cf_clearance}", CrypTo.cf_clearance());
 
                 if (val.Contains("{arg:"))
                 {

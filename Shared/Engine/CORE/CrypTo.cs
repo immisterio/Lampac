@@ -113,15 +113,26 @@ namespace Lampac.Engine.CORE
 
         static string ArrayList => "qwertyuioplkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM1234567890";
         static string ArrayListToNumber => "1234567890";
-        public static string unic(int size = 8, bool IsNumberCode = false)
+        public static string unic(int size = 8, bool IsNumberCode = false, string addArrayList = null)
         {
             StringBuilder array = new StringBuilder();
+            string list = IsNumberCode ? ArrayListToNumber : (ArrayList + addArrayList);
+
             for (int i = 0; i < size; i++)
-            {
-                array.Append(IsNumberCode ? ArrayListToNumber[Random.Shared.Next(0, 9)] : ArrayList[Random.Shared.Next(0, 61)]);
-            }
+                array.Append(list[Random.Shared.Next(0, list.Length)]);
 
             return array.ToString();
+        }
+
+
+        static string _cfclearance = null;
+        public static string cf_clearance()
+        {
+            if (_cfclearance != null)
+                return _cfclearance;
+
+            _cfclearance = $"{unic(43)}-{((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}-1.2.1.1-{unic(299, addArrayList: "._")}";
+            return _cfclearance;
         }
     }
 }
