@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = loadKit(AppInit.conf.Tizam.Clone());
+            var init = await loadKit(AppInit.conf.Tizam);
             if (IsBadInitialization(AppInit.conf.Tizam, out ActionResult action))
                 return action;
 

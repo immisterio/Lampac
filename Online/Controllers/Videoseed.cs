@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videoseed")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false)
         {
-            var init = loadKit(AppInit.conf.Videoseed.Clone());
+            var init = await loadKit(AppInit.conf.Videoseed);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

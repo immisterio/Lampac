@@ -20,7 +20,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/mirage")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Mirage.Clone());
+            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
+            {
+                i.m4s = c.m4s;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -130,11 +135,16 @@ namespace Lampac.Controllers.LITE
         [Route("lite/mirage/video.m3u8")]
         async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
         {
-            var init = loadKit(AppInit.conf.Mirage.Clone());
+            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
+            {
+                i.m4s = c.m4s;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            string memKey = $"mirage:video:{id_file}";
+            string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
                 var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", headers: HeadersModel.Init(
@@ -208,7 +218,12 @@ namespace Lampac.Controllers.LITE
         #region iframe
         async ValueTask<JToken> iframe(string token_movie)
         {
-            var init = loadKit(AppInit.conf.Mirage.Clone());
+            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
+            {
+                i.m4s = c.m4s;
+                return i;
+            });
+
             string memKey = $"mirage:iframe:{token_movie}";
 
             if (!hybridCache.TryGetValue(memKey, out JToken res))
@@ -255,7 +270,11 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
-            var init = loadKit(AppInit.conf.Mirage.Clone());
+            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
+            {
+                i.m4s = c.m4s;
+                return i;
+            });
 
             string memKey = $"mirage:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))

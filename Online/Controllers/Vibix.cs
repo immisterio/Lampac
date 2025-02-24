@@ -9,6 +9,7 @@ using Shared.Model.Templates;
 using Shared.Model.Online;
 using Newtonsoft.Json;
 using System.Web;
+using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -20,14 +21,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vibix")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
         {
-            var init = loadKit(AppInit.conf.Vibix.Clone());
+            var init = await loadKit(AppInit.conf.Vibix);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            JObject data = await search(imdb_id, kinopoisk_id);
+            JObject data = await search(init, imdb_id, kinopoisk_id);
             if (data == null)
                 return OnError();
 
@@ -35,7 +36,7 @@ namespace Lampac.Controllers.LITE
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             string iframe_url = data.Value<string>("iframe_url");
-            var cache = await InvokeCache<JArray>(rch.ipkey($"vibix:iframe:{iframe_url}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<JArray>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -153,14 +154,12 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        async ValueTask<JObject> search(string imdb_id, long kinopoisk_id)
+        async ValueTask<JObject> search(OnlinesSettings init, string imdb_id, long kinopoisk_id)
         {
             string memKey = $"vibix:view:{kinopoisk_id}:{imdb_id}";
 
             if (!hybridCache.TryGetValue(memKey, out JObject root))
             {
-                var init = AppInit.conf.Vibix;
-
                 async ValueTask<JObject> goSearch(string imdb_id, long kinopoisk_id)
                 {
                     if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)

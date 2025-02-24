@@ -15,7 +15,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phub/vidosik")]
         async public Task<ActionResult> Index(string vkey, bool related)
         {
-            var init = loadKit(AppInit.conf.PornHub.Clone());
+            var init = await loadKit(AppInit.conf.PornHub);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -61,7 +61,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem/vidosik")]
         async public Task<ActionResult> Prem(string vkey, bool related)
         {
-            var init = loadKit(AppInit.conf.PornHubPremium.Clone());
+            var init = await loadKit(AppInit.conf.PornHubPremium);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

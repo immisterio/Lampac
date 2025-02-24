@@ -2,7 +2,7 @@
 
 namespace Shared.Model.Online.Settings
 {
-    public class ZetflixSettings : BaseSettings
+    public class ZetflixSettings : BaseSettings, ICloneable
     {
         public ZetflixSettings(string plugin, string host, bool enable = true, bool streamproxy = false, bool rip = false)
         {
@@ -21,6 +21,11 @@ namespace Shared.Model.Online.Settings
         public ZetflixSettings Clone()
         {
             return (ZetflixSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

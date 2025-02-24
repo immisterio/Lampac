@@ -15,7 +15,7 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.HQporner.Clone());
+            var init = await loadKit(AppInit.conf.HQporner);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

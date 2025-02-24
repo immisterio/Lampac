@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/moonanime")]
         async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.MoonAnime.Clone());
+            var init = await loadKit(AppInit.conf.MoonAnime);
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -196,7 +196,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/moonanime/video.m3u8")]
         async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
-            var init = loadKit(AppInit.conf.MoonAnime.Clone());
+            var init = await loadKit(AppInit.conf.MoonAnime);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

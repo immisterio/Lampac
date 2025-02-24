@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinobase")]
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
-            var init = loadKit(AppInit.conf.Kinobase.Clone());
+            var init = await loadKit(AppInit.conf.Kinobase);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

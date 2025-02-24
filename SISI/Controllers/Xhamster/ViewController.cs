@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmr/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = loadKit(AppInit.conf.Xhamster.Clone());
+            var init = await loadKit(AppInit.conf.Xhamster);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

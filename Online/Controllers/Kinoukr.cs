@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinoukr")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Kinoukr.Clone());
+            var init = await loadKit(AppInit.conf.Kinoukr);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
+using Lampac.Models.LITE.KinoPub;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -22,6 +23,8 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Models;
+using Shared.Models.AppConf;
+using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
 using IO = System.IO;
 
 namespace Lampac.Engine
@@ -373,36 +376,62 @@ namespace Lampac.Engine
         #endregion
 
         #region loadKit
-        public T loadKit<T>(T init) where T : BaseSettings
+        public bool IsKitConf { get; private set; }
+
+        async public ValueTask<T> loadKit<T>(T _init, Func<T, T, T> func = null) where T : BaseSettings, ICloneable
         {
+            var init = (T)_init.Clone();
             if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
                 return init;
 
-            string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
-            if (!IO.File.Exists(init_file))
-                return init;
-
-            JObject conf;
-
-            try
+            string memKey = $"loadKit:{requestInfo.user_uid}";
+            if (!memoryCache.TryGetValue(memKey, out JObject appinit))
             {
-                var appinit = JsonConvert.DeserializeObject<JObject>(IO.File.ReadAllText(init_file));
-                if (init.plugin == null || !appinit.ContainsKey(init.plugin))
+                string json = null;
+
+                if (Regex.IsMatch(AppInit.conf.kit.path, "^https?://"))
+                {
+                    string uri = AppInit.conf.kit.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
+                    json = await HttpClient.Get(uri, timeoutSeconds: 5);
+                }
+                else
+                {
+                    string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
+                    if (!IO.File.Exists(init_file))
+                        return init;
+
+                    json = IO.File.ReadAllText(init_file);
+                }
+
+                if (json == null)
                     return init;
 
-                conf = appinit.Value<JObject>(init.plugin);
-            }
-            catch { return init; }
+                try
+                {
+                    appinit = JsonConvert.DeserializeObject<JObject>(json);
+                }
+                catch { return init; }
 
-            void update<T>(string key, Action<T> updateAction)
+                memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
+            }
+
+            if (init.plugin == null || !appinit.ContainsKey(init.plugin))
+                return init;
+
+            var conf = appinit.Value<JObject>(init.plugin);
+
+            void update<T2>(string key, Action<T2> updateAction)
             {
                 if (conf.ContainsKey(key))
-                    updateAction(conf.Value<T>(key));
+                    updateAction(conf.Value<T2>(key));
             }
 
             update<bool>("enable", v => init.enable = v);
             update<string>("displayname", v => init.displayname = v);
             update<int>("displayindex", v => init.displayindex = v);
+
+            update<string>("cookie", v => init.cookie = v);
+            update<string>("token", v => init.token = v);
 
             update<string>("host", v => init.host = v);
             update<string>("apihost", v => init.apihost = v);
@@ -431,11 +460,21 @@ namespace Lampac.Engine
                 init.rhub = false;
                 init.rhub_fallback = false;
             }
-            else if (AppInit.conf.kit.rhub_fallback)
+            else if (AppInit.conf.kit.rhub_fallback || init.rhub_fallback)
             {
                 update<bool>("rhub", v => init.rhub = v);
                 update<bool>("rhub_fallback", v => init.rhub_fallback = v);
             }
+            else
+            {
+                init.rhub = true;
+                init.rhub_fallback = true;
+            }
+
+            IsKitConf = true;
+
+            if (func != null)
+                return func.Invoke(init, conf.ToObject<T>());
 
             return init;
         }

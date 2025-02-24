@@ -15,7 +15,7 @@ namespace Lampac.Controllers.BongaCams
         [Route("bgs")]
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.BongaCams.Clone());
+            var init = await loadKit(AppInit.conf.BongaCams);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

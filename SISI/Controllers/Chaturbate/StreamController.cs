@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu/potok")]
         async public Task<ActionResult> Index(string baba)
         {
-            var init = loadKit(AppInit.conf.Chaturbate.Clone());
+            var init = await loadKit(AppInit.conf.Chaturbate);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

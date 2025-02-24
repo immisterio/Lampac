@@ -20,7 +20,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubsml")]
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.PornHub.Clone());
+            var init = await loadKit(AppInit.conf.PornHub);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -68,7 +68,7 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.PornHubPremium.Clone());
+            var init = await loadKit(AppInit.conf.PornHubPremium);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

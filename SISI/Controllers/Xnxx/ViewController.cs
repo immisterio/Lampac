@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = loadKit(AppInit.conf.Xnxx.Clone());
+            var init = await loadKit(AppInit.conf.Xnxx);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

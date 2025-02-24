@@ -14,7 +14,7 @@ namespace Lampac.Controllers.HQporner
         [Route("hqr/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = loadKit(AppInit.conf.HQporner.Clone());
+            var init = await loadKit(AppInit.conf.HQporner);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

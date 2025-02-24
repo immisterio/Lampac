@@ -12,6 +12,7 @@ using Online;
 using Shared.Engine.Online;
 using Shared.Model.Online.Kodik;
 using Shared.Model.Templates;
+using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -20,10 +21,9 @@ namespace Lampac.Controllers.LITE
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.Kodik);
 
         #region InitKodikInvoke
-        public KodikInvoke InitKodikInvoke()
+        public KodikInvoke InitKodikInvoke(KodikSettings init)
         {
             var proxy = proxyManager.Get();
-            var init = AppInit.conf.Kodik;
 
             return new KodikInvoke
             (
@@ -44,12 +44,18 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Kodik.Clone());
+            var init = await loadKit(AppInit.conf.Kodik, (i, c) =>
+            {
+                i.linkhost = c.linkhost;
+                i.secret_token = c.secret_token;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
             List<Result> content = null;
-            var oninvk = InitKodikInvoke();
+            var oninvk = InitKodikInvoke(init);
 
             if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
@@ -101,7 +107,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/video.m3u8")]
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
-            var init = loadKit(AppInit.conf.Kodik.Clone());
+            var init = await loadKit(AppInit.conf.Kodik, (i, c) =>
+            {
+                i.linkhost = c.linkhost;
+                i.secret_token = c.secret_token;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -121,7 +133,7 @@ namespace Lampac.Controllers.LITE
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"kodik:view:stream:{link}";
+            string memKey = $"kodik:view:stream:{link}:{init.secret_token}";
             if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
@@ -170,11 +182,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/videoparse.m3u8")]
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
-            var init = loadKit(AppInit.conf.Kodik.Clone());
+            var init = await loadKit(AppInit.conf.Kodik, (i, c) =>
+            {
+                i.linkhost = c.linkhost;
+                i.secret_token = c.secret_token;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var oninvk = InitKodikInvoke();
+            var oninvk = InitKodikInvoke(init);
 
             var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40, init: init), () => oninvk.VideoParse(init.linkhost, link), proxyManager);
             if (streams == null)

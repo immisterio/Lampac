@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = loadKit(AppInit.conf.Xvideos.Clone());
+            var init = await loadKit(AppInit.conf.Xvideos);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

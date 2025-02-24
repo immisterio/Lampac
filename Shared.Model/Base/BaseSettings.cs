@@ -1,6 +1,6 @@
 ﻿namespace Shared.Model.Base
 {
-    public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup
+    public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup , ICloneable
     {
         public bool enable { get; set; }
 
@@ -39,6 +39,10 @@
         public string? scheme { get; set; }
 
         public bool hls { get; set; }
+
+        public string? cookie { get; set; }
+
+        public string? token { get; set; }
 
         public Dictionary<string, string>? headers { get; set; }
 
@@ -110,6 +114,11 @@
                 return new string(buffer);
             }
             catch { return null; }
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

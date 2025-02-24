@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnmovies")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.CDNmovies.Clone());
+            var init = await loadKit(AppInit.conf.CDNmovies);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/zetflix")]
         async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Zetflix.Clone());
+            var init = await loadKit(AppInit.conf.Zetflix);
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 

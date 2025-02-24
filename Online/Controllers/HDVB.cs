@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.HDVB.Clone());
+            var init = await loadKit(AppInit.conf.HDVB);
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -119,7 +119,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/video.m3u8")]
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
-            var init = loadKit(AppInit.conf.HDVB.Clone());
+            var init = await loadKit(AppInit.conf.HDVB);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -192,7 +192,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hdvb/serial.m3u8")]
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
-            var init = loadKit(AppInit.conf.HDVB.Clone());
+            var init = await loadKit(AppInit.conf.HDVB);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -264,7 +264,7 @@ namespace Lampac.Controllers.LITE
 
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
-                var init = loadKit(AppInit.conf.HDVB.Clone());
+                var init = await loadKit(AppInit.conf.HDVB);
 
                 root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                 if (root == null)

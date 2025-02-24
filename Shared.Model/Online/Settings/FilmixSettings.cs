@@ -2,7 +2,7 @@
 
 namespace Lampac.Models.LITE
 {
-    public class FilmixSettings : BaseSettings
+    public class FilmixSettings : BaseSettings, ICloneable
     {
         public FilmixSettings(string plugin, string host, bool enable = true)
         {
@@ -14,12 +14,9 @@ namespace Lampac.Models.LITE
         }
 
 
-        public bool pro { get; set; }
-
-        public string? token { get; set; }
-
         public string[]? tokens { get; set; }
 
+        public bool pro { get; set; }
 
         public bool livehash { get; set; }
 
@@ -44,6 +41,11 @@ namespace Lampac.Models.LITE
         public FilmixSettings Clone()
         {
             return (FilmixSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

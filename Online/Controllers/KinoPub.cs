@@ -56,7 +56,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinopub")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.KinoPub.Clone());
+            var init = await loadKit(AppInit.conf.KinoPub, (i, c) =>
+            {
+                i.tokens = c.tokens;
+                i.filetype = c.filetype;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -96,7 +102,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}:{token}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

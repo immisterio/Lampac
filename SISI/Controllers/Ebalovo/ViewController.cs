@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Ebalovo
         [Route("elo/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = loadKit(AppInit.conf.Ebalovo.Clone());
+            var init = await loadKit(AppInit.conf.Ebalovo);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

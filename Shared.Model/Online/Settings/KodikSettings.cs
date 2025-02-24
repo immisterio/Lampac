@@ -2,7 +2,7 @@
 
 namespace Lampac.Models.LITE
 {
-    public class KodikSettings : BaseSettings
+    public class KodikSettings : BaseSettings, ICloneable
     {
         public KodikSettings(string plugin, string apihost, string linkhost, string token, string secret_token, bool localip, bool enable = true, bool hls = true, bool streamproxy = false)
         {
@@ -19,17 +19,20 @@ namespace Lampac.Models.LITE
         }
 
 
+        public string? secret_token { get; set; }
+
         public string linkhost { get; set; }
-
-        public string token { get; set; }
-
-        public string secret_token { get; set; }
 
         public bool localip { get; set; }
 
         public KodikSettings Clone()
         {
             return (KodikSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

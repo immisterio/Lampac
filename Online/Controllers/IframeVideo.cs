@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            var init = loadKit(AppInit.conf.IframeVideo);
+            var init = await loadKit(AppInit.conf.IframeVideo);
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo/video.m3u8")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
-            var init = loadKit(AppInit.conf.IframeVideo);
+            var init = await loadKit(AppInit.conf.IframeVideo);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

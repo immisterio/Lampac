@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Eporner
         [Route("epr")]
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.Eporner.Clone());
+            var init = await loadKit(AppInit.conf.Eporner);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

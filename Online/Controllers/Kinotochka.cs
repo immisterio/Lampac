@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinotochka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Kinotochka.Clone());
+            var init = await loadKit(AppInit.conf.Kinotochka);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

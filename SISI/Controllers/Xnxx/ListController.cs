@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Xnxx
         [Route("xnx")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.Xnxx.Clone());
+            var init = await loadKit(AppInit.conf.Xnxx);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

@@ -21,10 +21,8 @@ namespace Lampac.Controllers.LITE
         #region InitRezkaInvoke
         static string uid = null, typeuid = null;
 
-        List<HeadersModel> apiHeaders(string cookie)
+        List<HeadersModel> apiHeaders(RezkaSettings init, string cookie)
         {
-            var init = loadKit(AppInit.conf.RezkaPrem.Clone());
-
             return httpHeaders(init, HeadersModel.Init(
                ("X-Lampac-App", "1"),
                ("X-Lampac-Version", $"{appversion}.{minorversion}"),
@@ -34,9 +32,8 @@ namespace Lampac.Controllers.LITE
             ));
         }
 
-        async public ValueTask<(RezkaInvoke invk, string log)> InitRezkaInvoke()
+        async public ValueTask<(RezkaInvoke invk, string log)> InitRezkaInvoke(RezkaSettings init)
         {
-            var init = loadKit(AppInit.conf.RezkaPrem.Clone());
             init.host = new RezkaSettings(null, "kwwsv=22odps1df").host;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
@@ -90,7 +87,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(cook.cookie))
                 return (null, cook.log);
 
-            var headers = apiHeaders(cook.cookie);
+            var headers = apiHeaders(init, cook.cookie);
 
             string country = requestInfo.Country;
 
@@ -105,7 +102,7 @@ namespace Lampac.Controllers.LITE
                 host,
                 init.host,
                 init.scheme,
-                MaybeInHls(init.hls, init),
+                init.hls,
                 true,
                 (url, _) => rch.enable ? rch.Get(url, headers) : HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search")),
                 (url, data, _) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
@@ -152,7 +149,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rhsprem")]
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
-            var init = loadKit(AppInit.conf.RezkaPrem.Clone());
+            var init = await loadKit(AppInit.conf.RezkaPrem);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -171,9 +168,9 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
 
-            var onrezka = await InitRezkaInvoke();
+            var onrezka = await InitRezkaInvoke(init);
             if (onrezka.invk == null)
-            return OnError("authorization error ;(", weblog: onrezka.log);
+                return OnError("authorization error ;(", weblog: onrezka.log);
 
             var oninvk = onrezka.invk;
 
@@ -200,14 +197,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rhsprem/serial")]
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.RezkaPrem.Clone());
+            var init = await loadKit(AppInit.conf.RezkaPrem);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError("href/title = null");
 
-            var onrezka = await InitRezkaInvoke();
+            var onrezka = await InitRezkaInvoke(init);
             if (onrezka.invk == null)
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
@@ -248,11 +245,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rhsprem/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            var init = loadKit(AppInit.conf.RezkaPrem.Clone());
+            var init = await loadKit(AppInit.conf.RezkaPrem);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
-            var onrezka = await InitRezkaInvoke();
+            var onrezka = await InitRezkaInvoke(init);
             if (onrezka.invk == null)
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
@@ -261,7 +258,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
 
-            var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{init.cookie}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -323,7 +320,7 @@ namespace Lampac.Controllers.LITE
                 {
                     client.Timeout = TimeSpan.FromSeconds(15);
 
-                    foreach (var item in apiHeaders(string.Empty))
+                    foreach (var item in apiHeaders(init, string.Empty))
                         client.DefaultRequestHeaders.Add(item.name, item.val);
 
                     var postParams = new Dictionary<string, string>

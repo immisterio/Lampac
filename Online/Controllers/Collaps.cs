@@ -16,7 +16,13 @@ namespace Lampac.Controllers.LITE
         [Route("lite/collaps-dash")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Collaps.Clone());
+            var init = await loadKit(AppInit.conf.Collaps, (i, c) =>
+            {
+                i.two = c.two;
+                i.dash = c.dash;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

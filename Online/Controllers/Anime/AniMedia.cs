@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animedia")]
         async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.AniMedia.Clone());
+            var init = await loadKit(AppInit.conf.AniMedia);
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 

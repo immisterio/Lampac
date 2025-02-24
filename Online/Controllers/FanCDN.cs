@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fancdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.FanCDN.Clone());
+            var init = await loadKit(AppInit.conf.FanCDN);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 

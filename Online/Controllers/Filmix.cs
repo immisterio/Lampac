@@ -41,7 +41,16 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Filmix.Clone());
+            var init = await loadKit(AppInit.conf.Filmix, (i, c) =>
+            {
+                i.pro = c.pro;
+                i.tokens = c.tokens;
+                i.user_apitv = c.user_apitv;
+                i.token_apitv = c.token_apitv;
+                i.livehash = c.livehash;
+                return i;
+            });
+
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -56,7 +65,7 @@ namespace Lampac.Controllers.LITE
             #region filmix.tv
             if (!rch.enable && !string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))
             {
-                string accessToken = await InvokeCache("filmix:accessToken", TimeSpan.FromHours(8), async () => 
+                string accessToken = await InvokeCache($"filmix:accessToken:{init.user_apitv}:{init.token_apitv}", TimeSpan.FromHours(8), async () => 
                 {
                     var content = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\"}}", Encoding.UTF8, "application/json"); ;
                     var jobject = await HttpClient.Post<JObject>("https://api.filmix.tv/api-fx/auth", content, timeoutSeconds: 8);
@@ -108,7 +117,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, inmemory: true, onget: async res =>
+            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}:{token}", cacheTime(20, init: init), rch.enable ? null : proxyManager, inmemory: true, onget: async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -125,7 +134,7 @@ namespace Lampac.Controllers.LITE
 
         async ValueTask<string> getLiveHash(FilmixSettings init)
         {
-            string memKey = $"filmix:ChangeLink:hashfimix";
+            string memKey = $"filmix:ChangeLink:hashfimix:{init.token_apitv}";
             if (!memoryCache.TryGetValue(memKey, out string hash))
             {
                 if (!string.IsNullOrEmpty(init.token_apitv))

@@ -31,7 +31,7 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        public static void SendOnline(VokinoSettings init, List<(string name, string url, string plugin, int index)> online, bool bwa = false)
+        public static void SendOnline(VokinoSettings init, List<(dynamic init, string name, string url, string plugin, int index)> online, bool bwa = false)
         {
             var on = init.online;
 
@@ -45,7 +45,7 @@ namespace Shared.Engine.Online
                 if (name != "VoKino")
                     displayname = $"{name} ({init.displayname ?? "VoKino"})";
 
-                online.Add((displayname, url, (name == "VoKino" ? "vokino" : $"vokino-{name.ToLower()}"), init.displayindex > 0 ? (init.displayindex + x) : online.Count));
+                online.Add((init, displayname, url, (name == "VoKino" ? "vokino" : $"vokino-{name.ToLower()}"), init.displayindex > 0 ? (init.displayindex + x) : online.Count));
             }
 
             if (on.vokino)

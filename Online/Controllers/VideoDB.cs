@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videodb")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
-            var init = loadKit(AppInit.conf.VideoDB.Clone());
+            var init = await loadKit(AppInit.conf.VideoDB);
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videodb/manifest.m3u8")]
         async public Task<ActionResult> Manifest(string link, bool serial)
         {
-            var init = loadKit(AppInit.conf.VideoDB.Clone());
+            var init = await loadKit(AppInit.conf.VideoDB);
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
