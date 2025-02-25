@@ -4,6 +4,8 @@
     {
         public bool enable { get; set; }
 
+        public bool kit { get; set; } = true;
+
         public string plugin { get; set; }
 
         public int group { get; set; }
