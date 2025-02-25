@@ -365,8 +365,10 @@ namespace Lampac.Controllers
             {
                 var init = myinit != null ? _init : await loadKit(_init);
                 bool enable = init.enable && !init.rip;
+                if (!enable)
+                    return;
 
-                if (enable && init.rhub && !init.rhub_fallback)
+                if (init.rhub && !init.rhub_fallback)
                 {
                     if (rch_access != null && rchtype != null) 
                     {
@@ -480,6 +482,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
+            #region Filmix
             {
                 var myinit = await loadKit(conf.Filmix, (j, i, c) => 
                 { 
@@ -493,6 +496,9 @@ namespace Lampac.Controllers
 
             await send(conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             await send(conf.FilmixPartner, "fxapi", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            #endregion
+
+            #region KinoPub
             await send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
 
             {
@@ -505,7 +511,9 @@ namespace Lampac.Controllers
 
                 await send(myinit, myinit: myinit);
             }
+            #endregion
 
+            #region Rezka
             {
                 var rezka = await loadKit(conf.RezkaPrem, (j, i, c) => 
                 {
@@ -528,6 +536,7 @@ namespace Lampac.Controllers
                     await send(myinit, myinit: myinit);
                 }
             }
+            #endregion
 
             await send(conf.Mirage);
 
@@ -578,19 +587,23 @@ namespace Lampac.Controllers
             if (!isanime)
                 await send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
 
-            if (AppInit.conf.Collaps.two && !AppInit.conf.Collaps.dash)
-                await send(conf.Collaps, "collaps-dash", "Collaps (dash)", rch_access: "apk");
-
+            #region Collaps
             {
                 var myinit = await loadKit(conf.Collaps, (j, i, c) => 
                 {
                     if (j.ContainsKey("dash"))
-                        i.dash = c.dash; 
+                        i.dash = c.dash;
+                    if (j.ContainsKey("two"))
+                        i.two = c.two;
                     return i; 
                 });
 
+                if (myinit.two && !myinit.dash)
+                    await send(myinit, "collaps-dash", "Collaps (dash)", rch_access: "apk");
+
                 await send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
             }
+            #endregion
 
             if (serial == -1 || serial == 0)
                 await send(conf.Redheadsound, rch_access: "apk");

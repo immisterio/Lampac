@@ -378,7 +378,6 @@ namespace Lampac.Engine
         #region loadKit
         public bool IsKitConf { get; private set; }
 
-        // , Func<T, T, T> func = null
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
         {
             var init = (T)_init.Clone();
