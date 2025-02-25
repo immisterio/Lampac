@@ -437,8 +437,10 @@ namespace Lampac.Engine
             update<string>("apihost", v => init.apihost = v);
             update<string>("scheme", v => init.scheme = v);
             update<bool>("hls", v => init.hls = v);
-            update<Dictionary<string, string>>("headers", v => init.headers = v);
             update<string>("overridehost", v => init.overridehost = v);
+
+            if (conf.ContainsKey("headers"))
+                init.headers = conf["headers"].ToObject<Dictionary<string, string>>();
 
             init.apnstream = true;
             if (conf.ContainsKey("apn"))
@@ -446,7 +448,8 @@ namespace Lampac.Engine
 
             init.useproxystream = false;
             update<bool>("streamproxy", v => init.streamproxy = v);
-            update<string[]>("geostreamproxy", v => init.geostreamproxy = v);
+            if (conf.ContainsKey("geostreamproxy"))
+                init.geostreamproxy = conf["geostreamproxy"].ToObject<string[]>();
 
             if (conf.ContainsKey("proxy"))
             {

@@ -95,11 +95,14 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings init, string plugin = null, string rch_access = null, string media_access = null)
+            async ValueTask send(string name, BaseSettings _init, string plugin = null, string rch_access = null, string media_access = null)
             {
+                var init = await loadKit(_init);
                 bool enable = init.enable && !init.rip;
+                if (!enable)
+                    return;
 
-                if (enable && init.rhub && !init.rhub_fallback)
+                if (init.rhub && !init.rhub_fallback)
                 {
                     if (rch_access != null && rchtype != null)
                     {
@@ -112,7 +115,10 @@ namespace SISI
                     }
                 }
 
-                if (enable && !init.qualitys_proxy && media_access != null && rchtype != null)
+                if (!enable)
+                    return;
+
+                if (!init.qualitys_proxy && media_access != null && rchtype != null)
                     enable = media_access.Contains(rchtype);
 
                 if (init.geo_hide != null)
@@ -145,20 +151,20 @@ namespace SISI
             #endregion
 
 
-            send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
-            send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
-            send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
-            send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
-            send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
-            send("spankbang.com", conf.Spankbang, "sbg");
-            send("eporner.com", conf.Eporner, "epr", "apk,cors");
-            send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
-            send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
-            send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
-            send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
-            send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
-            send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
+            await send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
+            await send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
+            await send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
+            await send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
+            await send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
+            await send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
+            await send("spankbang.com", conf.Spankbang, "sbg");
+            await send("eporner.com", conf.Eporner, "epr", "apk,cors");
+            await send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
+            await send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
+            await send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
+            await send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
+            await send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
+            await send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
 
             if (conf.sisi.xdb)
