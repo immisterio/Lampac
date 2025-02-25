@@ -19,16 +19,29 @@ namespace Lampac.Controllers.LITE
     {
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.Alloha);
 
+        #region Initialization
+        ValueTask<AllohaSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.Alloha, (j, i, c) =>
+            {
+                if (j.ContainsKey("m4s"))
+                    i.m4s = c.m4s;
+
+                if (j.ContainsKey("linkhost"))
+                    i.linkhost = c.linkhost;
+
+                i.secret_token = c.secret_token;
+                i.token = c.token;
+                return i;
+            });
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/alloha")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Alloha, (i, c) =>
-            {
-                i.token = c.token;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -136,14 +149,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha/video.m3u8")]
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
-            var init = await loadKit(AppInit.conf.Alloha, (i, c) =>
-            {
-                i.m4s = c.m4s;
-                i.linkhost = c.linkhost;
-                i.secret_token = c.secret_token;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

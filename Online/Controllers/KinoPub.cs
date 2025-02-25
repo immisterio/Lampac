@@ -56,10 +56,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinopub")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.KinoPub, (i, c) =>
+            var init = await loadKit(AppInit.conf.KinoPub, (j, i, c) =>
             {
+                if (j.ContainsKey("filetype"))
+                    i.filetype = c.filetype;
                 i.tokens = c.tokens;
-                i.filetype = c.filetype;
                 return i;
             });
 

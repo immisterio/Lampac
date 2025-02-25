@@ -55,16 +55,30 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region Initialization
+        ValueTask<RezkaSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.Rezka, (j, i, c) =>
+            {
+                if (j.ContainsKey("premium"))
+                    i.premium = c.premium;
+
+                if (j.ContainsKey("uacdn"))
+                    i.uacdn = c.uacdn;
+
+                if (j.ContainsKey("forceua"))
+                    i.forceua = c.forceua;
+
+                return i;
+            });
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
-            var init = await loadKit(AppInit.conf.Rezka, (i, c) =>
-            {
-                i.premium = c.premium;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action, rch: true))
                 return action;
 
@@ -119,12 +133,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/serial")]
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Rezka, (i, c) =>
-            {
-                i.premium = c.premium;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -156,12 +165,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.Rezka, (i, c) =>
-            {
-                i.premium = c.premium;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

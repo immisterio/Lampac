@@ -448,9 +448,11 @@ namespace Lampac.Controllers
 
             #region VoKino
             {
-                var myinit = await loadKit(conf.VoKino, (i, c) => 
+                var myinit = await loadKit(conf.VoKino, (j, i, c) => 
                 {
-                    i.online = c.online;
+                    if (j.ContainsKey("online"))
+                        i.online = c.online;
+
                     return i;
                 });
 
@@ -479,7 +481,13 @@ namespace Lampac.Controllers
             #endregion
 
             {
-                var myinit = await loadKit(conf.Filmix, (i, c) => { i.pro = c.pro; return i; });
+                var myinit = await loadKit(conf.Filmix, (j, i, c) => 
+                { 
+                    if (j.ContainsKey("pro"))
+                        i.pro = c.pro; 
+                    return i; 
+                });
+
                 await send(myinit, arg_url: (source == "filmix" ? $"?postid={id}" : ""), myinit: myinit);
             }
 
@@ -488,17 +496,35 @@ namespace Lampac.Controllers
             await send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
 
             {
-                var myinit = await loadKit(conf.Alloha, (i, c) => { i.m4s = c.m4s; return i; });
+                var myinit = await loadKit(conf.Alloha, (j, i, c) => 
+                { 
+                    if (j.ContainsKey("m4s"))
+                        i.m4s = c.m4s;
+                    return i; 
+                });
+
                 await send(myinit, myinit: myinit);
             }
 
             {
-                var rezka = await loadKit(conf.RezkaPrem, (i, c) => { i.premium = c.premium; return i; });
+                var rezka = await loadKit(conf.RezkaPrem, (j, i, c) => 
+                {
+                    if (j.ContainsKey("premium"))
+                        i.premium = c.premium; 
+                    return i; 
+                });
+
                 await send(rezka, "rhsprem", "HDRezka", myinit: rezka);
 
                 if (!rezka.enable)
                 {
-                    var myinit = await loadKit(conf.Rezka, (i, c) => { i.premium = c.premium; return i; });
+                    var myinit = await loadKit(conf.Rezka, (j, i, c) =>
+                    {
+                        if (j.ContainsKey("premium"))
+                            i.premium = c.premium;
+                        return i;
+                    });
+
                     await send(myinit, myinit: myinit);
                 }
             }
@@ -556,7 +582,13 @@ namespace Lampac.Controllers
                 await send(conf.Collaps, "collaps-dash", "Collaps (dash)", rch_access: "apk");
 
             {
-                var myinit = await loadKit(conf.Collaps, (i, c) => { i.dash = c.dash; return i; });
+                var myinit = await loadKit(conf.Collaps, (j, i, c) => 
+                {
+                    if (j.ContainsKey("dash"))
+                        i.dash = c.dash; 
+                    return i; 
+                });
+
                 await send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
             }
 

@@ -11,21 +11,27 @@ using Shared.Model.Templates;
 using Shared.Model.Online;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
     public class Mirage : BaseOnlineController
     {
+        ValueTask<AllohaSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.Mirage, (j, i, c) =>
+            {
+                if (j.ContainsKey("m4s"))
+                    i.m4s = c.m4s;
+                return i;
+            });
+        }
+
         [HttpGet]
         [Route("lite/mirage")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
-            {
-                i.m4s = c.m4s;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -135,12 +141,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/mirage/video.m3u8")]
         async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
         {
-            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
-            {
-                i.m4s = c.m4s;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -218,12 +219,7 @@ namespace Lampac.Controllers.LITE
         #region iframe
         async ValueTask<JToken> iframe(string token_movie)
         {
-            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
-            {
-                i.m4s = c.m4s;
-                return i;
-            });
-
+            var init = await Initialization();
             string memKey = $"mirage:iframe:{token_movie}";
 
             if (!hybridCache.TryGetValue(memKey, out JToken res))
@@ -270,12 +266,7 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
-            var init = await loadKit(AppInit.conf.Mirage, (i, c) =>
-            {
-                i.m4s = c.m4s;
-                return i;
-            });
-
+            var init = await Initialization();
             string memKey = $"mirage:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"mirage:viewsearch:{title}:{serial}:{original_language}:{year}";

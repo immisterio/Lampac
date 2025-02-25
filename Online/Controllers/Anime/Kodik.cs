@@ -40,17 +40,25 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        ValueTask<KodikSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.Kodik, (j, i, c) =>
+            {
+                if (j.ContainsKey("linkhost"))
+                    i.linkhost = c.linkhost;
+
+                if (j.ContainsKey("secret_token"))
+                    i.secret_token = c.secret_token;
+
+                return i;
+            });
+        }
+
         [HttpGet]
         [Route("lite/kodik")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Kodik, (i, c) =>
-            {
-                i.linkhost = c.linkhost;
-                i.secret_token = c.secret_token;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action, rch: false))
                 return action;
 
@@ -107,13 +115,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/video.m3u8")]
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
-            var init = await loadKit(AppInit.conf.Kodik, (i, c) =>
-            {
-                i.linkhost = c.linkhost;
-                i.secret_token = c.secret_token;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 
@@ -182,13 +184,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kodik/videoparse.m3u8")]
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
-            var init = await loadKit(AppInit.conf.Kodik, (i, c) =>
-            {
-                i.linkhost = c.linkhost;
-                i.secret_token = c.secret_token;
-                return i;
-            });
-
+            var init = await Initialization();
             if (IsBadInitialization(init, out ActionResult action))
                 return action;
 

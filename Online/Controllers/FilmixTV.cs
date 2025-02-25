@@ -23,9 +23,10 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmixtv")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.FilmixTV, (i, c) =>
+            var init = await loadKit(AppInit.conf.FilmixTV, (j, i, c) =>
             {
-                i.pro = c.pro;
+                if (j.ContainsKey("pro"))
+                    i.pro = c.pro;
                 i.user_apitv = c.user_apitv;
                 i.passwd_apitv = c.passwd_apitv;
                 return i;

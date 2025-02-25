@@ -41,7 +41,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmix")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Filmix, (i, c) =>
+            var init = await loadKit(AppInit.conf.Filmix, (j, i, c) =>
             {
                 i.pro = c.pro;
                 i.tokens = c.tokens;

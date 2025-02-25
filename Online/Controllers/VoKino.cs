@@ -51,9 +51,10 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.VoKino, (i, c) => 
-            { 
-                i.online = c.online; 
+            var init = await loadKit(AppInit.conf.VoKino, (j, i, c) => 
+            {
+                if (j.ContainsKey("online"))
+                    i.online = c.online;
                 return i; 
             });
 

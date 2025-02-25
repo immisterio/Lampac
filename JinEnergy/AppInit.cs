@@ -67,7 +67,7 @@ namespace JinEnergy
         {
             try
             {
-                string? geo = await JsHttpClient.Get("https://geo.cub.red");
+                string? geo = await JsHttpClient.Get("https://rc.bwa.to/geo?select=country");
                 if (geo != null)
                     Country = geo;
 
