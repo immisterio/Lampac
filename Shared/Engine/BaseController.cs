@@ -381,7 +381,7 @@ namespace Lampac.Engine
         async public ValueTask<T> loadKit<T>(T _init, Func<T, T, T> func = null) where T : BaseSettings, ICloneable
         {
             var init = (T)_init.Clone();
-            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
+            if (!init.kit || !AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
                 return init;
 
             string memKey = $"loadKit:{requestInfo.user_uid}";
