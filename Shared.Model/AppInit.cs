@@ -236,7 +236,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22odylvk0vpdvk1fgqprylhv0vwuhdp1rqolqh") 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22xjo|0wxunh|1fgqprylhv0vwuhdp1rqolqh") 
         {
             geostreamproxy = new string[] { "ALL" },
             headers = HeadersModel.Init(
@@ -245,7 +245,7 @@ namespace Shared.Model
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "encrypt:kwwsv=22eroo|zrrgwy1foxe2"),
+                ("referer", "encrypt:kwwsv=22nlqrrqolqh0kg1frp2"),
                 ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),

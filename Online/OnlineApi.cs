@@ -19,7 +19,6 @@ using Shared.Engine;
 using Shared.Engine.Online;
 using System.Data;
 using System.Collections.Concurrent;
-using Lampac.Models.AppConf;
 
 namespace Lampac.Controllers
 {

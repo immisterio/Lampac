@@ -308,7 +308,7 @@ namespace Lampac
 
         public AccsConf accsdb = new AccsConf() 
         { 
-            authMesage = "Войдите в аккаунт cub.red",
+            authMesage = "Войдите в аккаунт - настройки, синхронизация",
             denyMesage = "Добавьте {account_email} в init.conf",
             denyGroupMesage = "У вас нет прав для просмотра этой страницы",
             expiresMesage = "Время доступа для {account_email} истекло в {expires}",

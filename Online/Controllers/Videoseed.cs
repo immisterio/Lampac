@@ -35,8 +35,21 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                html = rch.enable ? await rch.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", headers: httpHeaders(init)) :
-                                    await HttpClient.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
+                string uri = $"{init.host}/api_player.php?kp_id={kinopoisk_id}&token=undefined";
+                string embed = rch.enable ? await rch.Get(uri, headers: httpHeaders(init)) :
+                                            await HttpClient.Get(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
+
+                if (embed == null || !embed.Contains("/embed"))
+                {
+                    if (rch.enable)
+                        return OnError(null, gbcache: !rch.enable);
+
+                    proxyManager.Refresh();
+                    return OnError();
+                }
+
+                html = rch.enable ? await rch.Get(embed, headers: httpHeaders(init)) :
+                                    await HttpClient.Get(embed, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
 
                 if (html == null || !html.Contains("Playerjs"))
                 {
