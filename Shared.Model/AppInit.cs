@@ -257,9 +257,27 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v41idqvhuldo1wy") 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v61idqvhuldo1wy") 
         { 
             streamproxy = true,
+            headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("referer", "encrypt:kwwsv=22kguh}nd1n}2"),
+                ("cookie", "cf_clearance={cf_clearance}"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "iframe"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "cross-site"),
+                ("sec-fetch-storage-access", "active"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
                 ("cache-control", "no-cache"),
@@ -274,24 +292,6 @@ namespace Shared.Model
                 ("sec-fetch-site", "same-site"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary(),
-            headers = HeadersModel.Init(
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("referer", "{host}/"),
-                ("cookie", "cf_clearance={cf_clearance}"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "iframe"),
-                ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "cross-site"),
-                ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
-            ).ToDictionary()
         };
 
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "lumex.space", "fReBbuvVF6Rv") 
