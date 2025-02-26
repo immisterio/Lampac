@@ -428,7 +428,7 @@ namespace Lampac.Controllers
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
-                    online.Add((myinit, $"{displayname}{arg_title}", url, plugin ?? (init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
+                    online.Add((myinit, $"{displayname}{arg_title}", url, (plugin ?? init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
             #endregion
@@ -438,10 +438,10 @@ namespace Lampac.Controllers
 
             if (serial == -1 || isanime)
             {
-                await send(conf.AnilibriaOnline);
+                await send(conf.AnilibriaOnline, "anilibria");
                 await send(conf.AnimeLib);
                 await send(conf.Animevost, rch_access: "apk,cors");
-                await send(conf.MoonAnime, "moonanime");
+                await send(conf.MoonAnime);
                 await send(conf.Animebesst, rch_access: "apk");
                 await send(conf.AnimeGo);
                 await send(conf.AniMedia);
