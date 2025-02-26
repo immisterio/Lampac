@@ -208,7 +208,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string? player = StringConvert.FindLastText(content, "new Playerjs", "</script>");
+            string? player = StringConvert.FindLastText(content, "new TortugaCore", "</script>");
             if (player == null)
                 return null;
 
