@@ -19,8 +19,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Zetflix);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (kinopoisk_id == 0)
                 return OnError();

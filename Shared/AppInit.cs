@@ -189,7 +189,7 @@ namespace Lampac
                         {
                             mod.assembly = Assembly.LoadFile(path);
 
-                            if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
+                            if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                 m.Invoke(null, new object[] { });
 
                             modules.Add(mod);

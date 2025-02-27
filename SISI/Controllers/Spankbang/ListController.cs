@@ -16,8 +16,8 @@ namespace Lampac.Controllers.Spankbang
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

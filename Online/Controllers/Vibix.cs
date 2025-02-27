@@ -22,8 +22,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
         {
             var init = await loadKit(AppInit.conf.Vibix);
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
                 return OnError();

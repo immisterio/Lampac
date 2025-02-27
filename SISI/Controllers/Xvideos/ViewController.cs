@@ -15,8 +15,8 @@ namespace Lampac.Controllers.Xvideos
         async public Task<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

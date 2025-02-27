@@ -17,8 +17,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, int s = -1)
         {
             var init = await loadKit(AppInit.conf.Kinobase);
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrEmpty(title) || year == 0)
                 return OnError();

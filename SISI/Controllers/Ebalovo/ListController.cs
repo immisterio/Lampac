@@ -16,8 +16,8 @@ namespace Lampac.Controllers.Ebalovo
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Ebalovo);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

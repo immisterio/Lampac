@@ -25,8 +25,8 @@ namespace Lampac.Controllers.LITE
                 return i;
             });
 
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();

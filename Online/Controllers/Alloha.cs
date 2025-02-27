@@ -42,8 +42,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await Initialization();
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             var result = await search(init, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
@@ -150,8 +150,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = await Initialization();
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxy = proxyManager.Get();
 

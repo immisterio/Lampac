@@ -17,8 +17,8 @@ namespace Lampac.Controllers.Porntrex
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"ptx:{search}:{sort}:{c}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

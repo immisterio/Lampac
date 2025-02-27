@@ -1,5 +1,6 @@
 ﻿using Lampac;
 using Lampac.Engine;
+using Lampac.Models.Module;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,10 +9,13 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
+using Shared.Models.Module;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace SISI
 {
@@ -20,29 +24,58 @@ namespace SISI
         public SisiSettings init { get; private set; }
 
         #region IsBadInitialization
-        public bool IsBadInitialization(SisiSettings init, out ActionResult result)
+        async public ValueTask<bool> IsBadInitialization(SisiSettings init, bool? rch = null)
         {
-            this.init = init.Clone();
-
-            if (!init.enable)
+            if (AppInit.modules != null)
             {
-                result = OnError("disable");
+                var args = new InitializationModel(init, rch);
+
+                foreach (RootModule mod in AppInit.modules.Where(i => i.initialization != null))
+                {
+                    try
+                    {
+                        if (mod.assembly.GetType(mod.NamespacePath(mod.initialization)) is Type t)
+                        {
+                            if (t.GetMethod("Invoke") is MethodInfo m2)
+                            {
+                                badInitMsg = (ActionResult)m2.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                if (badInitMsg != null)
+                                    return true;
+                            }
+
+                            if (t.GetMethod("InvokeAsync") is MethodInfo m)
+                            {
+                                badInitMsg = await (Task<ActionResult>)m.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                if (badInitMsg != null)
+                                    return true;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            this.init = init;
+
+            if (!init.enable || init.rip)
+            {
+                badInitMsg = OnError("disable");
                 return true;
             }
 
             if (NoAccessGroup(init, out string error_msg))
             {
-                result = OnError(error_msg, false);
+                badInitMsg = OnError(error_msg, false);
                 return true;
             }
 
             if (IsOverridehost(init, out string overridehost))
             {
-                result = Redirect(overridehost);
+                badInitMsg = Redirect(overridehost);
                 return true;
             }
 
-            return IsCacheError(init, out result);
+            return IsCacheError(init);
         }
         #endregion
 

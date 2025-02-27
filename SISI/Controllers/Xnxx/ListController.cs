@@ -16,8 +16,8 @@ namespace Lampac.Controllers.Xnxx
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xnxx);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"xnx:list:{search}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))

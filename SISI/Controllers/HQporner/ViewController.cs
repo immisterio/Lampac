@@ -15,8 +15,8 @@ namespace Lampac.Controllers.HQporner
         async public Task<ActionResult> Index(string uri)
         {
             var init = await loadKit(AppInit.conf.HQporner);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager(init);

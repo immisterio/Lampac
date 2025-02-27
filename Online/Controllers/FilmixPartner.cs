@@ -25,8 +25,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.FilmixPartner);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (postid == 0)
             {

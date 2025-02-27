@@ -32,8 +32,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool rjson = false)
         {
             var init = await Initialization();
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0 || result.data == null)
@@ -142,8 +142,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
         {
             var init = await Initialization();
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))

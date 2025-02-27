@@ -23,8 +23,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Lumex);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
@@ -192,8 +192,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
             var init = await loadKit(AppInit.conf.Lumex);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

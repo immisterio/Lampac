@@ -35,7 +35,7 @@ namespace Lampac.Engine
 
         public static string appversion => "135";
 
-        public static string minorversion => "11";
+        public static string minorversion => "12";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -44,6 +44,8 @@ namespace Lampac.Engine
         public RequestModel requestInfo => HttpContext?.Features?.Get<RequestModel>();
 
         public string host => AppInit.Host(HttpContext);
+
+        public ActionResult badInitMsg { get; set; }
 
         public BaseController()
         {
@@ -54,6 +56,7 @@ namespace Lampac.Engine
             memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
         }
 
+        #region mylocalip
         async public ValueTask<string> mylocalip()
         {
             string key = "BaseController:mylocalip";
@@ -69,6 +72,7 @@ namespace Lampac.Engine
 
             return userIp;
         }
+        #endregion
 
         #region httpHeaders
         public List<HeadersModel> httpHeaders(BaseSettings init, List<HeadersModel> _startHeaders = null)
@@ -299,9 +303,8 @@ namespace Lampac.Engine
         #endregion
 
         #region IsCacheError
-        public bool IsCacheError(BaseSettings init, out ActionResult result)
+        public bool IsCacheError(BaseSettings init)
         {
-            result = null;
             if (!AppInit.conf.multiaccess || init.rhub)
                 return false;
 
@@ -312,7 +315,7 @@ namespace Lampac.Engine
 
                 if (errorCache is OnErrorResult)
                 {
-                    result = Json(errorCache);
+                    badInitMsg = Json(errorCache);
                     return true;
                 }
                 else if (errorCache is string)
@@ -322,7 +325,7 @@ namespace Lampac.Engine
                         HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
                 }
 
-                result = Ok();
+                badInitMsg = Ok();
                 return true;
             }
 

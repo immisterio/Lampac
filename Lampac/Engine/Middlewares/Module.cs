@@ -28,7 +28,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     try
                     {
-                        if (mod.assembly.GetType(mod.middlewares) is Type t)
+                        if (mod.assembly.GetType(mod.NamespacePath(mod.middlewares)) is Type t)
                         {
                             if (t.GetMethod("Invoke") is MethodInfo m2)
                             {

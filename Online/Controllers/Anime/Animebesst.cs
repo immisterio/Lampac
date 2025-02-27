@@ -20,8 +20,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -152,8 +152,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string uri, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"animebesst:video:{uri}";
             if (!hybridCache.TryGetValue(memKey, out string hls))

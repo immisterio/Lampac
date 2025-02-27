@@ -15,8 +15,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Redheadsound);
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();

@@ -32,8 +32,8 @@ namespace Lampac.Controllers.LITE
                 return i;
             });
 
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (string.IsNullOrEmpty(init.user_apitv))
                 return OnError();

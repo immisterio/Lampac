@@ -20,8 +20,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Animevost);
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -163,8 +163,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(int id, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animevost);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 

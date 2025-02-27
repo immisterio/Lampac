@@ -19,6 +19,8 @@ using Shared.Engine;
 using Shared.Engine.Online;
 using System.Data;
 using System.Collections.Concurrent;
+using Shared.Models.Module;
+using System.Security.Cryptography.Xml;
 
 namespace Lampac.Controllers
 {
@@ -316,7 +318,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null)
+        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
@@ -327,34 +329,48 @@ namespace Lampac.Controllers
             #region modules
             if (AppInit.modules != null)
             {
-                foreach (var item in AppInit.modules.Where(i => i.online != null))
+                var args = new OnlineEventsModel(id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, rchtype, serial, life, islite, account_email, uid, token);
+
+                foreach (var mod in AppInit.modules.Where(i => i.online != null))
                 {
                     try
                     {
-                        if (item.assembly.GetType(item.online) is Type t)
+                        if (mod.assembly.GetType(mod.NamespacePath(mod.online)) is Type t)
                         {
-                            if (t.GetMethod("Events") is MethodInfo e)
+                            void invk(object result)
                             {
-                                var result = (List<(string name, string url, string plugin, int index)>)e.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
-                                if (result != null && result.Count > 0)
+                                if (result == null)
+                                    return;
+
+                                if (result is List<(string name, string url, string plugin, int index)> list)
                                 {
-                                    foreach (var r in result)
-                                        online.Add((null, r.name, r.url, r.plugin, r.index));
+                                    if (list != null && list.Count > 0)
+                                    {
+                                        foreach (var r in list)
+                                            online.Add((null, r.name, r.url, r.plugin, r.index));
+                                    }
                                 }
                             }
 
-                            if (t.GetMethod("EventsAsync") is MethodInfo es)
+                            if (mod.version >= 3)
                             {
-                                var result = await (Task<List<(string name, string url, string plugin, int index)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email });
-                                if (result != null && result.Count > 0)
-                                {
-                                    foreach (var r in result)
-                                        online.Add((null, r.name, r.url, r.plugin, r.index));
-                                }
+                                if (t.GetMethod("Invoke") is MethodInfo e)
+                                    invk(e.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args }));
+
+                                if (t.GetMethod("InvokeAsync") is MethodInfo es)
+                                    invk(await (Task<List<(string, string, string, int)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args }));
+                            }
+                            else
+                            {
+                                if (t.GetMethod("Events") is MethodInfo e)
+                                    invk(e.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email }));
+
+                                if (t.GetMethod("EventsAsync") is MethodInfo es)
+                                    invk(await (Task<List<(string, string, string, int)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email }));
                             }
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { Console.WriteLine($"Modules {mod.NamespacePath(mod.online)}: {ex.Message}\n\n"); }
                 }
             }
             #endregion
@@ -438,7 +454,7 @@ namespace Lampac.Controllers
 
             if (serial == -1 || isanime)
             {
-                await send(conf.AnilibriaOnline, "anilibria");
+                await send(conf.AnilibriaOnline, "anilibria", "Anilibria");
                 await send(conf.AnimeLib);
                 await send(conf.Animevost, rch_access: "apk,cors");
                 await send(conf.MoonAnime);

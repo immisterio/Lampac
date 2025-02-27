@@ -16,8 +16,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.AnilibriaOnline);
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrEmpty(title))
                 return OnError();

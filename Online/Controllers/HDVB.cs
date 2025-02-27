@@ -23,8 +23,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (kinopoisk_id == 0)
                 return OnError();
@@ -120,8 +120,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxy = proxyManager.Get();
 
@@ -193,8 +193,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxy = proxyManager.Get();
 

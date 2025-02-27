@@ -16,8 +16,8 @@ namespace Lampac.Controllers.BongaCams
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.BongaCams);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);

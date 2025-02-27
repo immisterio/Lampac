@@ -22,8 +22,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
         {
             var init = await loadKit(AppInit.conf.AnimeGo);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -176,8 +176,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
             var init = await loadKit(AppInit.conf.AnimeGo);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!hybridCache.TryGetValue(memKey, out string hls))

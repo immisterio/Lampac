@@ -197,9 +197,9 @@ namespace Lampac
                                 AppInit.modules.Add(mod);
                                 mvcBuilder.AddApplicationPart(mod.assembly);
 
-                                if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
+                                if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                 {
-                                    if (mod.version == 2)
+                                    if (mod.version >= 2)
                                         m.Invoke(null, new object[] { new InitspaceModel() { path = $"module/{mod.dll}" } });
                                     else
                                         m.Invoke(null, new object[] { });

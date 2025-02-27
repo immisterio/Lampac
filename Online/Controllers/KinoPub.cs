@@ -64,8 +64,8 @@ namespace Lampac.Controllers.LITE
                 return i;
             });
 
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();

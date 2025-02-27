@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Model.Base;
+using Shared.Models.Module;
 
 namespace SISI
 {
@@ -67,7 +68,7 @@ namespace SISI
 
 
         [Route("sisi")]
-        async public Task<ActionResult> Index(string rchtype)
+        async public Task<ActionResult> Index(string rchtype, string account_email, string uid, string token)
         {
             var conf = AppInit.conf;
             var channels = new List<ChannelItem>() 
@@ -78,18 +79,42 @@ namespace SISI
             #region modules
             if (AppInit.modules != null)
             {
+                var args = new SisiEventsModel(rchtype, account_email, uid, token);
+
                 foreach (RootModule mod in AppInit.modules.Where(i => i.sisi != null))
                 {
                     try
                     {
-                        if (mod.assembly.GetType(mod.sisi) is Type t && t.GetMethod("Events") is MethodInfo m)
+                        if (mod.assembly.GetType(mod.NamespacePath(mod.sisi)) is Type t)
                         {
-                            var result = (List<ChannelItem>)m.Invoke(null, new object[] { host });
-                            if (result != null && result.Count > 0)
-                                channels.AddRange(result);
+                            if (mod.version >= 3)
+                            {
+                                if (t.GetMethod("Invoke") is MethodInfo m)
+                                {
+                                    var result = (List<ChannelItem>)m.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                    if (result != null && result.Count > 0)
+                                        channels.AddRange(result);
+                                }
+
+                                if (t.GetMethod("InvokeAsync") is MethodInfo es)
+                                {
+                                    var result = await (Task<List<ChannelItem>>)es.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                    if (result != null && result.Count > 0)
+                                        channels.AddRange(result);
+                                }
+                            }
+                            else
+                            {
+                                if (t.GetMethod("Events") is MethodInfo m)
+                                {
+                                    var result = (List<ChannelItem>)m.Invoke(null, new object[] { host });
+                                    if (result != null && result.Count > 0)
+                                        channels.AddRange(result);
+                                }
+                            }
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { Console.WriteLine($"Modules {mod.NamespacePath(mod.sisi)}: {ex.Message}\n\n"); }
                 }
             }
             #endregion

@@ -15,8 +15,8 @@ namespace Lampac.Controllers.Chaturbate
         async public Task<ActionResult> Index(string baba)
         {
             var init = await loadKit(AppInit.conf.Chaturbate);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

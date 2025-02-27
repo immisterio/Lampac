@@ -21,8 +21,8 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.AniMedia);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
