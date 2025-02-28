@@ -249,22 +249,26 @@ namespace Lampac
             ProxyManager.Configure(memory);
             HttpClient.httpClientFactory = httpClientFactory;
 
-            if (AppInit.modules != null) 
+            if (AppInit.modules != null)
             {
                 foreach (var mod in AppInit.modules)
                 {
-                    if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
+                    try
                     {
-                        if (mod.version >= 2)
+                        if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                         {
-                            m.Invoke(null, new object[] { new InitspaceModel() 
-                            { 
-                                path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app 
+                            if (mod.version >= 2)
+                            {
+                                m.Invoke(null, new object[] { new InitspaceModel()
+                            {
+                                path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
                             }});
+                            }
+                            else
+                                m.Invoke(null, new object[] { });
                         }
-                        else
-                            m.Invoke(null, new object[] { });
                     }
+                    catch (Exception ex) { Console.WriteLine($"Module {mod.NamespacePath(mod.initspace)}: {ex.Message}\n\n"); }
                 }
             }
 
