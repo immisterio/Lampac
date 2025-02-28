@@ -201,7 +201,7 @@ namespace Lampac
                                 if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                 {
                                     if (mod.version >= 2)
-                                        m.Invoke(null, new object[] { new InitspaceModel() { path = $"module/{mod.dll}" } });
+                                        m.Invoke(null, new object[] { new InitspaceModel() { path = $"module/{mod.dll}", soks = new soks() } });
                                     else
                                         m.Invoke(null, new object[] { });
                                 }
