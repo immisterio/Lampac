@@ -19,7 +19,7 @@ namespace Lampac.Engine
 
         public static IHubCallerClients hubClients = null;
 
-        public IHubCallerClients Clients => hubClients;
+        public IHubCallerClients AllClients => hubClients;
 
         public ConcurrentDictionary<string, HubCallerContext> Connections => _connections;
         #endregion
@@ -133,6 +133,7 @@ namespace Lampac.Engine
 
             try
             {
+                await Console.Out.WriteLineAsync(   "????????");
                 var clients = event_clients.Where(i => i.Value == uid && i.Key != connectionId);
                 if (clients.Any())
                     await hubClients.Clients(clients.Select(i => i.Key)).SendAsync("event", uid, name, data ?? string.Empty).ConfigureAwait(false);

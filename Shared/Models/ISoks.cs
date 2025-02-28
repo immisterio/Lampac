@@ -6,7 +6,7 @@ namespace Shared.Models
 {
     public interface ISoks
     {
-        IHubCallerClients Clients { get; }
+        IHubCallerClients AllClients { get; }
 
         ConcurrentDictionary<string, HubCallerContext> Connections { get; }
 
