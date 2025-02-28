@@ -94,9 +94,9 @@ namespace Lampac
                 o.MaximumParallelInvocationsPerClient = 5;
             });
 
-            #region mvcBuilder
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
 
+            #region load modules
             if (AppInit.modules != null)
             {
                 // mod.dll
@@ -230,13 +230,16 @@ namespace Lampac
                 }
             }
 
+            if (AppInit.modules != null)
+                AppInit.modules = AppInit.modules.OrderBy(i => i.index).ToList();
+
             Console.WriteLine();
+            #endregion
 
             mvcBuilder.AddJsonOptions(options => {
                 //options.JsonSerializerOptions.IgnoreNullValues = true;
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
             });
-            #endregion
         }
         #endregion
 
