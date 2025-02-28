@@ -192,6 +192,7 @@ namespace Lampac
                             if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                                 m.Invoke(null, new object[] { });
 
+                            mod.index = mod.index != 0 ? mod.index : (100 + modules.Count);
                             modules.Add(mod);
                         }
                         catch { }

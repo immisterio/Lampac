@@ -194,6 +194,7 @@ namespace Lampac
                                 mod.assembly = Assembly.Load(ms.ToArray());
 
                                 Console.WriteLine("compilation module: " + mod.dll);
+                                mod.index = mod.index != 0 ? mod.index : (100 + AppInit.modules.Count);
                                 AppInit.modules.Add(mod);
                                 mvcBuilder.AddApplicationPart(mod.assembly);
 
