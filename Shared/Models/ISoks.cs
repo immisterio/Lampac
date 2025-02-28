@@ -6,12 +6,12 @@ namespace Shared.Models
 {
     public interface ISoks
     {
-        IHubCallerClients HubClients { get; }
+        IHubCallerClients Clients { get; }
 
         ConcurrentDictionary<string, HubCallerContext> Connections { get; }
 
         void WebLog(string message, string plugin);
 
-        Task Events(string connectionId, string uid, string name, string data);
+        Task EventsAsync(string connectionId, string uid, string name, string data);
     }
 }

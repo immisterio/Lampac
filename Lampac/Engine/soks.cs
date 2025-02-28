@@ -19,7 +19,7 @@ namespace Lampac.Engine
 
         public static IHubCallerClients hubClients = null;
 
-        public IHubCallerClients HubClients => hubClients;
+        public IHubCallerClients Clients => hubClients;
 
         public ConcurrentDictionary<string, HubCallerContext> Connections => _connections;
         #endregion
@@ -117,7 +117,7 @@ namespace Lampac.Engine
             catch { }
         }
 
-        public Task Events(string connectionId, string uid, string name, string data) => SendEvents(connectionId, uid, name, data);
+        public Task EventsAsync(string connectionId, string uid, string name, string data) => SendEvents(connectionId, uid, name, data);
 
         /// <summary>
         /// Отправка сообщений через сервер

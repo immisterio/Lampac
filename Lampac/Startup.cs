@@ -257,9 +257,9 @@ namespace Lampac
                     {
                         if (mod.version >= 2)
                         {
-                            m.Invoke(null, new object[] { new InitspaceModel()
-                            {
-                                path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
+                            m.Invoke(null, new object[] { new InitspaceModel() 
+                            { 
+                                path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app 
                             }});
                         }
                         else

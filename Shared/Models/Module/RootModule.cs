@@ -9,7 +9,7 @@ namespace Lampac.Models.Module
 
         public int index { get; set; }
 
-        public int version { get; set; } = 3;
+        public int version { get; set; }
 
         public string dll { get; set; }
 
