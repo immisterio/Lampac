@@ -12,6 +12,8 @@
 
         public List<string>? subtitles { get; set; }
 
+        public List<Track>? tracks { get; set; }
+
 
 
         public int season_id { get; set; }

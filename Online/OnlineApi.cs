@@ -20,7 +20,6 @@ using Shared.Engine.Online;
 using System.Data;
 using System.Collections.Concurrent;
 using Shared.Models.Module;
-using System.Security.Cryptography.Xml;
 
 namespace Lampac.Controllers
 {
@@ -510,7 +509,7 @@ namespace Lampac.Controllers
             }
 
             await send(conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
-            await send(conf.FilmixPartner, "fxapi", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            await send(conf.FilmixPartner, "fxapi", "Filmix", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             #endregion
 
             #region KinoPub
