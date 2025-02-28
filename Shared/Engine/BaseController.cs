@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Web;
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
-using Lampac.Models.LITE.KinoPub;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -23,8 +22,6 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Models;
-using Shared.Models.AppConf;
-using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
 using IO = System.IO;
 
 namespace Lampac.Engine
@@ -35,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "135";
 
-        public static string minorversion => "14";
+        public static string minorversion => "15";
 
         public HybridCache hybridCache { get; private set; }
 
