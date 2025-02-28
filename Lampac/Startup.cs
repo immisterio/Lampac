@@ -35,6 +35,8 @@ namespace Lampac
         #region Startup
         public IConfiguration Configuration { get; }
 
+        public static IServiceCollection serviceCollection { get; private set; }
+
         public static IMemoryCache memoryCache { get; private set; }
 
         public Startup(IConfiguration configuration)
@@ -46,6 +48,8 @@ namespace Lampac
         #region ConfigureServices
         public void ConfigureServices(IServiceCollection services)
         {
+            serviceCollection = services;
+
             #region IHttpClientFactory
             services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() =>
             {
@@ -96,7 +100,12 @@ namespace Lampac
 
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
 
-            #region load modules
+            mvcBuilder.AddJsonOptions(options => {
+                //options.JsonSerializerOptions.IgnoreNullValues = true;
+                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
+            });
+
+            #region Compilation modules
             if (AppInit.modules != null)
             {
                 // mod.dll
@@ -197,14 +206,6 @@ namespace Lampac
                                 mod.index = mod.index != 0 ? mod.index : (100 + AppInit.modules.Count);
                                 AppInit.modules.Add(mod);
                                 mvcBuilder.AddApplicationPart(mod.assembly);
-
-                                if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
-                                {
-                                    if (mod.version >= 2)
-                                        m.Invoke(null, new object[] { new InitspaceModel() { path = $"module/{mod.dll}", soks = new soks() } });
-                                    else
-                                        m.Invoke(null, new object[] { });
-                                }
                             }
                         }
                     }
@@ -236,11 +237,6 @@ namespace Lampac
 
             Console.WriteLine();
             #endregion
-
-            mvcBuilder.AddJsonOptions(options => {
-                //options.JsonSerializerOptions.IgnoreNullValues = true;
-                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
-            });
         }
         #endregion
 
@@ -252,6 +248,25 @@ namespace Lampac
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
             HttpClient.httpClientFactory = httpClientFactory;
+
+            if (AppInit.modules != null) 
+            {
+                foreach (var mod in AppInit.modules)
+                {
+                    if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
+                    {
+                        if (mod.version >= 2)
+                        {
+                            m.Invoke(null, new object[] { new InitspaceModel()
+                            {
+                                path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
+                            }});
+                        }
+                        else
+                            m.Invoke(null, new object[] { });
+                    }
+                }
+            }
 
             app.UseDeveloperExceptionPage();
             applicationLifetime.ApplicationStopping.Register(OnShutdown);
