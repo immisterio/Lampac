@@ -71,6 +71,8 @@ namespace SISI
         async public Task<ActionResult> Index(string rchtype, string account_email, string uid, string token)
         {
             var conf = AppInit.conf;
+            JObject kitconf = await loadKitConf();
+
             var channels = new List<ChannelItem>() 
             {
                 new ChannelItem("Закладки", $"{host}/sisi/bookmarks")
@@ -120,9 +122,9 @@ namespace SISI
             #endregion
 
             #region send
-            async ValueTask send(string name, BaseSettings _init, string plugin = null, string rch_access = null, string media_access = null)
+            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null, string media_access = null)
             {
-                var init = await loadKit(_init);
+                var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
                 if (!enable)
                     return;
@@ -175,21 +177,20 @@ namespace SISI
             }
             #endregion
 
-
-            await send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
-            await send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
-            await send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
-            await send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            await send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
-            await send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
-            await send("spankbang.com", conf.Spankbang, "sbg");
-            await send("eporner.com", conf.Eporner, "epr", "apk,cors");
-            await send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
-            await send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
-            await send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
-            await send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
-            await send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
-            await send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
+            send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
+            send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
+            send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
+            send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
+            send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
+            send("spankbang.com", conf.Spankbang, "sbg");
+            send("eporner.com", conf.Eporner, "epr", "apk,cors");
+            send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
+            send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
+            send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
+            send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
+            send("bongacams.com", conf.BongaCams, "bgs", "apk,cors");
+            send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
 
             if (conf.sisi.xdb)

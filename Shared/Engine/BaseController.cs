@@ -30,9 +30,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "135";
+        public static string appversion => "136";
 
-        public static string minorversion => "15";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -378,16 +378,15 @@ namespace Lampac.Engine
         #region loadKit
         public bool IsKitConf { get; private set; }
 
-        async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
+        async public ValueTask<JObject> loadKitConf()
         {
-            var init = (T)_init.Clone();
-            if (!init.kit || !AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
-                return init;
+            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
+                return null;
 
             string memKey = $"loadKit:{requestInfo.user_uid}";
             if (!memoryCache.TryGetValue(memKey, out JObject appinit))
             {
-                string json = null;
+                string json;
 
                 if (Regex.IsMatch(AppInit.conf.kit.path, "^https?://"))
                 {
@@ -398,24 +397,41 @@ namespace Lampac.Engine
                 {
                     string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
                     if (!IO.File.Exists(init_file))
-                        return init;
+                        return null;
 
                     json = IO.File.ReadAllText(init_file);
                 }
 
                 if (json == null)
-                    return init;
+                    return null;
 
                 try
                 {
                     appinit = JsonConvert.DeserializeObject<JObject>(json);
                 }
-                catch { return init; }
+                catch { return null; }
 
                 memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
             }
 
-            if (init.plugin == null || !appinit.ContainsKey(init.plugin))
+            return appinit;
+        }
+
+        async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
+        {
+            var init = (T)_init.Clone();
+            if (!init.kit)
+                return init;
+
+            return loadKit(init, await loadKitConf(), func);
+        }
+
+        public T loadKit<T>(T init, JObject appinit, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
+        {
+            if (init == null || !init.kit)
+                return init;
+
+            if (appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
                 return init;
 
             var conf = appinit.Value<JObject>(init.plugin);

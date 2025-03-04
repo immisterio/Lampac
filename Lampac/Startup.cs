@@ -249,6 +249,7 @@ namespace Lampac
             ProxyManager.Configure(memory);
             HttpClient.httpClientFactory = httpClientFactory;
 
+            #region modules loaded
             if (AppInit.modules != null)
             {
                 foreach (var mod in AppInit.modules)
@@ -271,6 +272,7 @@ namespace Lampac
                     catch (Exception ex) { Console.WriteLine($"Module {mod.NamespacePath(mod.initspace)}: {ex.Message}\n\n"); }
                 }
             }
+            #endregion
 
             app.UseDeveloperExceptionPage();
             applicationLifetime.ApplicationStopping.Register(OnShutdown);

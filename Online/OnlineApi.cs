@@ -20,6 +20,8 @@ using Shared.Engine.Online;
 using System.Data;
 using System.Collections.Concurrent;
 using Shared.Models.Module;
+using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace Lampac.Controllers
 {
@@ -214,7 +216,8 @@ namespace Lampac.Controllers
                             memoryCache.Set(mkey, 0, DateTime.Now.AddHours(1));
 
                             string cat = serial == 1 ? "tv" : "movie";
-                            string json = await HttpClient.Get($"https://api.themoviedb.org/3/{cat}/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96&append_to_response=external_ids", timeoutSeconds: 6);
+                            var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
+                            string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
                             if (!string.IsNullOrWhiteSpace(json))
                             {
                                 imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
@@ -292,7 +295,7 @@ namespace Lampac.Controllers
         #region events
         [HttpGet]
         [Route("lifeevents")]
-        public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial, string source)
+        public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial)
         {
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
@@ -322,8 +325,35 @@ namespace Lampac.Controllers
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(20);
             bool isanime = original_language == "ja";
 
+            #region fix title
+            bool fix_title = false;
+
+            if (title != null && original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
+            {
+                Regex chineseRegex = new Regex("[\u4E00-\u9FFF]"); // Диапазон для китайских иероглифов
+                Regex japaneseRegex = new Regex("[\u3040-\u30FF\uFF66-\uFF9F]"); // Хирагана, катакана и специальные символы
+                Regex koreanRegex = new Regex("[\uAC00-\uD7AF]"); // Диапазон для корейских хангыльских символов
+
+                if (chineseRegex.IsMatch(title) || japaneseRegex.IsMatch(title) || koreanRegex.IsMatch(title))
+                {
+                    var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
+                    var result = await HttpClient.Get<JObject>($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{(serial == 1 ? "tv" : "movie")}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=en", timeoutSeconds: 4, headers: header);
+                    if (result != null)
+                    {
+                        string _title = serial == 1 ? result.Value<string>("name") : result.Value<string>("title");
+                        if (!string.IsNullOrEmpty(_title))
+                        {
+                            title = _title;
+                            fix_title = true;
+                        }
+                    }
+                }
+            }
+            #endregion
+
             var conf = AppInit.conf;
             var user = requestInfo.user;
+            JObject kitconf = await loadKitConf();
 
             #region modules
             if (AppInit.modules != null)
@@ -375,9 +405,9 @@ namespace Lampac.Controllers
             #endregion
 
             #region send
-            async ValueTask send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string rch_access = null, dynamic myinit = null)
+            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string rch_access = null, dynamic myinit = null)
             {
-                var init = myinit != null ? _init : await loadKit(_init);
+                var init = myinit != null ? _init : loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
                 if (!enable)
                     return;
@@ -449,22 +479,22 @@ namespace Lampac.Controllers
             #endregion
 
             if (original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
-                await send(conf.Kodik);
+                send(conf.Kodik);
 
             if (serial == -1 || isanime)
             {
-                await send(conf.AnilibriaOnline, "anilibria", "Anilibria");
-                await send(conf.AnimeLib);
-                await send(conf.Animevost, rch_access: "apk,cors");
-                await send(conf.MoonAnime);
-                await send(conf.Animebesst, rch_access: "apk");
-                await send(conf.AnimeGo);
-                await send(conf.AniMedia);
+                send(conf.AnilibriaOnline, "anilibria", "Anilibria");
+                send(conf.AnimeLib);
+                send(conf.Animevost, rch_access: "apk,cors");
+                send(conf.MoonAnime);
+                send(conf.Animebesst, rch_access: "apk");
+                send(conf.AnimeGo);
+                send(conf.AniMedia);
             }
 
             #region VoKino
             {
-                var myinit = await loadKit(conf.VoKino, (j, i, c) => 
+                var myinit = loadKit(conf.VoKino, kitconf , (j, i, c) => 
                 {
                     if (j.ContainsKey("online"))
                         i.online = c.online;
@@ -498,45 +528,45 @@ namespace Lampac.Controllers
 
             #region Filmix
             {
-                var myinit = await loadKit(conf.Filmix, (j, i, c) => 
+                var myinit = loadKit(conf.Filmix, kitconf, (j, i, c) => 
                 { 
                     if (j.ContainsKey("pro"))
                         i.pro = c.pro; 
                     return i; 
                 });
 
-                await send(myinit, arg_url: (source == "filmix" ? $"?postid={id}" : ""), myinit: myinit);
+                send(myinit, arg_url: (source == "filmix" ? $"?postid={id}" : ""), myinit: myinit);
             }
 
-            await send(conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
-            await send(conf.FilmixPartner, "fxapi", "Filmix", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            send(conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            send(conf.FilmixPartner, "fxapi", "Filmix", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             #endregion
 
             #region KinoPub
-            await send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
+            send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
 
             {
-                var myinit = await loadKit(conf.Alloha, (j, i, c) => 
+                var myinit = loadKit(conf.Alloha, kitconf , (j, i, c) => 
                 { 
                     if (j.ContainsKey("m4s"))
                         i.m4s = c.m4s;
                     return i; 
                 });
 
-                await send(myinit, myinit: myinit);
+                send(myinit, myinit: myinit);
             }
             #endregion
 
             #region Rezka
             {
-                var rezka = await loadKit(conf.RezkaPrem, (j, i, c) => 
+                var rezka = loadKit(conf.RezkaPrem, kitconf , (j, i, c) => 
                 {
                     if (j.ContainsKey("premium"))
                         i.premium = c.premium; 
                     return i; 
                 });
 
-                await send(rezka, "rhsprem", "HDRezka", myinit: rezka);
+                send(rezka, "rhsprem", "HDRezka", myinit: rezka);
 
                 if (!rezka.enable)
                 {
@@ -547,30 +577,30 @@ namespace Lampac.Controllers
                         return i;
                     });
 
-                    await send(myinit, myinit: myinit);
+                    send(myinit, myinit: myinit);
                 }
             }
             #endregion
 
-            await send(conf.Mirage);
+            send(conf.Mirage);
 
             if (kinopoisk_id > 0)
             {
-                await send(conf.VideoDB, rch_access: "apk");
-                await send(conf.VDBmovies, rch_access: "apk");
+                send(conf.VideoDB, rch_access: "apk");
+                send(conf.VDBmovies, rch_access: "apk");
 
                 if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
-                    await send(conf.Zetflix);
+                    send(conf.Zetflix);
             }
 
-            await send(conf.Lumex, "lumex");
-            await send(conf.FanCDN, rch_access: "apk");
-            await send(conf.Videoseed, rch_access: "apk,cors");
-            await send(conf.Vibix, rch_access: "apk,cors");
-            await send(conf.Kinobase);
+            send(conf.Lumex, "lumex");
+            send(conf.FanCDN, rch_access: "apk");
+            send(conf.Videoseed, rch_access: "apk,cors");
+            send(conf.Vibix, rch_access: "apk,cors");
+            send(conf.Kinobase);
 
             if (serial == -1 || serial == 0)
-                await send(conf.iRemux, "remux");
+                send(conf.iRemux, "remux");
 
             #region PidTor
             if (conf.PidTor.enable)
@@ -594,16 +624,16 @@ namespace Lampac.Controllers
             #endregion
 
             if (kinopoisk_id > 0)
-                await send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
+                send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
 
-            await send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
+            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
 
             if (!isanime)
-                await send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
+                send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
 
             #region Collaps
             {
-                var myinit = await loadKit(conf.Collaps, (j, i, c) => 
+                var myinit = loadKit(conf.Collaps, kitconf, (j, i, c) => 
                 {
                     if (j.ContainsKey("dash"))
                         i.dash = c.dash;
@@ -613,28 +643,28 @@ namespace Lampac.Controllers
                 });
 
                 if (myinit.two && !myinit.dash)
-                    await send(myinit, "collaps-dash", "Collaps (dash)", rch_access: "apk");
+                    send(myinit, "collaps-dash", "Collaps (dash)", rch_access: "apk");
 
-                await send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
+                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
             }
             #endregion
 
             if (serial == -1 || serial == 0)
-                await send(conf.Redheadsound, rch_access: "apk");
+                send(conf.Redheadsound, rch_access: "apk");
 
             if (kinopoisk_id > 0)
-                await send(conf.HDVB);
+                send(conf.HDVB);
 
-            await send(conf.Kinotochka, rch_access: "apk,cors");
+            send(conf.Kinotochka, rch_access: "apk,cors");
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
-                await send(conf.CDNmovies, rch_access: "apk,cors");
+                send(conf.CDNmovies, rch_access: "apk,cors");
 
             if (serial == -1 || serial == 0)
-                await send(conf.IframeVideo);
+                send(conf.IframeVideo);
 
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
-                await send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
+                send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
             if (!life && conf.litejac)
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));
@@ -651,7 +681,7 @@ namespace Lampac.Controllers
 
             if (chos)
             {
-                string memkey = checkOnlineSearchKey(id, source, online.Count, uid: (IsKitConf ? requestInfo.user_uid : null));
+                string memkey = CrypTo.md5($"checkOnlineSearch:{id}:{serial}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{online.Count}:{(IsKitConf ? requestInfo.user_uid : null)}");
 
                 if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
                 {
@@ -664,9 +694,9 @@ namespace Lampac.Controllers
                         tasks.Add(checkSearch(memkey, links, tasks, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype));
 
                     if (life)
-                        return Json(new { life = true, memkey });
+                        return Json(new { life = true, memkey, title = (fix_title ? title : null) });
 
-                    await Task.WhenAll(tasks);
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
 
                     cache.ready = true;
                     cache.tasks = tasks.Count;
@@ -689,18 +719,16 @@ namespace Lampac.Controllers
 
 
         #region checkSearch
-        static string checkOnlineSearchKey(long id, string source, int count = 0, string uid = null) => CrypTo.md5($"ApiController:checkOnlineSearch:{id}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{count}:{uid}");
-
         async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, List<Task> tasks, dynamic init, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
             try
             {
                 string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
-                var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
+                var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
                 string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
-                string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
+                string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(res))
                     res = string.Empty;

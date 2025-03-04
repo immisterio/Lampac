@@ -146,6 +146,8 @@ namespace Lampac
         public static string Host(HttpContext httpContext)
         {
             string scheme = string.IsNullOrEmpty(conf.listenscheme) ? httpContext.Request.Scheme : conf.listenscheme;
+            if (httpContext.Request.Headers.TryGetValue("xscheme", out var xscheme) && !string.IsNullOrEmpty(xscheme))
+                scheme = xscheme;
 
             if (!string.IsNullOrEmpty(conf.listenhost))
                 return $"{scheme}://{conf.listenhost}";
@@ -257,7 +259,8 @@ namespace Lampac
         {
             enable = true,
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = 60
+            cache_api = 20, cache_img = 60,
+            api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 
         public ServerproxyConf serverproxy = new ServerproxyConf()

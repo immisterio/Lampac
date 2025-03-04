@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year);
+                return await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year, searchsite: init.cookie != null);
             });
 
             if (IsRhubFallback(cache, init))

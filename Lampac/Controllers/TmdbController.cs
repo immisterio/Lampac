@@ -62,13 +62,15 @@ namespace Lampac.Controllers
         async public Task<ActionResult> API()
         {
             var init = AppInit.conf.tmdb;
-            if (!init.enable)
+            if (!init.enable && !requestInfo.IsLocalRequest)
             {
                 HttpContext.Response.StatusCode = 401;
                 return Json(new { error = true, msg = "disable" });
             }
 
             string path = HttpContext.Request.Path.Value.Replace("/tmdb/api", "");
+            path = Regex.Replace(path, "/$", "");
+
             string query = Regex.Replace(HttpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
             string uri = "https://api.themoviedb.org" + path + query;
 

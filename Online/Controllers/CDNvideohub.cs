@@ -27,12 +27,12 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
+                string uri = $"{init.corsHost()}/svplayer?partner=27&kid={kinopoisk_id}";
                 string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
                     return res.Fail("embed");
 
-                string file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
+                string file = Regex.Match(embed, "hlsUrl:([\t ]+)?'([^']+)'").Groups[2].Value;
                 if (string.IsNullOrEmpty(file))
                     return res.Fail("file");
 

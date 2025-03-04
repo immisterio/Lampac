@@ -342,16 +342,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post<T>
-        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
+        async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
         {
-            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
+            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion);
         }
 
-        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
+        async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
         {
             try
             {
-                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders);
+                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion);
                 if (json == null)
                     return default;
 
