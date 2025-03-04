@@ -380,7 +380,7 @@ namespace Lampac.Engine
 
         async public ValueTask<JObject> loadKitConf()
         {
-            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
+            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path) || string.IsNullOrEmpty(requestInfo?.user_uid))
                 return null;
 
             string memKey = $"loadKit:{requestInfo.user_uid}";
@@ -423,11 +423,12 @@ namespace Lampac.Engine
             if (!init.kit)
                 return init;
 
-            return loadKit(init, await loadKitConf(), func);
+            return loadKit(init, await loadKitConf(), func, clone: false);
         }
 
-        public T loadKit<T>(T init, JObject appinit, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
+        public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
         {
+            var init = clone ? (T)_init.Clone() : _init;
             if (init == null || !init.kit)
                 return init;
 
