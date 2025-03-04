@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             JToken data = result.data;
-            JToken frame = await iframe(data.Value<string>("token_movie"));
+            var frame = await iframe(data.Value<string>("token_movie"));
             if (frame == null)
                 return OnError();
 
@@ -97,38 +97,96 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
+                    var vtpl = new VoiceTpl();
                     var etpl = new EpisodeTpl();
+                    var voices = new HashSet<int>();
 
                     if (frame[s.ToString()] is JArray)
                     {
+                        #region Перевод
                         foreach (var episode in frame[s.ToString()])
                         {
-                            var voice = episode.ToObject<Dictionary<string, JObject>>().First().Value;
-                            string translation = voice.Value<string>("translation");
-                            int e = voice.Value<int>("episode");
+                            foreach (var voice in episode.ToObject<Dictionary<string, JObject>>().Select(i => i.Value))
+                            {
+                                int id_translation = voice.Value<int>("id_translation");
+                                if (voices.Contains(id_translation))
+                                    continue;
 
-                            string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
-                            string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+                                voices.Add(id_translation);
 
-                            if (e > 0)
-                                etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                                if (t == -1)
+                                    t = id_translation;
+
+                                string link = $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
+                                bool active = t == id_translation;
+
+                                vtpl.Append(voice.Value<string>("translation"), active, link);
+                            }
+                        }
+                        #endregion
+
+                        foreach (var episode in frame[s.ToString()])
+                        {
+                            foreach (var voice in episode.ToObject<Dictionary<string, JObject>>().Select(i => i.Value))
+                            {
+                                if (voice.Value<int>("id_translation") != t)
+                                    continue;
+
+                                string translation = voice.Value<string>("translation");
+                                int e = voice.Value<int>("episode");
+
+                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
+                                string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+
+                                if (e > 0)
+                                    etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                            }
                         }
                     }
                     else
                     {
+                        #region Перевод
                         foreach (var episode in frame[s.ToString()].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
                         {
-                            var voice = episode.Value.First().Value;
-                            string translation = voice.Value<string>("translation");
+                            foreach (var voice in episode.Value.Select(i => i.Value))
+                            {
+                                int id_translation = voice.Value<int>("id_translation");
+                                if (voices.Contains(id_translation))
+                                    continue;
 
-                            string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
-                            string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+                                voices.Add(id_translation);
 
-                            etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                                if (t == -1)
+                                    t = id_translation;
+
+                                string link = $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
+                                bool active = t == id_translation;
+
+                                vtpl.Append(voice.Value<string>("translation"), active, link);
+                            }
+                        }
+                        #endregion
+
+                        foreach (var episode in frame[s.ToString()].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
+                        {
+                            foreach (var voice in episode.Value.Select(i => i.Value))
+                            {
+                                string translation = voice.Value<string>("translation");
+                                if (voice.Value<int>("id_translation") != t)
+                                    continue;
+
+                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
+                                string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+
+                                etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                            }
                         }
                     }
 
-                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                    if (rjson)
+                        return ContentTo(etpl.ToJson(vtpl));
+
+                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                 }
                 #endregion
             }
@@ -222,7 +280,7 @@ namespace Lampac.Controllers.LITE
             var init = await Initialization();
             string memKey = $"mirage:iframe:{token_movie}";
 
-            if (!hybridCache.TryGetValue(memKey, out JToken res))
+            if (!hybridCache.TryGetValue(memKey, out JObject root))
             {
                 string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", timeoutSeconds: 8, headers: HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -243,22 +301,20 @@ namespace Lampac.Controllers.LITE
 
                 string json = Regex.Match(html ?? "", "fileList = JSON.parse\\('([^\n\r]+)'\\);").Groups[1].Value;
                 if (string.IsNullOrEmpty(json))
-                    return null;
+                    return default;
 
                 try
                 {
-                    var root = JsonConvert.DeserializeObject<JObject>(json);
+                    root = JsonConvert.DeserializeObject<JObject>(json);
                     if (root == null || !root.ContainsKey("all"))
-                        return null;
+                        return default;
 
-                    res = root["all"];
-
-                    hybridCache.Set(memKey, res, cacheTime(40));
+                    hybridCache.Set(memKey, root, cacheTime(40));
                 }
-                catch { return null; }
+                catch { return default; }
             }
 
-            return res;
+            return root["all"];
         }
         #endregion
 
