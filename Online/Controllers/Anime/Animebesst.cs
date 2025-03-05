@@ -27,7 +27,6 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 

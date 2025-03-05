@@ -8,6 +8,8 @@
 
         public bool Headless { get; set; } = true;
 
+        public bool DEV { get; set; }
+
         public string executablePath { get; set; }
     }
 }

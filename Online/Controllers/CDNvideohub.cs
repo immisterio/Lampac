@@ -19,6 +19,9 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 

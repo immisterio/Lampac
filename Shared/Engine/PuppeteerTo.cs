@@ -123,12 +123,7 @@ namespace Shared.Engine
             this.browser = browser; 
         }
 
-        public ValueTask<IPage> Page(Dictionary<string, string> headers = null)
-        {
-            return Page(null, headers);
-        }
-
-        async public ValueTask<IPage> Page(CookieParam[] cookies, Dictionary<string, string> headers = null)
+        async public ValueTask<IPage> Page(Dictionary<string, string> headers = null, CookieParam[] cookies = null)
         {
             try
             {
@@ -138,7 +133,7 @@ namespace Shared.Engine
                 page = IsKeepOpen ? await browser.NewPageAsync() : (await browser.PagesAsync())[0];
 
                 await page.SetCacheEnabledAsync(IsKeepOpen);
-                await page.DeleteCookieAsync();
+                //await page.DeleteCookieAsync();
 
                 if (headers != null && headers.Count > 0)
                     await page.SetExtraHttpHeadersAsync(headers);
@@ -186,7 +181,7 @@ namespace Shared.Engine
 
         public void Dispose()
         {
-            if (browser == null || !AppInit.conf.puppeteer.Headless)
+            if (browser == null || AppInit.conf.puppeteer.DEV)
                 return;
 
             try

@@ -23,10 +23,12 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             #region search
             string memKey = rch.ipkey($"videoseed:view:{kinopoisk_id}", proxyManager);

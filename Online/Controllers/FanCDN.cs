@@ -2,13 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Online;
 using Shared.Model.Online.FanCDN;
-using Lampac.Engine.CORE;
 using Shared.Engine.Online;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using System.Net;
-using System;
-using System.Text.RegularExpressions;
+using Shared.Engine;
+using Lampac.Models.LITE;
+using PuppeteerSharp;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,74 +16,42 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.FanCDN);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotSupport("web,cors", out string rch_error))
-                return ShowError(rch_error);
 
             var oninvk = new FanCDNInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => 
-               {
-                   if (rch.enable)
-                       return rch.Get(init.cors(ongettourl), httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
-
-                   return HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2, cookieContainer: cookieContainer(init.cookie));
-               },
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy)
+               ongettourl => black_magic(ongettourl, init),
+               streamfile => HostStreamProxy(init, streamfile)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{imdb_id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{imdb_id}", cacheTime(20, init: init), null, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
-                return await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year, searchsite: init.cookie != null);
+                return await oninvk.Embed(null, imdb_id, kinopoisk_id);
             });
 
-            if (IsRhubFallback(cache, init))
-                goto reset;
-
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource);
         }
 
 
-        #region cookieContainer
-        static (string lastCook, CookieContainer cookies) container = default;
-
-        static CookieContainer cookieContainer(string cook)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init)
         {
-            if (container.lastCook == cook)
-                return container.cookies;
-
-            container.lastCook = cook;
-            container.cookies = new CookieContainer();
-
-            foreach (string line in cook.Split(";"))
+            using (var browser = await PuppeteerTo.Browser())
             {
-                if (string.IsNullOrEmpty(line) || !line.Contains("="))
-                    continue;
+                if (browser == null)
+                    return null;
 
-                string[] split = line.Split('=');
-                container.cookies.Add(new Cookie()
-                {
-                    Path = "/",
-                    Expires = DateTime.Now.AddYears(1),
-                    Domain = $".{Regex.Match(AppInit.conf.FanCDN.host, "https?://([^/]+)").Groups[1].Value}",
-                    Name = split[0].Trim(),
-                    Value = split[1].Trim(),
-                });
+                var page = await browser.Page(httpHeaders(init).ToDictionary());
+                if (page == null)
+                    return null;
+
+                await page.DeleteCookieAsync(new CookieParam() { Domain = ".fancdn.net",  Name = "cf_clearance" });
+
+                var response = await page.GoToAsync($"view-source:{uri}");
+                return await response.TextAsync();
             }
-
-            return container.cookies;
         }
-        #endregion
     }
 }

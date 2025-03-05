@@ -38,11 +38,11 @@ namespace Lampac.Controllers.LITE
                 init.dash = false;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             var oninvk = new CollapsInvoke
             (

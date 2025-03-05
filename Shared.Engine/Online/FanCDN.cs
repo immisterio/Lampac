@@ -84,7 +84,6 @@ namespace Shared.Engine.Online
                     iframe_url += (iframe_url.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
             }
 
-            // &imdb_id=
             string? iframe = await onget(iframe_url);
             if (string.IsNullOrEmpty(iframe))
                 return null;

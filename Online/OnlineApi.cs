@@ -535,7 +535,7 @@ namespace Lampac.Controllers
                     return i; 
                 });
 
-                send(myinit, arg_url: (source == "filmix" ? $"?postid={id}" : ""), myinit: myinit);
+                send(myinit, arg_url: (source == "filmix" ? $"?postid={id}" : ""), myinit: myinit, rch_access: "apk");
             }
 
             send(conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
@@ -594,7 +594,10 @@ namespace Lampac.Controllers
             }
 
             send(conf.Lumex, "lumex");
-            send(conf.FanCDN, rch_access: "apk");
+
+            if ((AppInit.conf.puppeteer.enable && AppInit.conf.puppeteer.Headless) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                send(conf.FanCDN);
+
             send(conf.Videoseed, rch_access: "apk,cors");
             send(conf.Vibix, rch_access: "apk,cors");
             send(conf.Kinobase);

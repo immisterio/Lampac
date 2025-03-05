@@ -34,6 +34,8 @@ namespace Lampac.Controllers.LITE
 
             reset: var proxy = proxyManager.Get();
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             string iframe_url = data.Value<string>("iframe_url");
             var cache = await InvokeCache<JArray>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>

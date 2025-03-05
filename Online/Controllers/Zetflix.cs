@@ -64,10 +64,11 @@ namespace Lampac.Controllers.LITE
 
                         log += "browser init\n";
 
-                        var page = await browser.Page(cookies, new Dictionary<string, string>()
+                        var page = await browser.Page(new Dictionary<string, string>()
                         {
                             ["Referer"] = "https://www.google.com/"
-                        });
+
+                        }, cookies: cookies);
 
                         if (page == null)
                             return null;
@@ -141,10 +142,11 @@ namespace Lampac.Controllers.LITE
                     if (browser == null)
                         return null;
 
-                    var page = await browser.Page(cookies, new Dictionary<string, string>()
+                    var page = await browser.Page(new Dictionary<string, string>()
                     {
                         ["Referer"] = "https://www.google.com/"
-                    });
+
+                    }, cookies: cookies);
 
                     if (page == null)
                         return null;
