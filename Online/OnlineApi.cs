@@ -595,7 +595,7 @@ namespace Lampac.Controllers
 
             send(conf.Lumex, "lumex");
 
-            if ((AppInit.conf.puppeteer.enable && AppInit.conf.puppeteer.Headless) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+            if ((AppInit.conf.puppeteer.enable && AppInit.conf.puppeteer.Headless == false) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                 send(conf.FanCDN);
 
             send(conf.Videoseed, rch_access: "apk,cors");
