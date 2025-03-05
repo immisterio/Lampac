@@ -226,7 +226,7 @@ namespace Shared.Model
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9maWxtLTIwMjQub3JnLw==
         /// </summary>
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=2263ei6:<31reuxw1vkrz") 
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=2263ei6:<31reuxw1vkrz", enable: false) 
         {
             geostreamproxy = new string[] { "ALL" },
             headers = HeadersModel.Init(
@@ -258,7 +258,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22xjo|0wxunh|1fgqprylhv0vwuhdp1rqolqh") 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22xjo|0wxunh|1fgqprylhv0vwuhdp1rqolqh", enable: false) 
         {
             geostreamproxy = new string[] { "ALL" },
             headers = HeadersModel.Init(
@@ -279,7 +279,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v61idqvhuldo1wy") 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v71idqvhuldo1wy", enable: false) 
         { 
             streamproxy = true,
             headers = HeadersModel.Init(
@@ -392,7 +392,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1pdqjdole1ph", streamproxy: true) 
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl51pdqjdole1ph", streamproxy: true) 
         {
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
