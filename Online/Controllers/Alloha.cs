@@ -11,6 +11,7 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Templates;
 using Newtonsoft.Json;
+using Lampac.Models.LITE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,15 +19,33 @@ namespace Lampac.Controllers.LITE
     {
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.Alloha);
 
+        #region Initialization
+        ValueTask<AllohaSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.Alloha, (j, i, c) =>
+            {
+                if (j.ContainsKey("m4s"))
+                    i.m4s = c.m4s;
+
+                if (j.ContainsKey("linkhost"))
+                    i.linkhost = c.linkhost;
+
+                i.secret_token = c.secret_token;
+                i.token = c.token;
+                return i;
+            });
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/alloha")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Alloha);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            var init = await Initialization();
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
-            var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
+            var result = await search(init, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
                 return OnError("data", proxyManager, result.refresh_proxy);
 
@@ -53,7 +72,7 @@ namespace Lampac.Controllers.LITE
 
                     bool uhd = false;
                     if (translation.Value.TryGetValue("uhd", out object _uhd))
-                        uhd = _uhd.ToString().ToLower() == "true" && AppInit.conf.Alloha.m4s;
+                        uhd = _uhd.ToString().ToLower() == "true" && init.m4s;
 
                     if (directors_cut && translation.Key == "66")
                         mtpl.Append("Режиссерская версия", $"{link}&directors_cut=true", "call", $"{streamlink}&directors_cut=true", voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
@@ -69,7 +88,7 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(result.data.Value<bool>("uhd") && AppInit.conf.Alloha.m4s ? "2160p" : null);
+                    var tpl = new SeasonTpl(result.data.Value<bool>("uhd") && init.m4s ? "2160p" : null);
 
                     foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
                         tpl.Append($"{season.Key} сезон", $"{host}/lite/alloha?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
@@ -130,9 +149,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/alloha/video.m3u8")]
         async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
-            var init = loadKit(AppInit.conf.Alloha.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await Initialization();
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxy = proxyManager.Get();
 
@@ -144,7 +163,7 @@ namespace Lampac.Controllers.LITE
                     return OnError("userIp");
             }
 
-            string memKey = $"alloha:view:stream:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
+            string memKey = $"alloha:view:stream:{init.secret_token}:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
             if (!hybridCache.TryGetValue(memKey, out JToken data))
             {
                 #region url запроса
@@ -211,10 +230,8 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region search
-        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(AllohaSettings init, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
-            var init = loadKit(AppInit.conf.Alloha.Clone());
-
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";

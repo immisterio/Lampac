@@ -20,19 +20,19 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinotochka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Kinotochka.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Kinotochka);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             // enable 720p
             string cookie = init.cookie;

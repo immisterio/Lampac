@@ -16,9 +16,17 @@ namespace Lampac.Controllers.LITE
         [Route("lite/collaps-dash")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Collaps.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Collaps, (j, i, c) =>
+            {
+                if (j.ContainsKey("two"))
+                    i.two = c.two;
+                if (j.ContainsKey("dash"))
+                    i.dash = c.dash;
+                return i;
+            });
+
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return OnError();
@@ -30,11 +38,11 @@ namespace Lampac.Controllers.LITE
                 init.dash = false;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             var oninvk = new CollapsInvoke
             (

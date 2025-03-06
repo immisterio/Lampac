@@ -83,10 +83,7 @@ namespace Shared.Engine.Online
         public async ValueTask<int> number_of_seasons(long id)
         {
             int number_of_seasons = 1;
-
-            string? themoviedb = await onget.Invoke($"https://api.themoviedb.org/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
-            if (themoviedb == null)
-                themoviedb = await onget.Invoke($"https://tmdb.cub.red/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
+            string? themoviedb = await onget.Invoke($"https://tmdb.mirror-kurwa.men/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);
 
             if (themoviedb != null)
             {

@@ -33,9 +33,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/remux")]
         async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.iRemux.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            var init = await loadKit(AppInit.conf.iRemux);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return OnError();
@@ -54,9 +54,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/remux/movie")]
         async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
-            var init = loadKit(AppInit.conf.iRemux.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.iRemux);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var oninvk = InitRemuxInvoke();
 

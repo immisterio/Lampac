@@ -14,19 +14,19 @@ namespace Lampac.Controllers.LITE
         [Route("lite/kinoukr")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Kinoukr.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Kinoukr);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             var oninvk = new KinoukrInvoke
             (

@@ -14,11 +14,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/cdnvideohub")]
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.CDNvideohub.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.CDNvideohub);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
@@ -27,12 +30,12 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string uri = $"{init.corsHost()}/playerjs?partner=20&kid={kinopoisk_id}&src=sv";
+                string uri = $"{init.corsHost()}/svplayer?partner=27&kid={kinopoisk_id}";
                 string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (embed == null)
                     return res.Fail("embed");
 
-                string file = Regex.Match(embed, "'file': '([^']+)'").Groups[1].Value;
+                string file = Regex.Match(embed, "hlsUrl:([\t ]+)?'([^']+)'").Groups[2].Value;
                 if (string.IsNullOrEmpty(file))
                     return res.Fail("file");
 

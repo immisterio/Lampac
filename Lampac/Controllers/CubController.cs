@@ -92,7 +92,7 @@ namespace Lampac.Controllers
             }
             else
             {
-                reset: var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
+                var result = await HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false, useDefaultHeaders: false);
                 if (result.array == null || result.array.Length == 0)
                 {
                     proxyManager.Refresh();
@@ -103,8 +103,10 @@ namespace Lampac.Controllers
                 {
                     if (Encoding.UTF8.GetString(result.array) == "{\"blocked\":true}")
                     {
-                        domain = "api.themoviedb.org";
-                        goto reset;
+                        var header = HeadersModel.Init(("localrequest", System.IO.File.ReadAllText("passwd")));
+                        string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header);
+                        if (!string.IsNullOrEmpty(json))
+                            return ContentTo(json);
                     }
                 }
 

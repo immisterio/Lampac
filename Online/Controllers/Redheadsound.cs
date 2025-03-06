@@ -14,19 +14,19 @@ namespace Lampac.Controllers.LITE
         [Route("lite/redheadsound")]
         async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Redheadsound.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Redheadsound);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             var oninvk = new RedheadsoundInvoke
             (

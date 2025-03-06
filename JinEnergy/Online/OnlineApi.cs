@@ -113,7 +113,7 @@ namespace JinEnergy.Online
         [JSInvokable("lite/events")]
         public static string Events(string args)
         {
-            var online = new List<(string name, string url, string plugin, int index)>(20);
+            var online = new List<(dynamic? init, string name, string url, string plugin, int index)>(20);
 
             var arg = defaultArgs(args);
             int serial = int.Parse(parse_arg("serial", args) ?? "-1");
@@ -135,7 +135,7 @@ namespace JinEnergy.Online
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
-                    online.Add(($"{init.displayname ?? name}{arg_title}", url, plugin, init.displayindex > 0 ? init.displayindex : online.Count));
+                    online.Add((null, $"{init.displayname ?? name}{arg_title}", url, plugin, init.displayindex > 0 ? init.displayindex : online.Count));
                 }
             }
 

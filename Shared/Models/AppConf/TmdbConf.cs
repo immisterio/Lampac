@@ -6,6 +6,8 @@ namespace Shared.Models.AppConf
     {
         public bool enable { get; set; }
 
+        public string api_key { get; set; }
+
 
         public string DNS { get; set; }
 

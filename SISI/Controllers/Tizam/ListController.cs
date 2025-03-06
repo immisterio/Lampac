@@ -17,9 +17,9 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam")]
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.Tizam.Clone());
-            if (IsBadInitialization(AppInit.conf.Tizam, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Tizam);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);

@@ -46,7 +46,7 @@ namespace Lampac.Engine.CRON
                             return true;
 
                         if (istree)
-                            File.WriteAllText("wwwroot/lampa-main/teee", init.tree);
+                            File.WriteAllText("wwwroot/lampa-main/tree", init.tree);
 
                         return false;
                     }
@@ -73,8 +73,7 @@ namespace Lampac.Engine.CRON
                                     File.Copy(infilePath, outfile, true);
                                 }
 
-                                File.WriteAllText("wwwroot/lampa-main/teee", init.tree);
-                                Directory.Delete($"wwwroot/lampa-{init.tree}", true);
+                                File.WriteAllText("wwwroot/lampa-main/tree", init.tree);
                             }
 
                             string html = File.ReadAllText("wwwroot/lampa-main/index.html");
@@ -93,6 +92,9 @@ namespace Lampac.Engine.CRON
                             }
 
                             File.Delete("wwwroot/lampa.zip");
+
+                            if (istree) 
+                                Directory.Delete($"wwwroot/lampa-{init.tree}", true);
                         }
                     }
                 }

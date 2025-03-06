@@ -24,9 +24,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/fxapi")]
         async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.FilmixPartner.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            var init = await loadKit(AppInit.conf.FilmixPartner);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (postid == 0)
             {

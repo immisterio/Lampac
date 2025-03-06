@@ -19,15 +19,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst")]
         async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Animebesst.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Animebesst);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -151,9 +150,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animebesst/video.m3u8")]
         async public Task<ActionResult> Video(string uri, string title, bool play)
         {
-            var init = loadKit(AppInit.conf.Animebesst.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Animebesst);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"animebesst:video:{uri}";
             if (!hybridCache.TryGetValue(memKey, out string hls))

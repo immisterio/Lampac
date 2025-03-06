@@ -14,9 +14,9 @@ namespace Lampac.Controllers.Chaturbate
         [Route("chu/potok")]
         async public Task<ActionResult> Index(string baba)
         {
-            var init = loadKit(AppInit.conf.Chaturbate.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Chaturbate);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

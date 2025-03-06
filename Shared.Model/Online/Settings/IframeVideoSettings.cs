@@ -2,7 +2,7 @@
 
 namespace Lampac.Models.LITE
 {
-    public class IframeVideoSettings : BaseSettings
+    public class IframeVideoSettings : BaseSettings, ICloneable
     {
         public IframeVideoSettings(string plugin, string host, string cdnhost, bool enable = true)
         {
@@ -16,6 +16,9 @@ namespace Lampac.Models.LITE
 
         public string cdnhost { get; set; }
 
-        public string? token { get; set; }
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
+        }
     }
 }

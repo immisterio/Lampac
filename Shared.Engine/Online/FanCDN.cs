@@ -26,13 +26,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year)
+        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year, bool searchsite = false)
         {
             var episodes = await Embed(null, imdb_id, kinopoisk_id);
             if (episodes != null)
                 return episodes;
 
-            if (string.IsNullOrEmpty(title) || year == 0)
+            if (string.IsNullOrEmpty(title) || year == 0 || !searchsite)
                 return null;
 
             string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
@@ -84,7 +84,6 @@ namespace Shared.Engine.Online
                     iframe_url += (iframe_url.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
             }
 
-            // &imdb_id=
             string? iframe = await onget(iframe_url);
             if (string.IsNullOrEmpty(iframe))
                 return null;

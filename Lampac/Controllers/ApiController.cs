@@ -368,7 +368,7 @@ namespace Lampac.Controllers
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
                 file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
-                file = file.Replace("{jachost}", "redapi.cfhttp.top");
+                file = file.Replace("{jachost}", "redapi.apn.monster");
 
             #region full_btn_priority_hash
             string online_version = Regex.Match(FileCache.ReadAllText("plugins/online.js"), "version: '([^']+)'").Groups[1].Value;
@@ -507,7 +507,7 @@ namespace Lampac.Controllers
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
                 file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
-                file = file.Replace("{jachost}", "redapi.cfhttp.top");
+                file = file.Replace("{jachost}", "redapi.apn.monster");
 
             return Content(file, "application/javascript; charset=utf-8");
         }

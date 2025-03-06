@@ -2,7 +2,7 @@
 
 namespace Lampac.Models.LITE
 {
-    public class AllohaSettings : BaseSettings
+    public class AllohaSettings : BaseSettings, ICloneable
     {
         public AllohaSettings(string plugin, string apihost, string linkhost, string token, string secret_token, bool localip, bool m4s)
         {
@@ -12,16 +12,14 @@ namespace Lampac.Models.LITE
             this.localip = localip;
             this.m4s = m4s;
 
-            this.linkhost = linkhost.StartsWith("http") ? linkhost : Decrypt(linkhost)!;
-            this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
+            this.linkhost = linkhost == null ? string.Empty : (linkhost.StartsWith("http") ? linkhost : Decrypt(linkhost)!);
+            this.apihost = apihost == null ? string.Empty : (apihost.StartsWith("http") ? apihost : Decrypt(apihost));
         }
 
 
+        public string? secret_token { get; set; }
+
         public string linkhost { get; set; }
-
-        public string token { get; set; }
-
-        public string secret_token { get; set; }
 
         public bool localip { get; set; }
 
@@ -31,6 +29,11 @@ namespace Lampac.Models.LITE
         public AllohaSettings Clone()
         {
             return (AllohaSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

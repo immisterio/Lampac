@@ -21,9 +21,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animego")]
         async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
         {
-            var init = loadKit(AppInit.conf.AnimeGo.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            var init = await loadKit(AppInit.conf.AnimeGo);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -175,9 +175,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animego/video.m3u8")]
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
-            var init = loadKit(AppInit.conf.AnimeGo.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.AnimeGo);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"animego:video:{token}:{t}:{e}";
             if (!hybridCache.TryGetValue(memKey, out string hls))

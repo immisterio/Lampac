@@ -19,15 +19,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost")]
         async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Animevost.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Animevost);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -39,16 +38,12 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    string data = $"do=search&subaction=search&search_start=0&full_search=1&result_from=1&story={HttpUtility.UrlEncode(title)}&all_word_seach=1&titleonly=3&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=0";
+                    string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
                     string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
-                    {
-                        if (!rch.enable)
-                            proxyManager?.Refresh();
-
                         return res.Fail("search");
-                    }
 
+                    var similar = new List<(string title, string year, string uri, string s)>();
                     var catalog = new List<(string title, string year, string uri, string s)>();
 
                     foreach (string row in search.Split("class=\"shortstory\"").Skip(1))
@@ -58,18 +53,28 @@ namespace Lampac.Controllers.LITE
 
                         if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                         {
-                            string season = "0";
-                            if (animeyear == year.ToString() && g[2].Value.ToLower().StartsWith(title.ToLower()))
-                                season = "1";
+                            string season = Regex.Match(g[2].Value, "([0-9 ]+) ?nd ", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+                            if (string.IsNullOrEmpty(season))
+                            {
+                                season = Regex.Match(g[2].Value, "Season ([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+                                if (string.IsNullOrEmpty(season))
+                                    season = "1";
+                            }
 
-                            catalog.Add((g[2].Value, animeyear, g[1].Value, season));
+                            similar.Add((g[2].Value, animeyear, g[1].Value, season));
+
+                            if (animeyear == year.ToString() && g[2].Value.ToLower().StartsWith(title.ToLower()))
+                                catalog.Add((g[2].Value, animeyear, g[1].Value, season));
                         }
                     }
 
-                    if (catalog.Count == 0 && !search.Contains("Поиск по сайту"))
+                    if (catalog.Count == 0 && similar.Count == 0)
                         return res.Fail("catalog");
 
-                    return catalog;
+                    if (catalog.Count > 0)
+                        return catalog;
+
+                    return similar;
                 });
 
                 if (IsRhubFallback(cache, init))
@@ -162,9 +167,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animevost/video")]
         async public Task<ActionResult> Video(int id, string title, bool play)
         {
-            var init = loadKit(AppInit.conf.Animevost.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Animevost);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 

@@ -14,9 +14,9 @@ namespace Lampac.Controllers.Tizam
         [Route("tizam/vidosik")]
         async public Task<ActionResult> Index(string uri)
         {
-            var init = loadKit(AppInit.conf.Tizam.Clone());
-            if (IsBadInitialization(AppInit.conf.Tizam, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Tizam);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

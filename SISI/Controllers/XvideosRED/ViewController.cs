@@ -14,9 +14,9 @@ namespace Lampac.Controllers.XvideosRED
         [Route("xdsred/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = loadKit(AppInit.conf.XvideosRED.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.XvideosRED);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

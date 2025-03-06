@@ -30,9 +30,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "135";
+        public static string appversion => "137";
 
-        public static string minorversion => "6";
+        public static string minorversion => "3";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -41,6 +41,8 @@ namespace Lampac.Engine
         public RequestModel requestInfo => HttpContext?.Features?.Get<RequestModel>();
 
         public string host => AppInit.Host(HttpContext);
+
+        public ActionResult badInitMsg { get; set; }
 
         public BaseController()
         {
@@ -51,6 +53,7 @@ namespace Lampac.Engine
             memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
         }
 
+        #region mylocalip
         async public ValueTask<string> mylocalip()
         {
             string key = "BaseController:mylocalip";
@@ -66,6 +69,7 @@ namespace Lampac.Engine
 
             return userIp;
         }
+        #endregion
 
         #region httpHeaders
         public List<HeadersModel> httpHeaders(BaseSettings init, List<HeadersModel> _startHeaders = null)
@@ -296,9 +300,8 @@ namespace Lampac.Engine
         #endregion
 
         #region IsCacheError
-        public bool IsCacheError(BaseSettings init, out ActionResult result)
+        public bool IsCacheError(BaseSettings init)
         {
-            result = null;
             if (!AppInit.conf.multiaccess || init.rhub)
                 return false;
 
@@ -309,7 +312,7 @@ namespace Lampac.Engine
 
                 if (errorCache is OnErrorResult)
                 {
-                    result = Json(errorCache);
+                    badInitMsg = Json(errorCache);
                     return true;
                 }
                 else if (errorCache is string)
@@ -319,7 +322,7 @@ namespace Lampac.Engine
                         HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
                 }
 
-                result = Ok();
+                badInitMsg = Ok();
                 return true;
             }
 
@@ -373,43 +376,88 @@ namespace Lampac.Engine
         #endregion
 
         #region loadKit
-        public T loadKit<T>(T init) where T : BaseSettings
+        public bool IsKitConf { get; private set; }
+
+        async public ValueTask<JObject> loadKitConf()
         {
-            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path))
-                return init;
+            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path) || string.IsNullOrEmpty(requestInfo?.user_uid))
+                return null;
 
-            string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
-            if (!IO.File.Exists(init_file))
-                return init;
-
-            JObject conf;
-
-            try
+            string memKey = $"loadKit:{requestInfo.user_uid}";
+            if (!memoryCache.TryGetValue(memKey, out JObject appinit))
             {
-                var appinit = JsonConvert.DeserializeObject<JObject>(IO.File.ReadAllText(init_file));
-                if (init.plugin == null || !appinit.ContainsKey(init.plugin))
-                    return init;
+                string json;
 
-                conf = appinit.Value<JObject>(init.plugin);
+                if (Regex.IsMatch(AppInit.conf.kit.path, "^https?://"))
+                {
+                    string uri = AppInit.conf.kit.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
+                    json = await HttpClient.Get(uri, timeoutSeconds: 5);
+                }
+                else
+                {
+                    string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
+                    if (!IO.File.Exists(init_file))
+                        return null;
+
+                    json = IO.File.ReadAllText(init_file);
+                }
+
+                if (json == null)
+                    return null;
+
+                try
+                {
+                    appinit = JsonConvert.DeserializeObject<JObject>(json);
+                }
+                catch { return null; }
+
+                memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
             }
-            catch { return init; }
 
-            void update<T>(string key, Action<T> updateAction)
+            return appinit;
+        }
+
+        async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
+        {
+            var init = (T)_init.Clone();
+            if (!init.kit)
+                return init;
+
+            return loadKit(init, await loadKitConf(), func, clone: false);
+        }
+
+        public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
+        {
+            var init = clone ? (T)_init.Clone() : _init;
+            if (init == null || !init.kit)
+                return init;
+
+            if (appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
+                return init;
+
+            var conf = appinit.Value<JObject>(init.plugin);
+
+            void update<T2>(string key, Action<T2> updateAction)
             {
                 if (conf.ContainsKey(key))
-                    updateAction(conf.Value<T>(key));
+                    updateAction(conf.Value<T2>(key));
             }
 
             update<bool>("enable", v => init.enable = v);
             update<string>("displayname", v => init.displayname = v);
             update<int>("displayindex", v => init.displayindex = v);
 
+            update<string>("cookie", v => init.cookie = v);
+            update<string>("token", v => init.token = v);
+
             update<string>("host", v => init.host = v);
             update<string>("apihost", v => init.apihost = v);
             update<string>("scheme", v => init.scheme = v);
             update<bool>("hls", v => init.hls = v);
-            update<Dictionary<string, string>>("headers", v => init.headers = v);
             update<string>("overridehost", v => init.overridehost = v);
+
+            if (conf.ContainsKey("headers"))
+                init.headers = conf["headers"].ToObject<Dictionary<string, string>>();
 
             init.apnstream = true;
             if (conf.ContainsKey("apn"))
@@ -417,7 +465,8 @@ namespace Lampac.Engine
 
             init.useproxystream = false;
             update<bool>("streamproxy", v => init.streamproxy = v);
-            update<string[]>("geostreamproxy", v => init.geostreamproxy = v);
+            if (conf.ContainsKey("geostreamproxy"))
+                init.geostreamproxy = conf["geostreamproxy"].ToObject<string[]>();
 
             if (conf.ContainsKey("proxy"))
             {
@@ -431,11 +480,21 @@ namespace Lampac.Engine
                 init.rhub = false;
                 init.rhub_fallback = false;
             }
-            else if (AppInit.conf.kit.rhub_fallback)
+            else if (AppInit.conf.kit.rhub_fallback || init.rhub_fallback)
             {
                 update<bool>("rhub", v => init.rhub = v);
                 update<bool>("rhub_fallback", v => init.rhub_fallback = v);
             }
+            else
+            {
+                init.rhub = true;
+                init.rhub_fallback = true;
+            }
+
+            IsKitConf = true;
+
+            if (func != null)
+                return func.Invoke(conf, init, conf.ToObject<T>());
 
             return init;
         }

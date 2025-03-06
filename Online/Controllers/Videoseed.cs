@@ -17,16 +17,18 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videoseed")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false, int serial = -1)
         {
-            var init = loadKit(AppInit.conf.Videoseed.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Videoseed);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             #region search
             string memKey = rch.ipkey($"videoseed:view:{kinopoisk_id}", proxyManager);
@@ -35,8 +37,23 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                html = rch.enable ? await rch.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", headers: httpHeaders(init)) :
-                                    await HttpClient.Get($"{init.host}/api.php?kp_id={kinopoisk_id}", timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
+                string uri = $"{init.host}/api.php?list={(serial == 1 ? "serial" : "movie")}&token={init.token}&kp={kinopoisk_id}";
+                var root = rch.enable ? await rch.Get<JObject>(uri, headers: httpHeaders(init)) :
+                                        await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
+
+                if (root == null || !root.ContainsKey("data"))
+                {
+                    if (rch.enable)
+                        return OnError(null, gbcache: !rch.enable);
+
+                    proxyManager.Refresh();
+                    return OnError();
+                }
+
+                string iframe = root["data"].First.Value<string>("iframe");
+
+                html = rch.enable ? await rch.Get(iframe, headers: httpHeaders(init)) :
+                                    await HttpClient.Get(iframe, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxyManager.Get());
 
                 if (html == null || !html.Contains("Playerjs"))
                 {

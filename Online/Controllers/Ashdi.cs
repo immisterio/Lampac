@@ -14,9 +14,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/ashdi")]
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Ashdi.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.Ashdi);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (kinopoisk_id == 0)
                 return OnError();

@@ -22,9 +22,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Lumex.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            var init = await loadKit(AppInit.conf.Lumex);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
@@ -191,9 +191,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/lumex/video.m3u8")]
         async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
-            var init = loadKit(AppInit.conf.Lumex.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Lumex);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

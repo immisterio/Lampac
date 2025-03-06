@@ -33,9 +33,7 @@ namespace Lampac.Controllers
             if (responseInfo)
                 return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo });
 
-            string data = BrotliTo.Decompress(outFile);
-            if (data == null)
-                data = IO.File.ReadAllText(outFile);
+            string data = AppInit.conf.storage.brotli ? BrotliTo.Decompress(outFile) : IO.File.ReadAllText(outFile);
 
             return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data });
         }

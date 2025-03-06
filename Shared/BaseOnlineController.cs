@@ -1,6 +1,7 @@
 ﻿using Lampac;
 using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Lampac.Models.Module;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,8 +9,12 @@ using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Models;
+using Shared.Models.Module;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace Online
@@ -17,23 +22,52 @@ namespace Online
     public class BaseOnlineController : BaseController
     {
         #region IsBadInitialization
-        public bool IsBadInitialization(BaseSettings init, out ActionResult result, bool? rch = null)
+        async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null)
         {
+            if (AppInit.modules != null)
+            {
+                var args = new InitializationModel(init, rch);
+
+                foreach (RootModule mod in AppInit.modules.Where(i => i.initialization != null))
+                {
+                    try
+                    {
+                        if (mod.assembly.GetType(mod.NamespacePath(mod.initialization)) is Type t)
+                        {
+                            if (t.GetMethod("Invoke") is MethodInfo m2)
+                            {
+                                badInitMsg = (ActionResult)m2.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                if (badInitMsg != null)
+                                    return true;
+                            }
+
+                            if (t.GetMethod("InvokeAsync") is MethodInfo m)
+                            {
+                                badInitMsg = await (Task<ActionResult>)m.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                if (badInitMsg != null)
+                                    return true;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+
             if (!init.enable || init.rip)
             {
-                result = OnError("disable");
+                badInitMsg = OnError("disable");
                 return true;
             }
 
             if (NoAccessGroup(init, out string error_msg))
             {
-                result = OnError(error_msg, gbcache: false);
+                badInitMsg = OnError(error_msg, gbcache: false);
                 return true;
             }
 
             if (IsOverridehost(init, out string overridehost))
             {
-                result = Redirect(overridehost);
+                badInitMsg = Redirect(overridehost);
                 return true;
             }
 
@@ -43,7 +77,7 @@ namespace Online
                 {
                     if (init.rhub && !AppInit.conf.rch.enable)
                     {
-                        result = ShowError(RchClient.ErrorMsg);
+                        badInitMsg = ShowError(RchClient.ErrorMsg);
                         return true;
                     }
                 }
@@ -51,13 +85,13 @@ namespace Online
                 {
                     if (init.rhub)
                     {
-                        result = ShowError(RchClient.ErrorMsg);
+                        badInitMsg = ShowError(RchClient.ErrorMsg);
                         return true;
                     }
                 }
             }
 
-            return IsCacheError(init, out result);
+            return IsCacheError(init);
         }
         #endregion
 

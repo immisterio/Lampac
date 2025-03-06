@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -9,12 +10,16 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine
 {
-    public class soks : Hub
+    public class soks : Hub, ISoks
     {
         #region soks
         static ConcurrentDictionary<string, HubCallerContext> _connections = new ConcurrentDictionary<string, HubCallerContext>();
 
         public static IHubCallerClients hubClients = null;
+
+        public IHubCallerClients AllClients => hubClients;
+
+        public ConcurrentDictionary<string, HubCallerContext> Connections => _connections;
         #endregion
 
         #region Rch
@@ -67,6 +72,8 @@ namespace Lampac.Engine
             }
         }
 
+        public void WebLog(string message, string plugin) => SendLog(message, plugin);
+
         public static void SendLog(string message, string plugin)
         {
             if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 1_000000)
@@ -108,6 +115,8 @@ namespace Lampac.Engine
             catch { }
         }
 
+        public Task EventsAsync(string connectionId, string uid, string name, string data) => SendEvents(connectionId, uid, name, data);
+
         /// <summary>
         /// Отправка сообщений через сервер
         /// </summary>
@@ -134,7 +143,7 @@ namespace Lampac.Engine
         public override Task OnConnectedAsync()
         {
             hubClients = Clients;
-            //_connections.TryAdd(Context.ConnectionId, Context);
+            _connections.TryAdd(Context.ConnectionId, Context);
 
             return base.OnConnectedAsync();
         }
@@ -146,7 +155,7 @@ namespace Lampac.Engine
             RchClient.OnDisconnected(Context.ConnectionId);
 
             hubClients = Clients;
-            //_connections.TryRemove(Context.ConnectionId, out _);
+            _connections.TryRemove(Context.ConnectionId, out _);
 
             return base.OnDisconnectedAsync(exception);
         }

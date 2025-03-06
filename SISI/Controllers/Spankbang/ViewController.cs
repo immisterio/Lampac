@@ -14,9 +14,9 @@ namespace Lampac.Controllers.Spankbang
         [Route("sbg/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
-            var init = loadKit(AppInit.conf.Spankbang.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Spankbang);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();

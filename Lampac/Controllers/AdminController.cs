@@ -213,6 +213,125 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        #region sync/init
+        [Route("admin/sync/init")]
+        public ActionResult Synchtml()
+        {
+            string html = @"
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Редактор sync.conf</title>
+</head>
+<body>
+
+<style type=""text/css"">
+	* {
+	    box-sizing: border-box;
+	    outline: none;
+	}
+	body{
+		padding: 40px;
+		font-family: sans-serif;
+	}
+	label{
+		display: block;
+		font-weight: 700;
+		margin-bottom: 8px;
+	}
+	input,
+	textarea,
+	select{
+		width: 100%;
+		padding: 10px;
+	}
+	button{
+		padding: 10px;
+	}
+	form > * + *{
+		margin-top: 30px;
+	}
+</style>
+
+<form method=""post"" action="""" id=""form"">
+	<div>
+		<label>Ваш sync.conf
+		<textarea id=""value"" name=""value"" rows=""30"">{conf}</textarea>
+	</div>
+	
+	<button type=""submit"">Сохранить</button>
+	
+</form>
+
+<script type=""text/javascript"">
+	document.getElementById('form').addEventListener(""submit"", (e) => {
+		let json = document.getElementById('value').value
+
+		e.preventDefault()
+
+		try{
+			let formData = new FormData()
+				formData.append('json', json)
+
+			fetch('/admin/sync/init/save',{
+			    method: ""POST"",
+			    body: formData
+			})
+			.then((response)=>{
+				if (!response.ok) {
+					return response.json().then(err => {
+						throw new Error(err.ex || 'Не удалось сохранить настройки');
+					});
+				}
+				return response.json();
+			 })  
+			.then((data)=>{
+				if (data.success) {
+					alert('Сохранено');
+				} else if (data.error) {
+					throw new Error(data.ex); 
+				} else {
+					throw new Error('Не удалось сохранить настройки'); 
+				}
+			})
+			.catch((e)=>{
+				alert(e.message)
+			})
+		}
+		catch(e){
+			alert('Ошибка: ' + e.message)
+		}
+	})
+</script>
+
+</body>
+</html>
+";
+
+            string conf = IO.File.Exists("sync.conf") ? IO.File.ReadAllText("sync.conf") : string.Empty;
+            return Content(html.Replace("{conf}", conf), contentType: "text/html; charset=utf-8");
+        }
+
+
+        [Route("admin/sync/init/save")]
+        public ActionResult SyncSave([FromForm] string json)
+        {
+            try
+            {
+                string testjson = json.Trim();
+                if (!testjson.StartsWith("{"))
+                    testjson = "{" + testjson + "}";
+
+                JsonConvert.DeserializeObject<AppInit>(testjson);
+
+            }
+            catch (Exception ex) { return Json(new { error = true, ex = ex.Message }); }
+
+            IO.File.WriteAllText("sync.conf", json);
+            return Json(new { success = true });
+        }
+        #endregion
+
         #region manifest
         [Route("admin/manifest/install")]
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string localua)

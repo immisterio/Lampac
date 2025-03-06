@@ -19,9 +19,9 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/vidosik")]
         async public Task<ActionResult> vidosik(string uri)
         {
-            var init = loadKit(AppInit.conf.Porntrex.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Porntrex);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> links))
@@ -44,9 +44,9 @@ namespace Lampac.Controllers.Porntrex
         [Route("ptx/strem")]
         async public Task<ActionResult> strem(string link)
         {
-            var init = loadKit(AppInit.conf.Porntrex.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Porntrex);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxy = proxyManager.Get();
 

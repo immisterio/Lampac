@@ -15,9 +15,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/anilibria")]
         async public Task<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.AnilibriaOnline.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.AnilibriaOnline);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (string.IsNullOrEmpty(title))
                 return OnError();

@@ -18,10 +18,8 @@ namespace Lampac.Controllers.LITE
     public class Rezka : BaseOnlineController
     {
         #region InitRezkaInvoke
-        async public ValueTask<RezkaInvoke> InitRezkaInvoke()
+        async public ValueTask<RezkaInvoke> InitRezkaInvoke(RezkaSettings init)
         {
-            var init = loadKit(AppInit.conf.Rezka.Clone());
-
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
@@ -57,16 +55,35 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region Initialization
+        ValueTask<RezkaSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.Rezka, (j, i, c) =>
+            {
+                if (j.ContainsKey("premium"))
+                    i.premium = c.premium;
+
+                if (j.ContainsKey("uacdn"))
+                    i.uacdn = c.uacdn;
+
+                if (j.ContainsKey("forceua"))
+                    i.forceua = c.forceua;
+
+                return i;
+            });
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
         {
-            var init = loadKit(AppInit.conf.Rezka.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await Initialization();
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (init.premium || AppInit.conf.RezkaPrem.enable) 
-                return ShowError("Используйте RezkaPremium в init.conf вместо Rezka");
+                return ShowError("Замените Rezka на RezkaPrem в init.conf");
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
@@ -90,7 +107,7 @@ namespace Lampac.Controllers.LITE
                 }
             }
 
-            var oninvk = await InitRezkaInvoke();
+            var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
 
             string memKey = $"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}";
@@ -116,14 +133,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/serial")]
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.Rezka.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await Initialization();
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
                 return OnError();
 
-            var oninvk = await InitRezkaInvoke();
+            var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
@@ -148,11 +165,11 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            var init = loadKit(AppInit.conf.Rezka.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await Initialization();
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
-            var oninvk = await InitRezkaInvoke();
+            var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
@@ -161,7 +178,7 @@ namespace Lampac.Controllers.LITE
 
             string realip = (init.xrealip && init.corseu) ? requestInfo.IP : "";
 
-            var md = await InvokeCache(rch.ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}", proxyManager), cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
+            var md = await InvokeCache(rch.ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}:{init.cookie}", proxyManager), cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
             if (md == null)
                 return OnError(null, gbcache: !rch.enable);
 

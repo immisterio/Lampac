@@ -146,6 +146,8 @@ namespace Lampac
         public static string Host(HttpContext httpContext)
         {
             string scheme = string.IsNullOrEmpty(conf.listenscheme) ? httpContext.Request.Scheme : conf.listenscheme;
+            if (httpContext.Request.Headers.TryGetValue("xscheme", out var xscheme) && !string.IsNullOrEmpty(xscheme))
+                scheme = xscheme;
 
             if (!string.IsNullOrEmpty(conf.listenhost))
                 return $"{scheme}://{conf.listenhost}";
@@ -188,10 +190,7 @@ namespace Lampac
                         try
                         {
                             mod.assembly = Assembly.LoadFile(path);
-
-                            if (mod.initspace != null && mod.assembly.GetType(mod.initspace) is Type t && t.GetMethod("loaded") is MethodInfo m)
-                                m.Invoke(null, new object[] { });
-
+                            mod.index = mod.index != 0 ? mod.index : (100 + modules.Count);
                             modules.Add(mod);
                         }
                         catch { }
@@ -234,7 +233,7 @@ namespace Lampac
 
         public string anticaptchakey;
 
-        public KitConf kit = new KitConf();
+        public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
         public SyncConf sync = new SyncConf();
 
@@ -244,7 +243,7 @@ namespace Lampac
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
-        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = true, keepopen = true };
+        public PuppeteerConf chromium = new PuppeteerConf() { enable = true };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
@@ -260,7 +259,8 @@ namespace Lampac
         {
             enable = true,
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = 60
+            cache_api = 20, cache_img = 60,
+            api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 
         public ServerproxyConf serverproxy = new ServerproxyConf()
@@ -296,7 +296,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "ec6259420cf02eee9b698d1a0bebac79d8e127d4"
+            tree = "8bd2e9c56173f9a301ae37dbd439db46fe1cb60c"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -308,7 +308,7 @@ namespace Lampac
 
         public AccsConf accsdb = new AccsConf() 
         { 
-            authMesage = "Войдите в аккаунт cub.red",
+            authMesage = "Войдите в аккаунт - настройки, синхронизация",
             denyMesage = "Добавьте {account_email} в init.conf",
             denyGroupMesage = "У вас нет прав для просмотра этой страницы",
             expiresMesage = "Время доступа для {account_email} истекло в {expires}",

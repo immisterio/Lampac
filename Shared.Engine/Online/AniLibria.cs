@@ -44,6 +44,9 @@ namespace Shared.Engine.Online
                     result.Add(item);
             }
 
+            if (result.Count == 0)
+                return search;
+
             return result;
         }
         #endregion
@@ -83,7 +86,11 @@ namespace Shared.Engine.Online
                     {
                         season = Regex.Match(code ?? "", "-([0-9]+)(nd|th)").Groups[1].Value;
                         if (string.IsNullOrEmpty(season))
-                            season = string.IsNullOrEmpty(code) ? "0" : "1";
+                        {
+                            season = Regex.Match(code ?? "", "season-([0-9]+)").Groups[1].Value;
+                            if (string.IsNullOrEmpty(season))
+                                season = string.IsNullOrEmpty(code) ? "0" : "1";
+                        }
                     }
 
                     etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), hls, streamquality: new StreamQualityTpl(streams), vast: vast);

@@ -18,9 +18,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            var init = loadKit(AppInit.conf.IframeVideo);
-            if (IsBadInitialization(init, out ActionResult action, rch: false))
-                return action;
+            var init = await loadKit(AppInit.conf.IframeVideo);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             var frame = await iframe(imdb_id, kinopoisk_id);
             if (frame.type == null || (frame.type != "movie" && frame.type != "anime"))
@@ -70,9 +70,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/iframevideo/video.m3u8")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
-            var init = loadKit(AppInit.conf.IframeVideo);
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.IframeVideo);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var proxy = proxyManager.Get();
 

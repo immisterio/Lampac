@@ -20,9 +20,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animelib")]
         async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.AnimeLib.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.AnimeLib);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -194,9 +194,9 @@ namespace Lampac.Controllers.LITE
         [Route("lite/animelib/video")]
         async public Task<ActionResult> Video(string title, long id, string voice, bool play)
         {
-            var init = loadKit(AppInit.conf.AnimeLib.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.AnimeLib);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             var headers = httpHeaders(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);

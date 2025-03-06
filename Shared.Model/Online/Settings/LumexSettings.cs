@@ -2,7 +2,7 @@
 
 namespace Lampac.Models.LITE
 {
-    public class LumexSettings : BaseSettings
+    public class LumexSettings : BaseSettings, ICloneable
     {
         public LumexSettings(string plugin, string apihost, string token, string iframehost, string clientId)
         {
@@ -21,17 +21,21 @@ namespace Lampac.Models.LITE
         }
 
 
-        public string? token { get; set; }
-
         public string? clientId { get; set; }
 
         public string? iframehost { get; set; }
 
         public string? args_api { get; set; }
 
+
         public LumexSettings Clone()
         {
             return (LumexSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

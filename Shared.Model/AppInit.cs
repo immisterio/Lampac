@@ -32,17 +32,20 @@ namespace Shared.Model
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")
         {
             headers = HeadersModel.Init(
-                ("dnt", "1"),
+                ("accept", "*/*"),
                 ("cache-control", "no-cache"),
+                ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
+                ("cookie", "bonga20120608=99834a7a1dee3a3d50f77380ba22a881; ts_type2=1; fv=BGxjZGtjZGD3ZD==; uh=IIDlE0MYIaAkF1cxEwS2FyyPqSMipj==; reg_ver2=3; sg=861; warning18=%5B%22et_EE%22%5D; ol4ekwvk4v=1834809388; ls02=camscore; ls01=%7B%22th_type%22%3A%22live%22%2C%22display%22%3A%22medium%22%7D; BONGA_REF=https%3A%2F%2Fwww.google.com%2F"),
+                ("referer", "{host}/"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("referer", "{host}"),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-origin"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"),
                 ("x-requested-with", "XMLHttpRequest")
             ).ToDictionary()
         };
@@ -134,7 +137,7 @@ namespace Shared.Model
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
 
-        public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1qlqvho1zv", streamproxy: true, two: true) 
+        public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1qlqvho1zv", streamproxy: true, two: false) 
         {
             headers = HeadersModel.Init(
                 ("Origin", "{host}"), 
@@ -175,7 +178,26 @@ namespace Shared.Model
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1fr", streamproxy: true);
 
-        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false);
+        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false)
+        {
+            headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "iframe"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "cross-site"),
+                ("sec-fetch-storage-access", "active"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary()
+        };
 
         public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("Redheadsound", "kwwsv=22uhgkhdgvrxqg1vwxglr") 
         {
@@ -193,7 +215,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("FilmixTV", "kwwsv=22dsl1ilopl{1wy", enable: false);
+        public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("FilmixTV", "kwwsv=22dsl1ilopl{1wy", enable: false) { pro = true };
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("FilmixPartner", "kwws=22819418914;2sduwqhubdsl", enable: false);
 
@@ -236,7 +258,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22odylvk0vpdvk1fgqprylhv0vwuhdp1rqolqh") 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22xjo|0wxunh|1fgqprylhv0vwuhdp1rqolqh") 
         {
             geostreamproxy = new string[] { "ALL" },
             headers = HeadersModel.Init(
@@ -245,21 +267,39 @@ namespace Shared.Model
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "encrypt:kwwsv=22eroo|zrrgwy1foxe2"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("referer", "encrypt:kwwsv=22nlqrrqolqh0kg1frp2"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "iframe"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "cross-site"),
+                ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v41idqvhuldo1wy") 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v71idqvhuldo1wy") 
         { 
             streamproxy = true,
+            headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("referer", "{host}/"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "iframe"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "cross-site"),
+                ("sec-fetch-storage-access", "active"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
                 ("cache-control", "no-cache"),
@@ -272,26 +312,9 @@ namespace Shared.Model
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-site"),
+                ("sec-fetch-storage-access", "active"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary(),
-            headers = HeadersModel.Init(
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("referer", "{host}/"),
-                ("cookie", "cf_clearance={cf_clearance}"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "iframe"),
-                ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "cross-site"),
-                ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
-            ).ToDictionary()
         };
 
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "lumex.space", "fReBbuvVF6Rv") 
@@ -331,17 +354,36 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
-        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22wy050nlqrvhuldo1qhw", streamproxy: true);
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", enable: false, streamproxy: true);
 
         /// <summary>
         /// kwwsv=22dsl1vuyns1frp
         /// kwwsv=22nsdss1olqn2dsl
         /// </summary>
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "kwwsv=22dsl1vuyns1frp") { filetype = "hls" };
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "kwwsv=22dsl1vuyns1frp") 
+        { 
+            filetype = "hls", 
+            headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "none"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary()
+        };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
-        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "fb7f82fe0ed1bd6d5dea884d57eeca", "", true, true) { enable = true, streamproxy = true };
+        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1dojrqrhz1rqolqh=<7<6", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
 
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
@@ -351,7 +393,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1pdqjdole1ph", streamproxy: true) 
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl51pdqjdole1ph", streamproxy: true) 
         {
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),

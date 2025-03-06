@@ -18,9 +18,9 @@ namespace Lampac.Controllers.Xhamster
         [Route("xmrsml")]
         async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
-            var init = loadKit(AppInit.conf.Xhamster.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.Xhamster);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             pg++;
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;

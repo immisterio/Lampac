@@ -20,9 +20,9 @@ namespace Lampac.Controllers.PornHub
         [Route("phubsml")]
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.PornHub.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.PornHub);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
@@ -68,9 +68,9 @@ namespace Lampac.Controllers.PornHub
         [Route("phubprem")]
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
-            var init = loadKit(AppInit.conf.PornHubPremium.Clone());
-            if (IsBadInitialization(init, out ActionResult action))
-                return action;
+            var init = await loadKit(AppInit.conf.PornHubPremium);
+            if (await IsBadInitialization(init))
+                return badInitMsg;
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))

@@ -51,9 +51,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vokino")]
         async public Task<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
         {
-            var init = loadKit(AppInit.conf.VoKino.Clone());
-            if (IsBadInitialization(init, out ActionResult action, rch: true))
-                return action;
+            var init = await loadKit(AppInit.conf.VoKino, (j, i, c) => 
+            {
+                if (j.ContainsKey("online"))
+                    i.online = c.online;
+                return i; 
+            });
+
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
@@ -61,12 +67,8 @@ namespace Lampac.Controllers.LITE
             if (balancer is "filmix" or "ashdi" or "alloha" or "vibix")
                 init.streamproxy = false;
 
-            if (checksearch)
-            {
-                var o = init.online;
-                if (o.videocdn || o.alloha || o.ashdi || o.vibix || o.filmix || o.hdvb)
-                    return Content("data-json="); // заглушка от 429
-            }
+            if (checksearch && balancer != "vokino")
+                return Content("data-json="); // заглушка от 429
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();
@@ -81,7 +83,7 @@ namespace Lampac.Controllers.LITE
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

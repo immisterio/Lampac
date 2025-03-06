@@ -3,7 +3,7 @@ using Shared.Model.Online.VoKino;
 
 namespace Lampac.Models.LITE
 {
-    public class VokinoSettings : BaseSettings
+    public class VokinoSettings : BaseSettings, ICloneable
     {
         public VokinoSettings(string plugin, string host, bool streamproxy, bool rip = false)
         {
@@ -16,14 +16,17 @@ namespace Lampac.Models.LITE
         }
 
 
-        public string? token { get; set; }
-
         public ViewOnline online { get; set; } = new ViewOnline();
 
 
         public VokinoSettings Clone()
         {
             return (VokinoSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }
