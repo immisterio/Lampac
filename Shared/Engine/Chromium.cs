@@ -230,7 +230,7 @@ namespace Shared.Engine
 
             Directory.CreateDirectory(Path.GetDirectoryName(outfile));
 
-            if (await HttpClient.DownloadFile(uri, outfile))
+            if (await HttpClient.DownloadFile(uri, outfile).ConfigureAwait(false))
             {
                 File.Create($"{outfile}.ok");
 
