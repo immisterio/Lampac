@@ -43,7 +43,7 @@ namespace Shared.Engine
 
                 if (!File.Exists(".playwright/package/index.js"))
                 {
-                    bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/package.zip", ".playwright\\package.zip");
+                    bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/package.zip", ".playwright/package.zip");
                     if (!res)
                         return;
                 }
@@ -73,11 +73,11 @@ namespace Shared.Engine
                         case Architecture.Arm64:
                             {
                                 string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-mac-{arc}", $".playwright/node/mac_{arc}/node");
+                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-mac-{arc}", $".playwright/node/mac-{arc}/node");
                                 if (!res)
                                     return;
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac_{arc}/node")}");
+                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
                                 break;
                             }
                         default:
@@ -93,17 +93,22 @@ namespace Shared.Engine
                         case Architecture.Arm64:
                             {
                                 string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-linux-{arc}", $".playwright/node/linux_{arc}/node");
+                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-linux-{arc}", $".playwright/node/linux-{arc}/node");
                                 if (!res)
                                     return;
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux_{arc}/node")}");
+                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
                                 break;
                             }
                         case Architecture.Arm:
-                            await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l", ".playwright/node/linux_arm/node");
-                            await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux_arm/node")}");
-                            break;
+                            {
+                                bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l", ".playwright/node/linux-arm/node");
+                                if (!res)
+                                    return;
+
+                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
+                                break;
+                            }
                         default:
                             return;
                     }
