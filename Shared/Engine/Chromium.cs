@@ -1,7 +1,11 @@
 ﻿using Lampac;
+using Lampac.Engine.CORE;
 using Microsoft.Playwright;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -27,13 +31,163 @@ namespace Shared.Engine
         {
             try
             {
-                if (!AppInit.conf.chromium.enable || browser != null || shutdown)
+                var init = AppInit.conf.chromium;
+
+                if (!init.enable || browser != null || shutdown)
                     return;
 
-                string executablePath = AppInit.conf.chromium.executablePath;
+                if (init.DISPLAY != null)
+                    Environment.SetEnvironmentVariable("DISPLAY", init.DISPLAY);
+                else if (File.Exists("/tmp/.X99-lock"))
+                    Environment.SetEnvironmentVariable("DISPLAY", ":99");
 
-                // donwload
+                if (!File.Exists(".playwright/package/index.js"))
+                {
+                    bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/package.zip", ".playwright\\package.zip");
+                    if (!res)
+                        return;
+                }
 
+                #region Download node
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    switch (RuntimeInformation.ProcessArchitecture)
+                    {
+                        case Architecture.X86:
+                        case Architecture.X64:
+                        case Architecture.Arm64:
+                            {
+                                string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
+                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-win-{arc}.exe", $".playwright\\node\\win32-{arc}\\node.exe");
+                                if (!res)
+                                    return;
+                                break;
+                            }
+                    }
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    switch (RuntimeInformation.ProcessArchitecture)
+                    {
+                        case Architecture.X64:
+                        case Architecture.Arm64:
+                            {
+                                string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
+                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-mac-{arc}", $".playwright/node/mac_{arc}/node");
+                                if (!res)
+                                    return;
+
+                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac_{arc}/node")}");
+                                break;
+                            }
+                        default:
+                            return;
+                    }
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    switch (RuntimeInformation.ProcessArchitecture)
+                    {
+                        case Architecture.X86:
+                        case Architecture.X64:
+                        case Architecture.Arm64:
+                            {
+                                string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
+                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-linux-{arc}", $".playwright/node/linux_{arc}/node");
+                                if (!res)
+                                    return;
+
+                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux_{arc}/node")}");
+                                break;
+                            }
+                        case Architecture.Arm:
+                            await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l", ".playwright/node/linux_arm/node");
+                            await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux_arm/node")}");
+                            break;
+                        default:
+                            return;
+                    }
+                }
+                else
+                {
+                    return;
+                }
+                #endregion
+
+                string executablePath = init.executablePath;
+
+                #region Download chromium
+                if (string.IsNullOrEmpty(executablePath))
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        switch (RuntimeInformation.ProcessArchitecture)
+                        {
+                            case Architecture.X86:
+                            case Architecture.X64:
+                            case Architecture.Arm64:
+                                {
+                                    string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-win-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
+                                    bool res = await DownloadFile(uri, ".playwright/chrome.zip");
+                                    if (!res)
+                                        return;
+
+                                    if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                                        executablePath = ".playwright\\chrome-win32\\chrome.exe";
+                                    else
+                                        executablePath = ".playwright\\chrome-win\\chrome.exe";
+                                    break;
+                                }
+                            default:
+                                return;
+                        }
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        switch (RuntimeInformation.ProcessArchitecture)
+                        {
+                            case Architecture.X64:
+                            case Architecture.Arm64:
+                                {
+                                    string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-mac-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
+                                    bool res = await DownloadFile(uri, ".playwright/chrome.zip");
+                                    if (!res)
+                                        return;
+
+                                    await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium")}");
+                                    executablePath = ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium";
+                                    break;
+                                }
+                            default:
+                                return;
+                        }
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        switch (RuntimeInformation.ProcessArchitecture)
+                        {
+                            case Architecture.X86:
+                            case Architecture.X64:
+                                {
+                                    string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-linux-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
+                                    bool res = await DownloadFile(uri, ".playwright/chrome.zip");
+                                    if (!res)
+                                        return;
+
+                                    await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-linux/chrome")}");
+                                    executablePath = ".playwright/chrome-linux/chrome";
+                                    break;
+                                }
+                            default:
+                                return;
+                        }
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+                #endregion
 
                 if (string.IsNullOrEmpty(executablePath))
                     return;
@@ -42,11 +196,11 @@ namespace Shared.Engine
 
                 browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
-                    Headless = AppInit.conf.chromium.Headless,
+                    Headless = init.Headless,
                     ExecutablePath = executablePath
                 });
 
-                Status = AppInit.conf.chromium.Headless ? ChromiumStatus.headless : ChromiumStatus.NoHeadless;
+                Status = init.Headless ? ChromiumStatus.headless : ChromiumStatus.NoHeadless;
                 browser.Disconnected += Browser_Disconnected;
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
@@ -60,6 +214,35 @@ namespace Shared.Engine
         }
 
         public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
+
+        async static ValueTask<bool> DownloadFile(string uri, string outfile)
+        {
+            if (File.Exists($"{outfile}.ok"))
+                return true;
+
+            if (File.Exists(outfile))
+                File.Delete(outfile);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(outfile));
+
+            if (await HttpClient.DownloadFile(uri, outfile))
+            {
+                File.Create($"{outfile}.ok");
+
+                if (outfile.EndsWith(".zip"))
+                {
+                    ZipFile.ExtractToDirectory(outfile, ".playwright/", overwriteFiles: true);
+                    File.Delete(outfile);
+                }
+
+                return true;
+            }
+            else
+            {
+                File.Delete(outfile);
+                return false;
+            }
+        }
         #endregion
 
 

@@ -243,8 +243,6 @@ namespace Lampac
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
-        public PuppeteerConf puppeteer = new PuppeteerConf() { enable = false, keepopen = true };
-
         public PuppeteerConf chromium = new PuppeteerConf() { enable = true };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };

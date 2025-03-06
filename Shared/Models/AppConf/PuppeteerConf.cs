@@ -4,12 +4,12 @@
     {
         public bool enable { get; set; }
 
-        public bool keepopen { get; set; }
-
-        public bool Headless { get; set; } = true;
+        public bool Headless { get; set; }
 
         public bool DEV { get; set; }
 
         public string executablePath { get; set; }
+
+        public string DISPLAY { get; set; }
     }
 }
