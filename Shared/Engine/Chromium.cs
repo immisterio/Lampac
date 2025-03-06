@@ -58,7 +58,7 @@ namespace Shared.Engine
                         case Architecture.Arm64:
                             {
                                 string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-win-{arc}.exe", $".playwright\\node\\win32-{arc}\\node.exe");
+                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-win-{arc}.exe", $".playwright\\node\\win32_{arc}\\node.exe");
                                 if (!res)
                                     return;
                                 break;
