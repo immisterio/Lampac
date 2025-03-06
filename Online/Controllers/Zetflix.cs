@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using System.Collections.Generic;
-using PuppeteerSharp;
 using Shared.Engine;
 using System;
 using System.Linq;
@@ -14,6 +13,8 @@ namespace Lampac.Controllers.LITE
 {
     public class Zetflix : BaseOnlineController
     {
+        static string PHPSESSID = null;
+
         [HttpGet]
         [Route("lite/zetflix")]
         async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
@@ -43,9 +44,6 @@ namespace Lampac.Controllers.LITE
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                if (init.black_magic)
-                    return await black_magic(uri);
-
                 string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
                 if (html != null && !html.StartsWith("<script>(function"))
                 {
@@ -57,41 +55,37 @@ namespace Lampac.Controllers.LITE
 
                 try
                 {
-                    using (var browser = await PuppeteerTo.Browser())
+                    using (var browser = new Chromium())
                     {
-                        if (browser == null)
-                            return null;
-
                         log += "browser init\n";
 
-                        var page = await browser.Page(new Dictionary<string, string>()
+                        var page = await browser.NewPageAsync(new Dictionary<string, string>()
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        }, cookies: cookies);
+                        });
 
                         if (page == null)
                             return null;
 
                         log += "page init\n";
 
-                        await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
-
-                        var response = await page.GoToAsync($"view-source:{uri}");
-                        html = await response.TextAsync();
-
-                        log += $"{html}\n\n";
-
-                        if (html.StartsWith("<script>(function"))
-                            return null;
-
-                        var cook = await page.GetCookiesAsync();
+                        await page.GotoAsync(uri);
+                        var cook = await page.Context.CookiesAsync();
                         PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+                        if (!string.IsNullOrEmpty(PHPSESSID))
+                        {
+                            html = await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                            if (html != null && !html.StartsWith("<script>(function"))
+                            {
+                                if (!html.Contains("new Playerjs"))
+                                    return null;
 
-                        if (!html.Contains("new Playerjs"))
-                            return null;
+                                return html;
+                            }
+                        }
 
-                        return html;
+                        return null;
                     }
                 }
                 catch (Exception ex) 
@@ -121,64 +115,6 @@ namespace Lampac.Controllers.LITE
             OnLog(log + "\nStart OnResult");
 
             return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson));
-        }
-
-
-        static string PHPSESSID = null;
-
-        static CookieParam[] cookies = null;
-
-        static DateTime excookies = default;
-
-        async ValueTask<string> black_magic(string uri)
-        {
-            if (cookies != null && DateTime.Now > excookies)
-                cookies = null;
-
-            try
-            {
-                using (var browser = await PuppeteerTo.Browser())
-                {
-                    if (browser == null)
-                        return null;
-
-                    var page = await browser.Page(new Dictionary<string, string>()
-                    {
-                        ["Referer"] = "https://www.google.com/"
-
-                    }, cookies: cookies);
-
-                    if (page == null)
-                        return null;
-
-                    var response = await page.GoToAsync($"view-source:{uri}");
-                    string html = await response.TextAsync();
-
-                    if (html.StartsWith("<script>(function(){"))
-                    {
-                        cookies = null;
-                        await page.DeleteCookieAsync();
-                        await page.GoToAsync(uri, new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } });
-
-                        response = await page.GoToAsync($"view-source:{uri}");
-                        html = await response.TextAsync();
-                    }
-
-                    if (html.StartsWith("<script>(function"))
-                        return null;
-
-                    if (cookies == null)
-                        excookies = DateTime.Now.AddMinutes(10);
-
-                    cookies = await page.GetCookiesAsync();
-
-                    if (!html.Contains("new Playerjs"))
-                        return null;
-
-                    return html;
-                }
-            }
-            catch { return null; }
         }
     }
 }

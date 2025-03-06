@@ -45,27 +45,8 @@ namespace Lampac
                 ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
             }
 
-            #region puppeteer
-            try
-            {
-                if (AppInit.conf.puppeteer.enable)
-                {
-                    ThreadPool.QueueUserWorkItem(async _ =>
-                    {
-                        try
-                        {
-                            if (string.IsNullOrWhiteSpace(AppInit.conf.puppeteer.executablePath))
-                                await new BrowserFetcher().DownloadAsync();
-
-                            if (PuppeteerTo.IsKeepOpen)
-                                PuppeteerTo.LaunchKeepOpen();
-                        }
-                        catch (Exception ex) { Console.WriteLine(ex); }
-                    });
-                }
-            }
-            catch { }
-            #endregion
+            if (AppInit.conf.chromium.enable)
+                ThreadPool.QueueUserWorkItem(async _ => await Chromium.CreateAsync());
 
             if (!File.Exists("passwd"))
                 File.WriteAllText("passwd", Guid.NewGuid().ToString());

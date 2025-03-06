@@ -1,12 +1,13 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
 using Shared.Engine.Online;
 using Online;
-using Shared.Engine.CORE;
 using Shared.Model.Online.VideoDB;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Model.Templates;
+using Shared.Engine;
+using Lampac.Models.LITE;
+using Microsoft.Playwright;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,39 +18,26 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
             var init = await loadKit(AppInit.conf.VideoDB);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0)
+            if (kinopoisk_id == 0 || Chromium.Status != ChromiumStatus.NoHeadless)
                 return OnError();
-
-            reset: var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
-            if (rch.IsNotSupport("web,cors", out string rch_error))
-                return ShowError(rch_error);
 
             var oninvk = new VideoDBInvoke
             (
                host,
-               init.corsHost(),
-               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy, httpversion: 2),
+               init.host,
+               (url, head) => black_magic(url, init),
                streamfile => streamfile
             );
 
-            var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}", cacheTime(20, init: init), null, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(kinopoisk_id);
             });
 
-            if (IsRhubFallback(cache, init))
-                goto reset;
-
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson, rhub: rch.enable), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson), origsource: origsource);
         }
 
 
@@ -59,48 +47,62 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Manifest(string link, bool serial)
         {
             var init = await loadKit(AppInit.conf.VideoDB);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(link))
+            if (string.IsNullOrEmpty(link) || Chromium.Status != ChromiumStatus.NoHeadless)
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);
+            string memKey = $"videodb:video:{link}";
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
+                try
+                {
+                    using (var browser = new Chromium())
+                    {
+                        var page = await browser.NewPageAsync();
+                        if (page == null)
+                            return null;
 
-                if (rch.enable)
-                {
-                    var res = await rch.Headers(link, null, httpHeaders(init));
-                    location = res.currentUrl;
+                        await page.RouteAsync("**/*", async route =>
+                        {
+                            if (route.Request.Url.Contains("api/chromium/iframe"))
+                            {
+                                await route.ContinueAsync();
+                                return;
+                            }
+
+                            if (route.Request.Url == link)
+                            {
+                                await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+
+                                var response = await page.WaitForResponseAsync(route.Request.Url);
+                                if (response != null)
+                                    response.Headers.TryGetValue("location", out location);
+
+                                browser.completionSource.SetResult(location);
+                                return;
+                            }
+
+                            await route.AbortAsync();
+                        });
+
+                        var response = await page.GotoAsync(Chromium.IframeUrl(link));
+                        if (response == null)
+                            return null;
+
+                        location = await browser.WaitPageResult();
+                    }
                 }
-                else
-                {
-                    location = await HttpClient.GetLocation(link, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
-                }
+                catch { }
 
                 if (string.IsNullOrEmpty(location) || link == location)
-                {
-                    if (init.rhub && init.rhub_fallback) {
-                        init.rhub = false;
-                        goto reset;
-                    }
                     return OnError();
-                }
-
-                if (!rch.enable)
-                    proxyManager.Success();
 
                 memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
-            string hls = HostStreamProxy(init, location, proxy: proxy);
+            string hls = HostStreamProxy(init, location);
 
             if (HttpContext.Request.Path.Value.Contains(".m3u8"))
                 return Redirect(hls);
@@ -109,47 +111,48 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        //static CookieParam[] cookies = null;
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init)
+        {
+            try
+            {
+                using (var browser = new Chromium())
+                {
+                    var page = await browser.NewPageAsync();
+                    if (page == null)
+                        return null;
 
-        //static DateTime excookies = default;
+                    await page.RouteAsync("**/*", async route =>
+                    {
+                        if (route.Request.Url.Contains("api/chromium/iframe"))
+                        {
+                            await route.ContinueAsync();
+                            return;
+                        }
 
-        //async ValueTask<string> black_magic(long kinopoisk_id)
-        //{
-        //    if (cookies != null && DateTime.Now > excookies)
-        //        cookies = null;
+                        if (route.Request.Url == uri)
+                        {
+                            string html = null;
+                            await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
 
-        //    using (var browser = await PuppeteerTo.Browser())
-        //    {
-        //        var page = cookies != null ? await browser.Page(cookies) : await browser.Page(new Dictionary<string, string>()
-        //        {
-        //            ["cookie"] = "invite=a246a3f46c82fe439a45c3dbbbb24ad5;"
-        //        });
+                            var response = await page.WaitForResponseAsync(route.Request.Url);
+                            if (response != null)
+                                html = await response.TextAsync();
 
-        //        if (page == null)
-        //            return null;
+                            browser.completionSource.SetResult(html);
+                            return;
+                        }
 
-        //        if (cookies == null)
-        //            await page.GoToAsync($"{AppInit.conf.VideoDB.host}/invite.php");
+                        await route.AbortAsync();
+                    });
 
-        //        var response = await page.GoToAsync($"view-source:{AppInit.conf.VideoDB.host}/iplayer/videodb.php?kp={kinopoisk_id}", new NavigationOptions() 
-        //        { 
-        //            Referer = AppInit.conf.VideoDB.host
-        //        });
+                    var response = await page.GotoAsync(Chromium.IframeUrl(uri));
+                    if (response == null)
+                        return null;
 
-        //        string html = await response.TextAsync();
-        //        if (!html.Contains("new Playerjs"))
-        //        {
-        //            cookies = null;
-        //            return null;
-        //        }
-
-        //        if (cookies == null)
-        //            excookies = DateTime.Now.AddMinutes(20);
-
-        //        cookies = await page.GetCookiesAsync();
-
-        //        return html;
-        //    }
-        //}
+                    return await browser.WaitPageResult();
+                }
+            }
+            catch { return null; }
+        }
     }
 }

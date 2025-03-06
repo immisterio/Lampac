@@ -334,7 +334,7 @@ namespace Lampac
 
         private void OnShutdown()
         {
-            PuppeteerTo.FullDispose();
+            Chromium.FullDispose();
         }
     }
 }

@@ -5,7 +5,8 @@ using Shared.Model.Online.FanCDN;
 using Shared.Engine.Online;
 using Shared.Engine;
 using Lampac.Models.LITE;
-using PuppeteerSharp;
+using Microsoft.Playwright;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,10 +20,13 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            if (Chromium.Status != ChromiumStatus.NoHeadless)
+                return OnError();
+
             var oninvk = new FanCDNInvoke
             (
                host,
-               init.corsHost(),
+               init.host,
                ongettourl => black_magic(ongettourl, init),
                streamfile => HostStreamProxy(init, streamfile)
             );
@@ -38,20 +42,48 @@ namespace Lampac.Controllers.LITE
 
         async ValueTask<string> black_magic(string uri, OnlinesSettings init)
         {
-            using (var browser = await PuppeteerTo.Browser())
+            try
             {
-                if (browser == null)
-                    return null;
+                using (var browser = new Chromium())
+                {
+                    var page = await browser.NewPageAsync();
+                    if (page == null)
+                        return null;
 
-                var page = await browser.Page(httpHeaders(init).ToDictionary());
-                if (page == null)
-                    return null;
+                    await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
-                await page.DeleteCookieAsync(new CookieParam() { Domain = ".fancdn.net",  Name = "cf_clearance" });
+                    await page.RouteAsync("**/*", async route =>
+                    {
+                        if (route.Request.Url.Contains("api/chromium/iframe"))
+                        {
+                            await route.ContinueAsync();
+                            return;
+                        }
 
-                var response = await page.GoToAsync($"view-source:{uri}");
-                return await response.TextAsync();
+                        if (route.Request.Url == uri)
+                        {
+                            string html = null;
+                            await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+
+                            var response = await page.WaitForResponseAsync(route.Request.Url);
+                            if (response != null)
+                                html = await response.TextAsync();
+
+                            browser.completionSource.SetResult(html);
+                            return;
+                        }
+
+                        await route.AbortAsync();
+                    });
+
+                    var response = await page.GotoAsync(Chromium.IframeUrl(uri));
+                    if (response == null)
+                        return null;
+
+                    return await browser.WaitPageResult();
+                }
             }
+            catch { return null; }
         }
     }
 }

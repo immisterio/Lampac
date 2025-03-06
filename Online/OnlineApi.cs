@@ -586,16 +586,19 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                send(conf.VideoDB, rch_access: "apk");
-                send(conf.VDBmovies, rch_access: "apk");
+                if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
+                    send(conf.VideoDB);
 
-                if (AppInit.conf.puppeteer.enable || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
+                if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                    send(conf.VDBmovies);
+
+                if (Chromium.Status != ChromiumStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
             }
 
             send(conf.Lumex, "lumex");
 
-            if ((AppInit.conf.puppeteer.enable && AppInit.conf.puppeteer.Headless == false) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+            if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                 send(conf.FanCDN);
 
             send(conf.Videoseed, rch_access: "apk,cors");
