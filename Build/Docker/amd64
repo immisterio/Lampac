@@ -6,6 +6,10 @@ WORKDIR /home
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 RUN curl -L -k -o ffprobe.zip https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-linux-64.zip \
     && unzip -o ffprobe.zip && rm -f ffprobe.zip \
     && mv ffprobe /usr/bin/ffprobe && chmod +x /usr/bin/ffprobe
@@ -27,4 +31,6 @@ RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://git
 
 RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}}' > init.conf
 
-ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]
+# Use docker-entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/bin/bash", "-c", "/usr/share/dotnet/dotnet Lampac.dll"]
