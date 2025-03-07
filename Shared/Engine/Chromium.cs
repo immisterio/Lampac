@@ -31,13 +31,9 @@ namespace Shared.Engine
         {
             try
             {
-                Console.WriteLine("Playwright: 111");
-
                 var init = AppInit.conf.chromium;
                 if (!init.enable || browser != null || shutdown)
                     return;
-
-                Console.WriteLine("Playwright: 222");
 
                 if (init.DISPLAY != null)
                     Environment.SetEnvironmentVariable("DISPLAY", init.DISPLAY);
@@ -53,8 +49,6 @@ namespace Shared.Engine
                         return;
                     }
                 }
-
-                Console.WriteLine("Playwright: 333");
 
                 #region Download node
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -241,7 +235,7 @@ namespace Shared.Engine
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && init.Xvfb)
                 {
-                    await Bash.Run("Xvfb :99 -screen 0 1280x1024x24 &");
+                    _ = Bash.Run("Xvfb :99 -screen 0 1280x1024x24 &").ConfigureAwait(false);
                     await Task.Delay(TimeSpan.FromSeconds(10));
                     Console.WriteLine("Playwright: Xvfb run");
                 }
