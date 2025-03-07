@@ -235,12 +235,13 @@ namespace Shared.Engine
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && init.Xvfb)
                 {
-                    _ = Bash.Run("Xvfb :99 -screen 0 1280x1024x24 &").ConfigureAwait(false);
-                    await Task.Delay(TimeSpan.FromSeconds(10));
-                    Console.WriteLine("Playwright: Xvfb run");
+                    _ = Bash.Run("Xvfb :99 -screen 0 1280x1024x24").ConfigureAwait(false);
+                    Environment.SetEnvironmentVariable("DISPLAY", ":99");
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    Console.WriteLine("Playwright: Xvfb");
                 }
 
-                Console.WriteLine("Playwright: Initialization ok");
+                Console.WriteLine("Playwright: Initialization");
 
                 var playwright = await Playwright.CreateAsync();
 
