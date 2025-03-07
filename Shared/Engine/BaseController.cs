@@ -318,8 +318,6 @@ namespace Lampac.Engine
                 else if (errorCache is string)
                 {
                     string msg = errorCache.ToString();
-                    if (!string.IsNullOrEmpty(msg))
-                        HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
                 }
 
                 badInitMsg = Ok();
@@ -354,7 +352,7 @@ namespace Lampac.Engine
         {
             error_msg = null;
 
-            if (!AppInit.conf.accsdb.enable || init.group == 0 || requestInfo.IsLocalRequest)
+            if (init.group == 0 || requestInfo.IsLocalRequest)
                 return false;
 
             var user = requestInfo.user;

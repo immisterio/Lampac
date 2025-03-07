@@ -156,7 +156,7 @@ namespace SISI
 
                 if (enable)
                 {
-                    if (AppInit.conf.accsdb.enable && init.group > 0 && init.group_hide)
+                    if (init.group > 0 && init.group_hide)
                     {
                         var user = requestInfo.user;
                         if (user == null || init.group > user.group)

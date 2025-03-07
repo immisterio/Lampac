@@ -144,7 +144,6 @@ namespace Online
                     log += $"\n\n\n===================\n\n{weblog}";
 
                 HttpClient.onlog?.Invoke(null, log);
-                HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
             }
 
             if (AppInit.conf.multiaccess && gbcache)

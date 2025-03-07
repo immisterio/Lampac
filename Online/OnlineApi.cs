@@ -433,15 +433,14 @@ namespace Lampac.Controllers
 
                 if (enable)
                 {
-                    if (AppInit.conf.accsdb.enable)
+                    if (init.group_hide)
                     {
                         if (init.group > 0)
                         {
-                            if (init.group_hide)
-                                if (user == null || init.group > user.group)
-                                    return;
+                            if (user == null || init.group > user.group)
+                                return;
                         }
-                        else
+                        else if (AppInit.conf.accsdb.enable)
                         {
                             if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
                                 return;
