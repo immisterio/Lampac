@@ -31,9 +31,13 @@ namespace Shared.Engine
         {
             try
             {
+                Console.WriteLine("Playwright: 111");
+
                 var init = AppInit.conf.chromium;
                 if (!init.enable || browser != null || shutdown)
                     return;
+
+                Console.WriteLine("Playwright: 222");
 
                 if (init.DISPLAY != null)
                     Environment.SetEnvironmentVariable("DISPLAY", init.DISPLAY);
@@ -49,6 +53,8 @@ namespace Shared.Engine
                         return;
                     }
                 }
+
+                Console.WriteLine("Playwright: 333");
 
                 #region Download node
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -258,9 +264,12 @@ namespace Shared.Engine
                 Status = init.Headless ? ChromiumStatus.headless : ChromiumStatus.NoHeadless;
                 Console.WriteLine($"Playwright: {Status.ToString()}");
 
+                if (browser.IsConnected)
+                    Console.WriteLine($"Playwright: {browser.BrowserType.Name} {browser.Version}");
+
                 browser.Disconnected += Browser_Disconnected;
             }
-            catch (Exception ex) { Console.WriteLine(ex.Message); }
+            catch (Exception ex) { Console.WriteLine($"Playwright: {ex.Message}"); }
         }
 
         async private static void Browser_Disconnected(object sender, IBrowser e)
@@ -268,6 +277,7 @@ namespace Shared.Engine
             browser = null;
             Status = ChromiumStatus.disabled;
             Console.WriteLine("Playwright: Browser_Disconnected");
+            await Task.Delay(TimeSpan.FromSeconds(10));
             await CreateAsync();
         }
 
