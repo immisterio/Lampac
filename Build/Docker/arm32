@@ -3,7 +3,7 @@ FROM arm32v7/debian:12.5-slim
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium xvfb \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L -k -o ffprobe.zip https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-linux-armhf-32.zip \
@@ -25,6 +25,9 @@ RUN curl -k -s https://raw.githubusercontent.com/immisterio/Lampac/main/Build/Do
 RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-arm7 \
     && chmod +x torrserver/TorrServer-linux
 
-RUN echo '{"puppeteer":{"executablePath":"/usr/bin/chromium"}, "typecache":"mem", "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
+RUN mkdir -p .playwright/node/linux-arm && curl -L -k -o .playwright/node/linux-arm/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l \
+    && chmod +x .playwright/node/linux-arm/node
+
+RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"}, "typecache":"mem", "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]

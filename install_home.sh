@@ -32,7 +32,7 @@ cat <<EOF > $DEST/init.conf
   "listenport": $random_port,
   "typecache": "mem",
   "mikrotik": true,
-  "puppeteer": {
+  "chromium": {
     "enable": false
   },
   "dlna": {
@@ -118,7 +118,6 @@ ExecStart=/usr/bin/dotnet Lampac.dll
 #ExecReload=/bin/kill -s HUP $MAINPID
 #ExecStop=/bin/kill -s QUIT $MAINPID
 Restart=always
-LimitNOFILE=32000
 [Install]
 WantedBy=multi-user.target
 EOF
