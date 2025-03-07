@@ -32,7 +32,6 @@ namespace Shared.Engine
             try
             {
                 var init = AppInit.conf.chromium;
-
                 if (!init.enable || browser != null || shutdown)
                     return;
 
@@ -45,7 +44,10 @@ namespace Shared.Engine
                 {
                     bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/package.zip", ".playwright/package.zip");
                     if (!res)
+                    {
+                        Console.WriteLine("Playwright: error download package.zip");
                         return;
+                    }
                 }
 
                 #region Download node
@@ -60,9 +62,15 @@ namespace Shared.Engine
                                 string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
                                 bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-win-{arc}.exe", $".playwright\\node\\win32_{arc}\\node.exe");
                                 if (!res)
+                                {
+                                    Console.WriteLine($"Playwright: error download node-win-{arc}.exe");
                                     return;
+                                }
                                 break;
                             }
+                        default:
+                            Console.WriteLine("Playwright: Architecture unknown");
+                            return;
                     }
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -75,12 +83,16 @@ namespace Shared.Engine
                                 string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
                                 bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-mac-{arc}", $".playwright/node/mac-{arc}/node");
                                 if (!res)
+                                {
+                                    Console.WriteLine($"Playwright: error download node-mac-{arc}");
                                     return;
+                                }
 
                                 await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
                                 break;
                             }
                         default:
+                            Console.WriteLine("Playwright: Architecture unknown");
                             return;
                     }
                 }
@@ -95,7 +107,10 @@ namespace Shared.Engine
                                 string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
                                 bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-linux-{arc}", $".playwright/node/linux-{arc}/node");
                                 if (!res)
+                                {
+                                    Console.WriteLine($"Playwright: error download node-linux-{arc}");
                                     return;
+                                }
 
                                 await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
                                 break;
@@ -104,17 +119,22 @@ namespace Shared.Engine
                             {
                                 bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l", ".playwright/node/linux-arm/node");
                                 if (!res)
+                                {
+                                    Console.WriteLine("Playwright: error download node-linux-armv7l");
                                     return;
+                                }
 
                                 await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
                                 break;
                             }
                         default:
+                            Console.WriteLine("Playwright: Architecture unknown");
                             return;
                     }
                 }
                 else
                 {
+                    Console.WriteLine("Playwright: IsOSPlatform unknown");
                     return;
                 }
                 #endregion
@@ -135,7 +155,10 @@ namespace Shared.Engine
                                     string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-win-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
                                     bool res = await DownloadFile(uri, ".playwright/chrome.zip");
                                     if (!res)
+                                    {
+                                        Console.WriteLine("Playwright: error download chrome.zip");
                                         return;
+                                    }
 
                                     if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
                                         executablePath = ".playwright\\chrome-win32\\chrome.exe";
@@ -144,6 +167,7 @@ namespace Shared.Engine
                                     break;
                                 }
                             default:
+                                Console.WriteLine("Playwright: Architecture unknown");
                                 return;
                         }
                     }
@@ -157,13 +181,17 @@ namespace Shared.Engine
                                     string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-mac-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
                                     bool res = await DownloadFile(uri, ".playwright/chrome.zip");
                                     if (!res)
+                                    {
+                                        Console.WriteLine("Playwright: error download chrome.zip");
                                         return;
+                                    }
 
                                     await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium")}");
                                     executablePath = ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium";
                                     break;
                                 }
                             default:
+                                Console.WriteLine("Playwright: Architecture unknown");
                                 return;
                         }
                     }
@@ -177,41 +205,59 @@ namespace Shared.Engine
                                     string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-linux-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
                                     bool res = await DownloadFile(uri, ".playwright/chrome.zip");
                                     if (!res)
+                                    {
+                                        Console.WriteLine("Playwright: error download chrome.zip");
                                         return;
+                                    }
 
                                     await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-linux/chrome")}");
                                     executablePath = ".playwright/chrome-linux/chrome";
                                     break;
                                 }
                             default:
+                                Console.WriteLine("Playwright: Architecture unknown");
                                 return;
                         }
                     }
                     else
                     {
+                        Console.WriteLine("Playwright: IsOSPlatform unknown");
                         return;
                     }
                 }
                 #endregion
 
                 if (string.IsNullOrEmpty(executablePath))
+                {
+                    Console.WriteLine("Playwright: chromium is not installed, please specify full path in executablePath");
                     return;
+                }
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && init.Xvfb)
                 {
                     await Bash.Run("Xvfb :99 -screen 0 1280x1024x24 &");
                     await Task.Delay(TimeSpan.FromSeconds(10));
+                    Console.WriteLine("Playwright: Xvfb run");
                 }
 
+                Console.WriteLine("Playwright: Initialization ok");
+
                 var playwright = await Playwright.CreateAsync();
+
+                Console.WriteLine("Playwright: CreateAsync");
 
                 browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
                     Headless = init.Headless,
-                    ExecutablePath = executablePath
+                    ExecutablePath = executablePath,
+                    Args = init.Args
                 });
 
+                Console.WriteLine("Playwright: LaunchAsync");
+
                 Status = init.Headless ? ChromiumStatus.headless : ChromiumStatus.NoHeadless;
+                Console.WriteLine($"Playwright: {Status.ToString()}");
+
                 browser.Disconnected += Browser_Disconnected;
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
@@ -221,6 +267,7 @@ namespace Shared.Engine
         {
             browser = null;
             Status = ChromiumStatus.disabled;
+            Console.WriteLine("Playwright: Browser_Disconnected");
             await CreateAsync();
         }
 

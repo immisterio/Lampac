@@ -13,5 +13,7 @@
         public string DISPLAY { get; set; }
 
         public bool Xvfb { get; set; }
+
+        public string[] Args { get; set; }
     }
 }
