@@ -6,7 +6,8 @@ using Shared.Engine.Online;
 using Shared.Engine;
 using Lampac.Models.LITE;
 using Microsoft.Playwright;
-using System.Web;
+using Shared.Engine.CORE;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
@@ -23,12 +24,15 @@ namespace Lampac.Controllers.LITE
             if (Chromium.Status != ChromiumStatus.NoHeadless)
                 return OnError();
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
+
             var oninvk = new FanCDNInvoke
             (
                host,
                init.host,
-               ongettourl => black_magic(ongettourl, init),
-               streamfile => HostStreamProxy(init, streamfile)
+               ongettourl => black_magic(ongettourl, init, proxy.data),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{imdb_id}", cacheTime(20, init: init), null, async res =>
@@ -40,13 +44,13 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
             try
             {
                 using (var browser = new Chromium())
                 {
-                    var page = await browser.NewPageAsync();
+                    var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
                         return null;
 
@@ -70,6 +74,7 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
+                            Chromium.WebLog(route.Request, response, html);
                             return;
                         }
 

@@ -8,6 +8,7 @@ using Shared.Engine;
 using System;
 using System.Linq;
 using Shared.Model.Online;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -26,6 +27,9 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0)
                 return OnError();
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
+
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
             var oninvk = new ZetflixInvoke
@@ -33,8 +37,8 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                MaybeInHls(init.hls, init),
-               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile)
+               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy.proxy)
                //AppInit.log
             );
 
@@ -44,7 +48,7 @@ namespace Lampac.Controllers.LITE
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
                 if (html != null && !html.StartsWith("<script>(function"))
                 {
                     if (!html.Contains("new Playerjs"))
@@ -63,7 +67,7 @@ namespace Lampac.Controllers.LITE
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        });
+                        }, proxy: proxy.data);
 
                         if (page == null)
                             return null;
@@ -75,7 +79,7 @@ namespace Lampac.Controllers.LITE
                         PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
                         if (!string.IsNullOrEmpty(PHPSESSID))
                         {
-                            html = await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                            html = await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
                             if (html != null && !html.StartsWith("<script>(function"))
                             {
                                 if (!html.Contains("new Playerjs"))

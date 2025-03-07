@@ -8,6 +8,7 @@ using Shared.Model.Templates;
 using Shared.Engine;
 using Lampac.Models.LITE;
 using Microsoft.Playwright;
+using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,12 +25,15 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || Chromium.Status != ChromiumStatus.NoHeadless)
                 return OnError();
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
+
             var oninvk = new VideoDBInvoke
             (
                host,
                init.host,
-               (url, head) => black_magic(url, init),
-               streamfile => streamfile
+               (url, head) => black_magic(url, init, proxy.data),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}", cacheTime(20, init: init), null, async res =>
@@ -53,6 +57,9 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(link) || Chromium.Status != ChromiumStatus.NoHeadless)
                 return OnError();
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
+
             string memKey = $"videodb:video:{link}";
             if (!memoryCache.TryGetValue(memKey, out string location))
             {
@@ -60,7 +67,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Chromium())
                     {
-                        var page = await browser.NewPageAsync();
+                        var page = await browser.NewPageAsync(proxy: proxy.data);
                         if (page == null)
                             return null;
 
@@ -81,6 +88,7 @@ namespace Lampac.Controllers.LITE
                                     response.Headers.TryGetValue("location", out location);
 
                                 browser.completionSource.SetResult(location);
+                                Chromium.WebLog(route.Request, response, location);
                                 return;
                             }
 
@@ -102,7 +110,7 @@ namespace Lampac.Controllers.LITE
                 memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
-            string hls = HostStreamProxy(init, location);
+            string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
 
             if (HttpContext.Request.Path.Value.Contains(".m3u8"))
                 return Redirect(hls);
@@ -111,13 +119,13 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
             try
             {
                 using (var browser = new Chromium())
                 {
-                    var page = await browser.NewPageAsync();
+                    var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
                         return null;
 
@@ -139,6 +147,7 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
+                            Chromium.WebLog(route.Request, response, html);
                             return;
                         }
 

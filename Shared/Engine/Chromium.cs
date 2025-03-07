@@ -248,6 +248,31 @@ namespace Shared.Engine
                 return false;
             }
         }
+
+        public static void WebLog(IRequest request, IResponse response, string result)
+        {
+            if (request.Url.Contains("127.0.0.1"))
+                return;
+
+            string log = $"{DateTime.Now}\n{request.Method}: {request.Url}\n";
+            foreach (var item in request.Headers)
+                log += $"{item.Key}: {item.Value}\n";
+
+            if (response == null)
+            {
+                log += "\nresponse null";
+                HttpClient.onlog?.Invoke(null, log);
+                return;
+            }
+
+            log += "\n\n";
+            foreach (var item in response.Headers)
+                log += $"{item.Key}: {item.Value}\n";
+
+            log += $"\n\n{result}";
+
+            HttpClient.onlog?.Invoke(null, log);
+        }
         #endregion
 
 
@@ -255,14 +280,33 @@ namespace Shared.Engine
 
         public TaskCompletionSource<string> completionSource { get; private set; }
 
-        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null)
+        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
             try
             {
                 if (browser == null)
                     return null;
 
-                page = await browser.NewPageAsync();
+                if (proxy != default)
+                {
+                    var contextOptions = new BrowserNewContextOptions
+                    {
+                        Proxy = new Proxy 
+                        { 
+                            Server = proxy.ip,
+                            Bypass = "127.0.0.1",
+                            Username = proxy.username,
+                            Password = proxy.password
+                        }
+                    };
+
+                    var context = await browser.NewContextAsync(contextOptions);
+                    page = await context.NewPageAsync();
+                }
+                else
+                {
+                    page = await browser.NewPageAsync();
+                }
 
                 if (headers != null && headers.Count > 0)
                     await page.SetExtraHTTPHeadersAsync(headers);
