@@ -307,12 +307,17 @@ namespace Shared.Engine
             }
         }
 
-        public static void WebLog(IRequest request, IResponse response, string result)
+        public static void WebLog(IRequest request, IResponse response, string result, (string ip, string username, string password) proxy = default)
         {
             if (request.Url.Contains("127.0.0.1"))
                 return;
 
-            string log = $"{DateTime.Now}\n{request.Method}: {request.Url}\n";
+            string log = $"{DateTime.Now}\n";
+            if (proxy != default)
+                log += $"proxy: {proxy}\n";
+
+            log += $"{request.Method}: {request.Url}\n";
+
             foreach (var item in request.Headers)
                 log += $"{item.Key}: {item.Value}\n";
 
@@ -327,7 +332,7 @@ namespace Shared.Engine
             foreach (var item in response.Headers)
                 log += $"{item.Key}: {item.Value}\n";
 
-            log += $"\n\n{result}";
+            log += $"\n{result}";
 
             HttpClient.onlog?.Invoke(null, log);
         }

@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
-                            Chromium.WebLog(route.Request, response, html);
+                            Chromium.WebLog(route.Request, response, html, proxy);
                             return;
                         }
 

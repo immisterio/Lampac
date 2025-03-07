@@ -7,7 +7,7 @@ using Shared.Engine;
 using Lampac.Models.LITE;
 using Microsoft.Playwright;
 using Shared.Engine.CORE;
-using System.Net;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -37,12 +37,18 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{imdb_id}", cacheTime(20, init: init), null, async res =>
             {
-                return await oninvk.Embed(null, imdb_id, kinopoisk_id);
+                var result = await oninvk.Embed(null, imdb_id, kinopoisk_id);
+                if (result == null)
+                    return res.Fail(logRequest);
+
+                return result;
             });
 
             return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource);
         }
 
+
+        string logRequest = string.Empty;
 
         async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
@@ -52,7 +58,10 @@ namespace Lampac.Controllers.LITE
                 {
                     var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
+                    {
+                        logRequest += "\nNewPageAsync null";
                         return null;
+                    }
 
                     await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
@@ -64,6 +73,8 @@ namespace Lampac.Controllers.LITE
                             return;
                         }
 
+                        logRequest += $"{route.Request.Method}: {route.Request.Url}\n";
+
                         if (route.Request.Url == uri)
                         {
                             string html = null;
@@ -74,7 +85,7 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
-                            Chromium.WebLog(route.Request, response, html);
+                            Chromium.WebLog(route.Request, response, html, proxy);
                             return;
                         }
 
@@ -83,12 +94,19 @@ namespace Lampac.Controllers.LITE
 
                     var response = await page.GotoAsync(Chromium.IframeUrl(uri));
                     if (response == null)
+                    {
+                        logRequest += "\nGotoAsync null";
                         return null;
+                    }
 
                     return await browser.WaitPageResult();
                 }
             }
-            catch { return null; }
+            catch (Exception ex) 
+            {
+                logRequest += $"\n{ex.Message}";
+                return null; 
+            }
         }
     }
 }
