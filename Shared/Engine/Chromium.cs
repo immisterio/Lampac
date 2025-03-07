@@ -197,6 +197,12 @@ namespace Shared.Engine
                 if (string.IsNullOrEmpty(executablePath))
                     return;
 
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && init.Xvfb)
+                {
+                    await Bash.Run("Xvfb :99 -screen 0 1280x1024x24 &");
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+                }
+
                 var playwright = await Playwright.CreateAsync();
 
                 browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
