@@ -46,7 +46,7 @@ namespace Lampac
             }
 
             if (AppInit.conf.chromium.enable)
-                ThreadPool.QueueUserWorkItem(async _ => await Chromium.CreateAsync());
+                _ = Chromium.CreateAsync().ConfigureAwait(false);
 
             if (!File.Exists("passwd"))
                 File.WriteAllText("passwd", Guid.NewGuid().ToString());

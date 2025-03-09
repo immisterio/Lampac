@@ -597,16 +597,16 @@ namespace Lampac.Controllers
                     send(conf.Zetflix);
             }
 
+            if (serial == -1 || serial == 0)
+                send(conf.Kinobase);
+
             send(conf.Lumex, "lumex");
 
             if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                 send(conf.FanCDN);
 
-            if (serial == -1 || serial == 0)
-                send(conf.Videoseed);
-
+            send(conf.Videoseed);
             send(conf.Vibix, rch_access: "apk,cors");
-            send(conf.Kinobase);
 
             if (serial == -1 || serial == 0)
                 send(conf.iRemux, "remux");

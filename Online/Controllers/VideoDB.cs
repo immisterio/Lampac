@@ -36,7 +36,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}", cacheTime(20, init: init), null, async res =>
+            var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 return await oninvk.Embed(kinopoisk_id);
             });

@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(20, init: init), async () => 
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), async () => 
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
@@ -57,6 +57,7 @@ namespace Lampac.Controllers.LITE
                     if (!html.Contains("new Playerjs"))
                         return null;
 
+                    proxyManager.Success();
                     return html;
                 }
 
@@ -92,12 +93,21 @@ namespace Lampac.Controllers.LITE
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var response = await page.ReloadAsync();
+                        if (response == null)
+                        {
+                            proxyManager.Refresh();
+                            return null;
+                        }
+
                         html = await response.TextAsync();
 
                         log += $"{html}\n\n";
 
-                        if (html.StartsWith("<script>(function"))
+                        if (html == null || html.StartsWith("<script>(function"))
+                        {
+                            proxyManager.Refresh();
                             return null;
+                        }
 
                         var cook = await page.Context.CookiesAsync();
                         PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;

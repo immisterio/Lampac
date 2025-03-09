@@ -88,30 +88,14 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string MOVIE_ID = Regex.Match(news, "var MOVIE_ID = ([0-9]+)").Groups[1].Value;
-            string IDENTIFIER = Regex.Match(news, "var IDENTIFIER = \"([^\"]+)").Groups[1].Value;
-            string PLAYER_CUID = Regex.Match(news, "var PLAYER_CUID = \"([^\"]+)").Groups[1].Value;
-            var time = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-            string? user_data = await onget($"{apihost}/user_data?page=movie&movie_id={MOVIE_ID}&cuid={PLAYER_CUID}&_={time}");
-            if (user_data == null)
+            string video = Regex.Match(news, "<video src=\"([^\"]+)\"").Groups[1].Value;
+            if (string.IsNullOrEmpty(video))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            string vod_hash2 = Regex.Match(user_data, "\"vod_hash2\":\"([^\"]+)\"").Groups[1].Value;
-            string vod_time2 = Regex.Match(user_data, "\"vod_time2\":([0-9]+)").Groups[1].Value;
-
-            content = await onget($"{apihost}/vod/{MOVIE_ID}?identifier={IDENTIFIER}&player_type=new&file_type=mp4&st={vod_hash2}&e={vod_time2}&_={time}");
-            if (content == null)
-            {
-                requesterror?.Invoke();
-                return null;
-            }
-
-            if (content.StartsWith("file|"))
-                return new EmbedModel() { content = content };
+            return new EmbedModel() { content = video };
 
             try
             {
@@ -126,7 +110,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, string? title, int year, int s)
+        public string Html(EmbedModel? md, string? title, int year, int s, bool rjson = false)
         {
             if (md == null || md.IsEmpty)
                 return string.Empty;
@@ -155,51 +139,10 @@ namespace Shared.Engine.Online
 
             if (md.content != null)
             {
-                #region Фильм
-                var subtitles = getSubtitle(md.content);
                 var mtpl = new MovieTpl(title);
+                mtpl.Append(title, onstreamfile(md.content));
 
-                if (md.content.Contains("]{") && md.content.Contains(";"))
-                {
-                    foreach (string quality in new List<string> { "1080", "720", "480", "360" })
-                    {
-                        var g = new Regex($"\\[{quality}p?\\]([^\\[\\|\n\r,]+)").Match(md.content).Groups;
-                        if (string.IsNullOrWhiteSpace(g[1].Value))
-                            continue;
-
-                        bool end = false;
-                        var smatch = new Regex("\\{([^\\}]+)\\}(https?://[^\\[\\|;\n\r\t ]+\\.(mp4|m3u8))").Match(g[1].Value);
-                        while (smatch.Success)
-                        {
-                            if (!string.IsNullOrWhiteSpace(smatch.Groups[1].Value) && !string.IsNullOrWhiteSpace(smatch.Groups[2].Value))
-                            {
-                                mtpl.Append(smatch.Groups[1].Value, onstreamfile(smatch.Groups[2].Value), subtitles: subtitles, quality: quality);
-                                end = true;
-                            }
-
-                            smatch = smatch.NextMatch();
-                        }
-
-                        if (end)
-                            break;
-                    }
-                }
-                else
-                {
-                    foreach (string quality in new List<string> { "1080", "720", "480", "360" })
-                    {
-                        var g = Regex.Match(md.content, $"\\[({quality})p?\\](\\{{[^\\}}]+\\}})?(https?://[^\\[\\|,;\n\r\t ]+\\.(mp4|m3u8))").Groups;
-
-                        string link = g[3].Value;
-                        if (string.IsNullOrEmpty(link))
-                            continue;
-
-                        mtpl.Append($"{quality}p", onstreamfile(link), subtitles: subtitles);
-                    }
-                }
-
-                return mtpl.ToHtml();
-                #endregion
+                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
             }
             else
             {
