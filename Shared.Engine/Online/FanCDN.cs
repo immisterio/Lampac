@@ -1,6 +1,7 @@
 ﻿using Shared.Model.Base;
 using Shared.Model.Online.FanCDN;
 using Shared.Model.Templates;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -167,7 +168,7 @@ namespace Shared.Engine.Online
                     var tpl = new SeasonTpl();
                     var hash = new HashSet<int>();
 
-                    foreach (var voice in root.serial)
+                    foreach (var voice in root.serial.OrderBy(i => i.seasons))
                     {
                         if (hash.Contains(voice.seasons))
                             continue;
@@ -188,7 +189,7 @@ namespace Shared.Engine.Online
 
                     foreach (var voice in root.serial)
                     {
-                        if (s > voice.seasons)
+                        if (s != voice.seasons)
                             continue;
 
                         if (t == -1)
