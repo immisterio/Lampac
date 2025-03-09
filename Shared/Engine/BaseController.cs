@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "137";
 
-        public static string minorversion => "5";
+        public static string minorversion => "6";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -352,14 +352,17 @@ namespace Lampac.Engine
         {
             error_msg = null;
 
-            if (init.group == 0 || requestInfo.IsLocalRequest)
-                return false;
-
-            var user = requestInfo.user;
-            if (user == null || init.group > user.group)
+            if (init.group > 0)
             {
-                error_msg = AppInit.conf.accsdb.denyGroupMesage;
-                return true;
+                var user = requestInfo.user;
+                if (user == null || init.group > user.group)
+                {
+                    error_msg = AppInit.conf.accsdb.denyGroupMesage.
+                                Replace("{account_email}", requestInfo?.user_uid).
+                                Replace("{user_uid}", requestInfo?.user_uid);
+
+                    return true;
+                }
             }
 
             return false;

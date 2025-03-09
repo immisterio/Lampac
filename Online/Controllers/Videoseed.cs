@@ -8,17 +8,104 @@ using Shared.Model.Templates;
 using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.Playwright;
+using Shared.Engine;
 
 namespace Lampac.Controllers.LITE
 {
     public class Videoseed : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Videoseed);
-
         [HttpGet]
         [Route("lite/videoseed")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false, int serial = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, int serial = -1)
         {
+            var init = await loadKit(AppInit.conf.Videoseed);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
+
+            if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
+                return OnError();
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
+
+            #region search
+            string memKey = $"videoseed:view:{kinopoisk_id}:{proxyManager.CurrentProxyIp}";
+            if (!hybridCache.TryGetValue(memKey, out string location))
+            {
+                if (serial == 1)
+                    return OnError();
+
+                string html = null;
+                string uri = $"{init.host}/api.php?list={(serial == 1 ? "serial" : "movie")}&token={init.token}&kp={kinopoisk_id}";
+                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+
+                if (root == null || !root.ContainsKey("data"))
+                {
+                    proxyManager.Refresh();
+                    return OnError();
+                }
+
+                try
+                {
+                    using (var browser = new Chromium())
+                    {
+                        var page = await browser.NewPageAsync(proxy: proxy.data);
+                        if (page == null)
+                            return null;
+
+                        await page.AddInitScriptAsync(@"localStorage.setItem('pljsquality', '1080p');");
+
+                        await page.RouteAsync("**/*", async route =>
+                        {
+                            if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                            {
+                                await route.ContinueAsync();
+                                return;
+                            }
+
+                            await route.AbortAsync();
+                        });
+
+                        var result = await page.GotoAsync(root["data"].First.Value<string>("iframe"));
+                        if (result == null)
+                            return OnError();
+
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        html = await page.ContentAsync();
+                    }
+                }
+                catch
+                {
+                    return OnError();
+                }
+
+                string video = Regex.Match(html ?? "", "<video[^>]+ src=\"([^\"]+)").Groups[1].Value;
+                if (string.IsNullOrEmpty(video))
+                {
+                    proxyManager.Refresh();
+                    return OnError();
+                }
+
+                proxyManager.Success();
+                location = video;
+                hybridCache.Set(memKey, location, cacheTime(20, init: init));
+            }
+            #endregion
+
+            var mtpl = new MovieTpl(title, original_title);
+            mtpl.Append(title ?? original_title, HostStreamProxy(init, location, proxy: proxy.proxy), vast: init.vast);
+
+            return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+        }
+
+
+        #region videoseed_old
+        [HttpGet]
+        [Route("lite/videoseed_old")]
+        async public Task<ActionResult> IndexOld(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false, int serial = -1)
+        {
+            return OnError();
             var init = await loadKit(AppInit.conf.Videoseed);
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
@@ -26,6 +113,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
+            var proxyManager = new ProxyManager(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
@@ -155,5 +243,6 @@ namespace Lampac.Controllers.LITE
                 #endregion
             }
         }
+        #endregion
     }
 }

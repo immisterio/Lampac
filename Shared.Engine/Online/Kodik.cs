@@ -310,22 +310,27 @@ namespace Shared.Engine.Online
             {
                 if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
                 {
-                    int zCharCode = Convert.ToInt32('Z');
+                    string m3u = match.Groups[2].Value;
+                    if (!m3u.Contains("manifest.m3u8"))
+                    {
+                        int zCharCode = Convert.ToInt32('Z');
 
-                    string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e => {
-                        int eCharCode = Convert.ToInt32(e.Value[0]);
-                        return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 13) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
-                    });
+                        string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e =>
+                        {
+                            int eCharCode = Convert.ToInt32(e.Value[0]);
+                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 13) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
+                        });
 
-                    string decodedString = DecodeUrlBase64(src);
+                        m3u = DecodeUrlBase64(src);
+                    }
 
-                    if (decodedString.StartsWith("//"))
-                        decodedString = $"https:{decodedString}";
+                    if (m3u.StartsWith("//"))
+                        m3u = $"https:{m3u}";
 
-                    if (!usehls && decodedString.Contains(".m3u"))
-                        decodedString = decodedString.Replace(":hls:manifest.m3u8", "");
+                    if (!usehls && m3u.Contains(".m3u"))
+                        m3u = m3u.Replace(":hls:manifest.m3u8", "");
 
-                    streams.Insert(0, new StreamModel() { q = $"{match.Groups[1].Value}p", url = decodedString });
+                    streams.Insert(0, new StreamModel() { q = $"{match.Groups[1].Value}p", url = m3u });
                 }
 
                 match = match.NextMatch();

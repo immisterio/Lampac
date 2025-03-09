@@ -519,7 +519,9 @@ namespace Lampac.Controllers
                     }
                     else
                     {
-                        VoKinoInvoke.SendOnline(myinit, online);
+                        if (myinit.group > 0 && myinit.group_hide && (user == null || myinit.group > user.group)) { }
+                        else
+                            VoKinoInvoke.SendOnline(myinit, online);
                     }
                 }
             }
@@ -600,7 +602,9 @@ namespace Lampac.Controllers
             if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                 send(conf.FanCDN);
 
-            send(conf.Videoseed, rch_access: "apk,cors");
+            if (serial == -1 || serial == 0)
+                send(conf.Videoseed);
+
             send(conf.Vibix, rch_access: "apk,cors");
             send(conf.Kinobase);
 
@@ -614,9 +618,9 @@ namespace Lampac.Controllers
                 {
                     void psend()
                     {
-                        if (AppInit.conf.accsdb.enable)
+                        if (conf.PidTor.group > 0 && conf.PidTor.group_hide)
                         {
-                            if (user == null || (conf.PidTor.group > user.group && conf.PidTor.group_hide))
+                            if (user == null || conf.PidTor.group > user.group)
                                 return;
                         }
 

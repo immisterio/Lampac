@@ -264,7 +264,11 @@ namespace Shared.Engine
 
                 browser.Disconnected += Browser_Disconnected;
             }
-            catch (Exception ex) { Console.WriteLine($"Playwright: {ex.Message}"); }
+            catch (Exception ex) 
+            {
+                Status = ChromiumStatus.disabled;
+                Console.WriteLine($"Playwright: {ex.Message}"); 
+            }
         }
 
         async private static void Browser_Disconnected(object sender, IBrowser e)
@@ -381,7 +385,7 @@ namespace Shared.Engine
             catch { return null; }
         }
 
-        async public ValueTask<string> WaitPageResult(int seconds = 8)
+        async public ValueTask<string> WaitPageResult(int seconds = 10)
         {
             try
             {

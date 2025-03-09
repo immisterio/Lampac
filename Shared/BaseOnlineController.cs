@@ -61,7 +61,7 @@ namespace Online
 
             if (NoAccessGroup(init, out string error_msg))
             {
-                badInitMsg = OnError(error_msg, gbcache: false);
+                badInitMsg = new JsonResult(new { accsdb = true, msg = error_msg });
                 return true;
             }
 

@@ -9,6 +9,9 @@ using System;
 using System.Linq;
 using Shared.Model.Online;
 using Shared.Engine.CORE;
+using Microsoft.Playwright;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing;
 
 namespace Lampac.Controllers.LITE
 {
@@ -74,22 +77,35 @@ namespace Lampac.Controllers.LITE
 
                         log += "page init\n";
 
+                        await page.RouteAsync("**/*", async route =>
+                        {
+                            if (Regex.IsMatch(route.Request.Url, "(gstatic|googleapis|\\.jpg|\\.css)"))
+                            {
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            await route.ContinueAsync();
+                        });
+
                         await page.GotoAsync(uri);
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+                        var response = await page.ReloadAsync();
+                        html = await response.TextAsync();
+
+                        log += $"{html}\n\n";
+
+                        if (html.StartsWith("<script>(function"))
+                            return null;
+
                         var cook = await page.Context.CookiesAsync();
                         PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
-                        if (!string.IsNullOrEmpty(PHPSESSID))
-                        {
-                            html = await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
-                            if (html != null && !html.StartsWith("<script>(function"))
-                            {
-                                if (!html.Contains("new Playerjs"))
-                                    return null;
 
-                                return html;
-                            }
-                        }
+                        if (!html.Contains("new Playerjs"))
+                            return null;
 
-                        return null;
+                        return html;
                     }
                 }
                 catch (Exception ex) 
