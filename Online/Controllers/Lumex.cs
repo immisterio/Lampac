@@ -109,7 +109,7 @@ namespace Lampac.Controllers.LITE
                         await browser.WaitPageResult();
                     }
                 }
-                catch { return res.Fail("browser"); }
+                catch { }
                 #endregion
 
                 if (content_uri == null)
