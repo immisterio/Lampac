@@ -335,6 +335,7 @@ namespace Lampac
         private void OnShutdown()
         {
             Chromium.FullDispose();
+            Firefox.FullDispose();
         }
     }
 }

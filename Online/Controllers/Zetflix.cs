@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using System.Collections.Generic;
-using Shared.Engine;
 using System;
 using System.Linq;
 using Shared.Model.Online;
@@ -12,6 +11,8 @@ using Shared.Engine.CORE;
 using Microsoft.Playwright;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Routing;
+using Shared.PlaywrightCore;
+using Shared.Engine;
 
 namespace Lampac.Controllers.LITE
 {
@@ -28,6 +29,9 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (kinopoisk_id == 0)
+                return OnError();
+
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -63,7 +67,7 @@ namespace Lampac.Controllers.LITE
 
                 try
                 {
-                    using (var browser = new Chromium())
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser, PlaywrightStatus.headless))
                     {
                         log += "browser init\n";
 

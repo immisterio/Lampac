@@ -22,6 +22,7 @@ using System.Collections.Concurrent;
 using Shared.Models.Module;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers
 {
@@ -587,22 +588,26 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
                     send(conf.VideoDB);
 
-                if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
                     send(conf.VDBmovies);
 
-                if (Chromium.Status != ChromiumStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
             }
 
             if (serial == -1 || serial == 0)
-                send(conf.Kinobase);
+            {
+                if (Chromium.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
+                    send(conf.Kinobase);
+            }
 
-            send(conf.Lumex, "lumex");
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
+                send(conf.Lumex, "lumex");
 
-            if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+            if (Chromium.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                 send(conf.FanCDN);
 
             send(conf.Videoseed);

@@ -6,8 +6,8 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
-using Shared.Engine;
 using System.Text.RegularExpressions;
+using Shared.Engine;
 
 namespace Lampac.Controllers.LITE
 {
@@ -22,6 +22,9 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(title) || year == 0 || serial == 1)
+                return OnError();
+
+            if (Chromium.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(AppInit.conf.Kinobase);

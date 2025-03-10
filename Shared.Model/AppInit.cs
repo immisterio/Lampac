@@ -319,27 +319,9 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { geostreamproxy = new string[] { "ALL" } };
 
-        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "lumex.space", "fReBbuvVF6Rv") 
+        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5") 
         {
-            enable = false, 
-            args_api = "&domain=kinogo.bet&url=kinogo.bet",
-            hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" },
-            headers = HeadersModel.Init(
-                ("accept", "*/*"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("Origin", "https://p.lumex.space"),
-                ("Referer", "https://p.lumex.space/"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
-            ).ToDictionary()
+            enable = true, hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" }
         };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "kwws=22dsl1yrnlqr1wy", streamproxy: true);

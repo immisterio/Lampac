@@ -52,6 +52,8 @@
 
         public VastConf? vast { get; set; }
 
+        public string? priorityBrowser { get; set; }
+
 
         #region proxy
         public bool useproxy { get; set; }

@@ -8,6 +8,7 @@ using Lampac.Models.LITE;
 using Microsoft.Playwright;
 using Shared.Engine.CORE;
 using System;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (Chromium.Status != ChromiumStatus.NoHeadless)
+            if (Chromium.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -85,14 +86,14 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
-                            Chromium.WebLog(route.Request, response, html, proxy);
+                            PlaywrightBase.WebLog(route.Request, response, html, proxy);
                             return;
                         }
 
                         await route.AbortAsync();
                     });
 
-                    var response = await page.GotoAsync(Chromium.IframeUrl(uri));
+                    var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
                     if (response == null)
                     {
                         logRequest += "\nGotoAsync null";

@@ -8,6 +8,7 @@ using Shared.Model.Online.VDBmovies;
 using Microsoft.Playwright;
 using Lampac.Models.LITE;
 using Shared.Engine.CORE;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,7 +22,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || Chromium.Status != ChromiumStatus.NoHeadless)
+            if (kinopoisk_id == 0 || PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -74,7 +75,7 @@ namespace Lampac.Controllers.LITE
         {
             try
             {
-                using (var browser = new Chromium())
+                using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
                     var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
@@ -98,14 +99,14 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
-                            Chromium.WebLog(route.Request, response, html, proxy);
+                            PlaywrightBase.WebLog(route.Request, response, html, proxy);
                             return;
                         }
 
                         await route.AbortAsync();
                     });
 
-                    var response = await page.GotoAsync(Chromium.IframeUrl(uri));
+                    var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
                     if (response == null)
                         return null;
 

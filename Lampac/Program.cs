@@ -9,7 +9,6 @@ using Lampac.Engine.CORE;
 using System;
 using System.IO;
 using Newtonsoft.Json;
-using PuppeteerSharp;
 using Shared.Engine;
 using Lampac.Engine;
 using Microsoft.AspNetCore.SignalR;
@@ -45,8 +44,22 @@ namespace Lampac
                 ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
             }
 
-            if (AppInit.conf.chromium.enable)
-                _ = Chromium.CreateAsync().ConfigureAwait(false);
+            #region Playwright
+            if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
+            {
+                ThreadPool.QueueUserWorkItem(async _ =>
+                {
+                    if (await PlaywrightBase.InitializationAsync())
+                    {
+                        if (AppInit.conf.chromium.enable)
+                            _ = Chromium.CreateAsync().ConfigureAwait(false);
+
+                        if (AppInit.conf.firefox.enable)
+                            _ = Firefox.CreateAsync().ConfigureAwait(false);
+                    }
+                });
+            }
+            #endregion
 
             if (!File.Exists("passwd"))
                 File.WriteAllText("passwd", Guid.NewGuid().ToString());
