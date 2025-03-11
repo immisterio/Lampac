@@ -125,10 +125,13 @@ namespace Shared.Engine
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && (AppInit.conf.chromium.Xvfb || AppInit.conf.firefox.Xvfb))
                 {
+                    if (!File.Exists("/usr/bin/Xvfb"))
+                        Console.WriteLine("Playwright: /usr/bin/Xvfb not found");
+
                     _ = Bash.Run("Xvfb :99 -screen 0 1280x1024x24").ConfigureAwait(false);
                     Environment.SetEnvironmentVariable("DISPLAY", ":99");
                     await Task.Delay(TimeSpan.FromSeconds(5));
-                    Console.WriteLine("Playwright: Xvfb");
+                    Console.WriteLine("Playwright: Xvfb 99");
                 }
 
                 Console.WriteLine("Playwright: Initialization");
@@ -217,11 +220,14 @@ namespace Shared.Engine
             if (proxy != default)
                 log += $"proxy: {proxy}\n";
 
-            log += $"{request.Method}: {request.Url}\n";
+            log += $"{method}: {url}\n";
 
-            log += "\n";
-            foreach (var item in request.Headers)
-                log += $"{item.Key}: {item.Value}\n";
+            if (request != null)
+            {
+                log += "\n";
+                foreach (var item in request.Headers)
+                    log += $"{item.Key}: {item.Value}\n";
+            }
 
             HttpClient.onlog?.Invoke(null, $"{log}\n{result}");
         }
