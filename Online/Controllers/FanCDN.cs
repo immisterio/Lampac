@@ -42,11 +42,16 @@ namespace Lampac.Controllers.LITE
                    if (ongettourl.Contains("fancdn."))
                        return black_magic(ongettourl, init, proxy.data);
 
-                   return HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, cookie: init.cookie, headers: httpHeaders(init, HeadersModel.Init(
+                   var headers = httpHeaders(init, HeadersModel.Init(
                         ("sec-fetch-dest", "document"),
                         ("sec-fetch-mode", "navigate"),
                         ("sec-fetch-site", "same-origin")
-                   )));
+                   ));
+
+                   if (ongettourl.Contains("do=search"))
+                       headers.Add(new HeadersModel("referer", $"{init.host}/"));
+
+                   return HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, cookie: init.cookie, headers: headers);
                },
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
@@ -108,7 +113,8 @@ namespace Lampac.Controllers.LITE
                                 Headers = httpHeaders(init, HeadersModel.Init(
                                     ("sec-fetch-dest", "iframe"),
                                     ("sec-fetch-mode", "navigate"),
-                                    ("sec-fetch-site", "cross-site")
+                                    ("sec-fetch-site", "cross-site"),
+                                    ("referer", $"{AppInit.conf.FanCDN.host}/")
                                 )).ToDictionary() 
                             });
 
