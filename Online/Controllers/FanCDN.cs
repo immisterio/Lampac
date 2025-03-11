@@ -9,6 +9,8 @@ using Microsoft.Playwright;
 using Shared.Engine.CORE;
 using System;
 using Shared.PlaywrightCore;
+using Lampac.Engine.CORE;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -22,7 +24,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0)
+            if (string.IsNullOrEmpty(init.cookie))
                 return OnError();
 
             if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
@@ -35,13 +37,23 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.host,
-               ongettourl => black_magic(ongettourl, init, proxy.data),
+               ongettourl => 
+               {
+                   if (ongettourl.Contains("fancdn."))
+                       return black_magic(ongettourl, init, proxy.data);
+
+                   return HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, cookie: init.cookie, headers: httpHeaders(init, HeadersModel.Init(
+                        ("sec-fetch-dest", "document"),
+                        ("sec-fetch-mode", "navigate"),
+                        ("sec-fetch-site", "same-origin")
+                   )));
+               },
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                var result = await oninvk.Embed(null, null, kinopoisk_id);
+                var result = await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year);
                 if (result == null)
                     return res.Fail(logRequest);
 
@@ -91,7 +103,14 @@ namespace Lampac.Controllers.LITE
                         if (route.Request.Url == uri)
                         {
                             string html = null;
-                            await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+                            await route.ContinueAsync(new RouteContinueOptions 
+                            {
+                                Headers = httpHeaders(init, HeadersModel.Init(
+                                    ("sec-fetch-dest", "iframe"),
+                                    ("sec-fetch-mode", "navigate"),
+                                    ("sec-fetch-site", "cross-site")
+                                )).ToDictionary() 
+                            });
 
                             var response = await page.WaitForResponseAsync(route.Request.Url);
                             if (response != null)

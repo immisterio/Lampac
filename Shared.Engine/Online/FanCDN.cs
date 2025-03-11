@@ -26,13 +26,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year, bool searchsite = false)
+        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year)
         {
-            var episodes = await Embed(null, imdb_id, kinopoisk_id);
-            if (episodes != null)
-                return episodes;
+            //var episodes = await Embed(null, imdb_id, kinopoisk_id);
+            //if (episodes != null)
+            //    return episodes;
 
-            if (string.IsNullOrEmpty(title) || year == 0 || !searchsite)
+            if (string.IsNullOrEmpty(title) || year == 0)
                 return null;
 
             string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
@@ -60,7 +60,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(html))
                 return null;
 
-            string iframe_url = Regex.Match(html, "id=\"iframe-player\" src=\"([^\"]+)\"").Groups[1].Value;
+            string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(iframe_url))
                 return null;
 

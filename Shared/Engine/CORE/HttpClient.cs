@@ -21,6 +21,12 @@ namespace Lampac.Engine.CORE
         #region Handler
         public static HttpClientHandler Handler(string url, WebProxy proxy, CookieContainer cookieContainer = null)
         {
+            string log = string.Empty;
+            return Handler(url, proxy, ref log, cookieContainer);
+        }
+
+        public static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
+        {
             var handler = new HttpClientHandler()
             {
                 AllowAutoRedirect = true,
@@ -33,6 +39,7 @@ namespace Lampac.Engine.CORE
             {
                 handler.UseProxy = true;
                 handler.Proxy = proxy;
+                loglines += $"proxy: {proxy.Address.ToString()}\n";
             }
 
             if (cookieContainer != null)
@@ -55,8 +62,11 @@ namespace Lampac.Engine.CORE
                         if (p.useAuth)
                             credentials = new NetworkCredential(p.username, p.password);
 
+                        string proxyip = p.list.OrderBy(a => Guid.NewGuid()).First();
+
                         handler.UseProxy = true;
-                        handler.Proxy = new WebProxy(p.list.OrderBy(a => Guid.NewGuid()).First(), p.BypassOnLocal, null, credentials);
+                        handler.Proxy = new WebProxy(proxyip, p.BypassOnLocal, null, credentials);
+                        loglines += $"globalproxy: {proxyip} {(p.useAuth ? $" - {p.username}:{p.password}" : "")}\n";
                         break;
                     }
                 }
@@ -110,8 +120,11 @@ namespace Lampac.Engine.CORE
                     if (item.name.ToLower() == "user-agent")
                         setDefaultUseragent = false;
 
-                    client.DefaultRequestHeaders.Add(item.name, item.val);
-                    loglines += $"{item.name}: {item.val}\n";
+                    if (!client.DefaultRequestHeaders.Contains(item.name))
+                    {
+                        client.DefaultRequestHeaders.Add(item.name, item.val);
+                        loglines += $"{item.name}: {item.val}\n";
+                    }
                 }
             }
 
@@ -245,7 +258,7 @@ namespace Lampac.Engine.CORE
 
             try
             {
-                var handler = Handler(url, proxy, cookieContainer);
+                var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
@@ -374,7 +387,7 @@ namespace Lampac.Engine.CORE
 
             try
             {
-                var handler = Handler(url, proxy, cookieContainer);
+                var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
