@@ -35,6 +35,9 @@ cat <<EOF > $DEST/init.conf
   "chromium": {
     "enable": false
   },
+  "firefox": {
+    "enable": false
+  },
   "dlna": {
     "enable": false,
     "autoupdatetrackers": false

@@ -62,7 +62,10 @@ namespace Lampac.Controllers
             if (AppInit.conf.storage.brotli)
                 BrotliTo.Compress(outFile, array);
             else
-                IO.File.WriteAllBytes(outFile, array);  
+            {
+                using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                    fileStream.Write(array, 0, array.Length);
+            }  
 
             var inf = new FileInfo(outFile);
 

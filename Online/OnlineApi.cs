@@ -586,6 +586,15 @@ namespace Lampac.Controllers
 
             send(conf.Mirage);
 
+            if (serial == -1 || serial == 0)
+            {
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
+                    send(conf.Kinobase);
+            }
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
+                send(conf.Lumex, "lumex");
+
             if (kinopoisk_id > 0)
             {
                 if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
@@ -596,19 +605,10 @@ namespace Lampac.Controllers
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                    send(conf.FanCDN);
             }
-
-            if (serial == -1 || serial == 0)
-            {
-                if (Chromium.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
-                    send(conf.Kinobase);
-            }
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
-                send(conf.Lumex, "lumex");
-
-            if (Chromium.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
-                send(conf.FanCDN);
 
             send(conf.Videoseed);
             send(conf.Vibix, rch_access: "apk,cors");

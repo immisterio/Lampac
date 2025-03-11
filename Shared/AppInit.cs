@@ -250,7 +250,7 @@ namespace Lampac
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
-            enable = true, Xvfb = true, Headless = true
+            enable = false, Headless = true
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };

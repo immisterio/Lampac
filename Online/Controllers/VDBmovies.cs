@@ -22,7 +22,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (kinopoisk_id == 0)
+                return OnError();
+
+            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);

@@ -80,7 +80,7 @@ namespace Lampac.Controllers.LITE
 
                             if (route.Request.Url.Contains("/content?clientId="))
                             {
-                                content_uri = route.Request.Url;
+                                content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
                                 foreach (var item in route.Request.Headers)
                                 {
                                     if (item.Key == "host" || item.Key == "accept-encoding")
@@ -90,6 +90,7 @@ namespace Lampac.Controllers.LITE
                                 }
 
                                 browser.completionSource.SetResult(string.Empty);
+                                PlaywrightBase.WebLog(route.Request.Method, content_uri, JsonConvert.SerializeObject(content_headers, Formatting.Indented));
                                 await route.AbortAsync();
                                 await page.CloseAsync();
                                 return;

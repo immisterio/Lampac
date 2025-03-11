@@ -22,7 +22,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (Chromium.Status != PlaywrightStatus.NoHeadless)
+            if (kinopoisk_id == 0)
+                return OnError();
+
+            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -36,9 +39,9 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"fancdn:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                var result = await oninvk.Embed(null, imdb_id, kinopoisk_id);
+                var result = await oninvk.Embed(null, null, kinopoisk_id);
                 if (result == null)
                     return res.Fail(logRequest);
 
@@ -55,7 +58,7 @@ namespace Lampac.Controllers.LITE
         {
             try
             {
-                using (var browser = new Chromium())
+                using (var browser = new PlaywrightBrowser())
                 {
                     var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
@@ -95,10 +98,7 @@ namespace Lampac.Controllers.LITE
 
                     var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
                     if (response == null)
-                    {
-                        logRequest += "\nGotoAsync null";
                         return null;
-                    }
 
                     return await browser.WaitPageResult();
                 }

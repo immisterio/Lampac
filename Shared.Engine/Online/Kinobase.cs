@@ -88,7 +88,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string video = Regex.Match(news, "<video src=\"([^\"]+)\"").Groups[1].Value;
+            string video = Regex.Match(news, "<vide[^>]+ src=\"([^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(video))
             {
                 requesterror?.Invoke();

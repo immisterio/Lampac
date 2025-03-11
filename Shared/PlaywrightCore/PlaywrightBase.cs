@@ -158,7 +158,15 @@ namespace Shared.Engine
 
                 if (outfile.EndsWith(".zip"))
                 {
-                    ZipFile.ExtractToDirectory(outfile, ".playwright/"+folder, overwriteFiles: true);
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        await Bash.Run($"unzip {Path.Combine(Environment.CurrentDirectory, outfile)} -d {Path.Combine(Environment.CurrentDirectory, ".playwright", folder)}");
+                    }
+                    else
+                    {
+                        ZipFile.ExtractToDirectory(outfile, ".playwright/" + folder, overwriteFiles: true);
+                    }
+
                     File.Delete(outfile);
                 }
 

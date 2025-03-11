@@ -80,8 +80,8 @@ namespace Shared.Engine.Online
                 if (kinopoisk_id > 0)
                     iframe_url += $"?kinopoisk={kinopoisk_id}";
 
-                if (!string.IsNullOrEmpty(imdb_id))
-                    iframe_url += (iframe_url.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
+                //if (!string.IsNullOrEmpty(imdb_id))
+                //    iframe_url += (iframe_url.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
             }
 
             string? iframe = await onget(iframe_url);

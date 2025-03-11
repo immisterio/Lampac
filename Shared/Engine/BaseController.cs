@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "137";
 
-        public static string minorversion => "7";
+        public static string minorversion => "8";
 
         public HybridCache hybridCache { get; private set; }
 

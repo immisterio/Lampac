@@ -81,30 +81,36 @@ namespace Shared.Engine
                     }
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
+                        string camoufox = null;
+
                         switch (RuntimeInformation.ProcessArchitecture)
                         {
                             case Architecture.X86:
+                                camoufox = "i686";
+                                break;
                             case Architecture.X64:
+                                camoufox = "x86_64";
+                                break;
                             case Architecture.Arm64:
-                                {
-                                    string camoufox = RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.X86 ? "x86_64" : 
-                                                      RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "arm64" : "i686";
-
-                                    string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/camoufox-135.0.1-beta.23-lin.{camoufox}.zip";
-                                    bool res = await DownloadFile(uri, ".playwright/camoufox.zip", "firefox/");
-                                    if (!res)
-                                    {
-                                        Console.WriteLine("Firefox: error download camoufox.zip");
-                                        return;
-                                    }
-
-                                    await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/firefox/camoufox")}");
-                                    executablePath = ".playwright/firefox/camoufox";
-                                    break;
-                                }
+                                camoufox = "arm64";
+                                break;
                             default:
                                 Console.WriteLine("Firefox: Architecture unknown");
                                 return;
+                        }
+
+                        if (camoufox != null)
+                        {
+                            string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/camoufox-135.0.1-beta.23-lin.{camoufox}.zip";
+                            bool res = await DownloadFile(uri, ".playwright/camoufox.zip", "firefox/");
+                            if (!res)
+                            {
+                                Console.WriteLine("Firefox: error download camoufox.zip");
+                                return;
+                            }
+
+                            await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/firefox/camoufox")}");
+                            executablePath = ".playwright/firefox/camoufox";
                         }
                     }
                     else

@@ -8,6 +8,7 @@ using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
 using System.Text.RegularExpressions;
 using Shared.Engine;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,7 +25,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(title) || year == 0 || serial == 1)
                 return OnError();
 
-            if (Chromium.Status == PlaywrightStatus.disabled)
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(AppInit.conf.Kinobase);
@@ -41,7 +42,7 @@ namespace Lampac.Controllers.LITE
 
                    try
                    {
-                       using (var browser = new Chromium())
+                       using (var browser = new PlaywrightBrowser())
                        {
                            var page = await browser.NewPageAsync(proxy: proxy.data);
                            if (page == null)
@@ -65,7 +66,10 @@ namespace Lampac.Controllers.LITE
                                return null;
 
                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                           return await page.ContentAsync();
+                           string content = await page.ContentAsync();
+
+                           PlaywrightBase.WebLog("GET", ongettourl, content);
+                           return content;
                        }
                    }
                    catch
