@@ -160,7 +160,7 @@ namespace Shared.Engine
                 {
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
-                        await Bash.Run($"unzip {Path.Combine(Environment.CurrentDirectory, outfile)} -d {Path.Combine(Environment.CurrentDirectory, ".playwright", folder)}");
+                        await Bash.Run($"unzip {Path.Combine(Environment.CurrentDirectory, outfile)} -d {Path.Combine(Environment.CurrentDirectory, ".playwright", folder ?? string.Empty)}");
                     }
                     else
                     {
@@ -205,12 +205,10 @@ namespace Shared.Engine
             foreach (var item in response.Headers)
                 log += $"{item.Key}: {item.Value}\n";
 
-            log += $"\n{result}";
-
-            HttpClient.onlog?.Invoke(null, log);
+            HttpClient.onlog?.Invoke(null, $"{log}\n{result}");
         }
 
-        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default)
+        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default)
         {
             if (url.Contains("127.0.0.1"))
                 return;
@@ -219,7 +217,13 @@ namespace Shared.Engine
             if (proxy != default)
                 log += $"proxy: {proxy}\n";
 
-            HttpClient.onlog?.Invoke(null, $"{method}: {url}\n\n{result}");
+            log += $"{request.Method}: {request.Url}\n";
+
+            log += "\n";
+            foreach (var item in request.Headers)
+                log += $"{item.Key}: {item.Value}\n";
+
+            HttpClient.onlog?.Invoke(null, $"{log}\n{result}");
         }
 
 

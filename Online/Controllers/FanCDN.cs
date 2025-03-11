@@ -69,6 +69,15 @@ namespace Lampac.Controllers.LITE
 
                     await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
+                    page.RequestFailed += (sender, e) =>
+                    {
+                        if (e.Url == uri)
+                        {
+                            browser.completionSource.SetResult(null);
+                            PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy, e);
+                        }
+                    };
+
                     await page.RouteAsync("**/*", async route =>
                     {
                         if (route.Request.Url.Contains("api/chromium/iframe"))

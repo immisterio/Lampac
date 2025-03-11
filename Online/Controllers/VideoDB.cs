@@ -72,6 +72,20 @@ namespace Lampac.Controllers.LITE
                         if (page == null)
                             return null;
 
+                        page.RequestFailed += (sender, e) =>
+                        {
+                            if (e.Url == link)
+                            {
+                                browser.completionSource.SetResult(null);
+                                PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy.data, e);
+                            }
+                        };
+
+                        page.Download += async (sender, download) =>
+                        {
+                            await download.CancelAsync();
+                        };
+
                         await page.RouteAsync("**/*", async route =>
                         {
                             if (route.Request.Url.Contains("api/chromium/iframe"))
@@ -129,6 +143,15 @@ namespace Lampac.Controllers.LITE
                     var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
                         return null;
+
+                    page.RequestFailed += (sender, e) =>
+                    {
+                        if (e.Url == uri)
+                        {
+                            browser.completionSource.SetResult(null);
+                            PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy, e);
+                        }
+                    };
 
                     await page.RouteAsync("**/*", async route =>
                     {

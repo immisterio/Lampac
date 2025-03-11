@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                            string content = await page.ContentAsync();
 
-                           PlaywrightBase.WebLog("GET", ongettourl, content);
+                           PlaywrightBase.WebLog("GET", ongettourl, content, proxy.data);
                            return content;
                        }
                    }

@@ -90,7 +90,6 @@ namespace Lampac.Controllers.LITE
                                 }
 
                                 browser.completionSource.SetResult(string.Empty);
-                                PlaywrightBase.WebLog(route.Request.Method, content_uri, JsonConvert.SerializeObject(content_headers, Formatting.Indented));
                                 await route.AbortAsync();
                                 await page.CloseAsync();
                                 return;
