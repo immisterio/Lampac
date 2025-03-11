@@ -178,7 +178,7 @@ namespace Lampac.Controllers.LITE
 
                         PlaywrightBase.WebLog("GET", iframe, html, proxy.data);
 
-                        string video = Regex.Match(html ?? "", "<video[^>]+ src=\"([^\"]+)").Groups[1].Value.Trim();
+                        string video = Regex.Match(html ?? "", "<vide[^>]+ src=\"([^\"]+)").Groups[1].Value.Trim();
                         if (string.IsNullOrEmpty(video))
                         {
                             proxyManager.Refresh();

@@ -222,9 +222,8 @@ namespace Shared.Engine
 
             log += $"{method}: {url}\n";
 
-            if (request != null)
+            if (request?.Headers != null)
             {
-                log += "\n";
                 foreach (var item in request.Headers)
                     log += $"{item.Key}: {item.Value}\n";
             }

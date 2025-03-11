@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                             uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
                         await page.GotoAsync(uri);
-                        await browser.WaitPageResult();
+                        await browser.WaitPageResult(20);
                     }
                 }
                 catch { }

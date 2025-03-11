@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "137";
 
-        public static string minorversion => "10";
+        public static string minorversion => "11";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -104,7 +104,7 @@ namespace Lampac.Engine
                     val = new OnlinesSettings(null, encrypt).host;
                 }
 
-                val = val.Replace("{account_email}", account_email)
+                val = val.Replace("{account_email}", account_email.ToLower().Trim())
                          .Replace("{ip}", ip)
                          .Replace("{host}", site)
                          .Replace("{cf_clearance}", CrypTo.cf_clearance());

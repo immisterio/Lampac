@@ -67,7 +67,7 @@ namespace JinEnergy.Online
                     return EmptyError("content");
             }
 
-            return oninvk.Html(content, arg.account_email, arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false, false);
+            return oninvk.Html(content, $"account_email={arg.account_email}", arg.imdb_id, arg.kinopoisk_id, arg.title, arg.original_title, arg.clarification, pick, kid, s, false, false);
         }
 
 
