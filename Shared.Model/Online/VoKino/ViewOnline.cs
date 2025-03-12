@@ -10,7 +10,7 @@
 
         public bool hdvb { get; set; } = true;
 
-        public bool videocdn { get; set; } = true;
+        public bool videocdn { get; set; } = false;
 
         public bool ashdi { get; set; } = true;
 

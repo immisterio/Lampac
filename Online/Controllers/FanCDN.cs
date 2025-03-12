@@ -43,9 +43,9 @@ namespace Lampac.Controllers.LITE
                        return black_magic(ongettourl, init, proxy.data);
 
                    var headers = httpHeaders(init, HeadersModel.Init(
-                        ("sec-fetch-dest", "document"),
-                        ("sec-fetch-mode", "navigate"),
-                        ("sec-fetch-site", "same-origin")
+                       ("sec-fetch-dest", "document"),
+                       ("sec-fetch-mode", "navigate"),
+                       ("sec-fetch-site", "same-origin")
                    ));
 
                    if (ongettourl.Contains("do=search"))

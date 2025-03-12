@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
                 foreach (var translation in cache.translation_iframe)
                 {
                     string iframe = translation.First.Value<string>("iframe");
-                    mtpl.Append(translation.First.Value<string>("name"), $"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(iframe)}", vast: init.vast);
+                    mtpl.Append(translation.First.Value<string>("name"), accsArgs($"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(iframe)}"), vast: init.vast);
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
-                mtpl.Append("По-умолчанию", $"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(cache.iframe)}", vast: init.vast);
+                mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(cache.iframe)}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var video in cache.seasons.First(i => i.Key == s.ToString()).Value["videos"].ToObject<Dictionary<string, JObject>>())
                     {
                         string iframe = video.Value.Value<string>("iframe");
-                        etpl.Append($"{video.Key} серия", title ?? original_title, s.ToString(), video.Key, $"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(iframe)}", vast: init.vast);
+                        etpl.Append($"{video.Key} серия", title ?? original_title, s.ToString(), video.Key, accsArgs($"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(iframe)}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
