@@ -10,6 +10,10 @@ namespace Shared.Model
 {
     public class AppInit
     {
+        public static string _defaultOn;
+
+        public string defaultOn = "enable";
+
         public static VastConf _vast;
 
         public VastConf vast = new VastConf();

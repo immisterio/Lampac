@@ -67,6 +67,7 @@ namespace Lampac
                             corseuhost = cacheconf.Item1.corsehost;
 
                         _vast = cacheconf.Item1.vast;
+                        _defaultOn = cacheconf.Item1.defaultOn;
                     }
 
                     #region accounts

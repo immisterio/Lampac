@@ -2,7 +2,26 @@
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup , ICloneable
     {
-        public bool enable { get; set; }
+        bool _enable;
+
+        public bool enable 
+        {
+            get 
+            {
+                if (AppInit._defaultOn == "enabled")
+                    return enabled;
+
+                return _enable;
+            }
+            set
+            {
+                _enable = value;
+            }
+        }
+
+        public bool enabled { get; set; }
+
+
 
         public bool kit { get; set; } = true;
 

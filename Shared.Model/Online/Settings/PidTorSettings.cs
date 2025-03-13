@@ -4,7 +4,25 @@ namespace Shared.Model.Online.Settings
 {
     public class PidTorSettings : Igroup
     {
-        public bool enable { get; set; }
+        bool _enable;
+
+        public bool enable
+        {
+            get
+            {
+                if (AppInit._defaultOn == "enabled")
+                    return enabled;
+
+                return _enable;
+            }
+            set
+            {
+                _enable = value;
+            }
+        }
+
+        public bool enabled { get; set; }
+
 
         public string? displayname { get; set; }
 
