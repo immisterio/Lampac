@@ -176,6 +176,7 @@ namespace Lampac.Controllers
             if (AppInit.conf.cub.enable)
             {
                 file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+                file = file.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
                 file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
                 file = file.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
             }
