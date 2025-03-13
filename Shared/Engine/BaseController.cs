@@ -331,7 +331,6 @@ namespace Lampac.Engine
         #region IsOverridehost
         async public ValueTask<ActionResult> IsOverridehost(BaseSettings init)
         {
-            ActionResult content = null;
             string overridehost = null;
 
             if (!string.IsNullOrEmpty(init.overridehost))
@@ -341,29 +340,35 @@ namespace Lampac.Engine
                 overridehost = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
 
             if (string.IsNullOrEmpty(overridehost))
-                return content;
-
-            if (overridehost.Contains("?"))
-                overridehost += "&" + HttpContext.Request.QueryString.Value.Remove(0, 1);
-            else
-                overridehost += HttpContext.Request.QueryString.Value;
+                return null;
 
             if (string.IsNullOrEmpty(init.overridepasswd))
-                return new RedirectResult(overridehost);
+            {
+                if (overridehost.Contains("?"))
+                    overridehost += "&" + HttpContext.Request.QueryString.Value.Remove(0, 1);
+                else
+                    overridehost += HttpContext.Request.QueryString.Value;
 
-            string html = await HttpClient.Get(overridehost, timeoutSeconds: 10, headers: HeadersModel.Init
+                return new RedirectResult(overridehost);
+            }
+
+            string uri = overridehost + HttpContext.Request.Path.Value + HttpContext.Request.QueryString.Value;
+
+            string clientip = requestInfo.IP;
+            if (requestInfo.Country == null)
+                clientip = await mylocalip();
+
+            string html = await HttpClient.Get(uri, timeoutSeconds: 10, headers: HeadersModel.Init
             (
                 ("localrequest", init.overridepasswd),
-                ("x-client-ip", requestInfo.IP)
+                ("x-client-ip", clientip)
             ));
 
             if (html == null)
                 return new ContentResult() { StatusCode = 502, Content = string.Empty };
 
-            string ovhost = Regex.Match(overridehost, "^(https?://[^/]+)").Groups[1].Value;
-
             html = Regex.Replace(html, "\"(https?://[^/]+/proxy/)", "\"_tmp_ $1");
-            html = Regex.Replace(html, ovhost, host);
+            html = Regex.Replace(html, overridehost, host);
             html = html.Replace("\"_tmp_ ", "\"");
 
             return ContentTo(html);
