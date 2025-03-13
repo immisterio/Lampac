@@ -368,7 +368,7 @@ namespace Lampac.Engine
                 return new ContentResult() { StatusCode = 502, Content = string.Empty };
 
             html = Regex.Replace(html, "\"(https?://[^/]+/proxy/)", "\"_tmp_ $1");
-            html = Regex.Replace(html, overridehost, host);
+            html = Regex.Replace(html, $"\"{overridehost}", $"\"{host}");
             html = html.Replace("\"_tmp_ ", "\"");
 
             return ContentTo(html);
