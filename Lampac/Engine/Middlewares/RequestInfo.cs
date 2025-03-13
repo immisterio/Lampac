@@ -26,15 +26,19 @@ namespace Lampac.Engine.Middlewares
                 IsLocalRequest = true;
             }
 
+            string clientIp = httpContext.Connection.RemoteIpAddress.ToString();
+            if (httpContext.Request.Headers.TryGetValue("x-client-ip", out var xip) && !string.IsNullOrEmpty(xip))
+                clientIp = xip;
+
             var req = new RequestModel()
             {
                 IsLocalRequest = IsLocalRequest,
-                IP = httpContext.Connection.RemoteIpAddress.ToString(),
+                IP = clientIp,
                 UserAgent = httpContext.Request.Headers.UserAgent
             };
 
             if (!Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy-dash/|proxy/|proxyimg|lifeevents|externalids|ts|ws|weblog|rch/result|merchant/payconfirm|tmdb/)"))
-                req.Country = GeoIP2.Country(httpContext.Connection.RemoteIpAddress.ToString());
+                req.Country = GeoIP2.Country(req.IP);
 
             if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
             {
