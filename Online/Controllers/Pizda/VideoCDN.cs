@@ -15,15 +15,12 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vcdn")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
         {
-            var init = AppInit.conf.VCDN.Clone();
-            if (!init.enable || init.rip)
-                return OnError();
+            var init = await loadKit(AppInit.conf.VCDN);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
 
             if (init.rhub && !AppInit.conf.rch.enable)
                 return ShowError(RchClient.ErrorMsg);
-
-            if (IsOverridehost(init, out string overridehost))
-                return Redirect(overridehost);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager(init);
