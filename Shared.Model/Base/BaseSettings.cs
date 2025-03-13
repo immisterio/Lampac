@@ -34,6 +34,8 @@
 
         public string[]? overridehosts { get; set; }
 
+        public string? overridepasswd { get; set; }
+
         public string? host { get; set; }
 
         public string? apihost { get; set; }

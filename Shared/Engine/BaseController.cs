@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "137";
 
-        public static string minorversion => "11";
+        public static string minorversion => "12";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -329,9 +329,10 @@ namespace Lampac.Engine
         #endregion
 
         #region IsOverridehost
-        public bool IsOverridehost(BaseSettings init, out string overridehost)
+        async public ValueTask<ActionResult> IsOverridehost(BaseSettings init)
         {
-            overridehost = null;
+            ActionResult content = null;
+            string overridehost = null;
 
             if (!string.IsNullOrEmpty(init.overridehost))
                 overridehost = init.overridehost;
@@ -340,10 +341,30 @@ namespace Lampac.Engine
                 overridehost = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
 
             if (string.IsNullOrEmpty(overridehost))
-                return false;
+                return content;
 
-            overridehost += HttpContext.Request.QueryString.Value;
-            return true;
+            if (overridehost.Contains("?"))
+                overridehost += "&" + HttpContext.Request.QueryString.Value.Remove(0, 1);
+            else
+                overridehost += HttpContext.Request.QueryString.Value;
+
+            if (string.IsNullOrEmpty(init.overridepasswd))
+                return new RedirectResult(overridehost);
+
+            string html = await HttpClient.Get(overridehost, timeoutSeconds: 10, headers: HeadersModel.Init
+            (
+                ("localrequest", init.overridepasswd),
+                ("x-client-ip", requestInfo.IP)
+            ));
+
+            if (html == null)
+                return new ContentResult() { StatusCode = 502, Content = string.Empty };
+
+            html = Regex.Replace(html, "\"(https?://[^/]+/proxy/)", "\"_tmp_ $1");
+            html = Regex.Replace(html, "\"https?://[^/]+", $"\"{host}");
+            html = html.Replace("\"_tmp_ ", "\"");
+
+            return ContentTo(html);
         }
         #endregion
 
@@ -455,7 +476,11 @@ namespace Lampac.Engine
             update<string>("apihost", v => init.apihost = v);
             update<string>("scheme", v => init.scheme = v);
             update<bool>("hls", v => init.hls = v);
+
             update<string>("overridehost", v => init.overridehost = v);
+            update<string>("overridepasswd", v => init.overridepasswd = v);
+            if (conf.ContainsKey("overridehosts"))
+                init.overridehosts = conf["overridehosts"].ToObject<string[]>();
 
             if (conf.ContainsKey("headers"))
                 init.headers = conf["headers"].ToObject<Dictionary<string, string>>();

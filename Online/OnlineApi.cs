@@ -448,9 +448,14 @@ namespace Lampac.Controllers
                         }
                     }
 
-                    string url = init.overridehost;
-                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
-                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                    string url = string.Empty;
+
+                    if (string.IsNullOrEmpty(init.overridepasswd))
+                    {
+                        url = init.overridehost;
+                        if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                            url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                    }
 
                     string displayname = init.displayname ?? name ?? init.plugin;
 

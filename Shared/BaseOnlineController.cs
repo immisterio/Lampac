@@ -65,9 +65,10 @@ namespace Online
                 return true;
             }
 
-            if (IsOverridehost(init, out string overridehost))
+            var overridehost = await IsOverridehost(init);
+            if (overridehost != null)
             {
-                badInitMsg = Redirect(overridehost);
+                badInitMsg = overridehost;
                 return true;
             }
 
