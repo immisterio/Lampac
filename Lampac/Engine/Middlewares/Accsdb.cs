@@ -96,6 +96,12 @@ namespace Lampac.Engine.Middlewares
 
                     if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
                     {
+                        if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
+                        {
+                            if (AppInit.conf.serverproxy.encrypt)
+                                return _next(httpContext);
+                        }
+
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
                             httpContext.Response.StatusCode = 404;

@@ -360,8 +360,10 @@ namespace Lampac.Engine
             if (html == null)
                 return new ContentResult() { StatusCode = 502, Content = string.Empty };
 
+            string ovhost = Regex.Match(overridehost, "^(https?://[^/]+)").Groups[1].Value;
+
             html = Regex.Replace(html, "\"(https?://[^/]+/proxy/)", "\"_tmp_ $1");
-            html = Regex.Replace(html, "\"https?://[^/]+", $"\"{host}");
+            html = Regex.Replace(html, ovhost, host);
             html = html.Replace("\"_tmp_ ", "\"");
 
             return ContentTo(html);
