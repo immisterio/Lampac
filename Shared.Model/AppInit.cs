@@ -320,6 +320,20 @@ namespace Shared.Model
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { geostreamproxy = new string[] { "ALL" } };
 
+        /// <summary>
+        /// Получение учетной записи
+        /// 
+        /// tg: @monk_in_a_hat
+        /// email: helpdesk@lumex.ink
+        /// </summary>
+        public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.site", "API-токен", "https://portal.lumex.host", "ID клиент") 
+        {
+            enable = false,
+            disable_protection = false, // true - отключить проверку на парсер
+            scheme = "http", hls = false, log = true,
+            vast = new VastConf() { msg = "Реклама от VideoCDN" }
+        };
+
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5") 
         {
             enable = true, hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" }
@@ -339,6 +353,9 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
+        /// <summary>
+        /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
+        /// </summary>
         public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", enable: false, streamproxy: true);
 
         /// <summary>
@@ -429,7 +446,5 @@ namespace Shared.Model
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("Lostfilmhd", "kwws=22zzz1glvqh|oryh1ux", streamproxy: true, rip: true);
 
         public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rip: true);
-
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("VCDN", "kwws=2255;;71dqqdfgq1ff2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", rip: true) { scheme = "http", geostreamproxy = new string[] { "ALL" } };
     }
 }

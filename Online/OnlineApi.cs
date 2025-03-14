@@ -132,7 +132,7 @@ namespace Lampac.Controllers
                     string mkey = $"externalids:KP_:{_kp}";
                     if (!memoryCache.TryGetValue(mkey, out string _imdbid))
                     {
-                        string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                        string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
                         _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
                         memoryCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
@@ -160,8 +160,8 @@ namespace Lampac.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VCDN);
-                string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
+                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
+                string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -474,7 +474,7 @@ namespace Lampac.Controllers
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
                         string _p = (plugin ?? (init.plugin ?? name).ToLower());
-                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "videocdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
@@ -597,8 +597,10 @@ namespace Lampac.Controllers
                     send(conf.Kinobase);
             }
 
+            send(conf.VideoCDN);
+
             if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
-                send(conf.Lumex, "lumex");
+                send(conf.Lumex);
 
             if (kinopoisk_id > 0)
             {
@@ -820,6 +822,7 @@ namespace Lampac.Controllers
                             case "kinobase":
                             case "zetflix":
                             case "vcdn":
+                            case "videocdn":
                             case "lumex":
                             case "vibix":
                             case "videoseed":
