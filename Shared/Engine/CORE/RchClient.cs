@@ -57,7 +57,7 @@ namespace Lampac.Engine.CORE
             httpContext = context;
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
-            ip = context.Connection.RemoteIpAddress.ToString();
+            ip = requestInfo.IP;
             connectionId = clients.FirstOrDefault(i => i.Value.ip == ip).Key;
 
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)

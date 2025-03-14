@@ -36,7 +36,8 @@ namespace Lampac.Engine
             }
             catch { }
 
-            RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId, job);
+            var requestInfo = Context.GetHttpContext().Features.Get<RequestModel>();
+            RchClient.Registry(requestInfo.IP, Context.ConnectionId, job);
         }
 
         /// <summary>
@@ -51,7 +52,10 @@ namespace Lampac.Engine
             {
                 case "rch":
                     if (AppInit.conf.rch.enable)
-                        RchClient.Registry(Context.GetHttpContext().Connection.RemoteIpAddress.ToString(), Context.ConnectionId);
+                    {
+                        var requestInfo = Context.GetHttpContext().Features.Get<RequestModel>();
+                        RchClient.Registry(requestInfo.IP, Context.ConnectionId);
+                    }
                     break;
             }
         }

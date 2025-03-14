@@ -216,6 +216,8 @@ namespace Lampac
 
         public string listenhost = null;
 
+        public string frontend = null; // cloudflare|nginx
+
         public string localhost = "127.0.0.1";
 
         public bool multiaccess = false;

@@ -284,23 +284,6 @@ namespace Lampac
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             };
 
-            if (AppInit.conf.real_ip_cf)
-            {
-                string ips = HttpClient.Get("https://www.cloudflare.com/ips-v4", timeoutSeconds: 10).Result;
-                if (ips != null)
-                {
-                    forwarded.ForwardedForHeaderName = "CF-Connecting-IP";
-                    foreach (string line in ips.Split('\n'))
-                    {
-                        if (string.IsNullOrEmpty(line) || !line.Contains("/"))
-                            continue;
-
-                        string[] ln = line.Split('/');
-                        forwarded.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(ln[0]), int.Parse(ln[1])));
-                    }
-                }
-            }
-
             if (AppInit.conf.KnownProxies != null && AppInit.conf.KnownProxies.Count > 0)
             {
                 foreach (var k in AppInit.conf.KnownProxies)
