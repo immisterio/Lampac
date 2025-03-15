@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.FanCDN);
             if (await IsBadInitialization(init, rch: false))
@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                var result = await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year);
+                var result = await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year, serial);
                 if (result == null)
                     return res.Fail(logRequest);
 

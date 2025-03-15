@@ -244,7 +244,7 @@ namespace Lampac.Controllers.LITE
                 return Redirect(hls);
 
             var player = await getPlayer(content_id, content_type, accessToken);
-            var vast = new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
+            VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
 
             #region subtitle
             var subtitles = new SubtitleTpl();

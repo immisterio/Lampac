@@ -26,63 +26,74 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year)
+        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
         {
-            //var episodes = await Embed(null, imdb_id, kinopoisk_id);
-            //if (episodes != null)
-            //    return episodes;
-
-            if (string.IsNullOrEmpty(title) || year == 0)
-                return null;
-
-            string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
-            if (string.IsNullOrEmpty(search))
-                return null;
-
-            string? href = null;
-
-            foreach (string itemsearch in search.Split("item-search-serial"))
+            if (serial == 1)
             {
-                string? info = itemsearch.Split("torrent-link")?[0];
-                if (!string.IsNullOrEmpty(info) && 
-                    (info.Contains($"({year-1}") || info.Contains($"({year}") || info.Contains($"({year+1}")) && 
-                    (info.Contains(title) || info.Contains(original_title)))
-                {
-                    href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
-                    break;
-                }
+                if (kinopoisk_id == 0)
+                    return null;
+
+                string? films = await onget($"{apihost}/films/");
+                if (string.IsNullOrEmpty(films) || !films.Contains("class=\"box-tab\""))
+                    return null;
+
+                string href = Regex.Match(films.Split("class=\"box-tab\"")[1], "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(href))
+                    return null;
+
+                string? html = await onget(href);
+                if (string.IsNullOrEmpty(html))
+                    return null;
+
+                string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(iframe_url) || !iframe_url.Contains("kinopoisk="))
+                    return null;
+
+                return await Embed(Regex.Replace(iframe_url, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
             }
+            else
+            {
+                if (string.IsNullOrEmpty(title) || year == 0)
+                    return null;
 
-            if (string.IsNullOrEmpty(href))
-                return null;
+                string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
+                if (string.IsNullOrEmpty(search))
+                    return null;
 
-            string? html = await onget(href);
-            if (string.IsNullOrEmpty(html))
-                return null;
+                string? href = null;
 
-            string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(iframe_url))
-                return null;
+                foreach (string itemsearch in search.Split("item-search-serial"))
+                {
+                    string? info = itemsearch.Split("torrent-link")?[0];
+                    if (!string.IsNullOrEmpty(info) &&
+                        (info.Contains($"({year - 1}") || info.Contains($"({year}") || info.Contains($"({year + 1}")) &&
+                        (info.Contains(title) || info.Contains(original_title)))
+                    {
+                        href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                        break;
+                    }
+                }
 
-            return await Embed(iframe_url, null, 0);
+                if (string.IsNullOrEmpty(href))
+                    return null;
+
+                string? html = await onget(href);
+                if (string.IsNullOrEmpty(html))
+                    return null;
+
+                string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(iframe_url))
+                    return null;
+
+                return await Embed(iframe_url);
+            }
         }
 
 
-        async public ValueTask<EmbedModel?> Embed(string? iframe_url, string imdb_id, long kinopoisk_id)
+        async public ValueTask<EmbedModel?> Embed(string iframe_url)
         {
-            if (string.IsNullOrEmpty(iframe_url) && string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
-                return null;
-
             if (string.IsNullOrEmpty(iframe_url))
-            {
-                iframe_url = "https://fancdn.net/iframe/";
-
-                if (kinopoisk_id > 0)
-                    iframe_url += $"?kinopoisk={kinopoisk_id}";
-
-                //if (!string.IsNullOrEmpty(imdb_id))
-                //    iframe_url += (iframe_url.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
-            }
+                return null;
 
             string? iframe = await onget(iframe_url);
             if (string.IsNullOrEmpty(iframe))
