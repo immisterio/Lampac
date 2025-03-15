@@ -46,10 +46,18 @@ namespace Lampac.Controllers.LITE
                 string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
                                            await HttpClient.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
-                // serial
-                string file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\]),").Groups[1].Value.Trim();
-                if (string.IsNullOrEmpty(file)) // movie
+                string file = null;
+
+                if (html.Contains("\"folder\""))
+                {
+                    file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\])\\}\\)").Groups[1].Value.Trim();
+                    if (string.IsNullOrEmpty(file)) 
+                        file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\]),").Groups[1].Value.Trim();
+                }
+                else
+                {
                     file = Regex.Match(html, "file:([^\n\r]+)\\}\\)\\;").Groups[1].Value.Trim();
+                }
 
                 if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
                     res.Fail("file");

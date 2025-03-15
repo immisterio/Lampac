@@ -1,7 +1,11 @@
 ﻿using Microsoft.Playwright;
 using Shared.Engine;
+using Shared.Model.Base;
+using Shared.Model.Online;
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Shared.PlaywrightCore
@@ -102,6 +106,34 @@ namespace Shared.PlaywrightCore
         {
             chromium?.Dispose();
             firefox?.Dispose();
+        }
+
+
+
+
+        async public static ValueTask<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, PlaywrightStatus minimalAPI = PlaywrightStatus.NoHeadless)
+        {
+            try
+            {
+                using (var browser = new PlaywrightBrowser(init.priorityBrowser, minimalAPI))
+                {
+                    var page = await browser.NewPageAsync(headers?.ToDictionary(), proxy);
+                    if (page == null)
+                        return null;
+
+                    var response = await page.GotoAsync($"view-source:{url}");
+                    if (response != null)
+                    {
+                        string result = await response.TextAsync();
+                        PlaywrightBase.WebLog(response.Request, response, result, proxy);
+
+                        return result;
+                    }
+                }
+            }
+            catch { }
+
+            return null;
         }
     }
 }

@@ -36,20 +36,7 @@ namespace Shared.Model
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")
         {
             headers = HeadersModel.Init(
-                ("accept", "*/*"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("cookie", "bonga20120608=99834a7a1dee3a3d50f77380ba22a881; ts_type2=1; fv=BGxjZGtjZGD3ZD==; uh=IIDlE0MYIaAkF1cxEwS2FyyPqSMipj==; reg_ver2=3; sg=861; warning18=%5B%22et_EE%22%5D; ol4ekwvk4v=1834809388; ls02=camscore; ls01=%7B%22th_type%22%3A%22live%22%2C%22display%22%3A%22medium%22%7D; BONGA_REF=https%3A%2F%2Fwww.google.com%2F"),
                 ("referer", "{host}/"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-origin"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"),
                 ("x-requested-with", "XMLHttpRequest")
             ).ToDictionary()
         };
@@ -66,23 +53,9 @@ namespace Shared.Model
             headers = HeadersModel.Init("referer", "{host}").ToDictionary()
         };
 
-        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp");
+        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true);
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp")
-        {
-            headers = HeadersModel.Init(
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
-            ).ToDictionary()
-        };
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp");
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp") 
         {
@@ -104,7 +77,7 @@ namespace Shared.Model
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("Xnxx", "kwwsv=22zzz1{q{{1frp");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("Tizam", "kwwsv=22lq1wl}dp1lqir");
+        public SisiSettings Tizam { get; set; } = new SisiSettings("Tizam", "kwwsv=22lq1wl}dp1lqir", streamproxy: true);
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("Xvideos", "kwwsv=22zzz1{ylghrv1frp");
 
