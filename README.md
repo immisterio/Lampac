@@ -21,7 +21,7 @@ curl -L -k -s https://lampac.sh | bash
 curl -L -k -s https://lampac.sh/home | bash
 ```
 * 200Mb RAM, 200Mb HDD, 50 пользователей
-* DLNA по умолчанию отключен, включается в init.conf
+* DLNA/Chromium/Firefox по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
 # Установка на Windows
@@ -32,6 +32,11 @@ curl -L -k -s https://lampac.sh/home | bash
 # Запуск в Android
 1. Termux - https://github.com/immisterio/Lampac/blob/main/Termux/README.md
 2. BWA - https://bwa.to
+
+# Тестируемые устройства
+Debian 11/12 x64
+Windows 10 x64
+Raspberry arm64 (Debian 11)
 
 # Плагины для Lampa
 1. Все плагины сразу - "http://IP:9118/on.js"
