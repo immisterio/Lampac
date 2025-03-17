@@ -160,16 +160,31 @@ namespace Lampac.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
-                string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
-                if (json == null)
+                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                {
+                    string json = await HttpClient.Get($"https://kinobd.net/api/films/search/imdb_id?q={imdb}", timeoutSeconds: 4);
+                    if (json == null)
+                        return null;
+
+                    string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                        return kpid;
+
                     return null;
+                }
+                else
+                {
+                    var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
+                    string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
+                    if (json == null)
+                        return null;
 
-                string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
-                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
-                    return kpid;
+                    string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                        return kpid;
 
-                return null;
+                    return null;
+                }
             }
 
             async Task<string> getTabus(string imdb)

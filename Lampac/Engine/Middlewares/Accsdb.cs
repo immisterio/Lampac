@@ -185,7 +185,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (IsLockIpHour(account_email, userip, out islock, out ips) || IsLockReqHour(account_email, uri, out islock, out urls))
+            if (IsLockIpHour(account_email, userip, out islock, out ips) | IsLockReqHour(account_email, uri, out islock, out urls))
             {
                 setLogs("lock_hour");
                 countlock_day(update: true);

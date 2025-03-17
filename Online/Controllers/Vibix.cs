@@ -53,7 +53,7 @@ namespace Lampac.Controllers.LITE
 
                 if (data.Value<string>("type") == "movie")
                 {
-                    file = html.Split(",file:\"")[1].Split("function")[0];
+                    file = html.Split(",file:")[1].Split("function")[0];
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
                         res.Fail("file");
 

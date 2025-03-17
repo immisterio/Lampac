@@ -28,7 +28,11 @@ namespace Shared.Model.Templates
 
         public Dictionary<string, string> ToObject()
         {
-            return data.ToDictionary(k => k.quality, v => v.link);
+            var result = new Dictionary<string, string>();
+            foreach (var item in data)
+                result.TryAdd(item.quality, item.link);
+
+            return result;
         }
 
         public string MaxQuality()

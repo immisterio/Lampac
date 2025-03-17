@@ -145,7 +145,7 @@ namespace Lampac.Engine.Middlewares
                         try
                         {
                             Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
-                            await File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
+                            File.WriteAllBytes(outFile, array);
                         }
                         catch { try { File.Delete(outFile); } catch { } }
                     }

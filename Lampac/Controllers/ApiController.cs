@@ -185,7 +185,12 @@ namespace Lampac.Controllers
             {
                 foreach (var r in AppInit.conf.LampaWeb.appReplace)
                 {
-                    string val = r.Value.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                    string val = r.Value;
+                    if (val.StartsWith("file:"))
+                        val = IO.File.ReadAllText(val.Remove(0, 5));
+
+                    val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+
                     file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
                 }
             }

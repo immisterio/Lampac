@@ -26,6 +26,8 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
+        static string? serial_frameUrl = null;
+
         async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
         {
             if (serial == 1)
@@ -33,23 +35,28 @@ namespace Shared.Engine.Online
                 if (kinopoisk_id == 0)
                     return null;
 
-                string? films = await onget($"{apihost}/films/");
-                if (string.IsNullOrEmpty(films) || !films.Contains("class=\"box-tab\""))
-                    return null;
+                if (serial_frameUrl == null)
+                {
+                    string? films = await onget($"{apihost}/films/");
+                    if (string.IsNullOrEmpty(films) || !films.Contains("class=\"box-tab\""))
+                        return null;
 
-                string href = Regex.Match(films.Split("class=\"box-tab\"")[1], "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(href))
-                    return null;
+                    string href = Regex.Match(films.Split("class=\"box-tab\"")[1], "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(href))
+                        return null;
 
-                string? html = await onget(href);
-                if (string.IsNullOrEmpty(html))
-                    return null;
+                    string? html = await onget(href);
+                    if (string.IsNullOrEmpty(html))
+                        return null;
 
-                string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(iframe_url) || !iframe_url.Contains("kinopoisk="))
-                    return null;
+                    string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(iframe_url) || !iframe_url.Contains("kinopoisk="))
+                        return null;
 
-                return await Embed(Regex.Replace(iframe_url, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
+                    serial_frameUrl = iframe_url;
+                }
+
+                return await Embed(Regex.Replace(serial_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
             }
             else
             {
