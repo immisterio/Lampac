@@ -34,9 +34,9 @@ curl -L -k -s https://lampac.sh/home | bash
 2. BWA - https://bwa.to
 
 # Тестируемые устройства
-Debian 11/12 x64
-Windows 10 x64
-Raspberry arm64 (Debian 11)
+* Debian 11/12 x64
+* Windows 10 x64
+* Raspberry arm64 (Debian 11)
 
 # Плагины для Lampa
 1. Все плагины сразу - "http://IP:9118/on.js"
