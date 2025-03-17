@@ -34,6 +34,8 @@ namespace Lampac.Models.LITE
 
         public bool disable_protection { get; set; }
 
+        public bool disable_ads { get; set; }
+
         public bool log { get; set; }
 
 

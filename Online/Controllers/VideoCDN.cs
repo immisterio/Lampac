@@ -245,6 +245,8 @@ namespace Lampac.Controllers.LITE
 
             var player = await getPlayer(content_id, content_type, accessToken);
             VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
+            if (init.disable_ads)
+                vast = null;
 
             #region subtitle
             var subtitles = new SubtitleTpl();
