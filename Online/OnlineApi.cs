@@ -884,7 +884,7 @@ namespace Lampac.Controllers
                 }
                 #endregion
 
-                if (!name.Contains(" - ") && !string.IsNullOrEmpty(quality))
+                if (!name.Contains(" - ") && AppInit.conf.online.showquality && !string.IsNullOrEmpty(quality))
                 {
                     name = Regex.Replace(name, " ~ .*$", "");
                     name += quality;

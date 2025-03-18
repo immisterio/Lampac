@@ -204,7 +204,7 @@ namespace Shared.Engine
                 return;
             }
 
-            log += $"\n\nCurrentUrl:{response.Url}\nStatusCode: {response.Status}\n";
+            log += $"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n";
             foreach (var item in response.Headers)
                 log += $"{item.Key}: {item.Value}\n";
 

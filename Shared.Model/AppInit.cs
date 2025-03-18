@@ -29,7 +29,7 @@ namespace Shared.Model
         public SisiConf sisi { get; set; } = new SisiConf()
         {
             component = "sisi", iconame = "", push_all = true,
-            heightPicture = 240, rsize = true, rsize_disable = new string[] { "bgs", "chu" },
+            heightPicture = 240, rsize = true, rsize_disable = new string[] { "BongaCams", "Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx" },
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 

@@ -54,8 +54,12 @@ namespace Lampac.Engine.CORE
                 hash += ".mkv";
             else if (uri.Contains(".aac"))
                 hash += ".aac";
-            else if (uri.Contains(".jpg") || uri.Contains(".jpeg") || uri.Contains(".png") || uri.Contains(".webp"))
+            else if (uri.Contains(".jpg") || uri.Contains(".jpeg"))
                 hash += ".jpg";
+            else if (uri.Contains(".png"))
+                hash += ".png";
+            else if (uri.Contains(".webp"))
+                hash += ".webp";
             else if (uri.Contains(".vtt"))
                 hash += ".vtt";
             else if (uri.Contains(".srt"))
@@ -92,10 +96,12 @@ namespace Lampac.Engine.CORE
                 {
                     foreach (var link in links)
                     {
-                        if (DateTime.Now > link.Value.upd.AddHours(link.Value.uri.EndsWith(".jpg") ? 8 : 36))
+                        string uri = link.Value.uri;
+                        bool IsImage = uri.Contains(".jpg") || uri.Contains(".jpeg") || uri.Contains(".png") || uri.Contains(".webp");
+
+                        if (DateTime.Now > link.Value.upd.AddHours(IsImage ? 8 : 36))
                             links.TryRemove(link.Key, out _);
                     }
-
                     BrotliTo.Compress(conditionPath, JsonConvert.SerializeObject(links));
                 }
                 catch { }

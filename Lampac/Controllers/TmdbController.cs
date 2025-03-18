@@ -17,6 +17,7 @@ using Lampac.Engine.CORE;
 using IO = System.IO;
 using NetVips;
 using System.IO;
+using Microsoft.AspNetCore.Http;
 
 namespace Lampac.Controllers
 {
@@ -38,7 +39,7 @@ namespace Lampac.Controllers
         [Route("/tmdb/{*suffix:regex(^https?://.*$)}")]
         [Route("/tmdb/image.tmdb.org/{*suffix}")]
         [Route("/tmdb/api.themoviedb.org/{*suffix}")]
-        public Task<ActionResult> Auto()
+        public Task Auto()
         {
             string path = Regex.Replace(HttpContext.Request.Path.Value, "^/tmdb/https?://", "").Replace("/tmdb/", "");
             string uri = Regex.Match(path, "^[^/]+/(.*)").Groups[1].Value + HttpContext.Request.QueryString.Value;
@@ -54,18 +55,22 @@ namespace Lampac.Controllers
                 return IMG();
             }
 
-            return Task.FromResult<ActionResult>(StatusCode(403));
+            HttpContext.Response.StatusCode = 403;
+            return Task.CompletedTask;
         }
 
         #region API
         [Route("/tmdb/api/{*suffix}")]
-        async public Task<ActionResult> API()
+        async public Task API()
         {
+            HttpContext.Response.ContentType = "application/json; charset=utf-8";
+
             var init = AppInit.conf.tmdb;
             if (!init.enable && !requestInfo.IsLocalRequest)
             {
                 HttpContext.Response.StatusCode = 401;
-                return Json(new { error = true, msg = "disable" });
+                await HttpContext.Response.WriteAsJsonAsync(new { error = true, msg = "disable" }, HttpContext.RequestAborted).ConfigureAwait(false);
+                return;
             }
 
             string path = HttpContext.Request.Path.Value.Replace("/tmdb/api", "");
@@ -76,7 +81,13 @@ namespace Lampac.Controllers
 
             string mkey = $"tmdb/api:{path}:{query}";
             if (hybridCache.TryGetValue(mkey, out JObject cache))
-                return ContentTo(JsonConvert.SerializeObject(cache));
+            {
+                HttpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+                await HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(cache), HttpContext.RequestAborted).ConfigureAwait(false);
+                return;
+            }
+
+            HttpContext.Response.Headers.Add("X-Cache-Status", "MISS");
 
             string tmdb_ip = init.API_IP;
 
@@ -113,31 +124,37 @@ namespace Lampac.Controllers
             {
                 proxyManager.Refresh();
                 HttpContext.Response.StatusCode = 401;
-                return Json(new { error = true, msg = "json null" });
+                await HttpContext.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, HttpContext.RequestAborted).ConfigureAwait(false);
+                return;
             }
 
             if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
             {
                 proxyManager.Refresh();
                 HttpContext.Response.StatusCode = (int)result.response.StatusCode;
-                return ContentTo(JsonConvert.SerializeObject(result.content));
+                await HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(result.content), HttpContext.RequestAborted).ConfigureAwait(false);
+                return;
             }
 
             if (init.cache_api > 0)
                 hybridCache.Set(mkey, result.content, DateTime.Now.AddMinutes(init.cache_api));
 
             proxyManager.Success();
-            return ContentTo(JsonConvert.SerializeObject(result.content));
+            await HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(result.content), HttpContext.RequestAborted).ConfigureAwait(false);
         }
         #endregion
 
         #region IMG
         [Route("/tmdb/img/{*suffix}")]
-        async public Task<ActionResult> IMG()
+        async public Task IMG()
         {
             var init = AppInit.conf.tmdb;
             if (!init.enable)
-                return Json(new { error = true, msg = "disable" });
+            {
+                HttpContext.Response.StatusCode = 401;
+                await HttpContext.Response.WriteAsJsonAsync(new { error = true, msg = "disable" }, HttpContext.RequestAborted).ConfigureAwait(false);
+                return;
+            }
 
             string path = HttpContext.Request.Path.Value.Replace("/tmdb/img", "");
             string contentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
@@ -148,7 +165,15 @@ namespace Lampac.Controllers
             string outFile = $"cache/tmdb/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
 
             if (IO.File.Exists(outFile))
-                return File(IO.File.OpenRead(outFile), contentType);
+            {
+                HttpContext.Response.ContentType = contentType;
+                HttpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+
+                using (var fs = new FileStream(outFile, FileMode.Open, FileAccess.Read))
+                    await fs.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+
+                return;
+            }
 
             string tmdb_ip = init.IMG_IP;
 
@@ -180,44 +205,86 @@ namespace Lampac.Controllers
                 uri = uri.Replace("image.tmdb.org", tmdb_ip);
             }
 
-            var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
-            if (array == null || array.Length == 0)
-            {
-                proxyManager.Refresh();
-                return StatusCode(502);
-            }
-
             if (init.cache_img > 0)
             {
-                using (var image = Image.NewFromBuffer(array))
+                #region cache
+                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers).ConfigureAwait(false);
+                if (array == null || array.Length == 0)
                 {
-                    try
-                    {
-                        if (!path.Contains(".svg"))
-                        {
-                            // тестируем jpg/png на целостность
-                            byte[] temp = image.JpegsaveBuffer();
-                            if (temp == null || temp.Length == 0)
-                                return StatusCode(502);
-                        }
+                    proxyManager.Refresh();
+                    HttpContext.Response.StatusCode = 502;
+                    return;
+                }
 
-                        Directory.CreateDirectory($"cache/tmdb/{md5key.Substring(0, 2)}");
-                        await IO.File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
-                    }
-                    catch 
+                #region check_img
+                if (init.check_img)
+                {
+                    using (var image = Image.NewFromBuffer(array))
                     {
-                        try 
-                        { 
-                            if (IO.File.Exists(outFile))
-                                IO.File.Delete(outFile); 
-                        } 
-                        catch { } 
+                        try
+                        {
+                            if (!path.Contains(".svg"))
+                            {
+                                // тестируем jpg/png на целостность
+                                byte[] temp = image.JpegsaveBuffer();
+                                if (temp == null || temp.Length == 0)
+                                {
+                                    HttpContext.Response.StatusCode = 502;
+                                    return;
+                                }
+                            }
+                        }
+                        catch 
+                        {
+                            HttpContext.Response.StatusCode = 502;
+                            return;
+                        }
                     }
                 }
-            }
+                #endregion
 
-            proxyManager.Success();
-            return File(array, contentType);
+                proxyManager.Success();
+                HttpContext.Response.ContentType = contentType;
+                HttpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+                await HttpContext.Response.Body.WriteAsync(array, HttpContext.RequestAborted).ConfigureAwait(false);
+
+                try
+                {
+                    if (!IO.File.Exists(outFile))
+                    {
+                        Directory.CreateDirectory($"cache/tmdb/{md5key.Substring(0, 2)}");
+
+                        using (var fileStream = new FileStream(outFile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                            await fileStream.WriteAsync(array, 0, array.Length).ConfigureAwait(false);
+                    }
+                }
+                catch { try { IO.File.Delete(outFile); } catch { } }
+                #endregion
+            }
+            else
+            {
+                #region bypass
+                var handler = HttpClient.Handler(uri, proxyManager.Get());
+                handler.AllowAutoRedirect = true;
+
+                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : HttpClient.httpClientFactory.CreateClient("base"))
+                {
+                    HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+
+                    if (!handler.UseProxy)
+                        client.DefaultRequestHeaders.ConnectionClose = false;
+
+                    using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                    {
+                        HttpContext.Response.StatusCode = (int)response.StatusCode;
+                        HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+
+                        proxyManager.Success();
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+                    }
+                }
+                #endregion
+            }
         }
         #endregion
     }

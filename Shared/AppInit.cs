@@ -270,7 +270,7 @@ namespace Lampac
         {
             enable = true,
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = 60,
+            cache_api = 20, cache_img = -1, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 
@@ -314,7 +314,7 @@ namespace Lampac
         {
             findkp = "all", checkOnlineSearch = true,
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", 
-            version = true, btn_priority_forced = true
+            version = true, btn_priority_forced = true, showquality = true
         };
 
         public AccsConf accsdb = new AccsConf() 

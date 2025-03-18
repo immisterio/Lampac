@@ -64,7 +64,7 @@ namespace Lampac.Engine.Middlewares
                     var collaps_header = HeadersModel.Init(("Origin", "https://api.ninsel.ws"), ("Referer", $"https://api.ninsel.ws/"), ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"));
 
                     var request = CreateProxyHttpRequest(httpContext, collaps_header, new Uri(servUri), false);
-                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
+                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
 
                     httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
                     await CopyProxyHttpResponse(httpContext, response);
@@ -160,7 +160,7 @@ namespace Lampac.Engine.Middlewares
                 using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient("proxy"))
                 {
                     var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
-                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
+                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
 
                     if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                     {
@@ -183,7 +183,14 @@ namespace Lampac.Engine.Middlewares
                                     return;
                                 }
 
-                                string m3u8 = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
+                                var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                if (array == null)
+                                {
+                                    httpContext.Response.StatusCode = 502;
+                                    await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                }
+
+                                string m3u8 = Encoding.UTF8.GetString(array);
                                 string hls = editm3u(m3u8, httpContext, decryptLink);
 
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
@@ -212,7 +219,14 @@ namespace Lampac.Engine.Middlewares
                                     return;
                                 }
 
-                                string mpd = Encoding.UTF8.GetString(await content.ReadAsByteArrayAsync(httpContext.RequestAborted));
+                                var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                if (array == null)
+                                {
+                                    httpContext.Response.StatusCode = 502;
+                                    await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                }
+
+                                string mpd = Encoding.UTF8.GetString(array);
                                 string baseURL = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>").Groups[1].Value;
 
                                 string dashkey = CORE.CrypTo.md5(DateTime.Now.ToBinary().ToString());
@@ -248,24 +262,22 @@ namespace Lampac.Engine.Middlewares
 
                                 byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
 
-                                if (!File.Exists(cachefile))
-                                {
-                                    _ = Task.Factory.StartNew(async () =>
-                                    {
-                                        try
-                                        {
-                                            Directory.CreateDirectory(foldercache);
-                                            await File.WriteAllBytesAsync(cachefile, buffer).ConfigureAwait(false);
-                                        }
-                                        catch { try { File.Delete(cachefile); } catch { } }
-
-                                    }, default, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                                }
-
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
                                 httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 httpContext.Response.ContentLength = buffer.Length;
                                 await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
+
+                                try
+                                {
+                                    if (!File.Exists(cachefile))
+                                    {
+                                        Directory.CreateDirectory(foldercache);
+
+                                        using (var fileStream = new FileStream(cachefile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                                            await fileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                                    }
+                                }
+                                catch { try { File.Delete(cachefile); } catch { } }
                             }
                             else
                             {

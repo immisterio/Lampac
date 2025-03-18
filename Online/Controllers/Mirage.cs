@@ -12,7 +12,6 @@ using Shared.Model.Online;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Lampac.Models.LITE;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -286,8 +285,6 @@ namespace Lampac.Controllers.LITE
             string memKey = $"mirage:iframe:{token_movie}";
             if (!hybridCache.TryGetValue(memKey, out (JToken all, string acceptsControls) cache))
             {
-
-
                 string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                     ("cache-control", "no-cache"),

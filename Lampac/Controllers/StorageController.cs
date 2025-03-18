@@ -63,7 +63,7 @@ namespace Lampac.Controllers
                 BrotliTo.Compress(outFile, array);
             else
             {
-                using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (var fileStream = new FileStream(outFile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
                     fileStream.Write(array, 0, array.Length);
             }  
 

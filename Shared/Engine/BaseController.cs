@@ -145,31 +145,37 @@ namespace Lampac.Engine
         #endregion
 
         #region proxy
-        public string HostImgProxy(string uri, int width = 0, int height = 0, List<HeadersModel> headers = null, string plugin = null)
+        public string HostImgProxy(string uri, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
             if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
                 return uri;
 
             var init = AppInit.conf.sisi;
-            width = Math.Max(width, init.widthPicture);
-            height = Math.Max(height, init.heightPicture);
+            int width = init.widthPicture;
+            height = height > 0 ? height : init.heightPicture;
+
+            string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
+            if (AppInit.conf.accsdb.enable)
+                encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
+
+            if (plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(plugin))
+                return uri;
 
             if (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
-                return uri;
+                return $"{host}/proxyimg/{encrypt_uri}";
 
             if (!string.IsNullOrEmpty(init.rsize_host))
             {
                 string sheme = uri.StartsWith("https:") ? "https" : "http";
                 return init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
-                           .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+                                      .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""))
+                                      .Replace("{encrypt_uri}", encrypt_uri);
             }
 
-            uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
+            if (width == 0 && height == 0)
+                return $"{host}/proxyimg/{encrypt_uri}";
 
-            if (AppInit.conf.accsdb.enable)
-                uri = AccsDbInvk.Args(uri, HttpContext);
-
-            return $"{host}/proxyimg:{width}:{height}/{uri}";
+            return $"{host}/proxyimg:{width}:{height}/{encrypt_uri}";
         }
 
         public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null)

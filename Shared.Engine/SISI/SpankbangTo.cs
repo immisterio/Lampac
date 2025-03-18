@@ -33,11 +33,8 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return playlists;
 
-            foreach (string row in html.Split("<div class=\"video-item").Skip(1))
+            foreach (string row in html.Split("class=\"video-item\"").Skip(1))
             {
-                if (!row.Contains("<div class=\"stats\">"))
-                    continue;
-
                 var g = Regex.Match(row, "<a href=\"/([^\"]+)\" title=\"([^\"]+)\"").Groups;
                 string link = g[1].Value;
                 string title = g[2].Value;
