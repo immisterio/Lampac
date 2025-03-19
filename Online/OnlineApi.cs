@@ -702,6 +702,12 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
+            if (!string.IsNullOrEmpty(imdb_id))
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
+                    send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+            }
+
             if (!life && conf.litejac)
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));
 
