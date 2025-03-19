@@ -174,7 +174,7 @@ namespace Lampac.Controllers.LITE
                         if (response == null)
                             return null;
 
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        //await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
 
