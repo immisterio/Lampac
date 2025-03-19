@@ -34,7 +34,7 @@ namespace Lampac.Controllers.LITE
                 i.clientId = c.clientId;
                 i.username = c.username;
                 i.password = c.password;
-                i.domain = c.domain;
+                i.domain = Regex.Replace(c.domain ?? "bwa", "^https?://", "").Split(".")[0];
                 i.corseu = false;
                 i.rhub = !i.disable_protection;
 

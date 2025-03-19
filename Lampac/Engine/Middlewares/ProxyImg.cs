@@ -196,7 +196,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
 
-                                using (var fileStream = new FileStream(outFile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                                using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
                                     await fileStream.WriteAsync(array, 0, array.Length).ConfigureAwait(false);
                             }
                         }

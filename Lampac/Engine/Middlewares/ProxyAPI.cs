@@ -273,7 +273,7 @@ namespace Lampac.Engine.Middlewares
                                     {
                                         Directory.CreateDirectory(foldercache);
 
-                                        using (var fileStream = new FileStream(cachefile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                                        using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None))
                                             await fileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
                                     }
                                 }

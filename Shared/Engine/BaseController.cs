@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "138";
 
-        public static string minorversion => "4";
+        public static string minorversion => "5";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -253,11 +253,11 @@ namespace Lampac.Engine
         {
             if (hybridCache.TryGetValue(key, out T _val))
             {
-                HttpContext.Response.Headers.TryAdd("X-InvokeCache", "HIT");
+                HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "HIT");
                 return new CacheResult<T>() { IsSuccess = true, Value = _val };
             }
 
-            HttpContext.Response.Headers.TryAdd("X-InvokeCache", "MISS");
+            HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "MISS");
 
             var val = await onget.Invoke(new CacheResult<T>());
 

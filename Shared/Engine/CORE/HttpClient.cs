@@ -533,7 +533,7 @@ namespace Lampac.Engine.CORE
 
                     using (var stream = await client.GetStreamAsync(url))
                     {
-                        using (var fileStream = new FileStream(path, FileMode.OpenOrCreate))
+                        using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
                             await stream.CopyToAsync(fileStream);
                             return true;
@@ -575,7 +575,7 @@ namespace Lampac.Engine.CORE
             string patchlog = $"cache/logs/HttpClient_{dateLog}.log";
 
             if (logFileStream == null || !File.Exists(patchlog))
-                logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
+                logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write, FileShare.Read);
 
             var buffer = Encoding.UTF8.GetBytes($"\n\n\n################################################################\n\n{log}");
             await logFileStream.WriteAsync(buffer, 0, buffer.Length);

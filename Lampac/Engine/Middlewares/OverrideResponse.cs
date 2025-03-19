@@ -42,8 +42,8 @@ namespace Lampac.Engine.Middlewares
                                     }
                                     else
                                     {
-                                        using (var fs = new FileStream(over.val, FileMode.Open))
-                                            await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
+                                        using (var fs = new FileStream(over.val, FileMode.Open, FileAccess.Read))
+                                            await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
                                     }
                                     return;
                                 }
