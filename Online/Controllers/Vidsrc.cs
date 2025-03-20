@@ -38,7 +38,7 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 var tmdb = await InvokeCache<JToken>($"tmdb:seasons:{id}", cacheTime(40, init: init), async res =>
                 {
-                    var root = await HttpClient.Get<JObject>($"https://tmdb.mirror-kurwa.men/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96");
+                    var root = await HttpClient.Get<JObject>($"{AppInit.conf.cub.scheme}://tmdb.{AppInit.conf.cub.mirror}/3/tv/{id}?api_key={AppInit.conf.tmdb.api_key}");
 
                     if (root == null || !root.ContainsKey("seasons"))
                         return res.Fail("seasons");
@@ -136,24 +136,19 @@ namespace Lampac.Controllers.LITE
             try
             {
                 string memKey = $"vidsrc:black_magic:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out string hls))
+                if (!memoryCache.TryGetValue(memKey, out string m3u8))
                 {
                     using (var browser = new Firefox())
                     {
-                        bool goexit = false;
-
                         var page = await browser.NewPageAsync(proxy: proxy);
                         if (page == null)
                             return null;
 
-                        page.Popup += async (sender, e) =>
-                        {
-                            await e.CloseAsync();
-                        };
+                        await page.SetExtraHTTPHeadersAsync(httpHeaders(init).ToDictionary());
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (goexit)
+                            if (m3u8 != null || route.Request.Url.Contains(".css"))
                             {
                                 await route.AbortAsync();
                                 return;
@@ -161,44 +156,45 @@ namespace Lampac.Controllers.LITE
 
                             if (route.Request.Url.Contains("master.m3u8"))
                             {
-                                goexit = true;
+                                m3u8 = route.Request.Url;
                                 await route.AbortAsync();
-                                browser.completionSource.SetResult(route.Request.Url);
                                 return;
                             }
 
-                            await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+                            await route.ContinueAsync();
                         });
 
                         var response = await page.GotoAsync(uri);
                         if (response == null)
                             return null;
 
-                        //await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
 
-                        DateTime endTime = DateTime.Now.AddSeconds(10);
-                        while(endTime > DateTime.Now)
+                        for (int i = 0; i < 10; i++)
                         {
-                            if (goexit)
+                            if (m3u8 != null)
                                 break;
 
-                            var centerX = viewportSize.Width / 2;
-                            var centerY = viewportSize.Height / 2;
-                            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(10, 20)));
-                            await page.Mouse.ClickAsync(centerX, centerY);
+                            int vS(int center)
+                            {
+                                var centerX = center / 2;
+                                return Random.Shared.Next(0, 2) == 1 ? (centerX + Random.Shared.Next(1, 5)) : (centerX - Random.Shared.Next(1, 5));
+                            }
+
+                            await page.Mouse.ClickAsync(vS(viewportSize.Width), vS(viewportSize.Height));
+                            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(20, 50)));
                         }
 
-                        hls = await browser.WaitPageResult();
-                        if (string.IsNullOrEmpty(hls))
+                        if (m3u8 == null)
                             return null;
                     }
 
-                    memoryCache.Set(memKey, hls, cacheTime(20, init: init));
+                    memoryCache.Set(memKey, m3u8, cacheTime(20, init: init));
                 }
 
-                return hls;
+                return m3u8;
             }
             catch { return null; }
         }

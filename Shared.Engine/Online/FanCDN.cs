@@ -41,7 +41,18 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(films) || !films.Contains("class=\"box-tab\""))
                         return null;
 
-                    string href = Regex.Match(films.Split("class=\"box-tab\"")[1], "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                    string? href = null;
+
+                    foreach (string row in films.Split("class=\"box-tab\"")[1].Split("<div class=\"owl-item\">"))
+                    {
+                        if (!row.Contains(" США, "))
+                            continue;
+
+                        href = Regex.Match(row, "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                        if (string.IsNullOrEmpty(href))
+                            continue;
+                    }
+
                     if (string.IsNullOrEmpty(href))
                         return null;
 
