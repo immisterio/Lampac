@@ -4,7 +4,10 @@ DEST="/home/lampac"
 # Become root
 # sudo su -
 apt-get update
-apt-get install -y unzip curl coreutils
+apt-get install -y unzip curl
+apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
+apt-get install -y xvfb
+apt-get install -y coreutils
 
 # Install .NET
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh

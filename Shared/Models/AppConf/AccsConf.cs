@@ -63,7 +63,7 @@ namespace Lampac.Models.AppConf
                 return null;
 
             uid = uid.ToLower().Trim();
-            return users.FirstOrDefault(i => i.id == uid || (i.ids != null && i.ids.Contains(uid)));
+            return users.FirstOrDefault(i => (i.id != null && i.id.ToLower() == uid) || (i.ids != null && i.ids.FirstOrDefault(id => id.ToLower() == uid) != null));
         }
     }
 }

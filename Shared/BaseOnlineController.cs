@@ -61,13 +61,14 @@ namespace Online
 
             if (NoAccessGroup(init, out string error_msg))
             {
-                badInitMsg = OnError(error_msg, gbcache: false);
+                badInitMsg = new JsonResult(new { accsdb = true, msg = error_msg });
                 return true;
             }
 
-            if (IsOverridehost(init, out string overridehost))
+            var overridehost = await IsOverridehost(init);
+            if (overridehost != null)
             {
-                badInitMsg = Redirect(overridehost);
+                badInitMsg = overridehost;
                 return true;
             }
 
@@ -144,7 +145,6 @@ namespace Online
                     log += $"\n\n\n===================\n\n{weblog}";
 
                 HttpClient.onlog?.Invoke(null, log);
-                HttpContext.Response.Headers.TryAdd("emsg", HttpUtility.UrlEncode(CrypTo.Base64(msg)));
             }
 
             if (AppInit.conf.multiaccess && gbcache)

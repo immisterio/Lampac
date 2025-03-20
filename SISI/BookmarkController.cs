@@ -21,9 +21,9 @@ namespace SISI
         }
 
         [Route("sisi/bookmarks")]
-        public ActionResult List(string box_mac, string account_email, int pg = 1, int pageSize = 36)
+        public ActionResult List(int pg = 1, int pageSize = 36)
         {
-            string md5user = getuser(box_mac, account_email);
+            string md5user = getuser();
             if (md5user == null)
                 return OnError("access denied");
 
@@ -61,9 +61,9 @@ namespace SISI
 
         [HttpPost]
         [Route("sisi/bookmark/add")]
-        public async Task<ActionResult> Add([FromQuery] string box_mac, [FromQuery] string account_email, [FromBody] PlaylistItem data)
+        public async Task<ActionResult> Add([FromBody] PlaylistItem data)
         {
-            string md5user = getuser(box_mac, account_email);
+            string md5user = getuser();
             if (md5user == null || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
                 return OnError("access denied");
 
@@ -134,17 +134,17 @@ namespace SISI
 
 
         [Route("sisi/bookmark/remove")]
-        public ActionResult Remove(string box_mac, string account_email, string buid)
+        public ActionResult Remove(string id)
         {
-            string md5user = getuser(box_mac, account_email);
-            if (md5user == null || string.IsNullOrEmpty(buid))
+            string md5user = getuser();
+            if (md5user == null || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
 
             var bookmarks = bookmarkCache.Read();
 
-            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == buid) is PlaylistItem item)
+            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == id) is PlaylistItem item)
             {
                 bookmarks.Remove(item);
                 bookmarkCache.Write(bookmarks);
@@ -163,13 +163,10 @@ namespace SISI
 
 
 
-        string getuser(string box_mac, string account_email)
+        string getuser()
         {
-            if (!string.IsNullOrWhiteSpace(account_email))
-                return CrypTo.md5(account_email);
-
-            if (!string.IsNullOrWhiteSpace(box_mac) && box_mac.Length > 2)
-                return CrypTo.md5(box_mac.ToLower().Trim());
+            if (!string.IsNullOrEmpty(requestInfo.user_uid))
+                return CrypTo.md5(requestInfo.user_uid);
 
             return null;
         }

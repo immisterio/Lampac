@@ -96,8 +96,8 @@ namespace JinEnergy
                             if (conf.Kodik.token != null)
                                 conf.Kodik.token = conf.Kodik.token.Contains(":") ? conf.Kodik.Decrypt(conf.Kodik.token)! : conf.Kodik.token;
 
-                            if (conf.VCDN.token != null)
-                                conf.VCDN.token = conf.VCDN.token.Contains(":") ? conf.VCDN.Decrypt(conf.VCDN.token)! : conf.VCDN.token;
+                            if (conf.VideoCDN.token != null)
+                                conf.VideoCDN.token = conf.VideoCDN.token.Contains(":") ? conf.VideoCDN.Decrypt(conf.VideoCDN.token)! : conf.VideoCDN.token;
 
                             if (IsDefaultConf && geo == "RU")
                             {
@@ -207,7 +207,7 @@ namespace JinEnergy
         public static OnlinesSettings VDBmovies => conf.VDBmovies;
 
 
-        public static OnlinesSettings VCDN => conf.VCDN;
+        //public static OnlinesSettings VCDN => conf.VideoCDN;
 
         public static VokinoSettings VoKino => conf.VoKino;
 

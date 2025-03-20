@@ -176,6 +176,7 @@ namespace Lampac.Controllers
             if (AppInit.conf.cub.enable)
             {
                 file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+                file = file.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
                 file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
                 file = file.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
             }
@@ -184,7 +185,12 @@ namespace Lampac.Controllers
             {
                 foreach (var r in AppInit.conf.LampaWeb.appReplace)
                 {
-                    string val = r.Value.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                    string val = r.Value;
+                    if (val.StartsWith("file:"))
+                        val = IO.File.ReadAllText(val.Remove(0, 5));
+
+                    val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+
                     file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
                 }
             }

@@ -1,38 +1,27 @@
 ﻿using Lampac;
-using Lampac.Engine.CORE;
 using Microsoft.Playwright;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace Shared.Engine
 {
-    public enum ChromiumStatus
-    {
-        disabled,
-        headless,
-        NoHeadless
-    }
-
-    public class Chromium : IDisposable
+    public class Chromium : PlaywrightBase, IDisposable
     {
         #region static
         static IBrowser browser = null;
 
         static bool shutdown = false;
 
-        public static ChromiumStatus Status { get; private set; } = ChromiumStatus.disabled;
+        public static PlaywrightStatus Status { get; private set; } = PlaywrightStatus.disabled;
 
         async public static ValueTask CreateAsync()
         {
             try
             {
                 var init = AppInit.conf.chromium;
-
                 if (!init.enable || browser != null || shutdown)
                     return;
 
@@ -40,84 +29,6 @@ namespace Shared.Engine
                     Environment.SetEnvironmentVariable("DISPLAY", init.DISPLAY);
                 else if (File.Exists("/tmp/.X99-lock"))
                     Environment.SetEnvironmentVariable("DISPLAY", ":99");
-
-                if (!File.Exists(".playwright/package/index.js"))
-                {
-                    bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/package.zip", ".playwright/package.zip");
-                    if (!res)
-                        return;
-                }
-
-                #region Download node
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    switch (RuntimeInformation.ProcessArchitecture)
-                    {
-                        case Architecture.X86:
-                        case Architecture.X64:
-                        case Architecture.Arm64:
-                            {
-                                string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-win-{arc}.exe", $".playwright\\node\\win32-{arc}\\node.exe");
-                                if (!res)
-                                    return;
-                                break;
-                            }
-                    }
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    switch (RuntimeInformation.ProcessArchitecture)
-                    {
-                        case Architecture.X64:
-                        case Architecture.Arm64:
-                            {
-                                string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-mac-{arc}", $".playwright/node/mac-{arc}/node");
-                                if (!res)
-                                    return;
-
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
-                                break;
-                            }
-                        default:
-                            return;
-                    }
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    switch (RuntimeInformation.ProcessArchitecture)
-                    {
-                        case Architecture.X86:
-                        case Architecture.X64:
-                        case Architecture.Arm64:
-                            {
-                                string arc = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                                bool res = await DownloadFile($"https://github.com/immisterio/playwright/releases/download/chrome/node-linux-{arc}", $".playwright/node/linux-{arc}/node");
-                                if (!res)
-                                    return;
-
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
-                                break;
-                            }
-                        case Architecture.Arm:
-                            {
-                                bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l", ".playwright/node/linux-arm/node");
-                                if (!res)
-                                    return;
-
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
-                                break;
-                            }
-                        default:
-                            return;
-                    }
-                }
-                else
-                {
-                    return;
-                }
-                #endregion
 
                 string executablePath = init.executablePath;
 
@@ -135,7 +46,10 @@ namespace Shared.Engine
                                     string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-win-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
                                     bool res = await DownloadFile(uri, ".playwright/chrome.zip");
                                     if (!res)
+                                    {
+                                        Console.WriteLine("Chromium: error download chrome.zip");
                                         return;
+                                    }
 
                                     if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
                                         executablePath = ".playwright\\chrome-win32\\chrome.exe";
@@ -144,6 +58,7 @@ namespace Shared.Engine
                                     break;
                                 }
                             default:
+                                Console.WriteLine("Chromium: Architecture unknown");
                                 return;
                         }
                     }
@@ -157,13 +72,17 @@ namespace Shared.Engine
                                     string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-mac-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
                                     bool res = await DownloadFile(uri, ".playwright/chrome.zip");
                                     if (!res)
+                                    {
+                                        Console.WriteLine("Chromium: error download chrome.zip");
                                         return;
+                                    }
 
                                     await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium")}");
                                     executablePath = ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium";
                                     break;
                                 }
                             default:
+                                Console.WriteLine("Chromium: Architecture unknown");
                                 return;
                         }
                     }
@@ -177,76 +96,68 @@ namespace Shared.Engine
                                     string uri = $"https://github.com/immisterio/playwright/releases/download/chrome/chrome-linux-{RuntimeInformation.ProcessArchitecture.ToString().ToLower()}.zip";
                                     bool res = await DownloadFile(uri, ".playwright/chrome.zip");
                                     if (!res)
+                                    {
+                                        Console.WriteLine("Chromium: error download chrome.zip");
                                         return;
+                                    }
 
                                     await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-linux/chrome")}");
                                     executablePath = ".playwright/chrome-linux/chrome";
                                     break;
                                 }
                             default:
+                                Console.WriteLine("PlaywChromiumright: Architecture unknown");
                                 return;
                         }
                     }
                     else
                     {
+                        Console.WriteLine("Chromium: IsOSPlatform unknown");
                         return;
                     }
                 }
                 #endregion
 
                 if (string.IsNullOrEmpty(executablePath))
+                {
+                    Console.WriteLine("Chromium: chromium is not installed, please specify full path in executablePath");
                     return;
+                }
+
+                Console.WriteLine("Chromium: Initialization");
 
                 var playwright = await Playwright.CreateAsync();
+
+                Console.WriteLine("Chromium: CreateAsync");
 
                 browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
                     Headless = init.Headless,
-                    ExecutablePath = executablePath
+                    ExecutablePath = executablePath,
+                    Args = init.Args
                 });
 
-                Status = init.Headless ? ChromiumStatus.headless : ChromiumStatus.NoHeadless;
+                Console.WriteLine("Chromium: LaunchAsync");
+
+                Status = init.Headless ? PlaywrightStatus.headless : PlaywrightStatus.NoHeadless;
+                Console.WriteLine($"Chromium: v{browser.Version} / {Status.ToString()} / {browser.IsConnected}");
+
                 browser.Disconnected += Browser_Disconnected;
             }
-            catch (Exception ex) { Console.WriteLine(ex.Message); }
+            catch (Exception ex) 
+            {
+                Status = PlaywrightStatus.disabled;
+                Console.WriteLine($"Chromium: {ex.Message}"); 
+            }
         }
 
         async private static void Browser_Disconnected(object sender, IBrowser e)
         {
             browser = null;
-            Status = ChromiumStatus.disabled;
+            Status = PlaywrightStatus.disabled;
+            Console.WriteLine("Chromium: Browser_Disconnected");
+            await Task.Delay(TimeSpan.FromSeconds(10));
             await CreateAsync();
-        }
-
-        public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
-
-        async static ValueTask<bool> DownloadFile(string uri, string outfile)
-        {
-            if (File.Exists($"{outfile}.ok"))
-                return true;
-
-            if (File.Exists(outfile))
-                File.Delete(outfile);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(outfile));
-
-            if (await HttpClient.DownloadFile(uri, outfile).ConfigureAwait(false))
-            {
-                File.Create($"{outfile}.ok");
-
-                if (outfile.EndsWith(".zip"))
-                {
-                    ZipFile.ExtractToDirectory(outfile, ".playwright/", overwriteFiles: true);
-                    File.Delete(outfile);
-                }
-
-                return true;
-            }
-            else
-            {
-                File.Delete(outfile);
-                return false;
-            }
         }
         #endregion
 
@@ -255,14 +166,33 @@ namespace Shared.Engine
 
         public TaskCompletionSource<string> completionSource { get; private set; }
 
-        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null)
+        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
             try
             {
                 if (browser == null)
                     return null;
 
-                page = await browser.NewPageAsync();
+                if (proxy != default)
+                {
+                    var contextOptions = new BrowserNewContextOptions
+                    {
+                        Proxy = new Proxy 
+                        { 
+                            Server = proxy.ip,
+                            Bypass = "127.0.0.1",
+                            Username = proxy.username,
+                            Password = proxy.password
+                        }
+                    };
+
+                    var context = await browser.NewContextAsync(contextOptions);
+                    page = await context.NewPageAsync();
+                }
+                else
+                {
+                    page = await browser.NewPageAsync();
+                }
 
                 if (headers != null && headers.Count > 0)
                     await page.SetExtraHTTPHeadersAsync(headers);
@@ -274,7 +204,7 @@ namespace Shared.Engine
             catch { return null; }
         }
 
-        async public ValueTask<string> WaitPageResult(int seconds = 8)
+        async public ValueTask<string> WaitPageResult(int seconds = 10)
         {
             try
             {

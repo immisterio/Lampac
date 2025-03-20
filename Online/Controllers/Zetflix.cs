@@ -4,10 +4,14 @@ using Lampac.Engine.CORE;
 using Online;
 using Shared.Engine.Online;
 using System.Collections.Generic;
-using Shared.Engine;
 using System;
 using System.Linq;
 using Shared.Model.Online;
+using Shared.Engine.CORE;
+using Microsoft.Playwright;
+using System.Text.RegularExpressions;
+using Shared.PlaywrightCore;
+using Shared.Engine;
 
 namespace Lampac.Controllers.LITE
 {
@@ -26,6 +30,12 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0)
                 return OnError();
 
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
+                return OnError();
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
+
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
             var oninvk = new ZetflixInvoke
@@ -33,29 +43,30 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                MaybeInHls(init.hls, init),
-               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile)
+               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
+               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy.proxy)
                //AppInit.log
             );
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}", cacheTime(20, init: init), async () => 
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), async () => 
             {
                 string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
                 if (html != null && !html.StartsWith("<script>(function"))
                 {
                     if (!html.Contains("new Playerjs"))
                         return null;
 
+                    proxyManager.Success();
                     return html;
                 }
 
                 try
                 {
-                    using (var browser = new Chromium())
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser, PlaywrightStatus.headless))
                     {
                         log += "browser init\n";
 
@@ -63,29 +74,51 @@ namespace Lampac.Controllers.LITE
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        });
+                        }, proxy: proxy.data);
 
                         if (page == null)
                             return null;
 
                         log += "page init\n";
 
-                        await page.GotoAsync(uri);
-                        var cook = await page.Context.CookiesAsync();
-                        PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
-                        if (!string.IsNullOrEmpty(PHPSESSID))
+                        await page.RouteAsync("**/*", async route =>
                         {
-                            html = await HttpClient.Get(uri, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
-                            if (html != null && !html.StartsWith("<script>(function"))
+                            if (Regex.IsMatch(route.Request.Url, "(gstatic|googleapis|\\.jpg|\\.css)"))
                             {
-                                if (!html.Contains("new Playerjs"))
-                                    return null;
-
-                                return html;
+                                await route.AbortAsync();
+                                return;
                             }
+
+                            await route.ContinueAsync();
+                        });
+
+                        await page.GotoAsync(uri);
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+                        var response = await page.ReloadAsync();
+                        if (response == null)
+                        {
+                            proxyManager.Refresh();
+                            return null;
                         }
 
-                        return null;
+                        html = await response.TextAsync();
+
+                        log += $"{html}\n\n";
+
+                        if (html == null || html.StartsWith("<script>(function"))
+                        {
+                            proxyManager.Refresh();
+                            return null;
+                        }
+
+                        var cook = await page.Context.CookiesAsync();
+                        PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
+
+                        if (!html.Contains("new Playerjs"))
+                            return null;
+
+                        return html;
                     }
                 }
                 catch (Exception ex) 

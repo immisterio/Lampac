@@ -67,6 +67,7 @@ namespace Lampac
                             corseuhost = cacheconf.Item1.corsehost;
 
                         _vast = cacheconf.Item1.vast;
+                        _defaultOn = cacheconf.Item1.defaultOn;
                     }
 
                     #region accounts
@@ -215,6 +216,8 @@ namespace Lampac
 
         public string listenhost = null;
 
+        public string frontend = null; // cloudflare|nginx
+
         public string localhost = "127.0.0.1";
 
         public bool multiaccess = false;
@@ -243,7 +246,15 @@ namespace Lampac
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
-        public PuppeteerConf chromium = new PuppeteerConf() { enable = true };
+        public PuppeteerConf chromium = new PuppeteerConf() 
+        { 
+            enable = true, Xvfb = true
+        };
+
+        public PuppeteerConf firefox = new PuppeteerConf()
+        {
+            enable = false, Headless = true
+        };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
@@ -259,7 +270,7 @@ namespace Lampac
         {
             enable = true,
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = 60,
+            cache_api = 20, cache_img = -1, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 
@@ -296,14 +307,14 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "8bd2e9c56173f9a301ae37dbd439db46fe1cb60c"
+            tree = "adb0d7c2cc07de26c32398e780313f92daee98a9"
         };
 
         public OnlineConf online = new OnlineConf()
         {
             findkp = "all", checkOnlineSearch = true,
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", 
-            version = true, btn_priority_forced = true
+            version = true, btn_priority_forced = true, showquality = true
         };
 
         public AccsConf accsdb = new AccsConf() 

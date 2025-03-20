@@ -12,6 +12,8 @@ namespace Lampac.Models.AppConf
 
         public string[]? rsize_disable { get; set; }
 
+        public string[]? proxyimg_disable { get; set; }
+
         public int heightPicture { get; set; }
 
         public int widthPicture { get; set; }

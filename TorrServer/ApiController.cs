@@ -162,11 +162,11 @@ namespace Lampac.Controllers
                     if (requestJson.Contains("\"get\""))
                     {
                         var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
-                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted);
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
                     }
                     else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
                     {
-                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json"));
+                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
                     }
                 }
 
@@ -183,7 +183,7 @@ namespace Lampac.Controllers
             {
                 var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
 
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                 await CopyProxyHttpResponse(HttpContext, response);
             }
             #endregion

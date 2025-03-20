@@ -10,6 +10,10 @@ namespace Shared.Model
 {
     public class AppInit
     {
+        public static string _defaultOn;
+
+        public string defaultOn = "enable";
+
         public static VastConf _vast;
 
         public VastConf vast = new VastConf();
@@ -25,27 +29,14 @@ namespace Shared.Model
         public SisiConf sisi { get; set; } = new SisiConf()
         {
             component = "sisi", iconame = "", push_all = true,
-            heightPicture = 240, rsize = true, rsize_disable = new string[] { "bgs", "chu" },
+            heightPicture = 240, rsize = true, rsize_disable = new string[] { "BongaCams", "Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx" },
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")
         {
             headers = HeadersModel.Init(
-                ("accept", "*/*"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("cookie", "bonga20120608=99834a7a1dee3a3d50f77380ba22a881; ts_type2=1; fv=BGxjZGtjZGD3ZD==; uh=IIDlE0MYIaAkF1cxEwS2FyyPqSMipj==; reg_ver2=3; sg=861; warning18=%5B%22et_EE%22%5D; ol4ekwvk4v=1834809388; ls02=camscore; ls01=%7B%22th_type%22%3A%22live%22%2C%22display%22%3A%22medium%22%7D; BONGA_REF=https%3A%2F%2Fwww.google.com%2F"),
                 ("referer", "{host}/"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-origin"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"),
                 ("x-requested-with", "XMLHttpRequest")
             ).ToDictionary()
         };
@@ -62,23 +53,9 @@ namespace Shared.Model
             headers = HeadersModel.Init("referer", "{host}").ToDictionary()
         };
 
-        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp");
+        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true);
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp")
-        {
-            headers = HeadersModel.Init(
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36")
-            ).ToDictionary()
-        };
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp");
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp") 
         {
@@ -100,7 +77,7 @@ namespace Shared.Model
 
         public SisiSettings Xnxx { get; set; } = new SisiSettings("Xnxx", "kwwsv=22zzz1{q{{1frp");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("Tizam", "kwwsv=22lq1wl}dp1lqir");
+        public SisiSettings Tizam { get; set; } = new SisiSettings("Tizam", "kwwsv=22lq1wl}dp1lqir", streamproxy: true);
 
         public SisiSettings Xvideos { get; set; } = new SisiSettings("Xvideos", "kwwsv=22zzz1{ylghrv1frp");
 
@@ -280,23 +257,20 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22v71idqvhuldo1wy") 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22idqvhuldo1sz") 
         { 
+            enable = false,
             streamproxy = true,
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "{host}/"),
                 ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "iframe"),
-                ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "cross-site"),
-                ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary(),
@@ -317,27 +291,25 @@ namespace Shared.Model
             ).ToDictionary(),
         };
 
-        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", "lumex.space", "fReBbuvVF6Rv") 
+        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { geostreamproxy = new string[] { "ALL" } };
+
+        /// <summary>
+        /// Получение учетной записи
+        /// 
+        /// tg: @monk_in_a_hat
+        /// email: helpdesk@lumex.ink
+        /// </summary>
+        public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.site", "API-токен", "https://portal.lumex.host", "ID клиент") 
         {
-            enable = false, 
-            args_api = "&domain=kinogo.bet&url=kinogo.bet",
-            hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" },
-            headers = HeadersModel.Init(
-                ("accept", "*/*"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("Origin", "https://p.lumex.space"),
-                ("Referer", "https://p.lumex.space/"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
-            ).ToDictionary()
+            enable = false,
+            disable_protection = false, // true - отключить проверку на парсер
+            scheme = "http", hls = false, log = true,
+            vast = new VastConf() { msg = "Реклама от VideoCDN" }
+        };
+
+        public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5") 
+        {
+            enable = true, hls = true, scheme = "http", geostreamproxy = new string[] { "ALL" }
         };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "kwws=22dsl1yrnlqr1wy", streamproxy: true);
@@ -354,6 +326,9 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
 
+        /// <summary>
+        /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
+        /// </summary>
         public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", enable: false, streamproxy: true);
 
         /// <summary>
@@ -383,7 +358,14 @@ namespace Shared.Model
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
-        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1dojrqrhz1rqolqh=<7<6", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
+        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
+
+        public OnlinesSettings Vidsrc { get; set; } = new OnlinesSettings("Vidsrc", "kwwsv=22ylgvuf1wr") 
+        {
+            headers = HeadersModel.Init(
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            ).ToDictionary()
+        };
 
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
@@ -436,7 +418,6 @@ namespace Shared.Model
 
 
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { rip = true, geostreamproxy = new string[] { "ALL" } };
 
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("Voidboost", "kwwsv=22yrlgerrvw1qhw", streamproxy: true) { enable = false, rip = true };
 
@@ -445,7 +426,5 @@ namespace Shared.Model
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("Lostfilmhd", "kwws=22zzz1glvqh|oryh1ux", streamproxy: true, rip: true);
 
         public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rip: true);
-
-        public OnlinesSettings VCDN { get; set; } = new OnlinesSettings("VCDN", "kwws=2255;;71dqqdfgq1ff2qSE]ZGT8grh5", "kwwsv=22sruwdo1oxph{1krvw", token: "F:]{GKxq7f9PGpQQ|lyGxOgYTSXnMK:l", rip: true) { scheme = "http", geostreamproxy = new string[] { "ALL" } };
     }
 }

@@ -22,6 +22,7 @@ using System.Collections.Concurrent;
 using Shared.Models.Module;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers
 {
@@ -131,7 +132,7 @@ namespace Lampac.Controllers
                     string mkey = $"externalids:KP_:{_kp}";
                     if (!memoryCache.TryGetValue(mkey, out string _imdbid))
                     {
-                        string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                        string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
                         _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
                         memoryCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
@@ -159,16 +160,31 @@ namespace Lampac.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VCDN);
-                string json = await HttpClient.Get($"{AppInit.conf.VCDN.corsHost()}/api/short?api_token={AppInit.conf.VCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
-                if (json == null)
+                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                {
+                    string json = await HttpClient.Get($"https://kinobd.net/api/films/search/imdb_id?q={imdb}", timeoutSeconds: 4);
+                    if (json == null)
+                        return null;
+
+                    string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                        return kpid;
+
                     return null;
+                }
+                else
+                {
+                    var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
+                    string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
+                    if (json == null)
+                        return null;
 
-                string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
-                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
-                    return kpid;
+                    string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                        return kpid;
 
-                return null;
+                    return null;
+                }
             }
 
             async Task<string> getTabus(string imdb)
@@ -433,24 +449,28 @@ namespace Lampac.Controllers
 
                 if (enable)
                 {
-                    if (AppInit.conf.accsdb.enable)
+                    if (init.group_hide)
                     {
                         if (init.group > 0)
                         {
-                            if (init.group_hide)
-                                if (user == null || init.group > user.group)
-                                    return;
+                            if (user == null || init.group > user.group)
+                                return;
                         }
-                        else
+                        else if (AppInit.conf.accsdb.enable)
                         {
                             if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
                                 return;
                         }
                     }
 
-                    string url = init.overridehost;
-                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
-                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                    string url = string.Empty;
+
+                    if (string.IsNullOrEmpty(init.overridepasswd))
+                    {
+                        url = init.overridehost;
+                        if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                            url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                    }
 
                     string displayname = init.displayname ?? name ?? init.plugin;
 
@@ -469,7 +489,7 @@ namespace Lampac.Controllers
                     if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
                     {
                         string _p = (plugin ?? (init.plugin ?? name).ToLower());
-                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "videocdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                             url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                     }
 
@@ -520,7 +540,9 @@ namespace Lampac.Controllers
                     }
                     else
                     {
-                        VoKinoInvoke.SendOnline(myinit, online);
+                        if (myinit.group > 0 && myinit.group_hide && (user == null || myinit.group > user.group)) { }
+                        else
+                            VoKinoInvoke.SendOnline(myinit, online);
                     }
                 }
             }
@@ -584,26 +606,34 @@ namespace Lampac.Controllers
 
             send(conf.Mirage);
 
-            if (kinopoisk_id > 0)
+            if (serial == -1 || serial == 0)
             {
-                if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
-                    send(conf.VideoDB);
-
-                if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
-                    send(conf.VDBmovies);
-
-                if (Chromium.Status != ChromiumStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
-                    send(conf.Zetflix);
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
+                    send(conf.Kinobase);
             }
 
-            send(conf.Lumex, "lumex");
+            send(conf.VideoCDN);
 
-            if (Chromium.Status == ChromiumStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
-                send(conf.FanCDN);
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
+                send(conf.Lumex);
 
-            send(conf.Videoseed, rch_access: "apk,cors");
+            if (kinopoisk_id > 0)
+            {
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
+                    send(conf.VideoDB);
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                    send(conf.VDBmovies);
+
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
+                    send(conf.Zetflix);
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                    send(conf.FanCDN);
+            }
+
+            send(conf.Videoseed);
             send(conf.Vibix, rch_access: "apk,cors");
-            send(conf.Kinobase);
 
             if (serial == -1 || serial == 0)
                 send(conf.iRemux, "remux");
@@ -615,9 +645,9 @@ namespace Lampac.Controllers
                 {
                     void psend()
                     {
-                        if (AppInit.conf.accsdb.enable)
+                        if (conf.PidTor.group > 0 && conf.PidTor.group_hide)
                         {
-                            if (user == null || (conf.PidTor.group > user.group && conf.PidTor.group_hide))
+                            if (user == null || conf.PidTor.group > user.group)
                                 return;
                         }
 
@@ -671,6 +701,12 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
+
+            if (!string.IsNullOrEmpty(imdb_id))
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
+                    send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+            }
 
             if (!life && conf.litejac)
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));
@@ -807,6 +843,7 @@ namespace Lampac.Controllers
                             case "kinobase":
                             case "zetflix":
                             case "vcdn":
+                            case "videocdn":
                             case "lumex":
                             case "vibix":
                             case "videoseed":
@@ -853,7 +890,7 @@ namespace Lampac.Controllers
                 }
                 #endregion
 
-                if (!name.Contains(" - ") && !string.IsNullOrEmpty(quality))
+                if (!name.Contains(" - ") && AppInit.conf.online.showquality && !string.IsNullOrEmpty(quality))
                 {
                     name = Regex.Replace(name, " ~ .*$", "");
                     name += quality;

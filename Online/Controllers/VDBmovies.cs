@@ -6,8 +6,9 @@ using Shared.Engine.Online;
 using Shared.Engine;
 using Shared.Model.Online.VDBmovies;
 using Microsoft.Playwright;
-using System.Web;
 using Lampac.Models.LITE;
+using Shared.Engine.CORE;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,19 +22,25 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || Chromium.Status != ChromiumStatus.NoHeadless)
+            if (kinopoisk_id == 0)
                 return OnError();
+
+            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+                return OnError();
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
 
             var oninvk = new VDBmoviesInvoke
             (
                host,
                MaybeInHls(init.hls, init),
-               streamfile => HostStreamProxy(init, streamfile)
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"vdbmovies:{kinopoisk_id}", cacheTime(20, rhub: 2, init: init), null, async res =>
+            var cache = await InvokeCache<EmbedModel>($"vdbmovies:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, rhub: 2, init: init), proxyManager, async res =>
             {
-                string html = await black_magic($"{init.host}/kinopoisk/{kinopoisk_id}/iframe", init);
+                string html = await black_magic($"{init.host}/kinopoisk/{kinopoisk_id}/iframe", init, proxy.data);
 
                 if (html == null)
                     return res.Fail("html");
@@ -67,15 +74,24 @@ namespace Lampac.Controllers.LITE
 
 
 
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
             try
             {
-                using (var browser = new Chromium())
+                using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync();
+                    var page = await browser.NewPageAsync(proxy: proxy);
                     if (page == null)
                         return null;
+
+                    page.RequestFailed += (sender, e) =>
+                    {
+                        if (e.Url == uri)
+                        {
+                            browser.completionSource.SetResult(null);
+                            PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy, e);
+                        }
+                    };
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -95,13 +111,14 @@ namespace Lampac.Controllers.LITE
                                 html = await response.TextAsync();
 
                             browser.completionSource.SetResult(html);
+                            PlaywrightBase.WebLog(route.Request, response, html, proxy);
                             return;
                         }
 
                         await route.AbortAsync();
                     });
 
-                    var response = await page.GotoAsync(Chromium.IframeUrl(uri));
+                    var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
                     if (response == null)
                         return null;
 

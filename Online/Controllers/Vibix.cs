@@ -10,6 +10,9 @@ using Shared.Model.Online;
 using Newtonsoft.Json;
 using System.Web;
 using Lampac.Models.LITE;
+using Shared.Model.Online.Vibix;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -38,7 +41,7 @@ namespace Lampac.Controllers.LITE
                 return ShowError(rch_error);
 
             string iframe_url = data.Value<string>("iframe_url");
-            var cache = await InvokeCache<JArray>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -46,19 +49,31 @@ namespace Lampac.Controllers.LITE
                 string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
                                            await HttpClient.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
-                // serial
-                string file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\]),").Groups[1].Value.Trim();
-                if (string.IsNullOrEmpty(file)) // movie
-                    file = Regex.Match(html, "file:([^\n\r]+)\\}\\)\\;").Groups[1].Value.Trim();
+                string file = null;
 
-                if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
-                    res.Fail("file");
-
-                try
+                if (data.Value<string>("type") == "movie")
                 {
-                    return JsonConvert.DeserializeObject<JArray>(file);
+                    file = html.Split(",file:")[1].Split("function")[0];
+                    if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
+                        res.Fail("file");
+
+                    return new EmbedModel() { content = file };
                 }
-                catch { return res.Fail("DeserializeObject"); }
+                else
+                {
+                    file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\])\\}\\)").Groups[1].Value.Trim();
+                    if (string.IsNullOrEmpty(file))
+                        file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\]),").Groups[1].Value.Trim();
+
+                    if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
+                        res.Fail("file");
+
+                    try
+                    {
+                        return new EmbedModel() { serial = JsonConvert.DeserializeObject<List<Seasons>>(file) };
+                    }
+                    catch { return res.Fail("DeserializeObject"); }
+                }
             });
 
             if (IsRhubFallback(cache, init))
@@ -71,20 +86,17 @@ namespace Lampac.Controllers.LITE
                 {
                     var mtpl = new MovieTpl(title, original_title);
 
-                    foreach (var item in cache.Value)
+                    var streams = new StreamQualityTpl();
+
+                    var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(cache.Value.content);
+                    while (match.Success)
                     {
-                        var streams = new StreamQualityTpl();
-
-                        var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(item.Value<string>("file"));
-                        while (match.Success)
-                        {
-                            streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
-                            match = match.NextMatch();
-                        }
-
-                        if (streams.Any())
-                            mtpl.Append(item.Value<string>("title"), streams.Firts().link, streamquality: streams, vast: init.vast);
+                        streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
+                        match = match.NextMatch();
                     }
+
+                    if (streams.Any())
+                        mtpl.Append("По умолчанию", streams.Firts().link, streamquality: streams, vast: init.vast);
 
                     return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
 
@@ -101,11 +113,11 @@ namespace Lampac.Controllers.LITE
                     
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl(cache.Value.Count);
+                        var tpl = new SeasonTpl(cache.Value.serial.Count);
 
-                        foreach (var season in cache.Value)
+                        foreach (var season in cache.Value.serial)
                         {
-                            string name = season.Value<string>("title");
+                            string name = season.title;
                             if (int.TryParse(Regex.Match(name, "([0-9]+)$").Groups[1].Value, out int _s) && _s > 0)
                             {
                                 string link = $"{host}/lite/vibix?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={_s}";
@@ -119,15 +131,15 @@ namespace Lampac.Controllers.LITE
                     {
                         var etpl = new EpisodeTpl();
 
-                        foreach (var season in cache.Value)
+                        foreach (var season in cache.Value.serial)
                         {
-                            if (!season.Value<string>("title").EndsWith($" {s}"))
+                            if (!season.title.EndsWith($" {s}"))
                                 continue;
 
-                            foreach (var episode in season["folder"])
+                            foreach (var episode in season.folder)
                             {
-                                string name = episode.Value<string>("title");
-                                string file = episode["folder"].First.Value<string>("file");
+                                string name = episode.title;
+                                string file = episode.folder.First().file;
 
                                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(file))
                                     continue;

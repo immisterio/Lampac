@@ -21,6 +21,12 @@ namespace Lampac.Engine.CORE
         #region Handler
         public static HttpClientHandler Handler(string url, WebProxy proxy, CookieContainer cookieContainer = null)
         {
+            string log = string.Empty;
+            return Handler(url, proxy, ref log, cookieContainer);
+        }
+
+        public static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
+        {
             var handler = new HttpClientHandler()
             {
                 AllowAutoRedirect = true,
@@ -33,6 +39,7 @@ namespace Lampac.Engine.CORE
             {
                 handler.UseProxy = true;
                 handler.Proxy = proxy;
+                loglines += $"proxy: {proxy.Address.ToString()}\n";
             }
 
             if (cookieContainer != null)
@@ -55,8 +62,11 @@ namespace Lampac.Engine.CORE
                         if (p.useAuth)
                             credentials = new NetworkCredential(p.username, p.password);
 
+                        string proxyip = p.list.OrderBy(a => Guid.NewGuid()).First();
+
                         handler.UseProxy = true;
-                        handler.Proxy = new WebProxy(p.list.OrderBy(a => Guid.NewGuid()).First(), p.BypassOnLocal, null, credentials);
+                        handler.Proxy = new WebProxy(proxyip, p.BypassOnLocal, null, credentials);
+                        loglines += $"globalproxy: {proxyip} {(p.useAuth ? $" - {p.username}:{p.password}" : "")}\n";
                         break;
                     }
                 }
@@ -110,8 +120,11 @@ namespace Lampac.Engine.CORE
                     if (item.name.ToLower() == "user-agent")
                         setDefaultUseragent = false;
 
-                    client.DefaultRequestHeaders.Add(item.name, item.val);
-                    loglines += $"{item.name}: {item.val}\n";
+                    if (!client.DefaultRequestHeaders.Contains(item.name))
+                    {
+                        client.DefaultRequestHeaders.Add(item.name, item.val);
+                        loglines += $"{item.name}: {item.val}\n";
+                    }
                 }
             }
 
@@ -194,11 +207,11 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Get<T>
-        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true)
+        async public static ValueTask<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool weblog = true)
         {
             try
             {
-                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders)).content;
+                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, weblog: weblog)).content;
                 if (html == null)
                     return default;
 
@@ -245,7 +258,7 @@ namespace Lampac.Engine.CORE
 
             try
             {
-                var handler = Handler(url, proxy, cookieContainer);
+                var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
@@ -374,7 +387,7 @@ namespace Lampac.Engine.CORE
 
             try
             {
-                var handler = Handler(url, proxy, cookieContainer);
+                var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient("base"))
                 {
@@ -520,7 +533,7 @@ namespace Lampac.Engine.CORE
 
                     using (var stream = await client.GetStreamAsync(url))
                     {
-                        using (var fileStream = new FileStream(path, FileMode.OpenOrCreate))
+                        using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
                             await stream.CopyToAsync(fileStream);
                             return true;
@@ -562,7 +575,7 @@ namespace Lampac.Engine.CORE
             string patchlog = $"cache/logs/HttpClient_{dateLog}.log";
 
             if (logFileStream == null || !File.Exists(patchlog))
-                logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
+                logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write, FileShare.Read);
 
             var buffer = Encoding.UTF8.GetBytes($"\n\n\n################################################################\n\n{log}");
             await logFileStream.WriteAsync(buffer, 0, buffer.Length);

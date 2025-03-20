@@ -12,6 +12,7 @@ using Shared.Model.Online;
 using System.Collections.Generic;
 using System.Net;
 using Shared.Models;
+using System.Linq;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -94,9 +95,13 @@ namespace Lampac.Engine.Middlewares
                 string md5key = CrypTo.md5($"{href}:{width}:{height}");
                 string outFile = $"cache/img/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
 
+                string contentType = href.Contains(".png") ? "image/png" : href.Contains(".webp") ? "image/webp" : "image/jpeg";
+                if (width > 0 || height > 0)
+                    contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
+
                 if (cacheimg && File.Exists(outFile))
                 {
-                    httpContext.Response.ContentType = "image/jpeg";
+                    httpContext.Response.ContentType = contentType;
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
 
                     using (var fs = new FileStream(outFile, FileMode.Open, FileAccess.Read))
@@ -115,46 +120,90 @@ namespace Lampac.Engine.Middlewares
                 var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
                 var proxy = proxyManager.Get();
 
-                var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
-                if (array == null)
+                if (width == 0 && height == 0 && !cacheimg)
                 {
-                    if (cacheimg)
-                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddMinutes(1));
+                    #region bypass
+                    var handler = CORE.HttpClient.Handler(href, proxy);
+                    handler.AllowAutoRedirect = true;
 
-                    proxyManager.Refresh();
-                    httpContext.Response.Redirect(href);
-                    return;
-                }
-
-                if (array.Length > 1000)
-                {
-                    if (width > 0 || height > 0)
+                    using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
                     {
-                        using (var image = Image.NewFromBuffer(array))
+                        CORE.HttpClient.DefaultRequestHeaders(client, 8, 0, null, null, decryptLink?.headers);
+
+                        if (!handler.UseProxy)
+                            client.DefaultRequestHeaders.ConnectionClose = false;
+
+                        using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
                         {
-                            if (image.Width > width || image.Height > height)
+                            httpContext.Response.StatusCode = (int)response.StatusCode;
+                            httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+
+                            if (response.Headers.TryGetValues("Content-Type", out var contype))
+                                httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+
+                            await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                            return;
+                        }
+                    }
+                    #endregion
+                }
+                else
+                {
+                    #region rsize / cache
+                    var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
+                    if (array == null)
+                    {
+                        if (cacheimg)
+                            memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddSeconds(20));
+
+                        proxyManager.Refresh();
+                        httpContext.Response.Redirect(href);
+                        return;
+                    }
+
+                    if (array.Length > 1000)
+                    {
+                        if (width > 0 || height > 0)
+                        {
+                            using (var image = Image.NewFromBuffer(array))
                             {
-                                using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
-                                    array = res.JpegsaveBuffer();
+                                if (image.Width > width || image.Height > height)
+                                {
+                                    try
+                                    {
+                                        using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
+                                        {
+                                            var buffer = href.Contains(".png") ? res.PngsaveBuffer() : res.JpegsaveBuffer();
+                                            if (buffer != null && buffer.Length > 1000)
+                                                array = buffer;
+                                        }
+                                    }
+                                    catch { }
+                                }
                             }
                         }
                     }
 
-                    if (array != null && cacheimg)
+                    httpContext.Response.ContentType = contentType;
+                    httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+                    await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
+
+                    if (array.Length > 1000 && cacheimg)
                     {
                         try
                         {
-                            Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
-                            await File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
+                            if (!File.Exists(outFile))
+                            {
+                                Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+
+                                using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                    await fileStream.WriteAsync(array, 0, array.Length).ConfigureAwait(false);
+                            }
                         }
                         catch { try { File.Delete(outFile); } catch { } }
                     }
-
-                    httpContext.Response.ContentType = "image/jpeg";
-                    httpContext.Response.Headers.Add("X-Cache-Status", cacheimg ? "MISS" : "bypass");
+                    #endregion
                 }
-
-                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
             }
             else
             {
@@ -173,16 +222,18 @@ namespace Lampac.Engine.Middlewares
                 using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
                 {
                     CORE.HttpClient.DefaultRequestHeaders(client, 8, 0, null, null, headers);
-                    client.DefaultRequestHeaders.ConnectionClose = false;
 
-                    using (HttpResponseMessage response = await client.GetAsync(url))
+                    if (!handler.UseProxy)
+                        client.DefaultRequestHeaders.ConnectionClose = false;
+
+                    using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
                     {
                         if (response.StatusCode != HttpStatusCode.OK)
                             return null;
 
                         using (HttpContent content = response.Content)
                         {
-                            byte[] res = await content.ReadAsByteArrayAsync();
+                            byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
                             if (res == null || res.Length == 0)
                                 return null;
 

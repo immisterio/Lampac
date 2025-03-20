@@ -22,7 +22,7 @@ curl -s https://raw.githubusercontent.com/m0nty81/lampac/main/install.sh | bash
 curl -L -k -s https://lampac.sh/home | bash
 ```
 * 200Mb RAM, 200Mb HDD, 50 пользователей
-* DLNA по умолчанию отключен, включается в init.conf
+* DLNA/Chromium/Firefox по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
 # Установка на Windows
@@ -33,6 +33,11 @@ curl -L -k -s https://lampac.sh/home | bash
 # Запуск в Android
 1. Termux - https://github.com/immisterio/Lampac/blob/main/Termux/README.md
 2. BWA - https://bwa.to
+
+# Тестируемые устройства
+* Debian 11/12 x64
+* Windows 10 x64
+* Raspberry arm64 (Debian 11)
 
 # Плагины для Lampa
 1. Все плагины сразу - "http://IP:9118/on.js"
@@ -55,7 +60,7 @@ curl -L -k -s https://lampac.sh/home | bash
 3. Основные настройки в init.conf (пример example.conf)
 
 # Источники 
-* Filmix, KinoPub, Alloha, Rezka, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino
+* Filmix, KinoPub, Alloha, Rezka, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 

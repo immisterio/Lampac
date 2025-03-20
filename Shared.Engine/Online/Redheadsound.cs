@@ -81,7 +81,10 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string iframeUri = Regex.Match(news, "<iframe data-src=\"(https?://[^\"]+)\"").Groups[1].Value;
+            if (!news.Contains("tabs-block__content"))
+                return null;
+
+            string iframeUri = Regex.Match(news.Split("tabs-block__content")[1], "<iframe data-src=\"(https?://[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
 

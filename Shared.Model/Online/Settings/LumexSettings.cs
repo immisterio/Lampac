@@ -25,7 +25,18 @@ namespace Lampac.Models.LITE
 
         public string? iframehost { get; set; }
 
-        public string? args_api { get; set; }
+
+        public string? username { get; set; }
+
+        public string? password { get; set; }
+
+        public string? domain { get; set; }
+
+        public bool disable_protection { get; set; }
+
+        public bool disable_ads { get; set; }
+
+        public bool log { get; set; }
 
 
         public LumexSettings Clone()

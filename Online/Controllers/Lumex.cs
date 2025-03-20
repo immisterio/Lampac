@@ -13,6 +13,8 @@ using Shared.Model.Online;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Collections.Generic;
+using System;
+using Shared.Engine;
 
 namespace Lampac.Controllers.LITE
 {
@@ -26,22 +28,26 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
+            if (Firefox.Status == PlaywrightStatus.disabled)
+                return OnError();
 
             var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            var proxy = proxyManager.BaseGet();
 
             var oninvk = new LumexInvoke
             (
                init,
-               (url, referer) => HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => streamfile,
+               (url, referer) => HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init)),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy),
                host,
                requesterror: () => proxyManager.Refresh()
             );
 
             if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
+                if (string.IsNullOrEmpty(init.token))
+                    return OnError();
+
                 var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
                 {
                     return await oninvk.Search(title, original_title, serial, clarification);
@@ -50,109 +56,66 @@ namespace Lampac.Controllers.LITE
                 return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
             }
 
-            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}:{imdb_id}", cacheTime(10, init: init), proxyManager,  async res =>
+            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(10, init: init), proxyManager,  async res =>
             {
-                #region chromium
-                //try
-                //{
-                //    using (var browser = await PuppeteerTo.Browser())
-                //    {
-                //        if (browser == null)
-                //            return null;
+                string content_uri = null;
+                var content_headers = new List<HeadersModel>();
 
-                //        log += "browser init\n";
+                #region Firefox
+                try
+                {
+                    using (var browser = new Firefox())
+                    {
+                        var page = await browser.NewPageAsync(proxy: proxy.data);
+                        if (page == null)
+                            return null;
 
-                //        var page = await browser.Page(new Dictionary<string, string>()
-                //        {
-                //            ["referer"] = "https://ikino.org/37521-odinokie-volki-2024.html"
-                //        });
+                        await page.RouteAsync("**/*", async route =>
+                        {
+                            if (content_uri != null)
+                            {
+                                await route.AbortAsync();
+                                return;
+                            }
 
-                //        if (page == null)
-                //            return null;
+                            if (route.Request.Url.Contains("/content?clientId="))
+                            {
+                                content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
+                                foreach (var item in route.Request.Headers)
+                                {
+                                    if (item.Key == "host" || item.Key == "accept-encoding")
+                                        continue;
 
-                //        string content = null, csrf = null;
-                //        await page.SetRequestInterceptionAsync(true);
+                                    content_headers.Add(new HeadersModel(item.Key, item.Value));
+                                }
 
-                //        page.Request += async (sender, e) =>
-                //        {
-                //            try
-                //            {
-                //                if (e?.Request == null)
-                //                    return;
+                                browser.completionSource.SetResult(string.Empty);
+                                await route.AbortAsync();
+                                await page.CloseAsync();
+                                return;
+                            }
 
-                //                if (!string.IsNullOrEmpty(content))
-                //                {
-                //                    await e.Request.AbortAsync();
-                //                }
-                //                else if (e.Request.Method.Method != "GET" || e.Request.Url.Contains("/validate/") || Regex.IsMatch(e.Request.Url, "\\.(woff|jpe?g|png|ico)", RegexOptions.IgnoreCase))
-                //                {
-                //                    await e.Request.AbortAsync();
-                //                }
-                //                else
-                //                {
-                //                    if (Regex.IsMatch(e.Request.Url, "(gstatic|lumex)\\.", RegexOptions.IgnoreCase))
-                //                        await e.Request.ContinueAsync();
-                //                    else
-                //                        await e.Request.AbortAsync();
-                //                }
-                //            }
-                //            catch { }
-                //        };
+                            await route.ContinueAsync();
+                        });
 
-                //        page.Response += async (sender, e) =>
-                //        {
-                //            try
-                //            {
-                //                if (e?.Response != null && string.IsNullOrEmpty(content))
-                //                {
-                //                    log += $"browser Response.Url / {e.Response?.Url}\n";
+                        string uri = $"https://p.{init.iframehost}/{init.clientId}";
 
-                //                    if (!string.IsNullOrEmpty(e.Response.Url) && e.Response.Url.Contains("contentId=") && e.Response.Url.Contains("api.lumex"))
-                //                    {
-                //                        content = await e.Response.TextAsync();
-                //                        csrf = Regex.Match(e.Response.Headers["set-cookie"], "x-csrf-token=([^;]+)").Groups[1].Value;
-                //                    }
-                //                }
-                //            }
-                //            catch { }
-                //        };
+                        if (kinopoisk_id > 0)
+                            uri += $"?kp_id={kinopoisk_id}";
+                        if (!string.IsNullOrEmpty(imdb_id))
+                            uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
-                //        string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-
-                //        log += $"browser GoToAsync / {init.corsHost()}?{args}\n";
-                //        await page.GoToAsync($"{init.corsHost()}?{args}");
-
-                //        for (int i = 0; i < 100; i++)
-                //        {
-                //            if (content != null)
-                //                break;
-
-                //            await Task.Delay(50);
-                //        }
-
-                //        if (string.IsNullOrEmpty(csrf) || string.IsNullOrEmpty(content))
-                //        {
-                //            log += $"\ncsrf || content == null\n\ncsrf: {csrf}\n\ncontent: {content}\n";
-                //            return null;
-                //        }
-
-                //        log += $"\ncsrf: {csrf}\n\ncontent: {content}\n";
-                //        var md = JsonConvert.DeserializeObject<JObject>(content)["player"].ToObject<EmbedModel>();
-                //        md.csrf = csrf;
-
-                //        return md;
-                //    }
-                //}
-                //catch (Exception ex) { log += $"\nex: {ex}\n"; return null; }
+                        await page.GotoAsync(uri);
+                        await browser.WaitPageResult(20);
+                    }
+                }
+                catch { }
                 #endregion
 
-                string args = "";
-                if (!string.IsNullOrEmpty(imdb_id))
-                    args += $"&imdbId={imdb_id}";
-                if (kinopoisk_id > 0)
-                    args += $"&kpId={kinopoisk_id}";
+                if (content_uri == null)
+                    return res.Fail("content_uri");
 
-                var result = await HttpClient.BaseGetAsync($"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short"+args+init.args_api, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var result = await HttpClient.BaseGetAsync(content_uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: content_headers);
 
                 if (string.IsNullOrEmpty(result.content))
                 {
@@ -173,13 +136,18 @@ namespace Lampac.Controllers.LITE
                     return res.Fail("csrf");
                 }
 
+                content_headers.Add(new HeadersModel("x-csrf-token", csrf.Split("%")[0]));
+                var hcookie = content_headers.FirstOrDefault(i => i.name == "cookie");
+                if (hcookie != null)
+                    hcookie.val = $"x-csrf-token={csrf}; {hcookie.val}";
+
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
-                md.csrf = csrf;
+                md.csrf = CrypTo.md5(DateTime.Now.ToFileTime().ToString());
+
+                memoryCache.Set(md.csrf, content_headers, DateTime.Now.AddDays(1));
 
                 return md;
             });
-
-            OnLog(log + "\nStart OnResult");
 
             return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
         }
@@ -192,8 +160,11 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
             var init = await loadKit(AppInit.conf.Lumex);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            if (Firefox.Status == PlaywrightStatus.disabled)
+                return OnError();
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
@@ -201,10 +172,9 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lumex/video:{playlist}:{csrf}";
             if (!memoryCache.TryGetValue(memkey, out string hls))
             {
-                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", proxy: proxy, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
-                    ("cookie", $"x-csrf-token={csrf}"),
-                    ("x-csrf-token", csrf.Split("%")[0])
-                )));
+                var content_headers = memoryCache.Get<List<HeadersModel>>(csrf);
+
+                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
 
                 if (result == null || !result.ContainsKey("url"))
                     return OnError();
@@ -221,11 +191,11 @@ namespace Lampac.Controllers.LITE
 
             if (max_quality > 0 && !init.hls)
             {
-                var streams = new List<(string quality, string link)>(5);
+                var streams = new List<(string link, string quality)>(5);
                 foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                 {
                     if (max_quality >= q)
-                        streams.Add(($"{q}p", sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4"))));
+                        streams.Add((sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
                 }
 
                 return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));

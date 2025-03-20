@@ -3,7 +3,7 @@ FROM debian:12.5-slim
 EXPOSE 80
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip chromium \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip chromium xvfb \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fSL -k -o dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/aspnetcore/Runtime/6.0.28/aspnetcore-runtime-6.0.28-linux-x64.tar.gz \
@@ -18,8 +18,11 @@ RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/late
 
 RUN curl -k -s https://raw.githubusercontent.com/immisterio/Lampac/main/Build/Docker/update.sh | bash
 
-RUN echo '{"listenport":80,"listenscheme":"https","KnownProxies":[{"ip":"0.0.0.0","prefixLength":0}],"rch":{"enable":true},"typecache":"mem","mikrotik":true,"weblog":{"enable":true},"serverproxy":{"verifyip":false,"showOrigUri":true,"buffering":{"enable":false}},"pirate_store":false,"dlna":{"enable":false},"puppeteer":{"enable":true,"keepopen":true,"executablePath":"/usr/bin/chromium"},"LampaWeb":{"autoupdate":false},"online":{"checkOnlineSearch":false},"Ashdi":{"rhub":true},"Kinoukr":{"rhub":true},"Collaps":{"two":false},"Rezka":{"enable":false},"VideoDB":{"enable":false},"Lumex":{"enable":false},"Kodik":{"enable":false},"AnilibriaOnline":{"enable":false},"Ebalovo":{"enable":false},"Chaturbate":{"enable":false},"Spankbang":{"enable":false}}' > /home/init.conf
+RUN echo '{"listenport":80,"listenscheme":"https","KnownProxies":[{"ip":"0.0.0.0","prefixLength":0}],"rch":{"enable":true},"typecache":"mem","mikrotik":true,"weblog":{"enable":true},"serverproxy":{"verifyip":false,"showOrigUri":true,"buffering":{"enable":false}},"pirate_store":false,"dlna":{"enable":false},"chromium":{"enable":true,"executablePath":"/usr/bin/chromium"},"LampaWeb":{"autoupdate":false},"online":{"checkOnlineSearch":false},"Ashdi":{"rhub":true},"Kinoukr":{"rhub":true},"Collaps":{"two":false},"Rezka":{"enable":false},"VideoDB":{"enable":false},"Lumex":{"enable":false},"Kodik":{"enable":false},"AnilibriaOnline":{"enable":false},"Ebalovo":{"enable":false},"Chaturbate":{"enable":false},"Spankbang":{"enable":false}}' > /home/init.conf
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"}]' > /home/module/manifest.json
+
+RUN mkdir -p .playwright/node/linux-arm64 && curl -L -k -o .playwright/node/linux-arm64/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-arm64 \
+    && chmod +x .playwright/node/linux-arm64/node
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]

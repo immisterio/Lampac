@@ -2,7 +2,26 @@
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup , ICloneable
     {
-        public bool enable { get; set; }
+        bool _enable;
+
+        public bool enable 
+        {
+            get 
+            {
+                if (AppInit._defaultOn == "enabled")
+                    return enabled;
+
+                return _enable;
+            }
+            set
+            {
+                _enable = value;
+            }
+        }
+
+        public bool enabled { get; set; }
+
+
 
         public bool kit { get; set; } = true;
 
@@ -34,6 +53,8 @@
 
         public string[]? overridehosts { get; set; }
 
+        public string? overridepasswd { get; set; }
+
         public string? host { get; set; }
 
         public string? apihost { get; set; }
@@ -51,6 +72,8 @@
         public Dictionary<string, string>? headers_stream { get; set; }
 
         public VastConf? vast { get; set; }
+
+        public string? priorityBrowser { get; set; }
 
 
         #region proxy

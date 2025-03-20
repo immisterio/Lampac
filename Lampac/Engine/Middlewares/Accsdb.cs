@@ -87,7 +87,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium/iframe|proxy-dash|ts|ws|headers|myip|geo|version|weblog|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
 
@@ -96,6 +96,12 @@ namespace Lampac.Engine.Middlewares
 
                     if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
                     {
+                        if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
+                        {
+                            if (AppInit.conf.serverproxy.encrypt)
+                                return _next(httpContext);
+                        }
+
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
                             httpContext.Response.StatusCode = 404;
@@ -106,8 +112,8 @@ namespace Lampac.Engine.Middlewares
                         string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы") : 
                                      limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
                                      string.IsNullOrWhiteSpace(requestInfo.user_uid) ? AppInit.conf.accsdb.authMesage :
-                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
-                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid);
+                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
+                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid);
 
                         if (httpContext.Request.Path.Value.StartsWith("/tmdb"))
                             httpContext.Response.StatusCode = 403;
@@ -179,7 +185,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (IsLockIpHour(account_email, userip, out islock, out ips) || IsLockReqHour(account_email, uri, out islock, out urls))
+            if (IsLockIpHour(account_email, userip, out islock, out ips) | IsLockReqHour(account_email, uri, out islock, out urls))
             {
                 setLogs("lock_hour");
                 countlock_day(update: true);

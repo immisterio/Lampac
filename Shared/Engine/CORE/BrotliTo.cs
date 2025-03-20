@@ -34,14 +34,16 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                using var input = new MemoryStream(value);
-                using var output = new MemoryStream();
-                using var stream = new BrotliStream(output, CompressionLevel.Fastest);
+                using (var input = new MemoryStream(value))
+                {
+                    using (var output = new MemoryStream())
+                    {
+                        using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
+                            input.CopyTo(stream);
 
-                input.CopyTo(stream);
-                stream.Flush();
-
-                return output.ToArray();
+                        return output.ToArray();
+                    }
+                }
             }
             catch { return null; }
         }
@@ -61,12 +63,14 @@ namespace Lampac.Engine.CORE
             {
                 lock (GetLockObjectForPath(outfile))
                 {
-                    using var input = new MemoryStream(value);
-                    using var output = new FileStream(outfile, FileMode.Create);
-                    using var stream = new BrotliStream(output, CompressionLevel.Fastest);
-
-                    input.CopyTo(stream);
-                    stream.Flush();
+                    using (var input = new MemoryStream(value))
+                    {
+                        using (var output = new FileStream(outfile, FileMode.Create, FileAccess.Write, FileShare.None))
+                        {
+                            using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
+                                input.CopyTo(stream);
+                        }
+                    }
                 }
             }
             catch { }
@@ -77,14 +81,16 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                using var input = new MemoryStream(value);
-                using var output = new MemoryStream();
-                using var stream = new BrotliStream(input, CompressionMode.Decompress);
+                using (var input = new MemoryStream(value))
+                {
+                    using (var output = new MemoryStream())
+                    {
+                        using (var stream = new BrotliStream(input, CompressionMode.Decompress))
+                            stream.CopyTo(output);
 
-                stream.CopyTo(output);
-                stream.Flush();
-
-                return Encoding.UTF8.GetString(output.ToArray());
+                        return Encoding.UTF8.GetString(output.ToArray());
+                    }
+                }
             }
             catch { return null; }
         }
@@ -108,14 +114,16 @@ namespace Lampac.Engine.CORE
             {
                 lock (GetLockObjectForPath(infile))
                 {
-                    using var input = new FileStream(infile, FileMode.Open);
-                    using var output = new MemoryStream();
-                    using var stream = new BrotliStream(input, CompressionMode.Decompress);
+                    using (var input = new FileStream(infile, FileMode.Open, FileAccess.Read))
+                    {
+                        using (var output = new MemoryStream())
+                        {
+                            using (var stream = new BrotliStream(input, CompressionMode.Decompress))
+                                stream.CopyTo(output);
 
-                    stream.CopyTo(output);
-                    stream.Flush();
-
-                    return output.ToArray();
+                            return output.ToArray();
+                        }
+                    }
                 }
             }
             catch { return null; }
