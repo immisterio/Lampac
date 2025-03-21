@@ -365,8 +365,24 @@ namespace Shared.Model
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
 
 
-        public OnlinesSettings Vidsrc { get; set; } = new OnlinesSettings("Vidsrc", "kwwsv=22ylgvuf1wr", streamproxy: true);
 
+        /// <summary>
+        /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
+        /// </summary>
+        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
+
+        public OnlinesSettings Vidsrc { get; set; } = new OnlinesSettings("Vidsrc", "kwwsv=22ylgvuf1ff", streamproxy: true) 
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ).ToDictionary()
+        };
 
         /// <summary>
         /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
@@ -418,11 +434,6 @@ namespace Shared.Model
                 ("sec-fetch-site", "same-site")
             ).ToDictionary()
         };
-
-        /// <summary>
-        /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
-        /// </summary>
-        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
 
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
