@@ -384,6 +384,20 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
+        public OnlinesSettings MovPI { get; set; } = new OnlinesSettings("MovPI", "kwwsv=22prylhvdsl1foxe", streamproxy: true)
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "encrypt:kwwsv=22z41prylhvdsl1foxe2"),
+                ("origin", "encrypt:kwwsv=22z41prylhvdsl1foxe"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
+            ).ToDictionary()
+        };
+
         public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true)
         {
             headers_stream = HeadersModel.Init(

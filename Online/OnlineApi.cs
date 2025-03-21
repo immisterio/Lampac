@@ -707,6 +707,7 @@ namespace Lampac.Controllers
             {
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
                 send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+                send(conf.MovPI, "movpi", "MovPI (ENG)");
                 send(conf.Twoembed, "twoembed", "2Embed (ENG)");
                 send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
                 send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
@@ -876,6 +877,7 @@ namespace Lampac.Controllers
                             case "vidsrc":
                             case "smashystream":
                             case "hydraflix":
+                            case "movpi":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
