@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
-using Microsoft.Playwright;
 using Shared.Engine;
 using Lampac.Models.LITE;
 using System;
@@ -11,7 +10,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
-using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -79,7 +77,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         for (int i = 1; i <= season.Value<int>("episode_count"); i++)
-                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/twoembed/video.m3u8?imdb_id={imdb_id}&s={s}&e={i}"), vast: init.vast);
+                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/twoembed/video.m3u8?id={id}&s={s}&e={i}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -92,7 +90,7 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                mtpl.Append("1080p", accsArgs($"{host}/lite/twoembed/video.m3u8?imdb_id={imdb_id}"), vast: init.vast);
+                mtpl.Append("1080p", accsArgs($"{host}/lite/twoembed/video.m3u8?id={id}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -103,14 +101,11 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/twoembed/video.m3u8")]
-        async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1)
+        async public Task<ActionResult> Video(long id, int s = -1, int e = -1)
         {
             var init = await loadKit(AppInit.conf.Twoembed);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            if (string.IsNullOrEmpty(imdb_id))
-                return OnError();
 
             if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -118,9 +113,9 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            string embed = $"{init.host}/embed/movie/{imdb_id}";
+            string embed = $"{init.host}/embed/movie/{id}";
             if (s > 0)
-                embed = $"{init.host}/embed/tv/{imdb_id}/{s}/{e}";
+                embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
             string hls = await black_magic(embed, init, proxy.data);
             if (hls == null)
@@ -144,23 +139,17 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync("twoembed", httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (m3u8 != null || Regex.IsMatch(route.Request.Url, "(\\&wasm=|image.tmdb.org)"))
-                            {
-                                await route.AbortAsync();
-                                return;
-                            }
-
                             Console.WriteLine($"Firefox: {route.Request.Method} {route.Request.Url}");
 
                             if (route.Request.Url.Contains(".m3u8"))
                             {
-                                m3u8 = route.Request.Url;
+                                browser.completionSource.SetResult(route.Request.Url);
                                 await route.AbortAsync();
                                 return;
                             }
@@ -172,26 +161,7 @@ namespace Lampac.Controllers.LITE
                         if (response == null)
                             return null;
 
-                        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-
-                        var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
-
-                        int click = 0;
-                        var endTime = DateTime.Now.AddSeconds(20);
-                        while (endTime > DateTime.Now && m3u8 == null)
-                        {
-                            int vS(int center)
-                            {
-                                var centerX = center / 2;
-                                return Random.Shared.Next(0, 3) == 1 ? (centerX + Random.Shared.Next(1, 20)) : (centerX - Random.Shared.Next(1, 20));
-                            }
-
-                            click++;
-                            if (click >= 10)
-                                await Task.Delay(200);
-
-                            await page.Mouse.ClickAsync(vS(viewportSize.Width), vS(viewportSize.Height));
-                        }
+                        m3u8 = await browser.WaitPageResult();
                     }
 
                     if (m3u8 == null)

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
-using Microsoft.Playwright;
 using Shared.Engine;
 using Lampac.Models.LITE;
 using System;
@@ -11,7 +10,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
-using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -166,7 +164,6 @@ namespace Lampac.Controllers.LITE
                         if (response == null)
                             return null;
 
-                        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
                         m3u8 = await browser.WaitPageResult();
                     }
 

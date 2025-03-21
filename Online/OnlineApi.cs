@@ -707,8 +707,8 @@ namespace Lampac.Controllers
             {
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
                 send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
-                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
                 send(conf.Twoembed, "twoembed", "2Embed (ENG)");
+                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
             }
 
             send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
