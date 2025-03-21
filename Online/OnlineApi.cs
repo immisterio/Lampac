@@ -702,18 +702,18 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
-            if (!string.IsNullOrEmpty(imdb_id))
-            {
-                send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
-                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled)
-                {
-                    send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
-                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
-                    send(conf.Twoembed, "twoembed", "2Embed (ENG)");
-                }
+            if (Firefox.Status != PlaywrightStatus.disabled)
+            {
+                send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
+                send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
+                send(conf.Twoembed, "twoembed", "2Embed (ENG)");
             }
+
+            send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+            send(conf.Rgshows, "rgshows", "RgShows (ENG)");
+
 
             if (!life && conf.litejac)
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));
@@ -874,6 +874,7 @@ namespace Lampac.Controllers
                             case "twoembed":
                             case "vidsrc":
                             case "smashystream":
+                            case "hydraflix":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":

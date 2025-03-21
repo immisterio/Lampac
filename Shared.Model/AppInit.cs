@@ -196,7 +196,11 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("FilmixPartner", "kwws=22819418914;2sduwqhubdsl", enable: false);
 
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22}hw0iol{1rqolqh") { geostreamproxy = new string[] { "ALL" }, hls = true };
+        /// <summary>
+        /// aHR0cHM6Ly9nby56ZXQtZmxpeC5vbmxpbmU=
+        /// aHR0cHM6Ly9nby56ZXRmbGl4LW9ubGluZS5sb2w=
+        /// </summary>
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh") { geostreamproxy = new string[] { "ALL" }, hls = true };
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
@@ -414,6 +418,12 @@ namespace Shared.Model
                 ("sec-fetch-site", "same-site")
             ).ToDictionary()
         };
+
+        /// <summary>
+        /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
+        /// </summary>
+        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
+
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
 
