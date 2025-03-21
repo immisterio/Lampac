@@ -373,6 +373,11 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
 
+        /// <summary>
+        /// aHR0cHM6Ly92aWRzcmMueHl6
+        /// aHR0cHM6Ly92aWRzcmMucHJv
+        /// aHR0cHM6Ly92aWRzcmMudG8=
+        /// </summary>
         public OnlinesSettings Vidsrc { get; set; } = new OnlinesSettings("Vidsrc", "kwwsv=22ylgvuf1ff", streamproxy: true) 
         {
             headers_stream = HeadersModel.Init(
