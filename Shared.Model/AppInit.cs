@@ -33,6 +33,8 @@ namespace Shared.Model
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
+
+        #region SISI
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")
         {
             headers = HeadersModel.Init(
@@ -107,9 +109,9 @@ namespace Shared.Model
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary()
         };
+        #endregion
 
-
-
+        #region Online
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, scheme = "http" };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
@@ -363,7 +365,7 @@ namespace Shared.Model
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
-
+        #endregion
 
         #region ENG
         /// <summary>
@@ -395,6 +397,22 @@ namespace Shared.Model
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
+            ).ToDictionary()
+        };
+
+        /// <summary>
+        /// aHR0cHM6Ly9kYXkyc29hcC54eXov
+        /// </summary>
+        public OnlinesSettings VidLink { get; set; } = new OnlinesSettings("VidLink", "kwwsv=22ylgolqn1sur", streamproxy: true)
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
@@ -476,6 +494,7 @@ namespace Shared.Model
         };
         #endregion
 
+        #region Anime
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy");
@@ -520,13 +539,11 @@ namespace Shared.Model
                 ("referer", "https://aniboom.one/")
             ).ToDictionary()
         };
+        #endregion
 
 
 
-
-
-
-
+        #region RIP
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("Voidboost", "kwwsv=22yrlgerrvw1qhw", streamproxy: true) { enable = false, rip = true };
 
         public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("Seasonvar", "kwws=22dsl1vhdvrqydu1ux", enable: false, rip: true);
@@ -534,5 +551,6 @@ namespace Shared.Model
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("Lostfilmhd", "kwws=22zzz1glvqh|oryh1ux", streamproxy: true, rip: true);
 
         public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rip: true);
+        #endregion
     }
 }
