@@ -708,6 +708,7 @@ namespace Lampac.Controllers
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
                 send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
                 send(conf.Twoembed, "twoembed", "2Embed (ENG)");
+                send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
                 send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
             }
 
@@ -888,6 +889,7 @@ namespace Lampac.Controllers
                             case "kinokrad":
                             case "kinoprofi":
                             case "seasonvar":
+                            case "autoembed":
                                 quality = " - 480p";
                                 break;
                             case "cdnmovies":

@@ -164,7 +164,7 @@ namespace Lampac.Controllers.LITE
                         if (response == null)
                             return null;
 
-                        m3u8 = await browser.WaitPageResult();
+                        m3u8 = await browser.WaitPageResult(20);
                     }
 
                     if (m3u8 == null)

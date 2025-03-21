@@ -397,6 +397,19 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true)
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ).ToDictionary()
+        };
+
         /// <summary>
         /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
         /// </summary>

@@ -13,18 +13,21 @@ using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
-    public class HydraFlix : BaseOnlineController
+    public class AutoEmbed : BaseOnlineController
     {
         [HttpGet]
-        [Route("lite/hydraflix")]
+        [Route("lite/autoembed")]
         async public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             if (checksearch)
                 return Content("data-json=");
 
-            var init = await loadKit(AppInit.conf.Hydraflix);
+            var init = await loadKit(AppInit.conf.Autoembed);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            if (string.IsNullOrEmpty(imdb_id))
+                return OnError();
 
             if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -56,7 +59,7 @@ namespace Lampac.Controllers.LITE
                         if (1 > number)
                             continue;
 
-                        string link = $"{host}/lite/hydraflix?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={number}";
+                        string link = $"{host}/lite/autoembed?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={number}";
                         tpl.Append($"{number} сезон", link, number);
                     }
 
@@ -74,7 +77,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         for (int i = 1; i <= season.Value<int>("episode_count"); i++)
-                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/hydraflix/video.m3u8?id={id}&s={s}&e={i}"), vast: init.vast);
+                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/autoembed/video.mp4?id={id}&s={s}&e={i}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -87,7 +90,7 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                mtpl.Append("1080p", accsArgs($"{host}/lite/hydraflix/video.m3u8?id={id}"), vast: init.vast);
+                mtpl.Append("480p", accsArgs($"{host}/lite/autoembed/video.mp4?id={id}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -97,15 +100,12 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
-        [Route("lite/hydraflix/video.m3u8")]
+        [Route("lite/autoembed/video.mp4")]
         async public Task<ActionResult> Video(long id, int s = -1, int e = -1)
         {
-            var init = await loadKit(AppInit.conf.Hydraflix);
+            var init = await loadKit(AppInit.conf.Autoembed);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            if (id == 0)
-                return OnError();
 
             if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -113,9 +113,9 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            string embed = $"{init.host}/movie/{id}?autoPlay=true&theme=e1216d";
+            string embed = $"{init.host}/embed/movie/{id}?server=1";
             if (s > 0)
-                embed = $"{init.host}/tv/{id}/{s}/{e}?autoPlay=true&theme=e1216d";
+                embed = $"{init.host}/embed/tv/{id}/{s}/{e}?server=1";
 
             string hls = await black_magic(embed, init, proxy.data);
             if (hls == null)
@@ -134,8 +134,8 @@ namespace Lampac.Controllers.LITE
 
             try
             {
-                string memKey = $"Hydraflix:black_magic:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out string m3u8))
+                string memKey = $"autoembed:black_magic:{uri}";
+                if (!memoryCache.TryGetValue(memKey, out string mp4))
                 {
                     using (var browser = new Firefox())
                     {
@@ -147,9 +147,15 @@ namespace Lampac.Controllers.LITE
                         {
                             Console.WriteLine($"Firefox: {route.Request.Method} {route.Request.Url}");
 
-                            if (route.Request.Url.Contains(".m3u8"))
+                            if (route.Request.Url.Contains("hakunaymatata.") && route.Request.Url.Contains(".mp4"))
                             {
                                 browser.completionSource.SetResult(route.Request.Url);
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            if (route.Request.Url.Contains("/ads/"))
+                            {
                                 await route.AbortAsync();
                                 return;
                             }
@@ -157,20 +163,17 @@ namespace Lampac.Controllers.LITE
                             await PlaywrightBase.CacheOrContinue(memoryCache, page, route);
                         });
 
-                        var response = await page.GotoAsync(uri);
-                        if (response == null)
-                            return null;
-
-                        m3u8 = await browser.WaitPageResult(20);
+                        _ = page.GotoAsync(uri).ConfigureAwait(false);
+                        mp4 = await browser.WaitPageResult(30);
                     }
 
-                    if (m3u8 == null)
+                    if (mp4 == null)
                         return null;
 
-                    memoryCache.Set(memKey, m3u8, cacheTime(20, init: init));
+                    memoryCache.Set(memKey, mp4, cacheTime(20, init: init));
                 }
 
-                return m3u8;
+                return mp4;
             }
             catch { return null; }
         }
