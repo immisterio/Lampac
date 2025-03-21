@@ -165,16 +165,26 @@ namespace Shared.Engine
         #endregion
 
 
+        string plugin { get; set; }
+
         IPage page { get; set; }
 
-        public TaskCompletionSource<string> completionSource { get; private set; }
+        static Dictionary<string, IPage> pages_keepopen = new();
 
-        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
             try
             {
                 if (browser == null)
                     return null;
+
+                this.plugin = plugin;
+
+                if (AppInit.conf.firefox.keepopen && pages_keepopen.TryGetValue(plugin, out IPage _pg))
+                    return _pg;
+
+                IPage newpage;
 
                 if (proxy != default)
                 {
@@ -190,36 +200,31 @@ namespace Shared.Engine
                     };
 
                     var context = await browser.NewContextAsync(contextOptions);
-                    page = await context.NewPageAsync();
+                    newpage = await context.NewPageAsync();
                 }
                 else
                 {
-                    page = await browser.NewPageAsync();
+                    newpage = await browser.NewPageAsync();
                 }
 
                 if (headers != null && headers.Count > 0)
-                    await page.SetExtraHTTPHeadersAsync(headers);
+                    await newpage.SetExtraHTTPHeadersAsync(headers);
 
-                completionSource = new TaskCompletionSource<string>();
+                newpage.Popup += async (sender, e) =>
+                {
+                    await e.CloseAsync();
+                };
 
-                return page;
-            }
-            catch { return null; }
-        }
-
-        async public ValueTask<string> WaitPageResult(int seconds = 10)
-        {
-            try
-            {
-                var completionTask = completionSource.Task;
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
-
-                var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
-
-                if (completedTask == completionTask)
-                    return await completionTask;
-
-                return null;
+                if (AppInit.conf.firefox.keepopen)
+                {
+                    pages_keepopen.TryAdd(plugin, newpage);
+                    return newpage;
+                }
+                else
+                {
+                    page = newpage;
+                    return page;
+                }
             }
             catch { return null; }
         }
@@ -234,6 +239,9 @@ namespace Shared.Engine
             {
                 if (page != null)
                     page.CloseAsync();
+
+                if (pages_keepopen.TryGetValue(plugin, out IPage _pg))
+                    _pg.GotoAsync("about:blank");
             }
             catch { }
         }

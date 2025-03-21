@@ -174,10 +174,11 @@ namespace Lampac.Engine.Middlewares
                         #region m3u8/txt
                         using (HttpContent content = response.Content)
                         {
-                            if (response.StatusCode == HttpStatusCode.OK)
+                            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                             {
                                 if (response.Content.Headers.ContentLength > init.maxlength_m3u)
                                 {
+                                    httpContext.Response.StatusCode = 502;
                                     httpContext.Response.ContentType = "text/plain";
                                     await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
                                     return;
@@ -193,6 +194,7 @@ namespace Lampac.Engine.Middlewares
                                 string m3u8 = Encoding.UTF8.GetString(array);
                                 string hls = editm3u(m3u8, httpContext, decryptLink);
 
+                                httpContext.Response.StatusCode = (int)response.StatusCode;
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                 httpContext.Response.ContentLength = hls.Length;
                                 await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
@@ -251,10 +253,11 @@ namespace Lampac.Engine.Middlewares
                         #region ts
                         using (HttpContent content = response.Content)
                         {
-                            if (response.StatusCode == HttpStatusCode.OK)
+                            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                             {
                                 if (response.Content.Headers.ContentLength > init.maxlength_ts)
                                 {
+                                    httpContext.Response.StatusCode = 502;
                                     httpContext.Response.ContentType = "text/plain";
                                     await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
                                     return;
@@ -262,6 +265,7 @@ namespace Lampac.Engine.Middlewares
 
                                 byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
 
+                                httpContext.Response.StatusCode = (int)response.StatusCode;
                                 httpContext.Response.Headers.Add("PX-Cache", "MISS");
                                 httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 httpContext.Response.ContentLength = buffer.Length;
@@ -453,7 +457,7 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in request.Headers)
                 {
-                    if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition")
+                    if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
                         continue;
 
                     if (header.Key.ToLower().StartsWith("x-"))

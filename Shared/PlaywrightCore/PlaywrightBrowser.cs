@@ -81,7 +81,7 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
             if (chromium == null && firefox == null)
                 return default;
@@ -89,7 +89,7 @@ namespace Shared.PlaywrightCore
             if (chromium != null)
                 return chromium.NewPageAsync(headers, proxy);
 
-            return firefox.NewPageAsync(headers, proxy);
+            return firefox.NewPageAsync(plugin, headers, proxy);
         }
 
 
@@ -117,7 +117,7 @@ namespace Shared.PlaywrightCore
             {
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser, minimalAPI))
                 {
-                    var page = await browser.NewPageAsync(headers?.ToDictionary(), proxy);
+                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy);
                     if (page == null)
                         return null;
 

@@ -15,6 +15,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using Shared.Engine;
+using Microsoft.Playwright;
 
 namespace Lampac.Controllers.LITE
 {
@@ -64,9 +65,9 @@ namespace Lampac.Controllers.LITE
                 #region Firefox
                 try
                 {
-                    using (var browser = new Firefox())
+                    using(var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync(proxy: proxy.data);
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
                         if (page == null)
                             return null;
 
@@ -91,11 +92,10 @@ namespace Lampac.Controllers.LITE
 
                                 browser.completionSource.SetResult(string.Empty);
                                 await route.AbortAsync();
-                                await page.CloseAsync();
                                 return;
                             }
 
-                            await route.ContinueAsync();
+                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route);
                         });
 
                         string uri = $"https://p.{init.iframehost}/{init.clientId}";
@@ -106,7 +106,7 @@ namespace Lampac.Controllers.LITE
                             uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
                         await page.GotoAsync(uri);
-                        await browser.WaitPageResult(20);
+                        await browser.WaitPageResult(15);
                     }
                 }
                 catch { }

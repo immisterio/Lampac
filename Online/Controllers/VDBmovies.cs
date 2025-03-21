@@ -80,7 +80,7 @@ namespace Lampac.Controllers.LITE
             {
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(proxy: proxy);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy);
                     if (page == null)
                         return null;
 

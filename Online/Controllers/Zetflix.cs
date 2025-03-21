@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
                     {
                         log += "browser init\n";
 
-                        var page = await browser.NewPageAsync(new Dictionary<string, string>()
+                        var page = await browser.NewPageAsync(init.plugin, new Dictionary<string, string>()
                         {
                             ["Referer"] = "https://www.google.com/"
 

@@ -704,8 +704,15 @@ namespace Lampac.Controllers
 
             if (!string.IsNullOrEmpty(imdb_id))
             {
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
+                send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled)
+                {
                     send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
+                    send(conf.Twoembed, "twoembed", "2Embed (ENG)");
+                }
             }
 
             if (!life && conf.litejac)
@@ -862,6 +869,11 @@ namespace Lampac.Controllers
                             case "fancdn":
                             case "cdnvideohub":
                             case "moonanime":
+                            case "playembed":
+                            case "rgshows":
+                            case "twoembed":
+                            case "vidsrc":
+                            case "smashystream":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":

@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(proxy: proxy.data);
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
                         if (page == null)
                             return null;
 
@@ -140,7 +140,7 @@ namespace Lampac.Controllers.LITE
             {
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(proxy: proxy);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy);
                     if (page == null)
                         return null;
 

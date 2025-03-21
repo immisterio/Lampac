@@ -1,10 +1,13 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Playwright;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -233,5 +236,62 @@ namespace Shared.Engine
 
 
         public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
+
+
+        public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
+
+        async public ValueTask<string> WaitPageResult(int seconds = 10)
+        {
+            try
+            {
+                var completionTask = completionSource.Task;
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
+
+                var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
+
+                if (completedTask == completionTask)
+                    return await completionTask;
+
+                return null;
+            }
+            catch { return null; }
+        }
+
+
+        async public static Task CacheOrContinue(IMemoryCache memoryCache, IPage page, IRoute route)
+        {
+            if (Regex.IsMatch(route.Request.Url, "\\.(woff2?|vtt|css|js|svg|jpe?g|png)$") || Regex.IsMatch(route.Request.Url, "(gstatic|googleapis)\\."))
+            {
+                if (Regex.IsMatch(route.Request.Url, "/(cdn-cgi|cgi)/"))
+                {
+                    await route.ContinueAsync();
+                    return;
+                }
+
+                if (memoryCache.TryGetValue(route.Request.Url, out (byte[] content, Dictionary<string, string> headers) cache))
+                {
+                    await route.FulfillAsync(new RouteFulfillOptions
+                    {
+                        BodyBytes = cache.content,
+                        Headers = cache.headers
+                    });
+                }
+                else
+                {
+                    await route.ContinueAsync();
+                    var response = await page.WaitForResponseAsync(route.Request.Url);
+                    if (response != null)
+                    {
+                        var content = await response.BodyAsync();
+                        if (content != null)
+                            memoryCache.Set(route.Request.Url, (content, response.Headers), DateTime.Now.AddDays(1));
+                    }
+                }
+
+                return;
+            }
+
+            await route.ContinueAsync();
+        }
     }
 }

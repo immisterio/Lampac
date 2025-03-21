@@ -38,13 +38,13 @@ namespace Lampac.Controllers.LITE
                async ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
-                    return await HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
+                       return await HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
 
                    try
                    {
                        using (var browser = new PlaywrightBrowser())
                        {
-                           var page = await browser.NewPageAsync(proxy: proxy.data);
+                           var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
                            if (page == null)
                                return null;
 
@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
                                    return;
                                }
 
-                               await route.ContinueAsync();
+                               await PlaywrightBase.CacheOrContinue(memoryCache, page, route);
                            });
 
                            var result = await page.GotoAsync(ongettourl);

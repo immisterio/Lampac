@@ -11,16 +11,33 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
     public class Vidsrc : BaseOnlineController
     {
+        ValueTask<OnlinesSettings> Initialization()
+        {
+            switch (HttpContext.Request.Path.Value.Split("/")[2].ToLower())
+            {
+                case "twoembed":
+                    return loadKit(AppInit.conf.Twoembed);
+            }
+
+            return loadKit(AppInit.conf.Vidsrc);
+        }
+
+
         [HttpGet]
         [Route("lite/vidsrc")]
-        async public Task<ActionResult> Index(long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        [Route("lite/twoembed")]
+        async public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Vidsrc);
+            if (checksearch)
+                return Content("data-json=");
+
+            var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
@@ -29,9 +46,6 @@ namespace Lampac.Controllers.LITE
 
             if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             if (serial == 1)
             {
@@ -60,7 +74,7 @@ namespace Lampac.Controllers.LITE
                         if (1 > number)
                             continue;
 
-                        string link = $"{host}/lite/vidsrc?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={number}";
+                        string link = $"{host}/lite/{init.plugin.ToLower()}?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={number}";
                         tpl.Append($"{number} сезон", link, number);
                     }
 
@@ -78,7 +92,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         for (int i = 1; i <= season.Value<int>("episode_count"); i++)
-                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/vidsrc/video.m3u8?imdb_id={imdb_id}&s={s}&e={i}"), vast: init.vast);
+                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/{init.plugin.ToLower()}/video.m3u8?imdb_id={imdb_id}&s={s}&e={i}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -91,7 +105,7 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                mtpl.Append("1080p", accsArgs($"{host}/lite/vidsrc/video.m3u8?imdb_id={imdb_id}"), vast: init.vast);
+                mtpl.Append("1080p", accsArgs($"{host}/lite/{init.plugin.ToLower()}/video.m3u8?imdb_id={imdb_id}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -102,9 +116,10 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/vidsrc/video.m3u8")]
+        [Route("lite/twoembed/video.m3u8")]
         async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1)
         {
-            var init = await loadKit(AppInit.conf.Vidsrc);
+            var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
@@ -133,6 +148,9 @@ namespace Lampac.Controllers.LITE
         #region black_magic
         async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
+            if (string.IsNullOrEmpty(uri))
+                return uri;
+
             try
             {
                 string memKey = $"vidsrc:black_magic:{uri}";
@@ -140,56 +158,58 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync(proxy: proxy);
+                        var page = await browser.NewPageAsync("vidsrc", httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
-                        await page.SetExtraHTTPHeadersAsync(httpHeaders(init).ToDictionary());
-
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (m3u8 != null || route.Request.Url.Contains(".css"))
+                            if (m3u8 != null || Regex.IsMatch(route.Request.Url, "(\\&wasm=|image.tmdb.org)"))
                             {
                                 await route.AbortAsync();
                                 return;
                             }
 
-                            if (route.Request.Url.Contains("master.m3u8"))
+                            Console.WriteLine($"Firefox: {route.Request.Method} {route.Request.Url}");
+
+                            if (route.Request.Url.Contains(".m3u8"))
                             {
                                 m3u8 = route.Request.Url;
                                 await route.AbortAsync();
                                 return;
                             }
 
-                            await route.ContinueAsync();
+                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route);
                         });
 
                         var response = await page.GotoAsync(uri);
                         if (response == null)
                             return null;
 
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
                         var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
 
-                        for (int i = 0; i < 10; i++)
+                        int click = 0;
+                        var endTime = DateTime.Now.AddSeconds(20);
+                        while (endTime > DateTime.Now && m3u8 == null)
                         {
-                            if (m3u8 != null)
-                                break;
-
                             int vS(int center)
                             {
                                 var centerX = center / 2;
-                                return Random.Shared.Next(0, 2) == 1 ? (centerX + Random.Shared.Next(1, 5)) : (centerX - Random.Shared.Next(1, 5));
+                                return Random.Shared.Next(0, 3) == 1 ? (centerX + Random.Shared.Next(1, 20)) : (centerX - Random.Shared.Next(1, 20));
                             }
 
-                            await page.Mouse.ClickAsync(vS(viewportSize.Width), vS(viewportSize.Height));
-                            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(20, 50)));
-                        }
+                            click++;
+                            if (click >= 10)
+                                await Task.Delay(200);
 
-                        if (m3u8 == null)
-                            return null;
+                            await page.Mouse.ClickAsync(vS(viewportSize.Width), vS(viewportSize.Height));
+                        }
                     }
+
+                    if (m3u8 == null)
+                        return null;
 
                     memoryCache.Set(memKey, m3u8, cacheTime(20, init: init));
                 }

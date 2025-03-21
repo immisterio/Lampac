@@ -164,7 +164,6 @@ namespace Shared.Engine
 
         IPage page { get; set; }
 
-        public TaskCompletionSource<string> completionSource { get; private set; }
 
         async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
@@ -197,26 +196,12 @@ namespace Shared.Engine
                 if (headers != null && headers.Count > 0)
                     await page.SetExtraHTTPHeadersAsync(headers);
 
-                completionSource = new TaskCompletionSource<string>();
+                page.Popup += async (sender, e) =>
+                {
+                    await e.CloseAsync();
+                };
 
                 return page;
-            }
-            catch { return null; }
-        }
-
-        async public ValueTask<string> WaitPageResult(int seconds = 10)
-        {
-            try
-            {
-                var completionTask = completionSource.Task;
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
-
-                var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
-
-                if (completedTask == completionTask)
-                    return await completionTask;
-
-                return null;
             }
             catch { return null; }
         }
