@@ -260,6 +260,12 @@ namespace Shared.Engine
 
         async public static Task CacheOrContinue(IMemoryCache memoryCache, IPage page, IRoute route)
         {
+            if (Regex.IsMatch(route.Request.Url, "(image.tmdb.org|yandex\\.|google-analytics|yahoo\\.|googletagmanager)"))
+            {
+                await route.AbortAsync();
+                return;
+            }
+
             if (Regex.IsMatch(route.Request.Url, "\\.(woff2?|vtt|css|js|svg|jpe?g|png)$") || Regex.IsMatch(route.Request.Url, "(gstatic|googleapis)\\."))
             {
                 if (Regex.IsMatch(route.Request.Url, "/(cdn-cgi|cgi)/"))

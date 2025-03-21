@@ -365,7 +365,7 @@ namespace Shared.Model
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
 
 
-
+        #region ENG
         /// <summary>
         /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
         /// </summary>
@@ -424,6 +424,8 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
+        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
+
         /// <summary>
         /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
         /// </summary>
@@ -472,7 +474,7 @@ namespace Shared.Model
                 ("sec-fetch-site", "same-site")
             ).ToDictionary()
         };
-
+        #endregion
 
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
 

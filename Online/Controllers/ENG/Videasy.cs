@@ -11,20 +11,19 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
-using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
-    public class SmashyStream : BaseOnlineController
+    public class Videasy : BaseOnlineController
     {
         [HttpGet]
-        [Route("lite/smashystream")]
+        [Route("lite/videasy")]
         async public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             if (checksearch)
                 return Content("data-json=");
 
-            var init = await loadKit(AppInit.conf.Smashystream);
+            var init = await loadKit(AppInit.conf.Videasy);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
@@ -58,7 +57,7 @@ namespace Lampac.Controllers.LITE
                         if (1 > number)
                             continue;
 
-                        string link = $"{host}/lite/smashystream?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={number}";
+                        string link = $"{host}/lite/videasy?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={number}";
                         tpl.Append($"{number} сезон", link, number);
                     }
 
@@ -76,7 +75,7 @@ namespace Lampac.Controllers.LITE
                             continue;
 
                         for (int i = 1; i <= season.Value<int>("episode_count"); i++)
-                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/smashystream/video.m3u8?id={id}&s={s}&e={i}"), vast: init.vast);
+                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/videasy/video.m3u8?id={id}&s={s}&e={i}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -89,7 +88,7 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                mtpl.Append("1080p", accsArgs($"{host}/lite/smashystream/video.m3u8?id={id}"), vast: init.vast);
+                mtpl.Append("1080p", accsArgs($"{host}/lite/videasy/video.m3u8?id={id}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -99,10 +98,10 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
-        [Route("lite/smashystream/video.m3u8")]
+        [Route("lite/videasy/video.m3u8")]
         async public Task<ActionResult> Video(long id, int s = -1, int e = -1)
         {
-            var init = await loadKit(AppInit.conf.Smashystream);
+            var init = await loadKit(AppInit.conf.Videasy);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
@@ -117,7 +116,7 @@ namespace Lampac.Controllers.LITE
 
             string embed = $"{init.host}/movie/{id}";
             if (s > 0)
-                embed = $"{init.host}/tv/{id}?s={s}&e={e}";
+                embed = $"{init.host}/tv/{id}/{s}/{e}";
 
             string hls = await black_magic(embed, init, proxy.data);
             if (hls == null)
@@ -136,7 +135,7 @@ namespace Lampac.Controllers.LITE
 
             try
             {
-                string memKey = $"smashystream:black_magic:{uri}";
+                string memKey = $"videasy:black_magic:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out string m3u8))
                 {
                     using (var browser = new Firefox())
@@ -147,17 +146,11 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (m3u8 != null || route.Request.Url.Contains(".m3u"))
-                            {
-                                await route.AbortAsync();
-                                return;
-                            }
-
                             Console.WriteLine($"Firefox: {route.Request.Method} {route.Request.Url}");
 
-                            if (route.Request.Url.Contains("master.txt"))
+                            if (route.Request.Url.Contains(".m3u8"))
                             {
-                                m3u8 = route.Request.Url;
+                                browser.completionSource.SetResult(route.Request.Url);
                                 await route.AbortAsync();
                                 return;
                             }
@@ -170,21 +163,9 @@ namespace Lampac.Controllers.LITE
                             return null;
 
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        await page.ClickAsync("div.flex.flex-col.items-center.gap-y-3.title-year > button");
 
-                        var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
-
-                        var endTime = DateTime.Now.AddSeconds(15);
-                        while (endTime > DateTime.Now && m3u8 == null)
-                        {
-                            int vS(int center)
-                            {
-                                var centerX = center / 2;
-                                return Random.Shared.Next(0, 3) == 1 ? (centerX + Random.Shared.Next(1, 20)) : (centerX - Random.Shared.Next(1, 20));
-                            }
-
-                            await Task.Delay(100);
-                            await page.Mouse.ClickAsync(vS(viewportSize.Width), vS(viewportSize.Height));
-                        }
+                        m3u8 = await browser.WaitPageResult(20);
                     }
 
                     if (m3u8 == null)

@@ -142,7 +142,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync("vidsrc", httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
