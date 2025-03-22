@@ -63,6 +63,9 @@ curl -L -k -s https://lampac.sh/home | bash
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 
+# Работают через Firefox 
+* Lumex, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG)
+
 # Привязка PRO аккаунтов
 * Filmix - "http://IP:9118/lite/filmixpro" 
 * KinoPub - "http://IP:9118/lite/kinopubpro" 
