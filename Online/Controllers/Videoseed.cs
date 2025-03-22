@@ -162,7 +162,7 @@ namespace Lampac.Controllers.LITE
                         {
                             if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
                             {
-                                await route.ContinueAsync();
+                                await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
                                 return;
                             }
 

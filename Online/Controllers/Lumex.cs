@@ -15,7 +15,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using Shared.Engine;
-using Microsoft.Playwright;
 
 namespace Lampac.Controllers.LITE
 {
@@ -95,7 +94,7 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
-                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route);
+                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
                         });
 
                         string uri = $"https://p.{init.iframehost}/{init.clientId}";
@@ -106,7 +105,7 @@ namespace Lampac.Controllers.LITE
                             uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
                         await page.GotoAsync(uri);
-                        await browser.WaitPageResult(15);
+                        await browser.WaitPageResult();
                     }
                 }
                 catch { }

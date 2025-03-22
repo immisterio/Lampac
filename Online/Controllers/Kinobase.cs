@@ -6,7 +6,6 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
-using System.Text.RegularExpressions;
 using Shared.Engine;
 using Shared.PlaywrightCore;
 
@@ -52,13 +51,13 @@ namespace Lampac.Controllers.LITE
 
                            await page.RouteAsync("**/*", async route =>
                            {
-                               if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments") || Regex.IsMatch(route.Request.Url, "\\.(jpe?g|png|css|svg|ico)"))
+                               if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments"))
                                {
                                    await route.AbortAsync();
                                    return;
                                }
 
-                               await PlaywrightBase.CacheOrContinue(memoryCache, page, route);
+                               await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
                            });
 
                            var result = await page.GotoAsync(ongettourl);

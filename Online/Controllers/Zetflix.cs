@@ -85,13 +85,7 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (Regex.IsMatch(route.Request.Url, "(gstatic|googleapis|\\.jpg|\\.css)"))
-                            {
-                                await route.AbortAsync();
-                                return;
-                            }
-
-                            await route.ContinueAsync();
+                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
                         });
 
                         await page.GotoAsync(uri);

@@ -258,7 +258,7 @@ namespace Shared.Engine
         }
 
 
-        async public static Task CacheOrContinue(IMemoryCache memoryCache, IPage page, IRoute route)
+        async public static Task CacheOrContinue(IMemoryCache memoryCache, IPage page, IRoute route, bool abortMedia = false, bool fullCacheJS = false, string patterCache = null)
         {
             if (Regex.IsMatch(route.Request.Url, "(image.tmdb.org|yandex\\.|google-analytics|yahoo\\.|googletagmanager)"))
             {
@@ -266,37 +266,63 @@ namespace Shared.Engine
                 return;
             }
 
-            if (Regex.IsMatch(route.Request.Url, "\\.(woff2?|vtt|css|js|svg|jpe?g|png)$") || Regex.IsMatch(route.Request.Url, "(gstatic|googleapis)\\."))
+            if (abortMedia && Regex.IsMatch(route.Request.Url, "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico)"))
             {
-                if (Regex.IsMatch(route.Request.Url, "/(cdn-cgi|cgi)/"))
-                {
-                    await route.ContinueAsync();
-                    return;
-                }
-
-                if (memoryCache.TryGetValue(route.Request.Url, out (byte[] content, Dictionary<string, string> headers) cache))
-                {
-                    await route.FulfillAsync(new RouteFulfillOptions
-                    {
-                        BodyBytes = cache.content,
-                        Headers = cache.headers
-                    });
-                }
-                else
-                {
-                    await route.ContinueAsync();
-                    var response = await page.WaitForResponseAsync(route.Request.Url);
-                    if (response != null)
-                    {
-                        var content = await response.BodyAsync();
-                        if (content != null)
-                            memoryCache.Set(route.Request.Url, (content, response.Headers), DateTime.Now.AddDays(1));
-                    }
-                }
-
+                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                await route.AbortAsync();
                 return;
             }
 
+            if (route.Request.Method == "GET")
+            {
+                bool valid = false;
+                string memkey = route.Request.Url;
+
+                if (Regex.IsMatch(route.Request.Url, "\\.(woff2?|css|svg|jpe?g|png|gif)") || (fullCacheJS && route.Request.Url.Contains(".js")) || route.Request.Url.Contains(".googleapis.com/css"))
+                {
+                    valid = true;
+                    memkey = route.Request.Url.Split("?")[0];
+                }
+                else if (Regex.IsMatch(route.Request.Url, "\\.(js|wasm)$"))
+                {
+                    valid = true;
+                    memkey = route.Request.Url;
+                }
+                else if (patterCache != null && Regex.IsMatch(route.Request.Url, patterCache))
+                {
+                    valid = true;
+                    memkey = route.Request.Url;
+                }
+
+                if (valid)
+                {
+                    if (memoryCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache))
+                    {
+                        Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
+                        await route.FulfillAsync(new RouteFulfillOptions
+                        {
+                            BodyBytes = cache.content,
+                            Headers = cache.headers
+                        });
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Playwright: MISS {route.Request.Url}");
+                        await route.ContinueAsync();
+                        var response = await page.WaitForResponseAsync(route.Request.Url);
+                        if (response != null)
+                        {
+                            var content = await response.BodyAsync();
+                            if (content != null)
+                                memoryCache.Set(memkey, (content, response.Headers), DateTime.Now.AddDays(1));
+                        }
+                    }
+
+                    return;
+                }
+            }
+
+            Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
             await route.ContinueAsync();
         }
     }

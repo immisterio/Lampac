@@ -316,9 +316,16 @@ namespace Lampac.Controllers
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
-            if (memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) res))
+            List<(string code, int index, bool work)> _links = null;
+            if (memoryCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links))
+                _links = links.ToList();
+
+            if (_links != null && _links.Count(i => i.code != null) > 0)
             {
-                if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
+                bool ready = _links.Count == _links.Count(i => i.code != null);
+                string online = string.Join(",", _links.Where(i => i.code != null).OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
+
+                if (ready && !online.Contains("\"show\":true"))
                 {
                     if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
                         return error($"Добавьте \"IMDB ID\" {(serial == 1 ? "сериала" : "фильма")} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids");
@@ -326,8 +333,7 @@ namespace Lampac.Controllers
                     return error($"Не удалось найти онлайн для {(serial == 1 ? "сериала" : "фильма")}");
                 }
 
-                string online = res.online?.Replace("{localhost}", host) ?? string.Empty;
-                json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{online}]" + "}";
+                json = "{" + $"\"ready\":{ready.ToString().ToLower()},\"tasks\":{_links.Count},\"online\":[{online.Replace("{localhost}", host)}]" + "}";
             }
 
             return Content(json ?? "{\"ready\":false,\"tasks\":0,\"online\":[]}", contentType: "application/javascript; charset=utf-8");
@@ -708,11 +714,11 @@ namespace Lampac.Controllers
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
                 send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
                 send(conf.MovPI, "movpi", "MovPI (ENG)");
+                send(conf.Videasy, "videasy", "Videasy (ENG)");
                 send(conf.VidLink, "vidlink", "VidLink (ENG)");
                 send(conf.Twoembed, "twoembed", "2Embed (ENG)");
-                send(conf.Videasy, "videasy", "Videasy (ENG)");
                 send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
+                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
             }
 
             send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
@@ -736,43 +742,42 @@ namespace Lampac.Controllers
             {
                 string memkey = CrypTo.md5($"checkOnlineSearch:{id}:{serial}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{online.Count}:{(IsKitConf ? requestInfo.user_uid : null)}");
 
-                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
+                if (!memoryCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links) || !conf.multiaccess)
                 {
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
-
                     var tasks = new List<Task>();
-                    var links = new List<(string code, int index, bool work)>();
+                    links = new List<(string code, int index, bool work)>(online.Count);
+                    for (int i = 0; i < online.Count; i++)
+                        links.Add(default);
+
+                    memoryCache.Set(memkey, links, DateTime.Now.AddMinutes(5));
 
                     foreach (var o in online)
-                        tasks.Add(checkSearch(memkey, links, tasks, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype));
+                    {
+                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype);
+                        tasks.Add(tk);
+                    }
 
                     if (life)
                         return Json(new { life = true, memkey, title = (fix_title ? title : null) });
 
                     await Task.WhenAll(tasks).ConfigureAwait(false);
-
-                    cache.ready = true;
-                    cache.tasks = tasks.Count;
-                    cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
-
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (life)
                     return Json(new { life = true, memkey });
 
-                return Content($"[{cache.online.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
+                return ContentTo($"[{string.Join(",", links.Where(i => i.code != null).OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code)).Replace("{localhost}", host)}]");
             }
             #endregion
 
             string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
-            return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
+            return ContentTo($"[{online_result.Replace("{localhost}", host)}]");
         }
         #endregion
 
 
         #region checkSearch
-        async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, List<Task> tasks, dynamic init, int index, string name, string uri, string plugin,
+        async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
             try
@@ -917,9 +922,7 @@ namespace Lampac.Controllers
                     name += quality;
                 }
 
-                links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
-
-                memoryCache.Set(memkey, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
+                links[indexList] = ("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work);
             }
             catch (Exception ex) { Console.WriteLine("checkSearch: " + ex.ToString()); }
         }
