@@ -63,6 +63,8 @@ curl -L -k -s https://lampac.sh/home | bash
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos
 
+Для работы Lumex и ENG балансеров, нужно включить Firefox в init.conf
+
 # Привязка PRO аккаунтов
 * Filmix - "http://IP:9118/lite/filmixpro" 
 * KinoPub - "http://IP:9118/lite/kinopubpro" 
