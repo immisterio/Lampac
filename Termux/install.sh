@@ -30,7 +30,10 @@ cat <<EOF > init.conf
   "listenport": 9118,
   "typecache": "mem",
   "mikrotik": true,
-  "puppeteer": {
+  "chromium": {
+    "enable": false
+  },
+  "firefox": {
     "enable": false
   },
   "dlna": {
