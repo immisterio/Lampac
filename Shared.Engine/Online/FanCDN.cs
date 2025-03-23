@@ -71,6 +71,13 @@ namespace Shared.Engine.Online
             }
             else
             {
+                if (kinopoisk_id > 0 && serial_frameUrl != null)
+                {
+                    var _res = await Embed(Regex.Replace(serial_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
+                    if (_res != null)
+                        return _res;
+                }
+
                 if (string.IsNullOrEmpty(title) || year == 0)
                     return null;
 

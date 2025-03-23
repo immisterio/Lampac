@@ -253,7 +253,8 @@ namespace Lampac
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
-            enable = false, Headless = true, keepopen = true
+            enable = false, Headless = true,
+            keepopen = new string[] { "BongaCams,Spankbang,Zetflix,VideoDB,VDBmovies,FanCDN,Kinobase,Lumex,Videoseed,Hydraflix,Vidsrc,MovPI,VidLink,Twoembed,Autoembed,Videasy,Smashystream" }
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
@@ -307,7 +308,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "9d05fdc95ece6a7edec7a129013b784f481e906c"
+            tree = "5f99f1d99f890a1cfe26aac5f667942e9f638034"
         };
 
         public OnlineConf online = new OnlineConf()

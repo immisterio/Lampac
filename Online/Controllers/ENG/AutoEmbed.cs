@@ -6,6 +6,11 @@ using Lampac.Models.LITE;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
+using Shared.Model.Templates;
+using Newtonsoft.Json.Linq;
+using Lampac.Engine.CORE;
+using System.Text;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -15,14 +20,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/autoembed")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Autoembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true);
+            return ViewTmdb(AppInit.conf.Autoembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 
         #region Video
         [HttpGet]
         [Route("lite/autoembed/video")]
-        async public Task<ActionResult> Video(long id, int s = -1, int e = -1)
+        async public Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.Autoembed);
             if (await IsBadInitialization(init, rch: false))
@@ -38,11 +43,82 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/embed/tv/{id}/{s}/{e}?server=1";
 
-            string hls = await black_magic(embed, init, proxy.data);
-            if (hls == null)
-                return StatusCode(502);
+            if (init.priorityBrowser == "http")
+            {
+                string apihost = "https://nono.autoembed.cc";
+                string uri = $"{apihost}/api/getVideoSource?type=movie&id={id}";
+                if (s > 0)
+                    uri = $"{apihost}/api/getVideoSource?type=tv&id={id}%2F{s}%2F{e}";
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxy.proxy));
+                if (!hybridCache.TryGetValue(uri, out JObject data))
+                {
+                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: HeadersModel.Init(
+                        ("Accept-Language", "en-US,en;q=0.5"),
+                        ("Alt-Used", "nono.autoembed.cc"),
+                        ("Priority", "u=4"),
+                        ("Referer", $"{apihost}/tv/{id}/{s}/{e}"),
+                        ("Sec-Fetch-Dest", "empty"),
+                        ("Sec-Fetch-Mode", "cors"),
+                        ("Sec-Fetch-Site", "same-origin"),
+                        ("TE", "trailers"),
+                        ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
+                    ));
+
+                    if (root == null && !root.ContainsKey("encryptedData"))
+                        return OnError();
+
+                    string encryptedData = root.Value<string>("encryptedData");
+                    if (string.IsNullOrEmpty(encryptedData))
+                        return OnError();
+
+                    var postdata = new System.Net.Http.StringContent("{\"encryptedData\":\"" + encryptedData + "\"}", Encoding.UTF8, "application/json");
+                    var videoSource = await HttpClient.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, headers: HeadersModel.Init(
+                        ("Accept-Language", "en-US,en;q=0.5"),
+                        ("Alt-Used", "nono.autoembed.cc"),
+                        ("Origin", apihost),
+                        ("Priority", "u=4"),
+                        ("Referer", $"{apihost}/tv/{id}/{s}/{e}"),
+                        ("Sec-Fetch-Dest", "empty"),
+                        ("Sec-Fetch-Mode", "cors"),
+                        ("Sec-Fetch-Site", "same-origin"),
+                        ("TE", "trailers"),
+                        ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
+                    ));
+
+                    if (videoSource == null && !root.ContainsKey("videoSource"))
+                        return OnError();
+
+                    data = videoSource;
+                    memoryCache.Set(uri, data, cacheTime(20));
+                }
+
+                var subtitles = new SubtitleTpl();
+                try
+                {
+                    foreach (var sub in data["subtitles"])
+                        subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("file"), proxy: proxy.proxy));
+                }
+                catch { }
+
+                string file = HostStreamProxy(init, data.Value<string>("videoSource"), proxy: proxy.proxy);
+                if (play)
+                    return Redirect(file);
+
+                return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast));
+            }
+            else
+            {
+                string file = await black_magic(embed, init, proxy.data);
+                if (file == null)
+                    return StatusCode(502);
+
+                file = HostStreamProxy(init, file, proxy: proxy.proxy);
+
+                if (play)
+                    return Redirect(file);
+
+                return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast));
+            }
         }
         #endregion
 
@@ -59,12 +135,15 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync("ENG", httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
                         await page.RouteAsync("**/*", async route =>
                         {
+                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                return;
+
                             if (Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
                             {
                                 Console.WriteLine($"Playwright: Abort {route.Request.Url}");
@@ -79,7 +158,7 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
-                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
+                            await route.ContinueAsync();
                         });
 
                         _ = page.GotoAsync(uri).ConfigureAwait(false);

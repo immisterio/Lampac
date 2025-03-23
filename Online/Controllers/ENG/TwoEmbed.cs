@@ -59,18 +59,14 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync("ENG", httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (route.Request.Url.Contains(".m3u8"))
-                            {
-                                browser.completionSource.SetResult(route.Request.Url);
-                                await route.AbortAsync();
+                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
                                 return;
-                            }
 
                             if (Regex.IsMatch(route.Request.Url, "(fonts.googleapis|pixel.embed|rtmark)\\."))
                             {
@@ -79,7 +75,14 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
-                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
+                            if (route.Request.Url.Contains(".m3u8"))
+                            {
+                                browser.completionSource.SetResult(route.Request.Url);
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            await route.ContinueAsync();
                         });
 
                         var response = await page.GotoAsync(uri);

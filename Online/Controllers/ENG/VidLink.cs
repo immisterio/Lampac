@@ -5,6 +5,7 @@ using Shared.Engine;
 using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -14,14 +15,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vidlink")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.VidLink, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true);
+            return ViewTmdb(AppInit.conf.VidLink, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 
         #region Video
         [HttpGet]
         [Route("lite/vidlink/video")]
-        async public Task<ActionResult> Video(long id, int s = -1, int e = -1)
+        async public Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.VidLink);
             if (await IsBadInitialization(init, rch: false))
@@ -40,11 +41,16 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/tv/{id}/{s}/{e}";
 
-            string hls = await black_magic(embed, init, proxy.data);
-            if (hls == null)
+            string file = await black_magic(embed, init, proxy.data);
+            if (file == null)
                 return StatusCode(502);
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxy.proxy));
+            file = HostStreamProxy(init, file, proxy: proxy.proxy);
+
+            if (play)
+                return Redirect(file);
+
+            return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast));
         }
         #endregion
 
@@ -61,18 +67,14 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync("ENG", httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (route.Request.Url.Contains(".m3u") || route.Request.Url.Contains(".mp4"))
-                            {
-                                browser.completionSource.SetResult(route.Request.Url);
-                                await route.AbortAsync();
+                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
                                 return;
-                            }
 
                             if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))
                             {
@@ -81,7 +83,14 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
-                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$");
+                            if (route.Request.Url.Contains(".m3u") || route.Request.Url.Contains(".mp4"))
+                            {
+                                browser.completionSource.SetResult(route.Request.Url);
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            await route.ContinueAsync();
                         });
 
                         var response = await page.GotoAsync(uri);

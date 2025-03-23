@@ -258,19 +258,19 @@ namespace Shared.Engine
         }
 
 
-        async public static Task CacheOrContinue(IMemoryCache memoryCache, IPage page, IRoute route, bool abortMedia = false, bool fullCacheJS = false, string patterCache = null)
+        async public static ValueTask<bool> AbortOrCache(IMemoryCache memoryCache, IPage page, IRoute route, bool abortMedia = false, bool fullCacheJS = false, string patterCache = null)
         {
-            if (Regex.IsMatch(route.Request.Url, "(image.tmdb.org|yandex\\.|google-analytics|yahoo\\.|googletagmanager)"))
+            if (Regex.IsMatch(route.Request.Url, "(image.tmdb.org|yandex\\.|google-analytics|yahoo\\.|fonts.googleapis|googletagmanager|opensubtitles\\.)"))
             {
                 await route.AbortAsync();
-                return;
+                return true;
             }
 
             if (abortMedia && Regex.IsMatch(route.Request.Url, "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico)"))
             {
                 Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                 await route.AbortAsync();
-                return;
+                return true;
             }
 
             if (route.Request.Method == "GET")
@@ -318,12 +318,12 @@ namespace Shared.Engine
                         }
                     }
 
-                    return;
+                    return true;
                 }
             }
 
             Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
-            await route.ContinueAsync();
+            return false;
         }
     }
 }

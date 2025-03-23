@@ -69,6 +69,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
+        #region black_magic
         string logRequest = string.Empty;
 
         async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
@@ -143,5 +144,6 @@ namespace Lampac.Controllers.LITE
                 return null; 
             }
         }
+        #endregion
     }
 }

@@ -63,7 +63,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync("ENG", httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
                             return null;
 
@@ -74,6 +74,9 @@ namespace Lampac.Controllers.LITE
                                 await route.ContinueAsync();
                                 return;
                             }
+
+                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                return;
 
                             if (route.Request.Url == uri)
                             {
@@ -91,7 +94,7 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
-                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
+                            await route.ContinueAsync();
                         });
 
                         var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));

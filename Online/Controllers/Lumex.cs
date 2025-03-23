@@ -94,7 +94,10 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
-                            await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
+                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                return;
+
+                            await route.ContinueAsync();
                         });
 
                         string uri = $"https://p.{init.iframehost}/{init.clientId}";
@@ -104,7 +107,10 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrEmpty(imdb_id))
                             uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
-                        await page.GotoAsync(uri);
+                        var response = await page.GotoAsync(uri);
+                        if (response == null)
+                            return null;
+
                         await browser.WaitPageResult();
                     }
                 }

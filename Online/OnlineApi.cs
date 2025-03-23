@@ -717,9 +717,13 @@ namespace Lampac.Controllers
                 send(conf.Videasy, "videasy", "Videasy (ENG)");
                 send(conf.VidLink, "vidlink", "VidLink (ENG)");
                 send(conf.Twoembed, "twoembed", "2Embed (ENG)");
-                send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+                if (conf.Autoembed.priorityBrowser != "http")
+                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
                 send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
             }
+
+            if (conf.Autoembed.priorityBrowser == "http")
+                send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
 
             send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
             send(conf.Rgshows, "rgshows", "RgShows (ENG)");

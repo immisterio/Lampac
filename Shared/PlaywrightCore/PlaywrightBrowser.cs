@@ -87,7 +87,7 @@ namespace Shared.PlaywrightCore
                 return default;
 
             if (chromium != null)
-                return chromium.NewPageAsync(headers, proxy);
+                return chromium.NewPageAsync(plugin, headers, proxy);
 
             return firefox.NewPageAsync(plugin, headers, proxy);
         }

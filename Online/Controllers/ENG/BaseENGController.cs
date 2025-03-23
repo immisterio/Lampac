@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public Task<ActionResult> ViewTmdb(OnlinesSettings init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false)
+        async public Task<ActionResult> ViewTmdb(OnlinesSettings init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play")
         {
             if (checksearch)
                 return Content("data-json=");
@@ -69,8 +69,14 @@ namespace Lampac.Controllers.LITE
 
                         for (int i = 1; i <= season.Value<int>("episode_count"); i++)
                         {
-                            string path = mp4 ? "video" : "video.m3u8";
-                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), accsArgs($"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}&s={s}&e={i}"), vast: init.vast);
+                            string path = (mp4 || method == "call") ? "video" : "video.m3u8";
+                            string uri = $"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}&s={s}&e={i}";
+                            string stream = method == "call" ? accsArgs($"{host}/lite/{init.plugin.ToLower()}/{(mp4 ? "video" : "video.m3u8")}?id={id}&imdb_id={imdb_id}&s={s}&e={i}&play=true") : null;
+
+                            if (method == "play")
+                                uri = accsArgs(uri);
+
+                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), uri, method, streamlink: stream, vast: init.vast);
                         }
                     }
 
@@ -84,8 +90,14 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                string path = mp4 ? "video" : "video.m3u8";
-                mtpl.Append("English", accsArgs($"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}"), vast: init.vast);
+                string path = (mp4 || method == "call") ? "video" : "video.m3u8";
+                string uri = $"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}";
+                string stream = method == "call" ? accsArgs($"{host}/lite/{init.plugin.ToLower()}/{(mp4 ? "video" : "video.m3u8")}?id={id}&imdb_id={imdb_id}&play=true") : null;
+
+                if (method == "play")
+                    uri = accsArgs(uri);
+
+                mtpl.Append("English", uri, method, stream: stream, vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion

@@ -4,7 +4,7 @@
     {
         public bool enable { get; set; }
 
-        public bool keepopen { get; set; }
+        public string[] keepopen { get; set; }
 
         public bool Headless { get; set; }
 

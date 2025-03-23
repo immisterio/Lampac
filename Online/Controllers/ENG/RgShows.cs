@@ -5,6 +5,7 @@ using Lampac.Models.LITE;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Net;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -14,14 +15,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rgshows")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Rgshows, false, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true);
+            return ViewTmdb(AppInit.conf.Rgshows, false, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 
         #region Video
         [HttpGet]
         [Route("lite/rgshows/video")]
-        async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1)
+        async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.Rgshows);
             if (await IsBadInitialization(init, rch: false))
@@ -37,11 +38,16 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/main/tv/{imdb_id}/{s}/{e}";
 
-            string m3u = await magic(embed, init, proxy.proxy);
-            if (m3u == null)
+            string file = await magic(embed, init, proxy.proxy);
+            if (file == null)
                 return StatusCode(502);
 
-            return Redirect(HostStreamProxy(init, m3u, proxy: proxy.proxy));
+            file = HostStreamProxy(init, file, proxy: proxy.proxy);
+
+            if (play)
+                return Redirect(file);
+
+            return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast));
         }
         #endregion
 

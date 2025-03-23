@@ -57,7 +57,10 @@ namespace Lampac.Controllers.LITE
                                    return;
                                }
 
-                               await PlaywrightBase.CacheOrContinue(memoryCache, page, route, abortMedia: true, fullCacheJS: true);
+                               if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                   return;
+
+                               await route.ContinueAsync();
                            });
 
                            var result = await page.GotoAsync(ongettourl);

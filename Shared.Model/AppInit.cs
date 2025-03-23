@@ -436,6 +436,7 @@ namespace Shared.Model
 
         public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true)
         {
+            priorityBrowser = "http",
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
                 ("accept-language", "en-US,en;q=0.5"),

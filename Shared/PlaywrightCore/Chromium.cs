@@ -1,6 +1,7 @@
 ﻿using Lampac;
 using Microsoft.Playwright;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -162,15 +163,37 @@ namespace Shared.Engine
         #endregion
 
 
+        string plugin { get; set; }
+
         IPage page { get; set; }
 
+        static ConcurrentDictionary<string, IPage> pages_keepopen = new();
 
-        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
             try
             {
                 if (browser == null)
                     return null;
+
+                this.plugin = plugin;
+                bool newContext = false;
+
+                if (AppInit.conf.chromium.keepopen != null)
+                {
+                    foreach (var k in pages_keepopen)
+                    {
+                        if (k.Key.Contains(plugin.ToLower()))
+                        {
+                            newContext = true;
+                            if (k.Value.Url == "about:blank")
+                                return k.Value;
+                        }
+                    }
+                }
+
+                IPage newpage;
 
                 if (proxy != default)
                 {
@@ -186,21 +209,41 @@ namespace Shared.Engine
                     };
 
                     var context = await browser.NewContextAsync(contextOptions);
-                    page = await context.NewPageAsync();
+                    newpage = await context.NewPageAsync();
                 }
                 else
                 {
-                    page = await browser.NewPageAsync();
+                    newpage = await browser.NewPageAsync();
                 }
 
                 if (headers != null && headers.Count > 0)
-                    await page.SetExtraHTTPHeadersAsync(headers);
+                    await newpage.SetExtraHTTPHeadersAsync(headers);
 
-                page.Popup += async (sender, e) =>
+                newpage.Popup += async (sender, e) =>
                 {
                     await e.CloseAsync();
                 };
 
+                if (newContext)
+                {
+                    // plugin в keepopen, но page занят
+                    page = newpage;
+                    return page;
+                }
+
+                if (AppInit.conf.chromium.keepopen != null)
+                {
+                    foreach (string key in AppInit.conf.chromium.keepopen)
+                    {
+                        if (key.ToLower().Contains(plugin.ToLower()))
+                        {
+                            pages_keepopen.TryAdd(key.ToLower(), newpage);
+                            return newpage;
+                        }
+                    }
+                }
+
+                page = newpage;
                 return page;
             }
             catch { return null; }
@@ -215,7 +258,17 @@ namespace Shared.Engine
             try
             {
                 if (page != null)
+                {
                     page.CloseAsync();
+                }
+                else
+                {
+                    foreach (var k in pages_keepopen)
+                    {
+                        if (k.Key.Contains(plugin.ToLower()))
+                            k.Value.GotoAsync("about:blank");
+                    }
+                }
             }
             catch { }
         }

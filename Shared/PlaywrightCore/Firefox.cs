@@ -1,8 +1,11 @@
 ﻿using Lampac;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Playwright;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -169,7 +172,7 @@ namespace Shared.Engine
 
         IPage page { get; set; }
 
-        static Dictionary<string, IPage> pages_keepopen = new();
+        static ConcurrentDictionary<string, IPage> pages_keepopen = new();
 
 
         async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
@@ -180,9 +183,20 @@ namespace Shared.Engine
                     return null;
 
                 this.plugin = plugin;
+                bool newContext = false;
 
-                if (AppInit.conf.firefox.keepopen && pages_keepopen.TryGetValue(plugin, out IPage _pg))
-                    return _pg;
+                if (AppInit.conf.firefox.keepopen != null)
+                {
+                    foreach (var k in pages_keepopen)
+                    {
+                        if (k.Key.Contains(plugin.ToLower()))
+                        {
+                            newContext = true;
+                            if (k.Value.Url == "about:blank")
+                                return k.Value;
+                        }
+                    }
+                }
 
                 IPage newpage;
 
@@ -215,16 +229,27 @@ namespace Shared.Engine
                     await e.CloseAsync();
                 };
 
-                if (AppInit.conf.firefox.keepopen)
+                if (newContext)
                 {
-                    pages_keepopen.TryAdd(plugin, newpage);
-                    return newpage;
-                }
-                else
-                {
+                    // plugin в keepopen, но page занят
                     page = newpage;
                     return page;
                 }
+
+                if (AppInit.conf.firefox.keepopen != null)
+                {
+                    foreach (string key in AppInit.conf.firefox.keepopen)
+                    {
+                        if (key.ToLower().Contains(plugin.ToLower()))
+                        {
+                            pages_keepopen.TryAdd(key.ToLower(), newpage);
+                            return newpage;
+                        }
+                    }
+                }
+
+                page = newpage;
+                return page;
             }
             catch { return null; }
         }
@@ -238,10 +263,17 @@ namespace Shared.Engine
             try
             {
                 if (page != null)
+                {
                     page.CloseAsync();
-
-                if (pages_keepopen.TryGetValue(plugin, out IPage _pg))
-                    _pg.GotoAsync("about:blank");
+                }
+                else
+                {
+                    foreach (var k in pages_keepopen)
+                    {
+                        if (k.Key.Contains(plugin.ToLower()))
+                            k.Value.GotoAsync("about:blank");
+                    }
+                }
             }
             catch { }
         }
