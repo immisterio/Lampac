@@ -184,18 +184,6 @@ namespace Shared.Engine
 
                 this.plugin = plugin;
 
-                foreach (var pg in pages_keepopen)
-                {
-                    if (pg.busy == false && DateTime.Now > pg.lockTo)
-                    {
-                        pg.busy = true;
-                        keepopen_page = pg;
-                        page = pg.page;
-                        page.RequestFailed += Page_RequestFailed;
-                        return page;
-                    }
-                }
-
                 if (proxy != default)
                 {
                     var contextOptions = new BrowserNewContextOptions
@@ -214,6 +202,18 @@ namespace Shared.Engine
                 }
                 else
                 {
+                    foreach (var pg in pages_keepopen)
+                    {
+                        if (pg.busy == false && DateTime.Now > pg.lockTo)
+                        {
+                            pg.busy = true;
+                            keepopen_page = pg;
+                            page = pg.page;
+                            page.RequestFailed += Page_RequestFailed;
+                            return page;
+                        }
+                    }
+
                     page = await browser.NewPageAsync();
                 }
 
@@ -223,7 +223,7 @@ namespace Shared.Engine
                 page.Popup += Page_Popup;
                 page.Download += Page_Download;
 
-                if (AppInit.conf.chromium.keepopen_context == 0 || pages_keepopen.Count >= AppInit.conf.chromium.keepopen_context)
+                if (proxy != default || AppInit.conf.chromium.keepopen_context == 0 || pages_keepopen.Count >= AppInit.conf.chromium.keepopen_context)
                 {
                     page.RequestFailed += Page_RequestFailed;
                     return page;
