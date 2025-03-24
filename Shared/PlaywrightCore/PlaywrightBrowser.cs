@@ -4,8 +4,6 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Shared.PlaywrightCore
@@ -68,37 +66,64 @@ namespace Shared.PlaywrightCore
             }
         }
 
-
-        public TaskCompletionSource<string> completionSource 
+        public string failedUrl
         {
-            get
+            set
             {
                 if (chromium != null)
-                    return chromium.completionSource;
-
-                return firefox.completionSource;
+                {
+                    chromium.failedUrl = value;
+                }
+                else
+                {
+                    firefox.failedUrl = value;
+                }
             }
         }
 
 
         public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
-            if (chromium == null && firefox == null)
-                return default;
+            try
+            {
+                if (chromium == null && firefox == null)
+                    return default;
 
-            if (chromium != null)
-                return chromium.NewPageAsync(plugin, headers, proxy);
+                if (chromium != null)
+                    return chromium.NewPageAsync(plugin, headers, proxy);
 
-            return firefox.NewPageAsync(plugin, headers, proxy);
+                return firefox.NewPageAsync(plugin, headers, proxy);
+            }
+            catch { return default; }
         }
 
 
+        public void SetPageResult(string val)
+        {
+            try
+            {
+                if (chromium != null)
+                {
+                    chromium.completionSource.SetResult(val);
+                }
+                else
+                {
+                    firefox.completionSource.SetResult(val);
+                }
+            }
+            catch { }
+        }
+
         public ValueTask<string> WaitPageResult(int seconds = 10)
         {
-            if (chromium != null)
-                return chromium.WaitPageResult(seconds);
+            try
+            {
+                if (chromium != null)
+                    return chromium.WaitPageResult(seconds);
 
-            return firefox.WaitPageResult(seconds);
+                return firefox.WaitPageResult(seconds);
+            }
+            catch { return default; }
         }
 
 

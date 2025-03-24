@@ -1,11 +1,9 @@
 ﻿using Lampac;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Playwright;
+using Shared.Models.Browser;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -160,6 +158,7 @@ namespace Shared.Engine
         async private static void Browser_Disconnected(object sender, IBrowser e)
         {
             browser = null;
+            pages_keepopen = new();
             Status = PlaywrightStatus.disabled;
             Console.WriteLine("Firefox: Browser_Disconnected");
             await Task.Delay(TimeSpan.FromSeconds(10));
@@ -170,9 +169,13 @@ namespace Shared.Engine
 
         string plugin { get; set; }
 
+        public string failedUrl { get; set; }
+
         IPage page { get; set; }
 
-        static ConcurrentDictionary<string, IPage> pages_keepopen = new();
+        KeepopenPage keepopen_page { get; set; }
+
+        static List<KeepopenPage> pages_keepopen = new();
 
 
         async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
@@ -183,22 +186,18 @@ namespace Shared.Engine
                     return null;
 
                 this.plugin = plugin;
-                bool newContext = false;
 
-                if (AppInit.conf.firefox.keepopen != null)
+                foreach (var pg in pages_keepopen)
                 {
-                    foreach (var k in pages_keepopen)
+                    if (pg.busy == false && DateTime.Now > pg.lockTo)
                     {
-                        if (k.Key.Contains(plugin.ToLower()))
-                        {
-                            newContext = true;
-                            if (k.Value.Url == "about:blank")
-                                return k.Value;
-                        }
+                        pg.busy = true;
+                        keepopen_page = pg;
+                        page = pg.page;
+                        page.RequestFailed += Page_RequestFailed;
+                        return page;
                     }
                 }
-
-                IPage newpage;
 
                 if (proxy != default)
                 {
@@ -214,44 +213,63 @@ namespace Shared.Engine
                     };
 
                     var context = await browser.NewContextAsync(contextOptions);
-                    newpage = await context.NewPageAsync();
+                    page = await context.NewPageAsync();
                 }
                 else
                 {
-                    newpage = await browser.NewPageAsync();
+                    page = await browser.NewPageAsync();
                 }
 
                 if (headers != null && headers.Count > 0)
-                    await newpage.SetExtraHTTPHeadersAsync(headers);
+                    await page.SetExtraHTTPHeadersAsync(headers);
 
-                newpage.Popup += async (sender, e) =>
-                {
-                    await e.CloseAsync();
-                };
+                page.Popup += Page_Popup;
+                page.Download += Page_Download;
 
-                if (newContext)
+                if (AppInit.conf.firefox.keepopen_context == 0 || pages_keepopen.Count >= AppInit.conf.firefox.keepopen_context)
                 {
-                    // plugin в keepopen, но page занят
-                    page = newpage;
+                    page.RequestFailed += Page_RequestFailed;
                     return page;
                 }
 
-                if (AppInit.conf.firefox.keepopen != null)
-                {
-                    foreach (string key in AppInit.conf.firefox.keepopen)
-                    {
-                        if (key.ToLower().Contains(plugin.ToLower()))
-                        {
-                            pages_keepopen.TryAdd(key.ToLower(), newpage);
-                            return newpage;
-                        }
-                    }
-                }
-
-                page = newpage;
+                keepopen_page = new KeepopenPage() { page = page, busy = true };
+                pages_keepopen.Add(keepopen_page);
+                page.RequestFailed += Page_RequestFailed;
                 return page;
             }
             catch { return null; }
+        }
+
+
+        void Page_RequestFailed(object sender, IRequest e)
+        {
+            try
+            {
+                if (failedUrl != null && e.Url == failedUrl)
+                {
+                    completionSource.SetResult(null);
+                    WebLog(e.Method, e.Url, "RequestFailed", default, e);
+                }
+            }
+            catch { }
+        }
+
+        void Page_Download(object sender, IDownload e)
+        {
+            try
+            {
+                e.CancelAsync();
+            }
+            catch { }
+        }
+
+        void Page_Popup(object sender, IPage e)
+        {
+            try
+            {
+                e.CloseAsync();
+            }
+            catch { }
         }
 
 
@@ -262,17 +280,19 @@ namespace Shared.Engine
 
             try
             {
-                if (page != null)
+                page.RequestFailed -= Page_RequestFailed;
+
+                if (keepopen_page != null)
                 {
-                    page.CloseAsync();
+                    keepopen_page.page.GotoAsync("about:blank");
+                    keepopen_page.lockTo = DateTime.Now.AddSeconds(1);
+                    keepopen_page.busy = false;
                 }
                 else
                 {
-                    foreach (var k in pages_keepopen)
-                    {
-                        if (k.Key.Contains(plugin.ToLower()))
-                            k.Value.GotoAsync("about:blank");
-                    }
+                    page.Popup -= Page_Popup;
+                    page.Download -= Page_Download;
+                    page.CloseAsync();
                 }
             }
             catch { }

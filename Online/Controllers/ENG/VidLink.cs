@@ -73,24 +73,29 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
-                                return;
-
-                            if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))
+                            try
                             {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
+                                    return;
 
-                            if (route.Request.Url.Contains(".m3u") || route.Request.Url.Contains(".mp4"))
-                            {
-                                browser.completionSource.SetResult(route.Request.Url);
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
 
-                            await route.ContinueAsync();
+                                if (route.Request.Url.Contains(".m3u") || route.Request.Url.Contains(".mp4"))
+                                {
+                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.completionSource.SetResult(route.Request.Url);
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                await route.ContinueAsync();
+                            }
+                            catch { }
                         });
 
                         var response = await page.GotoAsync(uri);

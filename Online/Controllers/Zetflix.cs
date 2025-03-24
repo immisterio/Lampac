@@ -85,13 +85,23 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
-                                return;
+                            try
+                            {
+                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
 
-                            await route.ContinueAsync();
+                                await route.ContinueAsync();
+                            }
+                            catch { }
                         });
 
-                        await page.GotoAsync(uri);
+                        var responce = await page.GotoAsync(uri);
+                        if (responce == null)
+                        {
+                            proxyManager.Refresh();
+                            return null;
+                        }
+
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var response = await page.ReloadAsync();

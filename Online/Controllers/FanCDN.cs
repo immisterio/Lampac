@@ -85,50 +85,47 @@ namespace Lampac.Controllers.LITE
                         return null;
                     }
 
-                    await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
+                    browser.failedUrl = uri;
 
-                    page.RequestFailed += (sender, e) =>
-                    {
-                        if (e.Url == uri)
-                        {
-                            browser.completionSource.SetResult(null);
-                            PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy, e);
-                        }
-                    };
+                    await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
                     await page.RouteAsync("**/*", async route =>
                     {
-                        if (route.Request.Url.Contains("api/chromium/iframe"))
+                        try
                         {
-                            await route.ContinueAsync();
-                            return;
-                        }
-
-                        logRequest += $"{route.Request.Method}: {route.Request.Url}\n";
-
-                        if (route.Request.Url == uri)
-                        {
-                            string html = null;
-                            await route.ContinueAsync(new RouteContinueOptions 
+                            if (route.Request.Url.Contains("api/chromium/iframe"))
                             {
-                                Headers = httpHeaders(init, HeadersModel.Init(
-                                    ("sec-fetch-dest", "iframe"),
-                                    ("sec-fetch-mode", "navigate"),
-                                    ("sec-fetch-site", "cross-site"),
-                                    ("referer", $"{AppInit.conf.FanCDN.host}/")
-                                )).ToDictionary() 
-                            });
+                                await route.ContinueAsync();
+                                return;
+                            }
 
-                            var response = await page.WaitForResponseAsync(route.Request.Url);
-                            if (response != null)
-                                html = await response.TextAsync();
+                            logRequest += $"{route.Request.Method}: {route.Request.Url}\n";
 
-                            browser.completionSource.SetResult(html);
-                            PlaywrightBase.WebLog(route.Request, response, html, proxy);
-                            return;
+                            if (route.Request.Url == uri)
+                            {
+                                string html = null;
+                                await route.ContinueAsync(new RouteContinueOptions
+                                {
+                                    Headers = httpHeaders(init, HeadersModel.Init(
+                                        ("sec-fetch-dest", "iframe"),
+                                        ("sec-fetch-mode", "navigate"),
+                                        ("sec-fetch-site", "cross-site"),
+                                        ("referer", $"{AppInit.conf.FanCDN.host}/")
+                                    )).ToDictionary()
+                                });
+
+                                var response = await page.WaitForResponseAsync(route.Request.Url);
+                                if (response != null)
+                                    html = await response.TextAsync();
+
+                                browser.SetPageResult(html);
+                                PlaywrightBase.WebLog(route.Request, response, html, proxy);
+                                return;
+                            }
+
+                            await route.AbortAsync();
                         }
-
-                        await route.AbortAsync();
+                        catch { }
                     });
 
                     var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));

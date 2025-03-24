@@ -69,30 +69,35 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, fullCacheJS: true))
-                                return;
-
-                            if (Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
+                            try
                             {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, fullCacheJS: true))
+                                    return;
 
-                            if (m3u8 != null || route.Request.Url.Contains(".m3u"))
-                            {
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
 
-                            if (route.Request.Url.Contains("master.txt"))
-                            {
-                                m3u8 = route.Request.Url;
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (m3u8 != null || route.Request.Url.Contains(".m3u"))
+                                {
+                                    await route.AbortAsync();
+                                    return;
+                                }
 
-                            await route.ContinueAsync();
+                                if (route.Request.Url.Contains("master.txt"))
+                                {
+                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    m3u8 = route.Request.Url;
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                await route.ContinueAsync();
+                            }
+                            catch { }
                         });
 
                         var response = await page.GotoAsync(uri);

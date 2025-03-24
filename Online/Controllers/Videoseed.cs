@@ -160,16 +160,20 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                            try
                             {
-                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                                {
+                                    if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                        return;
+
+                                    await route.ContinueAsync();
                                     return;
+                                }
 
-                                await route.ContinueAsync();
-                                return;
+                                await route.AbortAsync();
                             }
-
-                            await route.AbortAsync();
+                            catch { }
                         });
 
                         var result = await page.GotoAsync(iframe);

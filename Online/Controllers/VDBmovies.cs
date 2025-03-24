@@ -84,38 +84,35 @@ namespace Lampac.Controllers.LITE
                     if (page == null)
                         return null;
 
-                    page.RequestFailed += (sender, e) =>
-                    {
-                        if (e.Url == uri)
-                        {
-                            browser.completionSource.SetResult(null);
-                            PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy, e);
-                        }
-                    };
+                    browser.failedUrl = uri;
 
                     await page.RouteAsync("**/*", async route =>
                     {
-                        if (route.Request.Url.Contains("api/chromium/iframe"))
+                        try
                         {
-                            await route.ContinueAsync();
-                            return;
+                            if (route.Request.Url.Contains("api/chromium/iframe"))
+                            {
+                                await route.ContinueAsync();
+                                return;
+                            }
+
+                            if (route.Request.Url == uri)
+                            {
+                                string html = null;
+                                await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+
+                                var response = await page.WaitForResponseAsync(route.Request.Url);
+                                if (response != null)
+                                    html = await response.TextAsync();
+
+                                browser.SetPageResult(html);
+                                PlaywrightBase.WebLog(route.Request, response, html, proxy);
+                                return;
+                            }
+
+                            await route.AbortAsync();
                         }
-
-                        if (route.Request.Url == uri)
-                        {
-                            string html = null;
-                            await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
-
-                            var response = await page.WaitForResponseAsync(route.Request.Url);
-                            if (response != null)
-                                html = await response.TextAsync();
-
-                            browser.completionSource.SetResult(html);
-                            PlaywrightBase.WebLog(route.Request, response, html, proxy);
-                            return;
-                        }
-
-                        await route.AbortAsync();
+                        catch { }
                     });
 
                     var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));

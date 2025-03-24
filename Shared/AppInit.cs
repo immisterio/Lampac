@@ -248,13 +248,14 @@ namespace Lampac
 
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
-            enable = true, Xvfb = true
+            enable = true, Xvfb = true,
+            keepopen_context = 4
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            keepopen = new string[] { "BongaCams,Spankbang,Zetflix,VideoDB,VDBmovies,FanCDN,Kinobase,Lumex,Videoseed,Hydraflix,Vidsrc,MovPI,VidLink,Twoembed,Autoembed,Videasy,Smashystream" }
+            keepopen_context = 1
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };

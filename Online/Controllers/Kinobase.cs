@@ -51,16 +51,20 @@ namespace Lampac.Controllers.LITE
 
                            await page.RouteAsync("**/*", async route =>
                            {
-                               if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments"))
+                               try
                                {
-                                   await route.AbortAsync();
-                                   return;
+                                   if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments"))
+                                   {
+                                       await route.AbortAsync();
+                                       return;
+                                   }
+
+                                   if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                       return;
+
+                                   await route.ContinueAsync();
                                }
-
-                               if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
-                                   return;
-
-                               await route.ContinueAsync();
+                               catch { }
                            });
 
                            var result = await page.GotoAsync(ongettourl);

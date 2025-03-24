@@ -141,24 +141,29 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
-                                return;
-
-                            if (Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
+                            try
                             {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
 
-                            if (/*route.Request.Url.Contains("hakunaymatata.") &&*/ route.Request.Url.Contains(".mp4"))
-                            {
-                                browser.completionSource.SetResult(route.Request.Url);
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
 
-                            await route.ContinueAsync();
+                                if (/*route.Request.Url.Contains("hakunaymatata.") &&*/ route.Request.Url.Contains(".mp4"))
+                                {
+                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.completionSource.SetResult(route.Request.Url);
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                await route.ContinueAsync();
+                            }
+                            catch { }
                         });
 
                         _ = page.GotoAsync(uri).ConfigureAwait(false);

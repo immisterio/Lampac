@@ -122,24 +122,29 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
-                                return;
-
-                            if (Regex.IsMatch(route.Request.Url, "/api/[0-9]+/servers"))
+                            try
                             {
-                                string vrf = Regex.Match(route.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
-                                if (!string.IsNullOrEmpty(vrf) && route.Request.Url.Contains("&type=tv"))
-                                    lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
-                            }
+                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
 
-                            if (route.Request.Url.Contains(".m3u8"))
-                            {
-                                browser.completionSource.SetResult(route.Request.Url);
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (Regex.IsMatch(route.Request.Url, "/api/[0-9]+/servers"))
+                                {
+                                    string vrf = Regex.Match(route.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
+                                    if (!string.IsNullOrEmpty(vrf) && route.Request.Url.Contains("&type=tv"))
+                                        lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
+                                }
 
-                            await route.ContinueAsync();
+                                if (route.Request.Url.Contains(".m3u8"))
+                                {
+                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.completionSource.SetResult(route.Request.Url);
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                await route.ContinueAsync();
+                            }
+                            catch { }
                         });
 
                         var response = await page.GotoAsync(uri);
