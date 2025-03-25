@@ -20,7 +20,8 @@ namespace Lampac.Controllers.LITE
         [Route("lite/autoembed")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Autoembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
+            var init = AppInit.conf.Autoembed;
+            return ViewTmdb(init, init.priorityBrowser != "http", checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 
@@ -33,7 +34,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (Firefox.Status == PlaywrightStatus.disabled)
+            if (init.priorityBrowser != "http" && Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);

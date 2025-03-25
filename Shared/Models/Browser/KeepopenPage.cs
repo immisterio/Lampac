@@ -10,5 +10,7 @@ namespace Shared.Models.Browser
         public bool busy { get; set; }
 
         public DateTime lockTo { get; set; }
+
+        public DateTime lastActive { get; set; } = DateTime.Now;
     }
 }

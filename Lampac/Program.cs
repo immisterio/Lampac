@@ -58,6 +58,9 @@ namespace Lampac
                             _ = Firefox.CreateAsync().ConfigureAwait(false);
                     }
                 });
+
+                ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
+                ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
             }
             #endregion
 

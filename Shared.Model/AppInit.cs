@@ -55,7 +55,12 @@ namespace Shared.Model
             headers = HeadersModel.Init("referer", "{host}").ToDictionary()
         };
 
-        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true);
+        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true) 
+        {
+            headers_stream = HeadersModel.Init(
+                ("referer", "{host}/")
+            ).ToDictionary()
+        };
 
         public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp");
 
@@ -308,9 +313,11 @@ namespace Shared.Model
         /// </summary>
         public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.site", "API-токен", "https://portal.lumex.host", "ID клиент") 
         {
-            enable = false,
+            enable = false, log = false,
+            scheme = "http",
+            hls = false, // false - mp4 / true - m3u8
             disable_protection = false, // true - отключить проверку на парсер
-            scheme = "http", hls = false, log = true,
+            disable_ads = false, // отключить рекламу
             vast = new VastConf() { msg = "Реклама от VideoCDN" }
         };
 

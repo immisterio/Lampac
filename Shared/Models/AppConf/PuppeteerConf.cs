@@ -6,6 +6,8 @@
 
         public int keepopen_context { get; set; }
 
+        public int keepalive { get; set; }
+
         public bool Headless { get; set; }
 
         public bool DEV { get; set; }

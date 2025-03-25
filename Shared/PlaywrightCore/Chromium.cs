@@ -283,6 +283,7 @@ namespace Shared.Engine
                 if (keepopen_page != null)
                 {
                     keepopen_page.page.GotoAsync("about:blank");
+                    keepopen_page.lastActive = DateTime.Now;
                     keepopen_page.lockTo = DateTime.Now.AddSeconds(1);
                     keepopen_page.busy = false;
                 }
@@ -308,6 +309,37 @@ namespace Shared.Engine
                 browser.DisposeAsync();
             }
             catch { }
+        }
+
+
+        async public static Task CloseLifetimeContext()
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1));
+
+                try
+                {
+                    var init = AppInit.conf.chromium;
+                    if (0 >= init.keepalive)
+                        continue;
+
+                    foreach (var k in pages_keepopen.ToArray())
+                    {
+                        if (DateTime.Now > k.lastActive.AddMinutes(init.keepalive))
+                        {
+                            try
+                            {
+                                await k.page.CloseAsync();
+                            }
+                            catch { }
+
+                            pages_keepopen.Remove(k);
+                        }
+                    }
+                }
+                catch { }
+            }
         }
     }
 }

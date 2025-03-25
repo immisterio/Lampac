@@ -104,12 +104,13 @@ namespace Lampac.Controllers.LITE
 
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                        var response = await page.ReloadAsync();
+                        var response = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
                         if (response == null)
                         {
                             proxyManager.Refresh();
                             return null;
                         }
+
 
                         html = await response.TextAsync();
 
