@@ -11,6 +11,7 @@ using System;
 using Shared.PlaywrightCore;
 using Lampac.Engine.CORE;
 using Shared.Model.Online;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,10 +25,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(init.cookie))
+            if (string.IsNullOrEmpty(init.cookie) || kinopoisk_id == 0)
                 return OnError();
 
-            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -40,7 +41,7 @@ namespace Lampac.Controllers.LITE
                ongettourl => 
                {
                    if (ongettourl.Contains("fancdn."))
-                       return black_magic(ongettourl, init, proxy.data);
+                       return black_magic(ongettourl, init, proxy);
 
                    var headers = httpHeaders(init, HeadersModel.Init(
                        ("sec-fetch-dest", "document"),
@@ -72,13 +73,23 @@ namespace Lampac.Controllers.LITE
         #region black_magic
         string logRequest = string.Empty;
 
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
+                var headers = httpHeaders(init, HeadersModel.Init(
+                    ("sec-fetch-dest", "iframe"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "cross-site"),
+                    ("referer", $"{init.host}/")
+                ));
+                
+                if (init.priorityBrowser == "http")
+                    return await HttpClient.Get(uri, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+
                 using (var browser = new PlaywrightBrowser())
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data);
                     if (page == null)
                     {
                         logRequest += "\nNewPageAsync null";
@@ -99,6 +110,13 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
+                            if (browser.IsCompleted)
+                            {
+                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                await route.AbortAsync();
+                                return;
+                            }
+
                             logRequest += $"{route.Request.Method}: {route.Request.Url}\n";
 
                             if (route.Request.Url == uri)
@@ -106,12 +124,7 @@ namespace Lampac.Controllers.LITE
                                 string html = null;
                                 await route.ContinueAsync(new RouteContinueOptions
                                 {
-                                    Headers = httpHeaders(init, HeadersModel.Init(
-                                        ("sec-fetch-dest", "iframe"),
-                                        ("sec-fetch-mode", "navigate"),
-                                        ("sec-fetch-site", "cross-site"),
-                                        ("referer", $"{AppInit.conf.FanCDN.host}/")
-                                    )).ToDictionary()
+                                    Headers = headers.ToDictionary()
                                 });
 
                                 var response = await page.WaitForResponseAsync(route.Request.Url);
@@ -119,7 +132,7 @@ namespace Lampac.Controllers.LITE
                                     html = await response.TextAsync();
 
                                 browser.SetPageResult(html);
-                                PlaywrightBase.WebLog(route.Request, response, html, proxy);
+                                PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
                                 return;
                             }
 

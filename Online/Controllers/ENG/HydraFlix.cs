@@ -5,6 +5,7 @@ using Shared.Engine;
 using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers.LITE
 {
@@ -14,7 +15,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hydraflix")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson);
+            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true);
         }
 
 
@@ -30,7 +31,7 @@ namespace Lampac.Controllers.LITE
             if (id == 0)
                 return OnError();
 
-            if (Firefox.Status == PlaywrightStatus.disabled)
+            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -59,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"Hydraflix:black_magic:{uri}";
                 if (!memoryCache.TryGetValue(memKey, out string m3u8))
                 {
-                    using (var browser = new Firefox())
+                    using (var browser = new PlaywrightBrowser())
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
@@ -72,7 +73,7 @@ namespace Lampac.Controllers.LITE
                                 if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
-                                if (route.Request.Url.Contains("adsco."))
+                                if (browser.IsCompleted || route.Request.Url.Contains("adsco."))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
@@ -82,7 +83,7 @@ namespace Lampac.Controllers.LITE
                                 if (route.Request.Url.Contains(".m3u8"))
                                 {
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
-                                    browser.completionSource.SetResult(route.Request.Url);
+                                    browser.SetPageResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
                                 }

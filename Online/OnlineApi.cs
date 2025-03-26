@@ -625,16 +625,16 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
+                if (conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
                     send(conf.VideoDB);
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                if (conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
                     send(conf.VDBmovies);
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                if (conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                     send(conf.FanCDN);
             }
 
@@ -709,18 +709,32 @@ namespace Lampac.Controllers
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
 
-            if (Firefox.Status != PlaywrightStatus.disabled)
-            {
+            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
-                send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
-                send(conf.MovPI, "movpi", "MovPI (ENG)");
+
+            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost))
                 send(conf.Videasy, "videasy", "Videasy (ENG)");
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
+                send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost))
+                send(conf.MovPI, "movpi", "MovPI (ENG)");
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost))
                 send(conf.VidLink, "vidlink", "VidLink (ENG)");
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost))
                 send(conf.Twoembed, "twoembed", "2Embed (ENG)");
-                if (conf.Autoembed.priorityBrowser != "http")
+
+            if (conf.Autoembed.priorityBrowser != "http")
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost))
                     send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
             }
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost))
+                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
 
             if (conf.Autoembed.priorityBrowser == "http")
                 send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");

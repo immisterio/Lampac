@@ -147,7 +147,7 @@ namespace Lampac.Controllers.LITE
                                 if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
-                                if (Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
+                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
@@ -157,6 +157,7 @@ namespace Lampac.Controllers.LITE
                                 if (/*route.Request.Url.Contains("hakunaymatata.") &&*/ route.Request.Url.Contains(".mp4"))
                                 {
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;

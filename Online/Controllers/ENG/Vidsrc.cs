@@ -124,6 +124,13 @@ namespace Lampac.Controllers.LITE
                         {
                             try
                             {
+                                if (browser.IsCompleted)
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
                                 if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
@@ -137,6 +144,7 @@ namespace Lampac.Controllers.LITE
                                 if (route.Request.Url.Contains(".m3u8"))
                                 {
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;

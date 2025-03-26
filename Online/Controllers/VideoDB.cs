@@ -10,6 +10,9 @@ using Lampac.Models.LITE;
 using Microsoft.Playwright;
 using Shared.Engine.CORE;
 using Shared.PlaywrightCore;
+using System;
+using Lampac.Engine.CORE;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
@@ -23,7 +26,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (kinopoisk_id == 0)
+                return OnError();
+
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -33,7 +39,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.host,
-               (url, head) => black_magic(url, init, proxy.data),
+               (url, head) => black_magic(url, init, proxy),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
@@ -56,7 +62,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(link) || PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (string.IsNullOrEmpty(link))
+                return OnError();
+
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -67,47 +76,54 @@ namespace Lampac.Controllers.LITE
             {
                 try
                 {
-                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
+                    if (init.priorityBrowser == "http")
                     {
-                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
-                        if (page == null)
-                            return null;
-
-                        browser.failedUrl = link;
-
-                        await page.RouteAsync("**/*", async route =>
+                        location = await HttpClient.GetLocation(link, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                    }
+                    else
+                    {
+                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            try
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                            if (page == null)
+                                return null;
+
+                            browser.failedUrl = link;
+
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                if (route.Request.Url.Contains("api/chromium/iframe"))
+                                try
                                 {
-                                    await route.ContinueAsync();
-                                    return;
+                                    if (route.Request.Url.Contains("api/chromium/iframe"))
+                                    {
+                                        await route.ContinueAsync();
+                                        return;
+                                    }
+
+                                    if (route.Request.Url == link)
+                                    {
+                                        await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+
+                                        var response = await page.WaitForResponseAsync(route.Request.Url);
+                                        if (response != null)
+                                            response.Headers.TryGetValue("location", out location);
+
+                                        browser.SetPageResult(location);
+                                        PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
+                                        return;
+                                    }
+
+                                    await route.AbortAsync();
                                 }
+                                catch { }
+                            });
 
-                                if (route.Request.Url == link)
-                                {
-                                    await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+                            var response = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
+                            if (response == null)
+                                return null;
 
-                                    var response = await page.WaitForResponseAsync(route.Request.Url);
-                                    if (response != null)
-                                        response.Headers.TryGetValue("location", out location);
-
-                                    browser.SetPageResult(location);
-                                    PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
-                                    return;
-                                }
-
-                                await route.AbortAsync();
-                            }
-                            catch { }
-                        });
-
-                        var response = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
-                        if (response == null)
-                            return null;
-
-                        location = await browser.WaitPageResult();
+                            location = await browser.WaitPageResult();
+                        }
                     }
                 }
                 catch { }
@@ -128,13 +144,16 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
+                if (init.priorityBrowser == "http")
+                    return await HttpClient.Get(uri, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: httpHeaders(init));
+
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data);
                     if (page == null)
                         return null;
 
@@ -150,6 +169,13 @@ namespace Lampac.Controllers.LITE
                                 return;
                             }
 
+                            if (browser.IsCompleted)
+                            {
+                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                await route.AbortAsync();
+                                return;
+                            }
+
                             if (route.Request.Url == uri)
                             {
                                 string html = null;
@@ -160,7 +186,7 @@ namespace Lampac.Controllers.LITE
                                     html = await response.TextAsync();
 
                                 browser.SetPageResult(html);
-                                PlaywrightBase.WebLog(route.Request, response, html, proxy);
+                                PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
                                 return;
                             }
 

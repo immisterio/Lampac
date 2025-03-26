@@ -7,12 +7,13 @@ using Lampac.Models.LITE;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
+using Shared.PlaywrightCore;
 
 namespace Lampac.Controllers.LITE
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public Task<ActionResult> ViewTmdb(OnlinesSettings init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play")
+        async public Task<ActionResult> ViewTmdb(OnlinesSettings init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false)
         {
             if (checksearch)
                 return Content("data-json=");
@@ -20,8 +21,19 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (browser && Firefox.Status == PlaywrightStatus.disabled)
-                return OnError();
+            if (browser)
+            {
+                if (chromium)
+                {
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+                        return OnError();
+                }
+                else
+                {
+                    if (Firefox.Status == PlaywrightStatus.disabled)
+                        return OnError();
+                }
+            }
 
             if (serial == 1)
             {

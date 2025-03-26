@@ -14,7 +14,6 @@ using Shared.Model.Online;
 using System.Data;
 using System.IO;
 using Shared.Model.Online.Settings;
-using Shared.Engine.CORE;
 
 namespace Lampac.Controllers.LITE
 {
@@ -22,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/pidtor")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string account_email, string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -314,7 +313,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrWhiteSpace(hashmagnet))
                             continue;
 
-                        stpl.Append(torrent.voice, null, $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", $"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&rjson={rjson}&title={en_title}&original_title={en_original_title}&s={s}");
+                        stpl.Append(torrent.voice, null, $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", accsArgs($"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&rjson={rjson}&title={en_title}&original_title={en_original_title}&s={s}"));
                     }
 
                     return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
@@ -340,7 +339,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/pidtor/serial/{id}")]
-        async public Task<ActionResult> Serial(string id, string title, string original_title, int s, bool rjson = false)
+        async public Task<ActionResult> Serial(string account_email, string id, string title, string original_title, int s, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -370,7 +369,7 @@ namespace Lampac.Controllers.LITE
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                 {
                     var ts = init.auth_torrs.First();
-                    string login = ts.login.Replace("{account_email}", accsArgs(string.Empty));
+                    string login = ts.login.Replace("{account_email}", account_email);
 
                     return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}"), ts.host);
                 }
@@ -379,7 +378,7 @@ namespace Lampac.Controllers.LITE
                     if (init.base_auth != null && init.base_auth.enable)
                     {
                         var ts = init.auth_torrs.First();
-                        string login = init.base_auth.login.Replace("{account_email}", accsArgs(string.Empty));
+                        string login = init.base_auth.login.Replace("{account_email}", account_email);
 
                         return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}"), ts.host);
                     }

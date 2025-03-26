@@ -249,7 +249,8 @@ namespace Lampac
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
             enable = true, Xvfb = true,
-            keepopen_context = 4
+            keepopen_context = 4,
+            Args = new string[] { "--disable-blink-features=AutomationControlled" }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()

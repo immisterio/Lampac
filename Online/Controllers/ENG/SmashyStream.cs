@@ -74,7 +74,7 @@ namespace Lampac.Controllers.LITE
                                 if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, fullCacheJS: true))
                                     return;
 
-                                if (Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
+                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
@@ -90,6 +90,7 @@ namespace Lampac.Controllers.LITE
                                 if (route.Request.Url.Contains("master.txt"))
                                 {
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.IsCompleted = true;
                                     m3u8 = route.Request.Url;
                                     await route.AbortAsync();
                                     return;

@@ -70,7 +70,7 @@ namespace Lampac.Controllers.LITE
                                 if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
-                                if (Regex.IsMatch(route.Request.Url, "(fonts.googleapis|pixel.embed|rtmark)\\."))
+                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(fonts.googleapis|pixel.embed|rtmark)\\."))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
@@ -80,6 +80,7 @@ namespace Lampac.Controllers.LITE
                                 if (route.Request.Url.Contains(".m3u8"))
                                 {
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;

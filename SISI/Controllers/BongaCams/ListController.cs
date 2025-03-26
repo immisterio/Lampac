@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine;
@@ -20,7 +21,7 @@ namespace Lampac.Controllers.BongaCams
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError("NoHeadless");
 
             if (!string.IsNullOrEmpty(search))
@@ -34,6 +35,9 @@ namespace Lampac.Controllers.BongaCams
             {
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
+                    if (init.priorityBrowser == "http")
+                        return HttpClient.Get(url, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });
 

@@ -72,8 +72,9 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (content_uri != null)
+                            if (content_uri != null || browser.IsCompleted)
                             {
+                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                 await route.AbortAsync();
                                 return;
                             }
@@ -89,6 +90,7 @@ namespace Lampac.Controllers.LITE
                                     content_headers.Add(new HeadersModel(item.Key, item.Value));
                                 }
 
+                                browser.IsCompleted = true;
                                 browser.completionSource.SetResult(string.Empty);
                                 await route.AbortAsync();
                                 return;

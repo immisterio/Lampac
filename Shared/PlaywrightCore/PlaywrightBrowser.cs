@@ -24,6 +24,17 @@ namespace Shared.PlaywrightCore
             }
         }
 
+        public bool IsCompleted
+        {
+            get
+            {
+                if (chromium != null)
+                    return chromium.IsCompleted;
+
+                return firefox.IsCompleted;
+            }
+        }
+
 
         public Chromium chromium = null;
 
@@ -104,10 +115,12 @@ namespace Shared.PlaywrightCore
             {
                 if (chromium != null)
                 {
+                    chromium.IsCompleted = true;
                     chromium.completionSource.SetResult(val);
                 }
                 else
                 {
+                    firefox.IsCompleted = true;
                     firefox.completionSource.SetResult(val);
                 }
             }

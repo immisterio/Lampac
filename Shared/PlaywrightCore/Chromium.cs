@@ -166,6 +166,8 @@ namespace Shared.Engine
 
         string plugin { get; set; }
 
+        public bool IsCompleted { get; set; }
+
         public string failedUrl { get; set; }
 
         IPage page { get; set; }
