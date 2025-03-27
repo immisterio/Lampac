@@ -331,7 +331,7 @@ namespace Lampac.Controllers.LITE
             #endregion
 
             memKey = $"videocdn:accessToken:{requestInfo.IP}";
-            if (!memoryCache.TryGetValue(memKey, out string accessToken))
+            if (!hybridCache.TryGetValue(memKey, out string accessToken))
             {
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
                 var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", requestInfo.IP)));
@@ -342,7 +342,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(accessToken))
                     return null;
 
-                memoryCache.Set(memKey, accessToken, DateTime.Now.AddMinutes(5));
+                hybridCache.Set(memKey, accessToken, DateTime.Now.AddMinutes(5));
             }
 
             return accessToken;

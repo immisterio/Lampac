@@ -151,7 +151,7 @@ namespace Lampac.Controllers.LITE
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
                 md.csrf = CrypTo.md5(DateTime.Now.ToFileTime().ToString());
 
-                memoryCache.Set(md.csrf, content_headers, DateTime.Now.AddDays(1));
+                hybridCache.Set(md.csrf, content_headers, DateTime.Now.AddDays(1));
 
                 return md;
             });
@@ -177,9 +177,10 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
-            if (!memoryCache.TryGetValue(memkey, out string hls))
+            if (!hybridCache.TryGetValue(memkey, out string hls))
             {
-                var content_headers = memoryCache.Get<List<HeadersModel>>(csrf);
+                if (!hybridCache.TryGetValue(csrf, out List<HeadersModel> content_headers))
+                    return OnError();
 
                 var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
 
@@ -191,7 +192,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 hls = $"{init.scheme}:{url}";
-                memoryCache.Set(memkey, hls, cacheTime(20, init: init));
+                hybridCache.Set(memkey, hls, cacheTime(20, init: init));
             }
 
             string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy);

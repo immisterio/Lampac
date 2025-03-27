@@ -167,7 +167,7 @@ namespace Lampac.Controllers.LITE
                 return host;
 
             string memkey = $"zeflix:gohost:{host}";
-            if (memoryCache.TryGetValue(memkey, out string ztfhost))
+            if (hybridCache.TryGetValue(memkey, out string ztfhost))
                 return ztfhost;
 
             string html = await HttpClient.Get(host);
@@ -177,7 +177,7 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrEmpty(ztfhost))
                 {
                     ztfhost = $"https://{ztfhost}";
-                    memoryCache.Set(memkey, ztfhost, DateTime.Now.AddHours(1));
+                    hybridCache.Set(memkey, ztfhost, DateTime.Now.AddHours(1));
                     return ztfhost;
                 }
             }

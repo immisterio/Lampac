@@ -104,7 +104,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Серии
                 string memKey = $"animelib:playlist:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out JArray episodes))
+                if (!hybridCache.TryGetValue(memKey, out JArray episodes))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -125,12 +125,12 @@ namespace Lampac.Controllers.LITE
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    memoryCache.Set(memKey, episodes, cacheTime(30, init: init));
+                    hybridCache.Set(memKey, episodes, cacheTime(30, init: init));
                 }
 
                 #region Перевод
                 memKey = $"animelib:video:{episodes.First.Value<int>("id")}";
-                if (!memoryCache.TryGetValue(memKey, out JArray players))
+                if (!hybridCache.TryGetValue(memKey, out JArray players))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -144,7 +144,7 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     players = root["data"]["players"].ToObject<JArray>();
-                    memoryCache.Set(memKey, players, cacheTime(30, init: init));
+                    hybridCache.Set(memKey, players, cacheTime(30, init: init));
                 }
 
                 var vtpl = new VoiceTpl();
@@ -202,7 +202,7 @@ namespace Lampac.Controllers.LITE
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             string memKey = $"animelib:video:{id}";
-            if (!memoryCache.TryGetValue(memKey, out JArray players))
+            if (!hybridCache.TryGetValue(memKey, out JArray players))
             {
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -220,7 +220,7 @@ namespace Lampac.Controllers.LITE
                 if (!rch.enable)
                     proxyManager.Success();
 
-                memoryCache.Set(memKey, players, cacheTime(30, init: init));
+                hybridCache.Set(memKey, players, cacheTime(30, init: init));
             }
 
             List<(string link, string quality)> goStreams(string _voice)

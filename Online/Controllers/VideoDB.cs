@@ -72,7 +72,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.BaseGet();
 
             string memKey = $"videodb:video:{link}";
-            if (!memoryCache.TryGetValue(memKey, out string location))
+            if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 try
                 {
@@ -131,7 +131,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(location) || link == location)
                     return OnError();
 
-                memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
+                hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
             string hls = HostStreamProxy(init, location, proxy: proxy.proxy);

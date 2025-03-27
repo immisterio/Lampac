@@ -58,7 +58,7 @@ namespace Lampac.Controllers.LITE
             try
             {
                 string memKey = $"Hydraflix:black_magic:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out string m3u8))
+                if (!hybridCache.TryGetValue(memKey, out string m3u8))
                 {
                     using (var browser = new PlaywrightBrowser())
                     {
@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
                     if (m3u8 == null)
                         return null;
 
-                    memoryCache.Set(memKey, m3u8, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, m3u8, cacheTime(20, init: init));
                 }
 
                 return m3u8;

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Lampac.Models.LITE.Filmix
 {
@@ -9,6 +9,6 @@ namespace Lampac.Models.LITE.Filmix
         /// <summary>
         /// сезон, (озвучка, (серия, item))
         /// </summary>
-        public Dictionary<string, Dictionary<string, JsonElement>>? playlist { get; set; }
+        public Dictionary<string, Dictionary<string, JToken>>? playlist { get; set; }
     }
 }

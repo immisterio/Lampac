@@ -1,10 +1,10 @@
 ﻿using Lampac.Models.LITE.Filmix;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Templates;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -58,7 +58,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                root = JsonSerializer.Deserialize<List<SearchModel>>(json);
+                root = JsonConvert.DeserializeObject<List<SearchModel>>(json);
             }
             catch { }
 
@@ -116,7 +116,7 @@ namespace Shared.Engine.Online
 
                 try
                 {
-                    root = JsonNode.Parse(json)?["items"]?.Deserialize<List<SearchModel>>();
+                    root = JObject.Parse(json)?["items"]?.ToObject<List<SearchModel>>();
                 }
                 catch { }
 
@@ -244,7 +244,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                var root = JsonSerializer.Deserialize<RootObject>(json.Replace("\"playlist\":[],", "\"playlist\":null,"));
+                var root = JsonConvert.DeserializeObject<RootObject>(json.Replace("\"playlist\":[],", "\"playlist\":null,"));
 
                 if (root?.player_links == null)
                     return null;
@@ -353,16 +353,16 @@ namespace Shared.Engine.Online
 
                     try
                     {
-                        episodes = player_links.playlist[s.ToString()].ElementAt(t).Value.Deserialize<Dictionary<string, Movie>>();
+                        episodes = player_links.playlist[s.ToString()].ElementAt(t).Value.ToObject<Dictionary<string, Movie>>();
                     }
-                    catch 
+                    catch
                     {
                         try
                         {
                             int episod_id = 0;
                             episodes = new Dictionary<string, Movie>();
 
-                            foreach (var item in player_links.playlist[s.ToString()].ElementAt(t).Value.Deserialize<List<Movie>>())
+                            foreach (var item in player_links.playlist[s.ToString()].ElementAt(t).Value.ToObject<List<Movie>>())
                             {
                                 episod_id++;
                                 episodes.Add(episod_id.ToString(), item);

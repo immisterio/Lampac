@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
 
             #region Кеш запроса
             string memKey = $"pidtor:{title}:{original_title}:{year}";
-            if (!memoryCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
+            if (!hybridCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
             {
                 var root = await HttpClient.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}&apikey={init.apikey}", timeoutSeconds: 8);
                 if (root == null)
@@ -258,7 +258,7 @@ namespace Lampac.Controllers.LITE
                     }
                 }
 
-                memoryCache.Set(memKey, torrents, DateTime.Now.AddMinutes(5));
+                hybridCache.Set(memKey, torrents, DateTime.Now.AddMinutes(5));
             }
 
             if (torrents.Count == 0)
@@ -389,10 +389,10 @@ namespace Lampac.Controllers.LITE
 
 
             string tskey = $"pidtor:ts:{id}:{requestInfo.IP}";
-            if (!memoryCache.TryGetValue(tskey, out (List<HeadersModel> header, string host) ts))
+            if (!hybridCache.TryGetValue(tskey, out (List<HeadersModel> header, string host) ts))
             {
                 ts = gots();
-                memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
+                hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
             }
 
             string hash = await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
@@ -478,7 +478,7 @@ namespace Lampac.Controllers.LITE
             if (init.auth_torrs != null && init.auth_torrs.Count > 0)
             {
                 string tskey = $"pidtor:ts2:{id}:{requestInfo.IP}";
-                if (!memoryCache.TryGetValue(tskey, out PidTorAuthTS ts))
+                if (!hybridCache.TryGetValue(tskey, out PidTorAuthTS ts))
                 {
                     var tors = init.auth_torrs.Where(i => i.enable).ToList();
 
@@ -486,7 +486,7 @@ namespace Lampac.Controllers.LITE
                         tors = tors.Where(i => i.country == null || i.country.Contains(country)).Where(i => i.no_country == null || !i.no_country.Contains(country)).ToList();
 
                     ts = tors[Random.Shared.Next(0, tors.Count)];
-                    memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
+                    hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                 }
 
                 return await auth_stream(ts.host, ts.login, ts.passwd);
@@ -496,20 +496,20 @@ namespace Lampac.Controllers.LITE
                 if (init.base_auth != null && init.base_auth.enable)
                 {
                     string tskey = $"pidtor:ts3:{id}:{requestInfo.IP}";
-                    if (!memoryCache.TryGetValue(tskey, out string ts))
+                    if (!hybridCache.TryGetValue(tskey, out string ts))
                     {
                         ts = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
-                        memoryCache.Set(tskey, ts, DateTime.Now.AddHours(4));
+                        hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                     }
 
                     return await auth_stream(ts, init.base_auth.login, init.base_auth.passwd);
                 }
 
                 string key = $"pidtor:ts4:{id}:{requestInfo.IP}";
-                if (!memoryCache.TryGetValue(key, out string tshost))
+                if (!hybridCache.TryGetValue(key, out string tshost))
                 {
                     tshost = init.torrs[Random.Shared.Next(0, init.torrs.Length)];
-                    memoryCache.Set(key, tshost, DateTime.Now.AddHours(4));
+                    hybridCache.Set(key, tshost, DateTime.Now.AddHours(4));
                 }
 
                 return Redirect($"{tshost}/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");

@@ -130,11 +130,11 @@ namespace Lampac.Controllers
                 else
                 {
                     string mkey = $"externalids:KP_:{_kp}";
-                    if (!memoryCache.TryGetValue(mkey, out string _imdbid))
+                    if (!hybridCache.TryGetValue(mkey, out string _imdbid))
                     {
                         string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
                         _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
-                        memoryCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
+                        hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
 
                     return Json(new { imdb_id = _imdbid, kinopoisk_id = id.Replace("KP_", "") });
@@ -227,9 +227,9 @@ namespace Lampac.Controllers
                     else
                     {
                         string mkey = $"externalids:locktmdb:{serial}:{id}";
-                        if (!memoryCache.TryGetValue(mkey, out _))
+                        if (!hybridCache.TryGetValue(mkey, out _))
                         {
-                            memoryCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+                            hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
 
                             string cat = serial == 1 ? "tv" : "movie";
                             var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
@@ -264,9 +264,9 @@ namespace Lampac.Controllers
                     else if (kinopoisk_id == 0)
                     {
                         string mkey = $"externalids:lockkpid:{imdb_id}";
-                        if (!memoryCache.TryGetValue(mkey, out _))
+                        if (!hybridCache.TryGetValue(mkey, out _))
                         {
-                            memoryCache.Set(mkey, 0, DateTime.Now.AddDays(1));
+                            hybridCache.Set(mkey, 0, DateTime.Now.AddDays(1));
 
                             switch (AppInit.conf.online.findkp ?? "all")
                             {

@@ -90,7 +90,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     data = videoSource;
-                    memoryCache.Set(uri, data, cacheTime(20));
+                    hybridCache.Set(uri, data, cacheTime(20));
                 }
 
                 var subtitles = new SubtitleTpl();
@@ -132,7 +132,7 @@ namespace Lampac.Controllers.LITE
             try
             {
                 string memKey = $"autoembed:black_magic:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out string mp4))
+                if (!hybridCache.TryGetValue(memKey, out string mp4))
                 {
                     using (var browser = new Firefox())
                     {
@@ -175,7 +175,7 @@ namespace Lampac.Controllers.LITE
                     if (mp4 == null)
                         return null;
 
-                    memoryCache.Set(memKey, mp4, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, mp4, cacheTime(20, init: init));
                 }
 
                 return mp4;
