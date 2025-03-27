@@ -317,7 +317,7 @@ namespace Lampac.Controllers
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
             List<(string code, int index, bool work)> _links = null;
-            if (memoryCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links))
+            if (hybridCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links))
                 _links = links.ToList();
 
             if (_links != null && _links.Count(i => i.code != null) > 0)
@@ -760,14 +760,14 @@ namespace Lampac.Controllers
             {
                 string memkey = CrypTo.md5($"checkOnlineSearch:{id}:{serial}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{online.Count}:{(IsKitConf ? requestInfo.user_uid : null)}");
 
-                if (!memoryCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links) || !conf.multiaccess)
+                if (!hybridCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links) || !conf.multiaccess)
                 {
                     var tasks = new List<Task>();
                     links = new List<(string code, int index, bool work)>(online.Count);
                     for (int i = 0; i < online.Count; i++)
                         links.Add(default);
 
-                    memoryCache.Set(memkey, links, DateTime.Now.AddMinutes(5));
+                    hybridCache.Set(memkey, links, DateTime.Now.AddMinutes(5));
 
                     foreach (var o in online)
                     {

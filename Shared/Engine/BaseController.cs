@@ -154,28 +154,37 @@ namespace Lampac.Engine
             int width = init.widthPicture;
             height = height > 0 ? height : init.heightPicture;
 
-            string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
-            if (AppInit.conf.accsdb.enable)
-                encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
+            string goEncryptUri()
+            {
+                string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
+                if (AppInit.conf.accsdb.enable)
+                    encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
+
+                return encrypt_uri;
+            }
 
             if (plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(plugin))
                 return uri;
 
             if (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
-                return $"{host}/proxyimg/{encrypt_uri}";
+                return $"{host}/proxyimg/{goEncryptUri()}";
 
             if (!string.IsNullOrEmpty(init.rsize_host))
             {
                 string sheme = uri.StartsWith("https:") ? "https" : "http";
-                return init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
-                                      .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""))
-                                      .Replace("{encrypt_uri}", encrypt_uri);
+                string rsize_host = init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
+                                                   .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+
+                if (rsize_host.Contains("{encrypt_uri}"))
+                    rsize_host = rsize_host.Replace("{encrypt_uri}", goEncryptUri());
+
+                return rsize_host;
             }
 
             if (width == 0 && height == 0)
-                return $"{host}/proxyimg/{encrypt_uri}";
+                return $"{host}/proxyimg/{goEncryptUri()}";
 
-            return $"{host}/proxyimg:{width}:{height}/{encrypt_uri}";
+            return $"{host}/proxyimg:{width}:{height}/{goEncryptUri()}";
         }
 
         public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null)
