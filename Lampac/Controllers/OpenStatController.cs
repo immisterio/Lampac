@@ -28,8 +28,19 @@ namespace Lampac.Controllers
 
             return ContentTo(JsonConvert.SerializeObject(new
             {
-                Chromium = new { keepopen = Chromium.stats_keepopen, newcontext = Chromium.stats_newcontext },
-                Firefox = new { keepopen = Firefox.stats_keepopen, newcontext = Firefox.stats_newcontext }
+                Chromium = new
+                {
+                    activ = Chromium.pages_keepopen.Count,
+                    keepopen = Chromium.stats_keepopen,
+                    newcontext = Chromium.stats_newcontext,
+                },
+                Firefox = new
+                {
+                    activ = Firefox.pages_keepopen.Count,
+                    keepopen = Firefox.stats_keepopen, 
+                    newcontext = Firefox.stats_newcontext 
+                }
+
             }, Formatting.Indented));
         }
     }

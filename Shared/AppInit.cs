@@ -71,6 +71,37 @@ namespace Lampac
                         _defaultOn = cacheconf.Item1.defaultOn;
                     }
 
+                    #region MinBrowserContext
+                    if (conf.chromium.context.min == -2)
+                    {
+                        if (conf.online.checkOnlineSearch)
+                        {
+                            int min = 0;
+
+                            if (conf.Kinobase.enable)
+                                min++;
+
+                            if (conf.VDBmovies.enable)
+                                min++;
+
+                            if (conf.VideoDB.enable)
+                                min++;
+
+                            if (conf.FanCDN.enable)
+                                min++;
+
+                            if (min == 0 && (conf.Videoseed.enable || conf.Hydraflix.enable || conf.Videasy.enable))
+                                min = 1;
+
+                            cacheconf.Item1.chromium.context.min = min;
+                        }
+                        else
+                        {
+                            cacheconf.Item1.chromium.context.min = 1;
+                        }
+                    }
+                    #endregion
+
                     #region accounts
                     if (cacheconf.Item1.accsdb.accounts != null)
                     {
@@ -93,6 +124,7 @@ namespace Lampac
                     }
                     #endregion
 
+                    #region users.txt
                     if (File.Exists("merchant/users.txt"))
                     {
                         long utc = DateTime.UtcNow.ToFileTimeUtc();
@@ -132,29 +164,6 @@ namespace Lampac
                                 }
                             }
                         }
-                    }
-
-                    #region MinBrowserContext
-                    if (conf.chromium.context.min == -2)
-                    {
-                        int min = 0;
-
-                        if (conf.Kinobase.enable)
-                            min++;
-
-                        if (conf.VDBmovies.enable)
-                            min++;
-
-                        if (conf.VideoDB.enable)
-                            min++;
-
-                        if (conf.FanCDN.enable)
-                            min++;
-
-                        if (min == 0 && (conf.Videoseed.enable || conf.Hydraflix.enable || conf.Videasy.enable))
-                            min = 1;
-
-                        cacheconf.Item1.chromium.context.min = min;
                     }
                     #endregion
 
