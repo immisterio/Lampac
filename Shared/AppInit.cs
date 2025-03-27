@@ -134,6 +134,30 @@ namespace Lampac
                         }
                     }
 
+                    #region MinBrowserContext
+                    if (conf.chromium.context.min == -2)
+                    {
+                        int min = 0;
+
+                        if (conf.Kinobase.enable)
+                            min++;
+
+                        if (conf.VDBmovies.enable)
+                            min++;
+
+                        if (conf.VideoDB.enable)
+                            min++;
+
+                        if (conf.FanCDN.enable)
+                            min++;
+
+                        if (min == 0 && (conf.Videoseed.enable || conf.Hydraflix.enable || conf.Videasy.enable))
+                            min = 1;
+
+                        cacheconf.Item1.chromium.context.min = min;
+                    }
+                    #endregion
+
                     try
                     {
                         File.WriteAllText("current.conf", JsonConvert.SerializeObject(cacheconf.Item1, Formatting.Indented));
@@ -202,30 +226,6 @@ namespace Lampac
         }
         #endregion
 
-        #region MinBrowserContext
-        public static int MinBrowserContext()
-        {
-            int min = 0;
-
-            if (conf.Kinobase.enable)
-                min++;
-
-            if (conf.VDBmovies.enable)
-                min++;
-
-            if (conf.VideoDB.enable)
-                min++;
-
-            if (conf.FanCDN.enable)
-                min++;
-
-            if (min == 0 && (conf.Videoseed.enable || conf.Hydraflix.enable || conf.Videasy.enable))
-                min = 1;
-
-            return min;
-        }
-        #endregion
-
         public static bool Win32NT => Environment.OSVersion.Platform == PlatformID.Win32NT;
 
 
@@ -277,7 +277,7 @@ namespace Lampac
         { 
             enable = true, Xvfb = true,
             Args = new string[] { "--disable-blink-features=AutomationControlled" },
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = MinBrowserContext(), max = 8 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = -2, max = 8 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
