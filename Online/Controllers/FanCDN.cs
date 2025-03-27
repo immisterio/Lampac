@@ -85,7 +85,7 @@ namespace Lampac.Controllers.LITE
                 ));
                 
                 if (init.priorityBrowser == "http")
-                    return await HttpClient.Get(uri, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser())
                 {

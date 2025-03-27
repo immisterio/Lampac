@@ -1,12 +1,12 @@
-﻿namespace Shared.Models.AppConf
+﻿using Shared.Models.Browser;
+
+namespace Shared.Models.AppConf
 {
     public class PuppeteerConf
     {
         public bool enable { get; set; }
 
-        public int keepopen_context { get; set; }
-
-        public int keepalive { get; set; }
+        public KeepopenContext context { get; set; }
 
         public bool Headless { get; set; }
 

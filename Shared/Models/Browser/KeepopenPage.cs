@@ -12,5 +12,10 @@ namespace Shared.Models.Browser
         public DateTime lockTo { get; set; }
 
         public DateTime lastActive { get; set; } = DateTime.Now;
+
+
+        public string plugin { get; set; }
+
+        public  (string ip, string username, string password) proxy { get; set; }
     }
 }

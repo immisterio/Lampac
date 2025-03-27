@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Spankbang
                 stream_links = await SpankbangTo.StreamLinks($"{host}/sbg/vidosik", init.corsHost(), uri, url =>
                 {
                     if (init.priorityBrowser == "http")
-                        return HttpClient.Get(url, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });

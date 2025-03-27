@@ -4,6 +4,7 @@ using Shared.Models.Browser;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -12,6 +13,10 @@ namespace Shared.Engine
     public class Chromium : PlaywrightBase, IDisposable
     {
         #region static
+        public static long stats_keepopen { get; set; }
+        public static long stats_newcontext { get; set; }
+
+
         static IBrowser browser = null;
 
         static bool shutdown = false;
@@ -166,6 +171,9 @@ namespace Shared.Engine
 
         string plugin { get; set; }
 
+        (string ip, string username, string password) proxy { get; set; }
+
+
         public bool IsCompleted { get; set; }
 
         public string failedUrl { get; set; }
@@ -185,9 +193,30 @@ namespace Shared.Engine
                     return null;
 
                 this.plugin = plugin;
+                this.proxy = proxy;
 
                 if (proxy != default)
                 {
+                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.plugin == plugin))
+                    {
+                        if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                        {
+                            _ = pg.page.CloseAsync();
+                            pages_keepopen.Remove(pg);
+                            continue;
+                        }
+
+                        if (pg.busy == false && DateTime.Now > pg.lockTo)
+                        {
+                            stats_keepopen++;
+                            pg.busy = true;
+                            keepopen_page = pg;
+                            page = pg.page;
+                            page.RequestFailed += Page_RequestFailed;
+                            return page;
+                        }
+                    }
+
                     var contextOptions = new BrowserNewContextOptions
                     {
                         Proxy = new Proxy 
@@ -204,10 +233,11 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    foreach (var pg in pages_keepopen)
+                    foreach (var pg in pages_keepopen.Where(i => i.proxy == default))
                     {
                         if (pg.busy == false && DateTime.Now > pg.lockTo)
                         {
+                            stats_keepopen++;
                             pg.busy = true;
                             keepopen_page = pg;
                             page = pg.page;
@@ -225,13 +255,15 @@ namespace Shared.Engine
                 page.Popup += Page_Popup;
                 page.Download += Page_Download;
 
-                if (proxy != default || AppInit.conf.chromium.keepopen_context == 0 || pages_keepopen.Count >= AppInit.conf.chromium.keepopen_context)
+                if (!AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.chromium.context.min, AppInit.conf.chromium.context.max))
                 {
+                    stats_newcontext++;
                     page.RequestFailed += Page_RequestFailed;
                     return page;
                 }
 
-                keepopen_page = new KeepopenPage() { page = page, busy = true };
+                stats_keepopen++;
+                keepopen_page = new KeepopenPage() { page = page, busy = true, plugin = plugin, proxy = proxy };
                 pages_keepopen.Add(keepopen_page);
                 page.RequestFailed += Page_RequestFailed;
                 return page;
@@ -323,12 +355,15 @@ namespace Shared.Engine
                 try
                 {
                     var init = AppInit.conf.chromium;
-                    if (0 >= init.keepalive)
+                    if (0 >= init.context.keepalive)
                         continue;
 
                     foreach (var k in pages_keepopen.ToArray())
                     {
-                        if (DateTime.Now > k.lastActive.AddMinutes(init.keepalive))
+                        if (init.context.min >= pages_keepopen.Count)
+                            break;
+
+                        if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
                         {
                             try
                             {

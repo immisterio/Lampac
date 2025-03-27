@@ -36,7 +36,7 @@ namespace Lampac.Controllers.BongaCams
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
                     if (init.priorityBrowser == "http")
-                        return HttpClient.Get(url, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });

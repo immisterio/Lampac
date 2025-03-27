@@ -78,7 +78,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (init.priorityBrowser == "http")
                     {
-                        location = await HttpClient.GetLocation(link, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                        location = await HttpClient.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
                     }
                     else
                     {
@@ -149,7 +149,7 @@ namespace Lampac.Controllers.LITE
             try
             {
                 if (init.priorityBrowser == "http")
-                    return await HttpClient.Get(uri, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: httpHeaders(init));
+                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: httpHeaders(init));
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
