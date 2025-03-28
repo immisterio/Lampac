@@ -255,7 +255,7 @@ namespace Lampac
         { 
             enable = true, Xvfb = true,
             Args = new string[] { "--disable-blink-features=AutomationControlled" },
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 1 }
+            context = new KeepopenContext() { keepopen = true }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
@@ -315,7 +315,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "5f99f1d99f890a1cfe26aac5f667942e9f638034"
+            tree = "48fc4bd6a9379039fa7b9566181f96bd1d2b3b87"
         };
 
         public OnlineConf online = new OnlineConf()

@@ -148,6 +148,12 @@ namespace Shared.Engine
                 Status = init.Headless ? PlaywrightStatus.headless : PlaywrightStatus.NoHeadless;
                 Console.WriteLine($"Chromium: v{browser.Version} / {Status.ToString()} / {browser.IsConnected}");
 
+                if (AppInit.conf.chromium.context.keepopen)
+                {
+                    keepopen_context = await browser.NewContextAsync();
+                    await keepopen_context.NewPageAsync();
+                }
+
                 browser.Disconnected += Browser_Disconnected;
             }
             catch (Exception ex) 
@@ -169,6 +175,11 @@ namespace Shared.Engine
         #endregion
 
 
+        static IBrowserContext keepopen_context { get; set; }
+
+        public static List<KeepopenPage> pages_keepopen = new();
+
+
         public bool IsCompleted { get; set; }
 
         public string failedUrl { get; set; }
@@ -178,8 +189,6 @@ namespace Shared.Engine
         IBrowserContext context { get; set; }
 
         KeepopenPage keepopen_page { get; set; }
-
-        public static List<KeepopenPage> pages_keepopen = new();
 
 
         async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
@@ -191,8 +200,8 @@ namespace Shared.Engine
 
                 if (proxy != default)
                 {
-                    #region proxy NewContext
-                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy != default))
+                    #region NewPageAsync
+                    foreach (var pg in pages_keepopen.ToArray())
                     {
                         if (pg.plugin == plugin)
                         {
@@ -209,66 +218,70 @@ namespace Shared.Engine
                             stats_keepopen++;
                             keepopen_page = pg;
                             page = await pg.context.NewPageAsync();
-                            page.Popup += Page_Popup;
-                            page.Download += Page_Download;
-                            page.RequestFailed += Page_RequestFailed;
-                            return page;
                         }
                     }
 
-                    var contextOptions = new BrowserNewContextOptions
+                    if (page == default)
                     {
-                        Proxy = new Proxy 
-                        { 
-                            Server = proxy.ip,
-                            Bypass = "127.0.0.1",
-                            Username = proxy.username,
-                            Password = proxy.password
-                        }
-                    };
+                        var contextOptions = new BrowserNewContextOptions
+                        {
+                            Proxy = new Proxy
+                            {
+                                Server = proxy.ip,
+                                Bypass = "127.0.0.1",
+                                Username = proxy.username,
+                                Password = proxy.password
+                            }
+                        };
 
-                    stats_newcontext++;
-                    context = await browser.NewContextAsync(contextOptions);
-                    page = await context.NewPageAsync();
+                        stats_newcontext++;
+                        context = await browser.NewContextAsync(contextOptions);
+                        page = await context.NewPageAsync();
+                    }
                     #endregion
+
+                    if (headers != null && headers.Count > 0)
+                        await page.SetExtraHTTPHeadersAsync(headers);
+
+                    page.Popup += Page_Popup;
+                    page.Download += Page_Download;
+                    page.RequestFailed += Page_RequestFailed;
+
+                    if (keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
+                        return page;
+
+                    await context.NewPageAsync(); // что-бы context не закрывался с последней закрытой вкладкой
+                    if (pages_keepopen.Count >= AppInit.conf.chromium.context.max)
+                        return page;
+
+                    keepopen_page = new KeepopenPage() { context = context, plugin = plugin, proxy = proxy };
+                    pages_keepopen.Add(keepopen_page);
+                    return page;
                 }
                 else
                 {
-                    #region NewContext
-                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy == default))
+                    #region NewPageAsync
+                    if (keepopen_context != default)
                     {
                         stats_keepopen++;
-                        keepopen_page = pg;
-                        page = await pg.context.NewPageAsync();
-                        page.Popup += Page_Popup;
-                        page.Download += Page_Download;
-                        page.RequestFailed += Page_RequestFailed;
-                        return page;
+                        page = await keepopen_context.NewPageAsync();
                     }
-
-                    stats_newcontext++;
-                    context = await browser.NewContextAsync();
-                    page = await context.NewPageAsync();
+                    else
+                    {
+                        stats_newcontext++;
+                        page = await browser.NewPageAsync();
+                    }
                     #endregion
+
+                    if (headers != null && headers.Count > 0)
+                        await page.SetExtraHTTPHeadersAsync(headers);
+
+                    page.Popup += Page_Popup;
+                    page.Download += Page_Download;
+                    page.RequestFailed += Page_RequestFailed;
+
+                    return page;
                 }
-
-                if (headers != null && headers.Count > 0)
-                    await page.SetExtraHTTPHeadersAsync(headers);
-
-                page.Popup += Page_Popup;
-                page.Download += Page_Download;
-                page.RequestFailed += Page_RequestFailed;
-
-                if (!AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.chromium.context.min, AppInit.conf.chromium.context.max))
-                    return page;
-
-                await context.NewPageAsync(); // что-бы context не закрывался с последней закрытой вкладкой
-                if (pages_keepopen.Count >= Math.Max(AppInit.conf.chromium.context.min, AppInit.conf.chromium.context.max))
-                    return page;
-
-                keepopen_page = new KeepopenPage() { context = context, plugin = plugin, proxy = proxy };
-                pages_keepopen.Add(keepopen_page);
-                return page;
             }
             catch { return null; }
         }
@@ -323,9 +336,13 @@ namespace Shared.Engine
                     page.CloseAsync();
                     keepopen_page.lastActive = DateTime.Now;
                 }
-                else
+                else if (context != null)
                 {
                     context.CloseAsync();
+                }
+                else
+                {
+                    page.CloseAsync();
                 }
             }
             catch { }
@@ -360,7 +377,7 @@ namespace Shared.Engine
 
                     foreach (var k in pages_keepopen.ToArray())
                     {
-                        if (Math.Max(1, init.context.min) >= pages_keepopen.Count)
+                        if (init.context.min >= pages_keepopen.Count)
                             break;
 
                         if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))

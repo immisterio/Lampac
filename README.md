@@ -1,17 +1,12 @@
 # Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
-# Запуск в Docker
-```
-docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
-```
-__tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
-
 # Установка на linux
 спасибо @nikk, @Denis
 ```
 curl -L -k -s https://lampac.sh | bash
 ```
+* 500Mb RAM, 1.5GB HDD
 * Порт генерируется рандомно и выводится в конце установки скрипта
 * Изменить или посмотреть порт можно в init.conf - 
 ```grep "listenport" /home/lampac/init.conf```
@@ -20,9 +15,15 @@ curl -L -k -s https://lampac.sh | bash
 ```
 curl -L -k -s https://lampac.sh/home | bash
 ```
-* 200Mb RAM, 200Mb HDD, 50 пользователей
+* 200Mb RAM, 200Mb HDD, < 10 пользователей
 * DLNA/Chromium/Firefox по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
+
+# Запуск в Docker
+```
+docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
+```
+__tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 
 # Установка на Windows
 1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md

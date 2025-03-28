@@ -129,7 +129,10 @@ namespace Shared.Engine
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && (AppInit.conf.chromium.Xvfb || AppInit.conf.firefox.Xvfb))
                 {
                     if (!File.Exists("/usr/bin/Xvfb"))
+                    {
                         Console.WriteLine("Playwright: /usr/bin/Xvfb not found");
+                        await Bash.Run("apt update && apt install -y xvfb libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2");
+                    }
 
                     _ = Bash.Run("Xvfb :99 -screen 0 1280x1024x24").ConfigureAwait(false);
                     Environment.SetEnvironmentVariable("DISPLAY", ":99");
