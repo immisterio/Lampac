@@ -26,22 +26,21 @@ namespace Lampac.Controllers
             if (IsDeny())
                 return ContentTo("{}");
 
-            return ContentTo(JsonConvert.SerializeObject(new
+            return Json(new
             {
                 Chromium = new
                 {
-                    activ = Chromium.pages_keepopen.Count,
-                    keepopen = Chromium.stats_keepopen,
-                    newcontext = Chromium.stats_newcontext,
+                    open = Chromium.pages_keepopen.Count,
+                    req_keepopen = Chromium.stats_keepopen,
+                    req_newcontext = Chromium.stats_newcontext,
                 },
                 Firefox = new
                 {
-                    activ = Firefox.pages_keepopen.Count,
-                    keepopen = Firefox.stats_keepopen, 
-                    newcontext = Firefox.stats_newcontext 
+                    open = Firefox.pages_keepopen.Count,
+                    req_keepopen = Firefox.stats_keepopen,
+                    req_newcontext = Firefox.stats_newcontext
                 }
-
-            }, Formatting.Indented));
+            });
         }
     }
 }

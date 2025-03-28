@@ -169,16 +169,13 @@ namespace Shared.Engine
         #endregion
 
 
-        string plugin { get; set; }
-
-        (string ip, string username, string password) proxy { get; set; }
-
-
         public bool IsCompleted { get; set; }
 
         public string failedUrl { get; set; }
 
         IPage page { get; set; }
+
+        IBrowserContext context { get; set; }
 
         KeepopenPage keepopen_page { get; set; }
 
@@ -192,26 +189,28 @@ namespace Shared.Engine
                 if (browser == null)
                     return null;
 
-                this.plugin = plugin;
-                this.proxy = proxy;
-
                 if (proxy != default)
                 {
-                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.plugin == plugin))
+                    #region proxy NewContext
+                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy != default))
                     {
-                        if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                        if (pg.plugin == plugin)
                         {
-                            _ = pg.page.CloseAsync();
-                            pages_keepopen.Remove(pg);
-                            continue;
+                            if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                            {
+                                _ = pg.context.CloseAsync();
+                                pages_keepopen.Remove(pg);
+                                continue;
+                            }
                         }
 
-                        if (pg.busy == false && DateTime.Now > pg.lockTo)
+                        if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
                         {
                             stats_keepopen++;
-                            pg.busy = true;
                             keepopen_page = pg;
-                            page = pg.page;
+                            page = await pg.context.NewPageAsync();
+                            page.Popup += Page_Popup;
+                            page.Download += Page_Download;
                             page.RequestFailed += Page_RequestFailed;
                             return page;
                         }
@@ -228,25 +227,29 @@ namespace Shared.Engine
                         }
                     };
 
-                    var context = await browser.NewContextAsync(contextOptions);
+                    stats_newcontext++;
+                    context = await browser.NewContextAsync(contextOptions);
                     page = await context.NewPageAsync();
+                    #endregion
                 }
                 else
                 {
-                    foreach (var pg in pages_keepopen.Where(i => i.proxy == default))
+                    #region NewContext
+                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy == default))
                     {
-                        if (pg.busy == false && DateTime.Now > pg.lockTo)
-                        {
-                            stats_keepopen++;
-                            pg.busy = true;
-                            keepopen_page = pg;
-                            page = pg.page;
-                            page.RequestFailed += Page_RequestFailed;
-                            return page;
-                        }
+                        stats_keepopen++;
+                        keepopen_page = pg;
+                        page = await pg.context.NewPageAsync();
+                        page.Popup += Page_Popup;
+                        page.Download += Page_Download;
+                        page.RequestFailed += Page_RequestFailed;
+                        return page;
                     }
 
-                    page = await browser.NewPageAsync();
+                    stats_newcontext++;
+                    context = await browser.NewContextAsync();
+                    page = await context.NewPageAsync();
+                    #endregion
                 }
 
                 if (headers != null && headers.Count > 0)
@@ -254,18 +257,17 @@ namespace Shared.Engine
 
                 page.Popup += Page_Popup;
                 page.Download += Page_Download;
+                page.RequestFailed += Page_RequestFailed;
 
                 if (!AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.chromium.context.min, AppInit.conf.chromium.context.max))
-                {
-                    stats_newcontext++;
-                    page.RequestFailed += Page_RequestFailed;
                     return page;
-                }
 
-                stats_keepopen++;
-                keepopen_page = new KeepopenPage() { page = page, busy = true, plugin = plugin, proxy = proxy };
+                await context.NewPageAsync(); // что-бы context не закрывался с последней закрытой вкладкой
+                if (pages_keepopen.Count >= Math.Max(AppInit.conf.chromium.context.min, AppInit.conf.chromium.context.max))
+                    return page;
+
+                keepopen_page = new KeepopenPage() { context = context, plugin = plugin, proxy = proxy };
                 pages_keepopen.Add(keepopen_page);
-                page.RequestFailed += Page_RequestFailed;
                 return page;
             }
             catch { return null; }
@@ -313,19 +315,17 @@ namespace Shared.Engine
             try
             {
                 page.RequestFailed -= Page_RequestFailed;
+                page.Popup -= Page_Popup;
+                page.Download -= Page_Download;
 
                 if (keepopen_page != null)
                 {
-                    keepopen_page.page.GotoAsync("about:blank");
+                    page.CloseAsync();
                     keepopen_page.lastActive = DateTime.Now;
-                    keepopen_page.lockTo = DateTime.Now.AddSeconds(1);
-                    keepopen_page.busy = false;
                 }
                 else
                 {
-                    page.Popup -= Page_Popup;
-                    page.Download -= Page_Download;
-                    page.CloseAsync();
+                    context.CloseAsync();
                 }
             }
             catch { }
@@ -360,18 +360,17 @@ namespace Shared.Engine
 
                     foreach (var k in pages_keepopen.ToArray())
                     {
-                        if (init.context.min >= pages_keepopen.Count)
+                        if (Math.Max(1, init.context.min) >= pages_keepopen.Count)
                             break;
 
                         if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
                         {
                             try
                             {
-                                await k.page.CloseAsync();
+                                await k.context.CloseAsync();
+                                pages_keepopen.Remove(k);
                             }
                             catch { }
-
-                            pages_keepopen.Remove(k);
                         }
                     }
                 }

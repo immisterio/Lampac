@@ -5,11 +5,16 @@ namespace Shared.Models.Browser
 {
     public class KeepopenPage
     {
+        #region Firefox
         public IPage page { get; set; }
 
         public bool busy { get; set; }
 
         public DateTime lockTo { get; set; }
+        #endregion
+
+
+        public IBrowserContext context { get; set; }
 
         public DateTime lastActive { get; set; } = DateTime.Now;
 

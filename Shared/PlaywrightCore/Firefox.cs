@@ -172,11 +172,6 @@ namespace Shared.Engine
         #endregion
 
 
-        string plugin { get; set; }
-
-        (string ip, string username, string password) proxy { get; set; }
-
-
         public bool IsCompleted { get; set; }
 
         public string failedUrl { get; set; }
@@ -195,21 +190,22 @@ namespace Shared.Engine
                 if (browser == null)
                     return null;
 
-                this.plugin = plugin;
-                this.proxy = proxy;
-
                 if (proxy != default)
                 {
-                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.plugin == plugin))
+                    #region proxy NewContext
+                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy != default))
                     {
-                        if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                        if (pg.plugin == plugin)
                         {
-                            _ = pg.page.CloseAsync();
-                            pages_keepopen.Remove(pg);
-                            continue;
+                            if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                            {
+                                _ = pg.page.CloseAsync();
+                                pages_keepopen.Remove(pg);
+                                continue;
+                            }
                         }
 
-                        if (pg.busy == false && DateTime.Now > pg.lockTo)
+                        if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
                         {
                             stats_keepopen++;
                             pg.busy = true;
@@ -231,11 +227,14 @@ namespace Shared.Engine
                         }
                     };
 
+                    stats_newcontext++;
                     var context = await browser.NewContextAsync(contextOptions);
                     page = await context.NewPageAsync();
+                    #endregion
                 }
                 else
                 {
+                    #region NewContext
                     foreach (var pg in pages_keepopen.Where(i => i.proxy == default))
                     {
                         if (pg.busy == false && DateTime.Now > pg.lockTo)
@@ -249,7 +248,9 @@ namespace Shared.Engine
                         }
                     }
 
+                    stats_newcontext++;
                     page = await browser.NewPageAsync();
+                    #endregion
                 }
 
                 if (headers != null && headers.Count > 0)
@@ -260,12 +261,10 @@ namespace Shared.Engine
 
                 if (!AppInit.conf.firefox.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.firefox.context.min, AppInit.conf.firefox.context.max))
                 {
-                    stats_newcontext++;
                     page.RequestFailed += Page_RequestFailed;
                     return page;
                 }
 
-                stats_keepopen++;
                 keepopen_page = new KeepopenPage() { page = page, busy = true, plugin = plugin, proxy = proxy };
                 pages_keepopen.Add(keepopen_page);
                 page.RequestFailed += Page_RequestFailed;
@@ -362,7 +361,7 @@ namespace Shared.Engine
 
                     foreach (var k in pages_keepopen.ToArray())
                     {
-                        if (init.context.min >= pages_keepopen.Count)
+                        if (Math.Max(1, init.context.min) >= pages_keepopen.Count)
                             break;
 
                         if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
@@ -370,10 +369,9 @@ namespace Shared.Engine
                             try
                             {
                                 await k.page.CloseAsync();
+                                pages_keepopen.Remove(k);
                             }
                             catch { }
-
-                            pages_keepopen.Remove(k);
                         }
                     }
                 }

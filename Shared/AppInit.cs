@@ -71,37 +71,6 @@ namespace Lampac
                         _defaultOn = cacheconf.Item1.defaultOn;
                     }
 
-                    #region MinBrowserContext
-                    if (conf.chromium.context.min == -2)
-                    {
-                        if (conf.online.checkOnlineSearch)
-                        {
-                            int min = 0;
-
-                            if (conf.Kinobase.enable)
-                                min++;
-
-                            if (conf.VDBmovies.enable)
-                                min++;
-
-                            if (conf.VideoDB.enable)
-                                min++;
-
-                            if (conf.FanCDN.enable)
-                                min++;
-
-                            if (min == 0 && (conf.Videoseed.enable || conf.Hydraflix.enable || conf.Videasy.enable))
-                                min = 1;
-
-                            cacheconf.Item1.chromium.context.min = min;
-                        }
-                        else
-                        {
-                            cacheconf.Item1.chromium.context.min = 1;
-                        }
-                    }
-                    #endregion
-
                     #region accounts
                     if (cacheconf.Item1.accsdb.accounts != null)
                     {
@@ -286,13 +255,13 @@ namespace Lampac
         { 
             enable = true, Xvfb = true,
             Args = new string[] { "--disable-blink-features=AutomationControlled" },
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = -2, max = 8 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 1 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 2 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 1 }
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
