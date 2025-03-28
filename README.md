@@ -19,16 +19,16 @@ curl -L -k -s https://lampac.sh/home | bash
 * DLNA/Chromium/Firefox по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
+# Установка на Windows
+1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md
+2. Распаковать https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
+3. Запустить Lampac.exe
+
 # Запуск в Docker
 ```
 docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
 __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
-
-# Установка на Windows
-1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md
-2. Распаковать https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
-3. Запустить Lampac.exe
 
 # Запуск в Android
 1. Termux - https://github.com/immisterio/Lampac/blob/main/Termux/README.md
