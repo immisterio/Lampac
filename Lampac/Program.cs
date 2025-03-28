@@ -46,7 +46,7 @@ namespace Lampac
 
             #region GC
             {
-                var timer = new System.Timers.Timer(300000); // 5 минут
+                var timer = new System.Timers.Timer(1000 * 60);
                 timer.Elapsed += (sender, e) => 
                 {
                     GC.Collect();
@@ -60,7 +60,7 @@ namespace Lampac
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
-                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=64 --optimize_for_size --gc_interval=60000");
+                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=64");
 
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
