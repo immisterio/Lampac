@@ -11,7 +11,7 @@ curl -L -k -s https://lampac.sh | bash
 * Изменить или посмотреть порт можно в init.conf - 
 ```grep "listenport" /home/lampac/init.conf```
 
-# Домашняя - linux
+# Домашняя (облегченная) - linux
 ```
 curl -L -k -s https://lampac.sh/home | bash
 ```
