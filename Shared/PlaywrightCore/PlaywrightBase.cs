@@ -324,7 +324,7 @@ namespace Shared.Engine
                             {
                                 var content = await response.BodyAsync();
                                 if (content != null)
-                                    memoryCache.Set(memkey, (content, response.Headers), DateTime.Now.AddDays(1));
+                                    memoryCache.Set(memkey, (content, response.Headers), DateTime.Now.AddHours(1));
                             }
                         }
 

@@ -24,8 +24,6 @@ namespace Lampac
 
         public static void Main(string[] args)
         {
-            Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", "/home/lampac/.playwright/node/linux-x64 node --max-old-space-size=64 --optimize_for_size --gc_interval=60000");
-
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
@@ -46,9 +44,24 @@ namespace Lampac
                 ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
             }
 
+            #region GC
+            {
+                var timer = new System.Timers.Timer(300000); // 5 минут
+                timer.Elapsed += (sender, e) => 
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                };
+                timer.AutoReset = true;
+                timer.Enabled = true;
+            }
+            #endregion
+
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
+                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=64 --optimize_for_size --gc_interval=60000");
+
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
                     if (await PlaywrightBase.InitializationAsync())
