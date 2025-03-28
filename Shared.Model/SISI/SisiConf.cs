@@ -10,6 +10,8 @@ namespace Lampac.Models.AppConf
 
         public string? rsize_host { get; set; }
 
+        public string? bypass_host { get; set; }
+
         public string[]? rsize_disable { get; set; }
 
         public string[]? proxyimg_disable { get; set; }

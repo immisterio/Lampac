@@ -156,7 +156,7 @@ namespace Lampac.Engine
 
             string goEncryptUri()
             {
-                string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
+                string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(5));
                 if (AppInit.conf.accsdb.enable)
                     encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
 
@@ -166,8 +166,21 @@ namespace Lampac.Engine
             if (plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(plugin))
                 return uri;
 
-            if (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
+            if ((width == 0 && height == 0) || (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin)))
+            {
+                if (!string.IsNullOrEmpty(init.bypass_host))
+                {
+                    string sheme = uri.StartsWith("https:") ? "https" : "http";
+                    string bypass_host = init.bypass_host.Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+
+                    if (bypass_host.Contains("{encrypt_uri}"))
+                        bypass_host = bypass_host.Replace("{encrypt_uri}", goEncryptUri());
+
+                    return bypass_host;
+                }
+
                 return $"{host}/proxyimg/{goEncryptUri()}";
+            }
 
             if (!string.IsNullOrEmpty(init.rsize_host))
             {
@@ -180,9 +193,6 @@ namespace Lampac.Engine
 
                 return rsize_host;
             }
-
-            if (width == 0 && height == 0)
-                return $"{host}/proxyimg/{goEncryptUri()}";
 
             return $"{host}/proxyimg:{width}:{height}/{goEncryptUri()}";
         }
