@@ -24,7 +24,7 @@ namespace Lampac
 
         public static void Main(string[] args)
         {
-            Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=50");
+            Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", "/home/lampac/.playwright/node/linux-x64 node --max-old-space-size=64 --optimize_for_size --gc_interval=60000");
 
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
