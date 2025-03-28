@@ -6,7 +6,7 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 ```
 curl -L -k -s https://lampac.sh | bash
 ```
-* 500Mb RAM, 1.5GB HDD
+* 500Mb RAM, 1.5GB HDD, многопользовательская
 * Порт генерируется рандомно и выводится в конце установки скрипта
 * Изменить или посмотреть порт можно в init.conf - 
 ```grep "listenport" /home/lampac/init.conf```
@@ -15,7 +15,7 @@ curl -L -k -s https://lampac.sh | bash
 ```
 curl -L -k -s https://lampac.sh/home | bash
 ```
-* 200Mb RAM, 200Mb HDD, < 10 пользователей
+* 200Mb RAM, 200Mb HDD, до 10 пользователей
 * DLNA/Chromium/Firefox по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
