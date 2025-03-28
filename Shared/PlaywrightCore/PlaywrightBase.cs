@@ -29,8 +29,6 @@ namespace Shared.Engine
                 if (!AppInit.conf.chromium.enable && !AppInit.conf.firefox.enable)
                     return false;
 
-                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=64");
-
                 if (!File.Exists(".playwright/package/index.js"))
                 {
                     bool res = await DownloadFile("https://github.com/immisterio/playwright/releases/download/chrome/package.zip", ".playwright/package.zip");

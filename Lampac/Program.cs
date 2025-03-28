@@ -24,6 +24,8 @@ namespace Lampac
 
         public static void Main(string[] args)
         {
+            Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=50");
+
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
