@@ -708,40 +708,43 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
-
-            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
-                send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
-
-            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost))
-                send(conf.Videasy, "videasy", "Videasy (ENG)");
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
-                send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost))
-                send(conf.MovPI, "movpi", "MovPI (ENG)");
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost))
-                send(conf.VidLink, "vidlink", "VidLink (ENG)");
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost))
-                send(conf.Twoembed, "twoembed", "2Embed (ENG)");
-
-            if (conf.Autoembed.priorityBrowser != "http")
+            #region ENG
+            if (original_language == null || original_language == "en")
             {
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost))
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
+                    send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost))
+                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
+                    send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost))
+                    send(conf.MovPI, "movpi", "MovPI (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost))
+                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost))
+                    send(conf.Twoembed, "twoembed", "2Embed (ENG)");
+
+                if (conf.Autoembed.priorityBrowser != "http")
+                {
+                    if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost))
+                        send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+                }
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost))
+                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+
+                if (conf.Autoembed.priorityBrowser == "http")
                     send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+
+                send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
             }
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost))
-                send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
-
-            if (conf.Autoembed.priorityBrowser == "http")
-                send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-
-            send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
-            send(conf.Rgshows, "rgshows", "RgShows (ENG)");
-
+            #endregion
 
             if (!life && conf.litejac)
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));

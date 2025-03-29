@@ -221,6 +221,8 @@ namespace Lampac.Engine
                 #region apnstream
                 string apnlink(ApnConf apn)
                 {
+                    string link = uri.Split(" ")[0].Trim();
+
                     if (apn.secure == "nginx")
                     {
                         using (MD5 md5 = MD5.Create())
@@ -228,19 +230,19 @@ namespace Lampac.Engine
                             long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
                             string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
 
-                            return $"{apn.host}/{hash}:{ex}/{uri}";
+                            return $"{apn.host}/{hash}:{ex}/{link}";
                         }
                     }
                     else if (apn.secure == "cf")
                     {
                         using (var sha1 = SHA1.Create())
                         {
-                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{uri}{apn.secret}");
+                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{link}{apn.secret}");
                             return Convert.ToBase64String(sha1.ComputeHash(data));
                         }
                     }
 
-                    return $"{apn.host}/{uri}";
+                    return $"{apn.host}/{link}";
                 }
 
                 if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
@@ -253,12 +255,31 @@ namespace Lampac.Engine
                 if (conf.headers_stream != null && conf.headers_stream.Count > 0)
                     headers = HeadersModel.Init(conf.headers_stream);
 
-                uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+                if (uri.Contains(" or "))
+                {
+                    string link = string.Empty;
 
-                if (AppInit.conf.accsdb.enable)
-                    uri = AccsDbInvk.Args(uri, HttpContext);
+                    foreach (string i in uri.Split(" or "))
+                    {
+                        string enc = ProxyLink.Encrypt(i.Trim(), requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                return $"{host}/proxy/{uri}";
+                        if (AppInit.conf.accsdb.enable)
+                            enc = AccsDbInvk.Args(enc, HttpContext);
+
+                        link += $"{host}/proxy/{enc} or ";
+                    }
+
+                    return Regex.Replace(link, " or $", "");
+                }
+                else
+                {
+                    uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+
+                    if (AppInit.conf.accsdb.enable)
+                        uri = AccsDbInvk.Args(uri, HttpContext);
+
+                    return $"{host}/proxy/{uri}";
+                }
             }
 
             return uri;

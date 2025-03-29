@@ -95,7 +95,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var media in player.media)
                 {
-                    string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(media.playlist)}&max_quality={media.max_quality}&translation_id={media.translation_id}");
+                    string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(media.playlist)}&max_quality={media.max_quality}&translation_id={media.translation_id}&rjson={rjson}");
                     string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
 
                     mtpl.Append(media.translation_name, link, "call", streamlink, quality: media.max_quality?.ToString());
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var media in player.media.OrderBy(s => s.season_id))
                     {
-                        string link = $"{host}/lite/videocdn?content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
+                        string link = $"{host}/lite/videocdn?content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}&rjson={rjson}";
                         tpl.Append($"{media.season_id} сезон", link, media.season_id);
                     }
 
@@ -145,7 +145,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrEmpty(t))
                                     t = voice.translation_id.ToString();
 
-                                vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), $"{host}/lite/videocdn?content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.translation_id}");
+                                vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), $"{host}/lite/videocdn?content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.translation_id}&rjson={rjson}");
                             }
                         }
                     }

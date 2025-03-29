@@ -181,13 +181,14 @@ namespace Lampac.Engine.CORE
             if (hub == null)
                 return null;
 
+            string rchId = Guid.NewGuid().ToString();
+
             try
             {
-                string rchId = Guid.NewGuid().ToString();
                 var tcs = new TaskCompletionSource<string>();
                 rchIds.TryAdd(rchId, tcs);
 
-                var send_headers = !useDefaultHeaders ? null : new Dictionary<string, string>() 
+                var send_headers = !useDefaultHeaders ? null : new Dictionary<string, string>()
                 {
                     { "Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" },
                     { "User-Agent", HttpClient.UserAgent }
@@ -218,6 +219,10 @@ namespace Lampac.Engine.CORE
             catch
             {
                 return null;
+            }
+            finally 
+            {
+                rchIds.TryRemove(rchId, out _);
             }
         }
         #endregion

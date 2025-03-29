@@ -255,7 +255,7 @@ namespace Lampac
         { 
             enable = true, Xvfb = true,
             Args = new string[] { "--disable-blink-features=AutomationControlled" },
-            context = new KeepopenContext() { keepopen = true }
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
