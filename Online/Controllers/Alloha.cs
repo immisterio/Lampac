@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
                 {
-                    string link = $"{host}/lite/alloha/video?t={translation.Key}" + defaultargs;
+                    string link = $"{host}/lite/alloha/video?t={translation.Key}&token_movie={result.data.Value<string>("token_movie")}" + defaultargs;
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     bool uhd = false;
@@ -127,7 +127,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrWhiteSpace(activTranslate) && !episode.Value.translation.ContainsKey(activTranslate))
                             continue;
 
-                        string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}" + defaultargs;
+                        string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}&token_movie={result.data.Value<string>("token_movie")}" + defaultargs;
                         string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                         etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", streamlink: streamlink);
@@ -147,7 +147,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/alloha/video")]
         [Route("lite/alloha/video.m3u8")]
-        async public Task<ActionResult> Video(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
+        async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init))
@@ -163,11 +163,11 @@ namespace Lampac.Controllers.LITE
                     return OnError("userIp");
             }
 
-            string memKey = $"alloha:view:stream:{init.secret_token}:{imdb_id}:{kinopoisk_id}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
+            string memKey = $"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
             if (!hybridCache.TryGetValue(memKey, out JToken data))
             {
                 #region url запроса
-                string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&imdb={imdb_id}&kp={kinopoisk_id}";
+                string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}";
 
                 uri += $"&ip={userIp}&translation={t}";
 
@@ -218,7 +218,13 @@ namespace Lampac.Controllers.LITE
                     streams = new List<(string link, string quality)>() { Capacity = 6 };
 
                     foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
-                        streams.Add((HostStreamProxy(init, q.Value, proxy: proxy), $"{q.Key}p"));
+                    {
+                        string file = q.Value;
+                        if (init.reserve)
+                            file += " or " + hlsSource["reserve"][q.Key].ToString();
+
+                        streams.Add((HostStreamProxy(init, file, proxy: proxy), $"{q.Key}p"));
+                    }
                 }
             }
 

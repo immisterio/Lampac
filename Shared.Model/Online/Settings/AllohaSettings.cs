@@ -25,6 +25,8 @@ namespace Lampac.Models.LITE
 
         public bool m4s { get; set; }
 
+        public bool reserve { get; set; }
+
 
         public AllohaSettings Clone()
         {

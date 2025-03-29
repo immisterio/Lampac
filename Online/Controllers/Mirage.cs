@@ -267,7 +267,7 @@ namespace Lampac.Controllers.LITE
                 if (!init.m4s && (q.Key is "2160" or "1440"))
                     continue;
 
-                string link = Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
+                string link = init.reserve ? q.Value : Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
                 streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders), $"{q.Key}p");
             }
 
