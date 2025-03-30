@@ -168,10 +168,15 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(int id, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animevost);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
+
+            if (rch.IsNotConnected() && init.rhub_fallback && play)
+                rch.Disabled();
 
             var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {

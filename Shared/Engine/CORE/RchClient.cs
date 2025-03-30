@@ -84,6 +84,12 @@ namespace Lampac.Engine.CORE
         }
 
 
+        public void Disabled()
+        {
+            enableRhub = false;
+        }
+
+
         #region Eval
         public ValueTask<string> Eval(string data) => SendHub("eval", data);
 

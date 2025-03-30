@@ -7,7 +7,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Model.Online.Lumex;
 using Shared.Model.Online;
-using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Collections.Generic;
 using System;
@@ -76,7 +75,7 @@ namespace Lampac.Controllers.LITE
             if (checksearch)
                 return Content("data-json=");
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
@@ -95,7 +94,8 @@ namespace Lampac.Controllers.LITE
 
                 foreach (var media in player.media)
                 {
-                    string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(media.playlist)}&max_quality={media.max_quality}&translation_id={media.translation_id}&rjson={rjson}");
+                    string hash = CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{media.playlist}:{requestInfo.IP}");
+                    string link = accsArgs($"{host}/lite/videocdn/video?rjson={rjson}&content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(media.playlist)}&max_quality={media.max_quality}&translation_id={media.translation_id}&hash={hash}");
                     string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
 
                     mtpl.Append(media.translation_name, link, "call", streamlink, quality: media.max_quality?.ToString());
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var media in player.media.OrderBy(s => s.season_id))
                     {
-                        string link = $"{host}/lite/videocdn?content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}&rjson={rjson}";
+                        string link = $"{host}/lite/videocdn?rjson={rjson}&content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}";
                         tpl.Append($"{media.season_id} сезон", link, media.season_id);
                     }
 
@@ -145,7 +145,7 @@ namespace Lampac.Controllers.LITE
                                 if (string.IsNullOrEmpty(t))
                                     t = voice.translation_id.ToString();
 
-                                vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), $"{host}/lite/videocdn?content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.translation_id}&rjson={rjson}");
+                                vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), $"{host}/lite/videocdn?rjson={rjson}&content_id={content_id}&content_type={content_type}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.translation_id}");
                             }
                         }
                     }
@@ -168,7 +168,8 @@ namespace Lampac.Controllers.LITE
                                 if (voice.translation_id.ToString() != t)
                                     continue;
 
-                                string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&serial=true");
+                                string hash = CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{voice.playlist}:{requestInfo.IP}");
+                                string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&hash={hash}&serial=true");
                                 string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
 
                                 etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, "call", streamlink: streamlink);
@@ -190,15 +191,14 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/videocdn/video")]
         [Route("lite/videocdn/video.m3u8")]
-        async public Task<ActionResult> Video(long content_id, string content_type, string playlist, int max_quality, bool play, bool serial, int s, int e, int translation_id)
+        async public Task<ActionResult> Video(string hash, long content_id, string content_type, string playlist, int max_quality, bool play, bool serial, int s, int e, int translation_id)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
+            if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))
+                return OnError();
 
             string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))
