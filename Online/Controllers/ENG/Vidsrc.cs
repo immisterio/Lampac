@@ -4,7 +4,6 @@ using Shared.Engine.CORE;
 using Shared.Engine;
 using Lampac.Models.LITE;
 using System;
-using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
@@ -124,14 +123,14 @@ namespace Lampac.Controllers.LITE
                         {
                             try
                             {
-                                if (browser.IsCompleted)
+                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|ico)$"))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
 
-                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                if (await PlaywrightBase.AbortOrCache(page, route, fullCacheJS: true))
                                     return;
 
                                 if (Regex.IsMatch(route.Request.Url, "/api/[0-9]+/servers"))

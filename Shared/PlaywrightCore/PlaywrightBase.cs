@@ -2,6 +2,7 @@
 using Lampac.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Playwright;
+using Shared.Engine.CORE;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -269,7 +270,7 @@ namespace Shared.Engine
         }
 
 
-        async public static ValueTask<bool> AbortOrCache(IMemoryCache memoryCache, IPage page, IRoute route, bool abortMedia = false, bool fullCacheJS = false, string patterCache = null)
+        async public static ValueTask<bool> AbortOrCache(IPage page, IRoute route, bool abortMedia = false, bool fullCacheJS = false, string patterCache = null)
         {
             try
             {
@@ -279,7 +280,7 @@ namespace Shared.Engine
                     return true;
                 }
 
-                if (abortMedia && Regex.IsMatch(route.Request.Url, "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico)"))
+                if (abortMedia && Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico)$"))
                 {
                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                     await route.AbortAsync();
@@ -291,7 +292,7 @@ namespace Shared.Engine
                     bool valid = false;
                     string memkey = route.Request.Url;
 
-                    if (Regex.IsMatch(route.Request.Url, "\\.(woff2?|css|svg|jpe?g|png|gif)") || (fullCacheJS && route.Request.Url.Contains(".js")) || route.Request.Url.Contains(".googleapis.com/css"))
+                    if (Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|css|svg|jpe?g|png|gif)$") || (fullCacheJS && route.Request.Url.Contains(".js")) || route.Request.Url.Contains(".googleapis.com/css"))
                     {
                         valid = true;
                         memkey = route.Request.Url.Split("?")[0];
@@ -309,7 +310,8 @@ namespace Shared.Engine
 
                     if (valid)
                     {
-                        if (memoryCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache))
+                        var hybridCache = new HybridCache();
+                        if (hybridCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache))
                         {
                             Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
                             await route.FulfillAsync(new RouteFulfillOptions
@@ -327,7 +329,7 @@ namespace Shared.Engine
                             {
                                 var content = await response.BodyAsync();
                                 if (content != null)
-                                    memoryCache.Set(memkey, (content, response.Headers), DateTime.Now.AddHours(1));
+                                    hybridCache.Set(memkey, (content, response.Headers), DateTime.Now.AddDays(1));
                             }
                         }
 

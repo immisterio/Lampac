@@ -1,9 +1,11 @@
 ﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Models;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Nodes;
@@ -18,14 +20,28 @@ namespace Lampac.Engine.Middlewares
         static List<(IPAddress prefix, int prefixLength)> cloudflare_ips = null;
 
         private readonly RequestDelegate _next;
-        public RequestInfo(RequestDelegate next)
+        IMemoryCache memoryCache;
+
+        public RequestInfo(RequestDelegate next, IMemoryCache mem)
         {
             _next = next;
+            memoryCache = mem;
         }
         #endregion
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
+            #region stats
+            {
+                string skey = $"stats:request:{DateTime.Now.Minute}";
+                if (!memoryCache.TryGetValue(skey, out long _req))
+                    _req = 0;
+
+                _req++;
+                memoryCache.Set(skey, _req, DateTime.Now.AddMinutes(58));
+            }
+            #endregion
+
             bool IsLocalRequest = false;
             string clientIp = httpContext.Connection.RemoteIpAddress.ToString();
 

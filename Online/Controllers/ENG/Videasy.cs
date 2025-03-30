@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
                                     return;
                                 }
 
-                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true))
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true))
                                     return;
 
                                 if (route.Request.Url.Contains(".m3u8"))

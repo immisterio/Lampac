@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
                                     return;
                                 }
 
-                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
                                     return;
 
                                 if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))

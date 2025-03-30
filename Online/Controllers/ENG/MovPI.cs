@@ -85,7 +85,7 @@ namespace Lampac.Controllers.LITE
                                     return;
                                 }
 
-                                if (await PlaywrightBase.AbortOrCache(memoryCache, page, route, abortMedia: true, fullCacheJS: true))
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
                                 if (route.Request.Url == uri)
