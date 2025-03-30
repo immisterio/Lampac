@@ -255,7 +255,7 @@ namespace Shared.Engine
                         return page;
 
                     // один из контекстов уже использует этот прокси
-                    if (pages_keepopen.FirstOrDefault(i => i.proxy.ip == proxy.ip && i.proxy.username == proxy.username && i.proxy.password == proxy.password).proxy != default)
+                    if (proxy != default && pages_keepopen.FirstOrDefault(i => i.proxy.ip == proxy.ip && i.proxy.username == proxy.username && i.proxy.password == proxy.password)?.proxy != default)
                         return page;
 
                     keepopen_page = new KeepopenPage() { context = context, plugin = plugin, proxy = proxy };

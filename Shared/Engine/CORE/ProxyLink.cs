@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using Shared.Engine.CORE;
 using Shared.Model.Online;
 using Shared.Models;
 using System;
@@ -6,6 +6,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
@@ -22,7 +25,7 @@ namespace Lampac.Engine.CORE
             {
                 try
                 {
-                    links = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ProxyLinkModel>>(BrotliTo.Decompress(conditionPath)) ?? new ConcurrentDictionary<string, ProxyLinkModel>();
+                    links = Newtonsoft.Json.JsonConvert.DeserializeObject<ConcurrentDictionary<string, ProxyLinkModel>>(BrotliTo.Decompress(conditionPath)) ?? new ConcurrentDictionary<string, ProxyLinkModel>();
                 }
                 catch { links = new ConcurrentDictionary<string, ProxyLinkModel>(); }
             }
@@ -32,9 +35,34 @@ namespace Lampac.Engine.CORE
 
         public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default)
         {
-            string hash = CrypTo.md5(uri + (verifyip && AppInit.conf.serverproxy.verifyip ? reqip : string.Empty));
-            if (string.IsNullOrWhiteSpace(hash))
+            if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
+
+            string hash;
+            bool IsMd5 = false;
+
+            if (AppInit.conf.serverproxy.encrypt_aes && headers == null && proxy == null)
+            {
+                if (verifyip && AppInit.conf.serverproxy.verifyip)
+                {
+                    hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new
+                    {
+                        u = uri,
+                        i = reqip,
+                        v = true,
+                        e = DateTime.Now.AddHours(36)
+                    }));
+                }
+                else
+                {
+                    hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri }));
+                }
+            }
+            else
+            {
+                IsMd5 = true;
+                hash = CrypTo.md5(uri + (verifyip && AppInit.conf.serverproxy.verifyip ? reqip : string.Empty));
+            }
 
             if (uri.Contains(".m3u8"))
                 hash += ".m3u8";
@@ -65,7 +93,7 @@ namespace Lampac.Engine.CORE
             else if (uri.Contains(".srt"))
                 hash += ".srt";
 
-            if (!links.ContainsKey(hash))
+            if (IsMd5 && !links.ContainsKey(hash))
             {
                 var md = new ProxyLinkModel(reqip, headers, proxy, uri, plugin, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
@@ -76,6 +104,31 @@ namespace Lampac.Engine.CORE
 
         public static ProxyLinkModel Decrypt(string hash, string reqip)
         {
+            if (string.IsNullOrEmpty(hash))
+                return null;
+
+            if (hash.StartsWith("aes:"))
+            {
+                hash = Regex.Replace(hash, "\\.[a-z0-9]+$", "", RegexOptions.IgnoreCase);
+
+                string dec = AesTo.Decrypt(hash.Replace("aes:", ""));
+                if (string.IsNullOrEmpty(dec))
+                    return null;
+
+                var root = JsonNode.Parse(dec);
+
+                if (root["v"]?.GetValue<bool>() == true)
+                {
+                    if (reqip != null && root["i"].GetValue<string>() != reqip)
+                        return null;
+
+                    if (DateTime.Now > root["e"].GetValue<DateTime>())
+                        return null;
+                }
+
+                return new ProxyLinkModel(reqip, null, null, root["u"].GetValue<string>());
+            }
+
             if (links.TryGetValue(hash, out ProxyLinkModel val))
             {
                 if (!AppInit.conf.serverproxy.verifyip || reqip == null || reqip == val.reqip)
@@ -108,7 +161,7 @@ namespace Lampac.Engine.CORE
                         }
                     }
 
-                    BrotliTo.Compress(conditionPath, JsonConvert.SerializeObject(links));
+                    BrotliTo.Compress(conditionPath, Newtonsoft.Json.JsonConvert.SerializeObject(links));
                 }
                 catch { }
 
