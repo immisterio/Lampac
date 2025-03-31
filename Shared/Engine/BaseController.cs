@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "138";
 
-        public static string minorversion => "5";
+        public static string minorversion => "16";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -154,28 +154,47 @@ namespace Lampac.Engine
             int width = init.widthPicture;
             height = height > 0 ? height : init.heightPicture;
 
-            string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers);
-            if (AppInit.conf.accsdb.enable)
-                encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
+            string goEncryptUri()
+            {
+                string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(5));
+                if (AppInit.conf.accsdb.enable)
+                    encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
+
+                return encrypt_uri;
+            }
 
             if (plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(plugin))
                 return uri;
 
-            if (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
-                return $"{host}/proxyimg/{encrypt_uri}";
+            if ((width == 0 && height == 0) || (plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin)))
+            {
+                if (!string.IsNullOrEmpty(init.bypass_host))
+                {
+                    string sheme = uri.StartsWith("https:") ? "https" : "http";
+                    string bypass_host = init.bypass_host.Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+
+                    if (bypass_host.Contains("{encrypt_uri}"))
+                        bypass_host = bypass_host.Replace("{encrypt_uri}", goEncryptUri());
+
+                    return bypass_host;
+                }
+
+                return $"{host}/proxyimg/{goEncryptUri()}";
+            }
 
             if (!string.IsNullOrEmpty(init.rsize_host))
             {
                 string sheme = uri.StartsWith("https:") ? "https" : "http";
-                return init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
-                                      .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""))
-                                      .Replace("{encrypt_uri}", encrypt_uri);
+                string rsize_host = init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
+                                                   .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+
+                if (rsize_host.Contains("{encrypt_uri}"))
+                    rsize_host = rsize_host.Replace("{encrypt_uri}", goEncryptUri());
+
+                return rsize_host;
             }
 
-            if (width == 0 && height == 0)
-                return $"{host}/proxyimg/{encrypt_uri}";
-
-            return $"{host}/proxyimg:{width}:{height}/{encrypt_uri}";
+            return $"{host}/proxyimg:{width}:{height}/{goEncryptUri()}";
         }
 
         public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null)
@@ -202,6 +221,8 @@ namespace Lampac.Engine
                 #region apnstream
                 string apnlink(ApnConf apn)
                 {
+                    string link = uri.Split(" ")[0].Trim();
+
                     if (apn.secure == "nginx")
                     {
                         using (MD5 md5 = MD5.Create())
@@ -209,19 +230,19 @@ namespace Lampac.Engine
                             long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
                             string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
 
-                            return $"{apn.host}/{hash}:{ex}/{uri}";
+                            return $"{apn.host}/{hash}:{ex}/{link}";
                         }
                     }
                     else if (apn.secure == "cf")
                     {
                         using (var sha1 = SHA1.Create())
                         {
-                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{uri}{apn.secret}");
+                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{link}{apn.secret}");
                             return Convert.ToBase64String(sha1.ComputeHash(data));
                         }
                     }
 
-                    return $"{apn.host}/{uri}";
+                    return $"{apn.host}/{link}";
                 }
 
                 if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
@@ -234,12 +255,31 @@ namespace Lampac.Engine
                 if (conf.headers_stream != null && conf.headers_stream.Count > 0)
                     headers = HeadersModel.Init(conf.headers_stream);
 
-                uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+                if (uri.Contains(" or "))
+                {
+                    string link = string.Empty;
 
-                if (AppInit.conf.accsdb.enable)
-                    uri = AccsDbInvk.Args(uri, HttpContext);
+                    foreach (string i in uri.Split(" or "))
+                    {
+                        string enc = ProxyLink.Encrypt(i.Trim(), requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                return $"{host}/proxy/{uri}";
+                        if (AppInit.conf.accsdb.enable)
+                            enc = AccsDbInvk.Args(enc, HttpContext);
+
+                        link += $"{host}/proxy/{enc} or ";
+                    }
+
+                    return Regex.Replace(link, " or $", "");
+                }
+                else
+                {
+                    uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+
+                    if (AppInit.conf.accsdb.enable)
+                        uri = AccsDbInvk.Args(uri, HttpContext);
+
+                    return $"{host}/proxy/{uri}";
+                }
             }
 
             return uri;

@@ -6,7 +6,6 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
-using System.Text.RegularExpressions;
 using Shared.Engine;
 using Shared.PlaywrightCore;
 
@@ -38,13 +37,13 @@ namespace Lampac.Controllers.LITE
                async ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
-                    return await HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
+                       return await HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
 
                    try
                    {
                        using (var browser = new PlaywrightBrowser())
                        {
-                           var page = await browser.NewPageAsync(proxy: proxy.data);
+                           var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
                            if (page == null)
                                return null;
 
@@ -52,13 +51,20 @@ namespace Lampac.Controllers.LITE
 
                            await page.RouteAsync("**/*", async route =>
                            {
-                               if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments") || Regex.IsMatch(route.Request.Url, "\\.(jpe?g|png|css|svg|ico)"))
+                               try
                                {
-                                   await route.AbortAsync();
-                                   return;
-                               }
+                                   if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments"))
+                                   {
+                                       await route.AbortAsync();
+                                       return;
+                                   }
 
-                               await route.ContinueAsync();
+                                   if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                       return;
+
+                                   await route.ContinueAsync();
+                               }
+                               catch { }
                            });
 
                            var result = await page.GotoAsync(ongettourl);

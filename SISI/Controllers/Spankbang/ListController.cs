@@ -7,6 +7,7 @@ using Shared.Engine.CORE;
 using SISI;
 using Shared.PlaywrightCore;
 using Shared.Engine;
+using Lampac.Engine.CORE;
 
 namespace Lampac.Controllers.Spankbang
 {
@@ -20,7 +21,7 @@ namespace Lampac.Controllers.Spankbang
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError("NoHeadless");
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
@@ -31,6 +32,9 @@ namespace Lampac.Controllers.Spankbang
 
                 string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url =>
                 {
+                    if (init.priorityBrowser == "http")
+                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });
 

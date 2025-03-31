@@ -120,7 +120,7 @@ namespace Lampac.Controllers.LITE
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}:{token}", cacheTime(20, init: init), rch.enable ? null : proxyManager, inmemory: true, onget: async res =>
+            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}:{token}", cacheTime(20, init: init), rch.enable ? null : proxyManager, onget: async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -138,7 +138,7 @@ namespace Lampac.Controllers.LITE
         async ValueTask<string> getLiveHash(FilmixSettings init)
         {
             string memKey = $"filmix:ChangeLink:hashfimix:{init.token_apitv}";
-            if (!memoryCache.TryGetValue(memKey, out string hash))
+            if (!hybridCache.TryGetValue(memKey, out string hash))
             {
                 if (!string.IsNullOrEmpty(init.token_apitv))
                 {
@@ -156,7 +156,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (init.livehash && !string.IsNullOrWhiteSpace(hash))
-                    memoryCache.Set(memKey, hash, DateTime.Now.AddHours(2));
+                    hybridCache.Set(memKey, hash, DateTime.Now.AddHours(2));
             }
 
             return hash;

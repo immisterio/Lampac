@@ -1,8 +1,10 @@
 ﻿using Lampac;
 using Microsoft.Playwright;
+using Shared.Models.Browser;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -11,6 +13,10 @@ namespace Shared.Engine
     public class Firefox : PlaywrightBase, IDisposable
     {
         #region static
+        public static long stats_keepopen { get; set; }
+        public static long stats_newcontext { get; set; }
+
+
         static IBrowser browser = null;
 
         static bool shutdown = false;
@@ -157,6 +163,7 @@ namespace Shared.Engine
         async private static void Browser_Disconnected(object sender, IBrowser e)
         {
             browser = null;
+            pages_keepopen = new();
             Status = PlaywrightStatus.disabled;
             Console.WriteLine("Firefox: Browser_Disconnected");
             await Task.Delay(TimeSpan.FromSeconds(10));
@@ -165,11 +172,18 @@ namespace Shared.Engine
         #endregion
 
 
+        public bool IsCompleted { get; set; }
+
+        public string failedUrl { get; set; }
+
         IPage page { get; set; }
 
-        public TaskCompletionSource<string> completionSource { get; private set; }
+        KeepopenPage keepopen_page { get; set; }
 
-        async public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        public static List<KeepopenPage> pages_keepopen = new();
+
+
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
             try
             {
@@ -178,6 +192,30 @@ namespace Shared.Engine
 
                 if (proxy != default)
                 {
+                    #region proxy NewContext
+                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy != default))
+                    {
+                        if (pg.plugin == plugin)
+                        {
+                            if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                            {
+                                _ = pg.page.CloseAsync();
+                                pages_keepopen.Remove(pg);
+                                continue;
+                            }
+                        }
+
+                        if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
+                        {
+                            stats_keepopen++;
+                            pg.busy = true;
+                            keepopen_page = pg;
+                            page = pg.page;
+                            page.RequestFailed += Page_RequestFailed;
+                            return page;
+                        }
+                    }
+
                     var contextOptions = new BrowserNewContextOptions
                     {
                         Proxy = new Proxy 
@@ -189,39 +227,82 @@ namespace Shared.Engine
                         }
                     };
 
+                    stats_newcontext++;
                     var context = await browser.NewContextAsync(contextOptions);
                     page = await context.NewPageAsync();
+                    #endregion
                 }
                 else
                 {
+                    #region NewContext
+                    foreach (var pg in pages_keepopen.Where(i => i.proxy == default))
+                    {
+                        if (pg.busy == false && DateTime.Now > pg.lockTo)
+                        {
+                            stats_keepopen++;
+                            pg.busy = true;
+                            keepopen_page = pg;
+                            page = pg.page;
+                            page.RequestFailed += Page_RequestFailed;
+                            return page;
+                        }
+                    }
+
+                    stats_newcontext++;
                     page = await browser.NewPageAsync();
+                    #endregion
                 }
 
                 if (headers != null && headers.Count > 0)
                     await page.SetExtraHTTPHeadersAsync(headers);
 
-                completionSource = new TaskCompletionSource<string>();
+                page.Popup += Page_Popup;
+                page.Download += Page_Download;
 
+                if (!AppInit.conf.firefox.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.firefox.context.min, AppInit.conf.firefox.context.max))
+                {
+                    page.RequestFailed += Page_RequestFailed;
+                    return page;
+                }
+
+                keepopen_page = new KeepopenPage() { page = page, busy = true, plugin = plugin, proxy = proxy };
+                pages_keepopen.Add(keepopen_page);
+                page.RequestFailed += Page_RequestFailed;
                 return page;
             }
             catch { return null; }
         }
 
-        async public ValueTask<string> WaitPageResult(int seconds = 10)
+
+        void Page_RequestFailed(object sender, IRequest e)
         {
             try
             {
-                var completionTask = completionSource.Task;
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
-
-                var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
-
-                if (completedTask == completionTask)
-                    return await completionTask;
-
-                return null;
+                if (failedUrl != null && e.Url == failedUrl)
+                {
+                    completionSource.SetResult(null);
+                    WebLog(e.Method, e.Url, "RequestFailed", default, e);
+                }
             }
-            catch { return null; }
+            catch { }
+        }
+
+        void Page_Download(object sender, IDownload e)
+        {
+            try
+            {
+                e.CancelAsync();
+            }
+            catch { }
+        }
+
+        void Page_Popup(object sender, IPage e)
+        {
+            try
+            {
+                e.CloseAsync();
+            }
+            catch { }
         }
 
 
@@ -232,8 +313,21 @@ namespace Shared.Engine
 
             try
             {
-                if (page != null)
+                page.RequestFailed -= Page_RequestFailed;
+
+                if (keepopen_page != null)
+                {
+                    keepopen_page.page.GotoAsync("about:blank");
+                    keepopen_page.lastActive = DateTime.Now;
+                    keepopen_page.lockTo = DateTime.Now.AddSeconds(1);
+                    keepopen_page.busy = false;
+                }
+                else
+                {
+                    page.Popup -= Page_Popup;
+                    page.Download -= Page_Download;
                     page.CloseAsync();
+                }
             }
             catch { }
         }
@@ -250,6 +344,39 @@ namespace Shared.Engine
                 browser.DisposeAsync();
             }
             catch { }
+        }
+
+
+        async public static Task CloseLifetimeContext()
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1));
+
+                try
+                {
+                    var init = AppInit.conf.firefox;
+                    if (0 >= init.context.keepalive)
+                        continue;
+
+                    foreach (var k in pages_keepopen.ToArray())
+                    {
+                        if (Math.Max(1, init.context.min) >= pages_keepopen.Count)
+                            break;
+
+                        if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
+                        {
+                            try
+                            {
+                                await k.page.CloseAsync();
+                                pages_keepopen.Remove(k);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+            }
         }
     }
 }

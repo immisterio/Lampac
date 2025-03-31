@@ -8,7 +8,6 @@ using Online;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -104,7 +103,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Серии
                 string memKey = $"animelib:playlist:{uri}";
-                if (!memoryCache.TryGetValue(memKey, out JArray episodes))
+                if (!hybridCache.TryGetValue(memKey, out JArray episodes))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -125,12 +124,12 @@ namespace Lampac.Controllers.LITE
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    memoryCache.Set(memKey, episodes, cacheTime(30, init: init));
+                    hybridCache.Set(memKey, episodes, cacheTime(30, init: init));
                 }
 
                 #region Перевод
                 memKey = $"animelib:video:{episodes.First.Value<int>("id")}";
-                if (!memoryCache.TryGetValue(memKey, out JArray players))
+                if (!hybridCache.TryGetValue(memKey, out JArray players))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -144,7 +143,7 @@ namespace Lampac.Controllers.LITE
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     players = root["data"]["players"].ToObject<JArray>();
-                    memoryCache.Set(memKey, players, cacheTime(30, init: init));
+                    hybridCache.Set(memKey, players, cacheTime(30, init: init));
                 }
 
                 var vtpl = new VoiceTpl();
@@ -195,17 +194,19 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string title, long id, string voice, bool play)
         {
             var init = await loadKit(AppInit.conf.AnimeLib);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var headers = httpHeaders(init);
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
-            string memKey = $"animelib:video:{id}";
-            if (!memoryCache.TryGetValue(memKey, out JArray players))
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotConnected() && init.rhub_fallback && play)
+                rch.Disabled();
+
+            var cache = await InvokeCache<JArray>($"animelib:video:{id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
+                    return res.Fail(rch.connectionMsg);
 
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
 
@@ -213,21 +214,22 @@ namespace Lampac.Controllers.LITE
                                         await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
 
                 if (root == null || !root.ContainsKey("data"))
-                    return OnError(proxyManager, refresh_proxy: !rch.enable);
+                    return res.Fail("data");
 
-                players = root["data"]["players"].ToObject<JArray>();
+                return root["data"]["players"].ToObject<JArray>();
+            });
 
-                if (!rch.enable)
-                    proxyManager.Success();
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
-                memoryCache.Set(memKey, players, cacheTime(30, init: init));
-            }
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg, gbcache: !rch.enable);
 
             List<(string link, string quality)> goStreams(string _voice)
             {
                 var _streams = new List<(string link, string quality)>() { Capacity = 5 };
 
-                foreach (var player in players)
+                foreach (var player in cache.Value)
                 {
                     if (player.Value<string>("player") != "Animelib")
                         continue;

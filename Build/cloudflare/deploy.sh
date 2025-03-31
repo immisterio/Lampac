@@ -1,17 +1,27 @@
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 #./dotnet-install.sh --version 9.0.200 -InstallDir ./dotnet
-./dotnet-install.sh --version 8.0.110 -InstallDir ./dotnet
+#./dotnet-install.sh --version 8.0.110 -InstallDir ./dotnet
 ./dotnet-install.sh --version 6.0.133 -InstallDir ./dotnet6
 
 chmod +x Build/cloudflare/nightlies.sh
 ./Build/cloudflare/nightlies.sh
 
+mkdir -p out/
+cp -R Build/cloudflare/functions .
+cat Build/cloudflare/_headers > out/_headers
+
+cd out/
+
+mkdir -p lpc
+cp -R ../lpc/* lpc/
+cp lpc/update.sh ver.sh
+
+return;
+
 
 ####### BwaJS ####### 
 
-#cat Build/cloudflare/Shared.Engine.csproj > Shared.Engine/Shared.Engine.csproj
-#cat Build/cloudflare/Shared.Model.csproj > Shared.Model/Shared.Model.csproj
 cat Build/cloudflare/net8/JinEnergy.csproj > JinEnergy/JinEnergy.csproj
 cat Build/cloudflare/net8/Shared.Engine.csproj > Shared.Engine/Shared.Engine.csproj
 cat Build/cloudflare/net8/Shared.Model.csproj > Shared.Model/Shared.Model.csproj

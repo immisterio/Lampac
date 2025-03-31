@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using Shared.Models.AppConf;
 using Shared.Models.ServerProxy;
 using Lampac.Engine.CORE;
+using Shared.Models.Browser;
 
 namespace Lampac
 {
@@ -92,6 +93,7 @@ namespace Lampac
                     }
                     #endregion
 
+                    #region users.txt
                     if (File.Exists("merchant/users.txt"))
                     {
                         long utc = DateTime.UtcNow.ToFileTimeUtc();
@@ -132,6 +134,7 @@ namespace Lampac
                             }
                         }
                     }
+                    #endregion
 
                     try
                     {
@@ -242,18 +245,23 @@ namespace Lampac
 
         public WebLogConf weblog = new WebLogConf();
 
+        public OpenStatConf openstat = new OpenStatConf();
+
         public RchConf rch = new RchConf() { enable = true, keepalive = 45, permanent_connection = true };
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
-            enable = true, Xvfb = true
+            enable = true, Xvfb = true,
+            Args = new string[] { "--disable-blink-features=AutomationControlled" },
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
-            enable = false, Headless = true
+            enable = false, Headless = true,
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 1 }
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
@@ -307,7 +315,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "adb0d7c2cc07de26c32398e780313f92daee98a9"
+            tree = "9b37e5bd49c92fe1efdd1c146a18c7fcd31253c8"
         };
 
         public OnlineConf online = new OnlineConf()

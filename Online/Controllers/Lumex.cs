@@ -64,16 +64,17 @@ namespace Lampac.Controllers.LITE
                 #region Firefox
                 try
                 {
-                    using (var browser = new Firefox())
+                    using(var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync(proxy: proxy.data);
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
                         if (page == null)
                             return null;
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (content_uri != null)
+                            if (content_uri != null || browser.IsCompleted)
                             {
+                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                 await route.AbortAsync();
                                 return;
                             }
@@ -89,11 +90,14 @@ namespace Lampac.Controllers.LITE
                                     content_headers.Add(new HeadersModel(item.Key, item.Value));
                                 }
 
+                                browser.IsCompleted = true;
                                 browser.completionSource.SetResult(string.Empty);
                                 await route.AbortAsync();
-                                await page.CloseAsync();
                                 return;
                             }
+
+                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                return;
 
                             await route.ContinueAsync();
                         });
@@ -105,8 +109,11 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrEmpty(imdb_id))
                             uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
-                        await page.GotoAsync(uri);
-                        await browser.WaitPageResult(20);
+                        var response = await page.GotoAsync(uri);
+                        if (response == null)
+                            return null;
+
+                        await browser.WaitPageResult();
                     }
                 }
                 catch { }
@@ -144,7 +151,7 @@ namespace Lampac.Controllers.LITE
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
                 md.csrf = CrypTo.md5(DateTime.Now.ToFileTime().ToString());
 
-                memoryCache.Set(md.csrf, content_headers, DateTime.Now.AddDays(1));
+                hybridCache.Set(md.csrf, content_headers, DateTime.Now.AddDays(1));
 
                 return md;
             });
@@ -170,9 +177,10 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
-            if (!memoryCache.TryGetValue(memkey, out string hls))
+            if (!hybridCache.TryGetValue(memkey, out string hls))
             {
-                var content_headers = memoryCache.Get<List<HeadersModel>>(csrf);
+                if (!hybridCache.TryGetValue(csrf, out List<HeadersModel> content_headers))
+                    return OnError();
 
                 var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
 
@@ -184,7 +192,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 hls = $"{init.scheme}:{url}";
-                memoryCache.Set(memkey, hls, cacheTime(20, init: init));
+                hybridCache.Set(memkey, hls, cacheTime(20, init: init));
             }
 
             string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy);

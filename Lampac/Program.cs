@@ -38,7 +38,22 @@ namespace Lampac
             Console.WriteLine(init + "\n");
             File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
             
-            if (!AppInit.conf.mikrotik) 
+            if (AppInit.conf.mikrotik) 
+            {
+                #region GC
+                {
+                    var timer = new System.Timers.Timer(1000 * 60);
+                    timer.Elapsed += (sender, e) =>
+                    {
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                    };
+                    timer.AutoReset = true;
+                    timer.Enabled = true;
+                }
+                #endregion
+            }
+            else
             {
                 ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
                 ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
@@ -47,6 +62,8 @@ namespace Lampac
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
+                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=64");
+
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
                     if (await PlaywrightBase.InitializationAsync())
@@ -58,6 +75,9 @@ namespace Lampac
                             _ = Firefox.CreateAsync().ConfigureAwait(false);
                     }
                 });
+
+                ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
+                ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
             }
             #endregion
 

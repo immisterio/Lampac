@@ -10,6 +10,9 @@ using Lampac.Models.LITE;
 using Microsoft.Playwright;
 using Shared.Engine.CORE;
 using Shared.PlaywrightCore;
+using System;
+using Lampac.Engine.CORE;
+using System.Net;
 
 namespace Lampac.Controllers.LITE
 {
@@ -23,7 +26,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (kinopoisk_id == 0)
+                return OnError();
+
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -33,7 +39,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.host,
-               (url, head) => black_magic(url, init, proxy.data),
+               (url, head) => black_magic(url, init, proxy),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
@@ -46,6 +52,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
+        #region Manifest
         [HttpGet]
         [Route("lite/videodb/manifest")]
         [Route("lite/videodb/manifest.m3u8")]
@@ -55,66 +62,68 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(link) || PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (string.IsNullOrEmpty(link))
+                return OnError();
+
+            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
             string memKey = $"videodb:video:{link}";
-            if (!memoryCache.TryGetValue(memKey, out string location))
+            if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 try
                 {
-                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
+                    if (init.priorityBrowser == "http")
                     {
-                        var page = await browser.NewPageAsync(proxy: proxy.data);
-                        if (page == null)
-                            return null;
-
-                        page.RequestFailed += (sender, e) =>
+                        location = await HttpClient.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                    }
+                    else
+                    {
+                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            if (e.Url == link)
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                            if (page == null)
+                                return null;
+
+                            browser.failedUrl = link;
+
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                browser.completionSource.SetResult(null);
-                                PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy.data, e);
-                            }
-                        };
+                                try
+                                {
+                                    if (route.Request.Url.Contains("api/chromium/iframe"))
+                                    {
+                                        await route.ContinueAsync();
+                                        return;
+                                    }
 
-                        page.Download += async (sender, download) =>
-                        {
-                            await download.CancelAsync();
-                        };
+                                    if (route.Request.Url == link)
+                                    {
+                                        await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
 
-                        await page.RouteAsync("**/*", async route =>
-                        {
-                            if (route.Request.Url.Contains("api/chromium/iframe"))
-                            {
-                                await route.ContinueAsync();
-                                return;
-                            }
+                                        var response = await page.WaitForResponseAsync(route.Request.Url);
+                                        if (response != null)
+                                            response.Headers.TryGetValue("location", out location);
 
-                            if (route.Request.Url == link)
-                            {
-                                await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+                                        browser.SetPageResult(location);
+                                        PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
+                                        return;
+                                    }
 
-                                var response = await page.WaitForResponseAsync(route.Request.Url);
-                                if (response != null)
-                                    response.Headers.TryGetValue("location", out location);
+                                    await route.AbortAsync();
+                                }
+                                catch { }
+                            });
 
-                                browser.completionSource.SetResult(location);
-                                PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
-                                return;
-                            }
+                            var response = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
+                            if (response == null)
+                                return null;
 
-                            await route.AbortAsync();
-                        });
-
-                        var response = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
-                        if (response == null)
-                            return null;
-
-                        location = await browser.WaitPageResult();
+                            location = await browser.WaitPageResult();
+                        }
                     }
                 }
                 catch { }
@@ -122,7 +131,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(location) || link == location)
                     return OnError();
 
-                memoryCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
+                hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }
 
             string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
@@ -132,50 +141,58 @@ namespace Lampac.Controllers.LITE
 
             return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));
         }
+        #endregion
 
-
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        #region black_magic
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
+                if (init.priorityBrowser == "http")
+                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: httpHeaders(init));
+
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(proxy: proxy);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data);
                     if (page == null)
                         return null;
 
-                    page.RequestFailed += (sender, e) =>
-                    {
-                        if (e.Url == uri)
-                        {
-                            browser.completionSource.SetResult(null);
-                            PlaywrightBase.WebLog(e.Method, e.Url, "RequestFailed", proxy, e);
-                        }
-                    };
+                    browser.failedUrl = uri;
 
                     await page.RouteAsync("**/*", async route =>
                     {
-                        if (route.Request.Url.Contains("api/chromium/iframe"))
+                        try
                         {
-                            await route.ContinueAsync();
-                            return;
+                            if (route.Request.Url.Contains("api/chromium/iframe"))
+                            {
+                                await route.ContinueAsync();
+                                return;
+                            }
+
+                            if (browser.IsCompleted)
+                            {
+                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            if (route.Request.Url == uri)
+                            {
+                                string html = null;
+                                await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+
+                                var response = await page.WaitForResponseAsync(route.Request.Url);
+                                if (response != null)
+                                    html = await response.TextAsync();
+
+                                browser.SetPageResult(html);
+                                PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
+                                return;
+                            }
+
+                            await route.AbortAsync();
                         }
-
-                        if (route.Request.Url == uri)
-                        {
-                            string html = null;
-                            await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
-
-                            var response = await page.WaitForResponseAsync(route.Request.Url);
-                            if (response != null)
-                                html = await response.TextAsync();
-
-                            browser.completionSource.SetResult(html);
-                            PlaywrightBase.WebLog(route.Request, response, html, proxy);
-                            return;
-                        }
-
-                        await route.AbortAsync();
+                        catch { }
                     });
 
                     var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
@@ -187,5 +204,6 @@ namespace Lampac.Controllers.LITE
             }
             catch { return null; }
         }
+        #endregion
     }
 }

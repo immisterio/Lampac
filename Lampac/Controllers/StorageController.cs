@@ -9,11 +9,15 @@ using System;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Lampac.Controllers
 {
     public class StorageController : BaseController
     {
+        static readonly ConcurrentDictionary<string, SemaphoreSlim> _fileLocks = new();
+
         static StorageController()
         {
             Directory.CreateDirectory("cache/storage");
@@ -59,13 +63,28 @@ namespace Lampac.Controllers
                 array = memoryStream.ToArray();
             }
 
-            if (AppInit.conf.storage.brotli)
-                BrotliTo.Compress(outFile, array);
-            else
+            var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
+            await fileLock.WaitAsync();
+
+            try
             {
-                using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                    fileStream.Write(array, 0, array.Length);
-            }  
+                if (AppInit.conf.storage.brotli)
+                    BrotliTo.Compress(outFile, array);
+                else
+                {
+                    using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                        fileStream.Write(array, 0, array.Length);
+                }
+            }
+            finally
+            {
+                fileLock.Release();
+
+                if (fileLock.CurrentCount == 1)
+                {
+                    _fileLocks.TryRemove(outFile, out _);
+                }
+            }
 
             var inf = new FileInfo(outFile);
 

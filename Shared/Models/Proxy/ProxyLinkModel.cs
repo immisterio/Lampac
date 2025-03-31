@@ -7,9 +7,10 @@ namespace Shared.Models
 {
     public class ProxyLinkModel
     {
-        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null)
+        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, DateTime ex = default)
         {
             this.upd = DateTime.Now;
+            this.ex = ex;
             this.reqip = reqip;
             this.headers = headers;
             this.proxy = proxy;
@@ -18,6 +19,8 @@ namespace Shared.Models
         }
 
         public DateTime upd { get; set; }
+
+        public DateTime ex { get; set; }
 
         public string reqip { get; set; }
 

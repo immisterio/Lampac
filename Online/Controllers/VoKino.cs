@@ -64,7 +64,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (balancer is "filmix" or "ashdi" or "alloha" or "vibix")
+            if (balancer is "filmix" or "ashdi" or "vibix")
                 init.streamproxy = false;
 
             if (checksearch && balancer != "vokino")

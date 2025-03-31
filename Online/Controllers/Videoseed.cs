@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(proxy: proxy.data);
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
                         if (page == null)
                             return null;
 
@@ -160,13 +160,20 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                            try
                             {
-                                await route.ContinueAsync();
-                                return;
-                            }
+                                if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                                {
+                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                        return;
 
-                            await route.AbortAsync();
+                                    await route.ContinueAsync();
+                                    return;
+                                }
+
+                                await route.AbortAsync();
+                            }
+                            catch { }
                         });
 
                         var result = await page.GotoAsync(iframe);

@@ -4,8 +4,6 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Shared.PlaywrightCore
@@ -23,6 +21,17 @@ namespace Shared.PlaywrightCore
                     return PlaywrightStatus.headless;
 
                 return PlaywrightStatus.disabled;
+            }
+        }
+
+        public bool IsCompleted
+        {
+            get
+            {
+                if (chromium != null)
+                    return chromium.IsCompleted;
+
+                return firefox.IsCompleted;
             }
         }
 
@@ -68,37 +77,66 @@ namespace Shared.PlaywrightCore
             }
         }
 
-
-        public TaskCompletionSource<string> completionSource 
+        public string failedUrl
         {
-            get
+            set
             {
                 if (chromium != null)
-                    return chromium.completionSource;
-
-                return firefox.completionSource;
+                {
+                    chromium.failedUrl = value;
+                }
+                else
+                {
+                    firefox.failedUrl = value;
+                }
             }
         }
 
 
-        public ValueTask<IPage> NewPageAsync(Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
         {
-            if (chromium == null && firefox == null)
-                return default;
+            try
+            {
+                if (chromium == null && firefox == null)
+                    return default;
 
-            if (chromium != null)
-                return chromium.NewPageAsync(headers, proxy);
+                if (chromium != null)
+                    return chromium.NewPageAsync(plugin, headers, proxy);
 
-            return firefox.NewPageAsync(headers, proxy);
+                return firefox.NewPageAsync(plugin, headers, proxy);
+            }
+            catch { return default; }
         }
 
 
+        public void SetPageResult(string val)
+        {
+            try
+            {
+                if (chromium != null)
+                {
+                    chromium.IsCompleted = true;
+                    chromium.completionSource.SetResult(val);
+                }
+                else
+                {
+                    firefox.IsCompleted = true;
+                    firefox.completionSource.SetResult(val);
+                }
+            }
+            catch { }
+        }
+
         public ValueTask<string> WaitPageResult(int seconds = 10)
         {
-            if (chromium != null)
-                return chromium.WaitPageResult(seconds);
+            try
+            {
+                if (chromium != null)
+                    return chromium.WaitPageResult(seconds);
 
-            return firefox.WaitPageResult(seconds);
+                return firefox.WaitPageResult(seconds);
+            }
+            catch { return default; }
         }
 
 
@@ -117,7 +155,7 @@ namespace Shared.PlaywrightCore
             {
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser, minimalAPI))
                 {
-                    var page = await browser.NewPageAsync(headers?.ToDictionary(), proxy);
+                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy);
                     if (page == null)
                         return null;
 

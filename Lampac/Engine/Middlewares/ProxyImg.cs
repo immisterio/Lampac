@@ -45,14 +45,15 @@ namespace Lampac.Engine.Middlewares
                 bool cacheimg = init.cache.img;
 
                 #region Проверки
-                string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "").Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://") + httpContext.Request.QueryString.Value;
-                ProxyLinkModel decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
+                string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
 
                 if (href.Contains("image.tmdb.org"))
                 {
-                    httpContext.Response.Redirect($"/tmdb/img/{Regex.Replace(href, "^https?://[^/]+/", "")}");
+                    httpContext.Response.Redirect($"/tmdb/img/{Regex.Replace(href.Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://"), "^https?://[^/]+/", "")}");
                     return;
                 }
+
+                var decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
 
                 if (init.encrypt)
                 {

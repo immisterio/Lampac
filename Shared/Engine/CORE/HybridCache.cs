@@ -17,7 +17,7 @@ namespace Shared.Engine.CORE
         #region HybridCache
         static IMemoryCache memoryCache;
 
-        static int extend = 1;
+        static int extend = 5;
 
         static ConcurrentDictionary<string, DateTimeOffset> condition = new ConcurrentDictionary<string, DateTimeOffset>();
 
@@ -99,8 +99,8 @@ namespace Shared.Engine.CORE
             {
                 if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
                 {
-                    if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddMinutes(extend))
-                        memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+                    if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddSeconds(extend))
+                        memoryCache.Set(key, value, DateTime.Now.AddSeconds(extend));
 
                     return true;
                 }
@@ -108,7 +108,7 @@ namespace Shared.Engine.CORE
                 if (ReadCache(key, out value))
                 {
                     if (AppInit.conf.typecache == "hybrid")
-                        memoryCache.Set(key, value, TimeSpan.FromMinutes(extend));
+                        memoryCache.Set(key, value, DateTime.Now.AddSeconds(extend));
 
                     return true;
                 }
@@ -164,7 +164,7 @@ namespace Shared.Engine.CORE
             if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
             {
                 if (AppInit.conf.typecache == "hybrid")
-                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(extend));
+                    memoryCache.Set(key, value, DateTime.Now.AddSeconds(extend));
 
                 return value;
             }
@@ -177,7 +177,7 @@ namespace Shared.Engine.CORE
             if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
             {
                 if (AppInit.conf.typecache == "hybrid")
-                    memoryCache.Set(key, value, DateTime.Now.AddMinutes(extend));
+                    memoryCache.Set(key, value, DateTime.Now.AddSeconds(extend));
 
                 return value;
             }

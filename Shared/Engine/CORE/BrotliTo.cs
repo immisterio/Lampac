@@ -17,7 +17,7 @@ namespace Lampac.Engine.CORE
                 if (!Startup.memoryCache.TryGetValue(cacheKey, out object lockObj))
                 {
                     lockObj = new object();
-                    Startup.memoryCache.Set(cacheKey, lockObj, TimeSpan.FromSeconds(10));
+                    Startup.memoryCache.Set(cacheKey, lockObj, TimeSpan.FromSeconds(5));
                 }
 
                 return lockObj;

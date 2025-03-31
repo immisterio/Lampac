@@ -78,3 +78,8 @@ else
         echo "lampac already current version $ver"
     fi
 fi
+
+
+# clear
+rm -rf runtimes/wi*
+rm -rf runtimes/os*

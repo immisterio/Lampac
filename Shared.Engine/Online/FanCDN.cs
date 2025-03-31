@@ -26,7 +26,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        static string? serial_frameUrl = null;
+        static string? api_frameUrl = null;
 
         async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
         {
@@ -35,13 +35,24 @@ namespace Shared.Engine.Online
                 if (kinopoisk_id == 0)
                     return null;
 
-                if (serial_frameUrl == null)
+                if (api_frameUrl == null)
                 {
                     string? films = await onget($"{apihost}/films/");
                     if (string.IsNullOrEmpty(films) || !films.Contains("class=\"box-tab\""))
                         return null;
 
-                    string href = Regex.Match(films.Split("class=\"box-tab\"")[1], "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                    string? href = null;
+
+                    foreach (string row in films.Split("class=\"box-tab\"")[1].Split("<div class=\"owl-item\">"))
+                    {
+                        if (!row.Contains(" США, "))
+                            continue;
+
+                        href = Regex.Match(row, "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                        if (string.IsNullOrEmpty(href))
+                            continue;
+                    }
+
                     if (string.IsNullOrEmpty(href))
                         return null;
 
@@ -53,13 +64,20 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(iframe_url) || !iframe_url.Contains("kinopoisk="))
                         return null;
 
-                    serial_frameUrl = iframe_url;
+                    api_frameUrl = iframe_url;
                 }
 
-                return await Embed(Regex.Replace(serial_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
+                return await Embed(Regex.Replace(api_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
             }
             else
             {
+                if (kinopoisk_id > 0 && api_frameUrl != null)
+                {
+                    var _res = await Embed(Regex.Replace(api_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
+                    if (_res != null)
+                        return _res;
+                }
+
                 if (string.IsNullOrEmpty(title) || year == 0)
                     return null;
 
@@ -92,6 +110,7 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(iframe_url))
                     return null;
 
+                api_frameUrl = iframe_url;
                 return await Embed(iframe_url);
             }
         }

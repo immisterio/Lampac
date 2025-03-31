@@ -239,7 +239,7 @@ namespace Shared.Engine.CORE
             if (memoryCache.TryGetValue(mkey, out _))
                 return;
 
-            memoryCache.Set(mkey, 0);
+            memoryCache.Set(mkey, 0, DateTime.Now.AddMinutes(10));
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {

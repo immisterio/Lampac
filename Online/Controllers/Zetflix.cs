@@ -12,6 +12,7 @@ using Microsoft.Playwright;
 using System.Text.RegularExpressions;
 using Shared.PlaywrightCore;
 using Shared.Engine;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -36,12 +37,13 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
+            string ztfhost = await goHost(init.host);
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
 
             var oninvk = new ZetflixInvoke
             (
                host,
-               init.corsHost(),
+               ztfhost,
                MaybeInHls(init.hls, init),
                (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy.proxy)
@@ -52,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
             string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), async () => 
             {
-                string uri = $"{AppInit.conf.Zetflix.host}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
+                string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
                 string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
                 if (html != null && !html.StartsWith("<script>(function"))
@@ -70,7 +72,7 @@ namespace Lampac.Controllers.LITE
                     {
                         log += "browser init\n";
 
-                        var page = await browser.NewPageAsync(new Dictionary<string, string>()
+                        var page = await browser.NewPageAsync(init.plugin, new Dictionary<string, string>()
                         {
                             ["Referer"] = "https://www.google.com/"
 
@@ -83,24 +85,32 @@ namespace Lampac.Controllers.LITE
 
                         await page.RouteAsync("**/*", async route =>
                         {
-                            if (Regex.IsMatch(route.Request.Url, "(gstatic|googleapis|\\.jpg|\\.css)"))
+                            try
                             {
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
 
-                            await route.ContinueAsync();
+                                await route.ContinueAsync();
+                            }
+                            catch { }
                         });
 
-                        await page.GotoAsync(uri);
+                        var responce = await page.GotoAsync(uri);
+                        if (responce == null)
+                        {
+                            proxyManager.Refresh();
+                            return null;
+                        }
+
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                        var response = await page.ReloadAsync();
+                        var response = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
                         if (response == null)
                         {
                             proxyManager.Refresh();
                             return null;
                         }
+
 
                         html = await response.TextAsync();
 
@@ -148,6 +158,31 @@ namespace Lampac.Controllers.LITE
             OnLog(log + "\nStart OnResult");
 
             return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson));
+        }
+
+
+        async Task<string> goHost(string host)
+        {
+            if (!Regex.IsMatch(host, "^https?://go."))
+                return host;
+
+            string memkey = $"zeflix:gohost:{host}";
+            if (hybridCache.TryGetValue(memkey, out string ztfhost))
+                return ztfhost;
+
+            string html = await HttpClient.Get(host);
+            if (html != null)
+            {
+                ztfhost = Regex.Match(html, "\"([^\"]+)\"\\);</script>").Groups[1].Value;
+                if (!string.IsNullOrEmpty(ztfhost))
+                {
+                    ztfhost = $"https://{ztfhost}";
+                    hybridCache.Set(memkey, ztfhost, DateTime.Now.AddHours(1));
+                    return ztfhost;
+                }
+            }
+
+            return CrypTo.DecodeBase64("aHR0cHM6Ly96ZXQtZmxpeC5vbmxpbmU=");
         }
     }
 }

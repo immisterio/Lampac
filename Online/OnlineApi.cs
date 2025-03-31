@@ -130,11 +130,11 @@ namespace Lampac.Controllers
                 else
                 {
                     string mkey = $"externalids:KP_:{_kp}";
-                    if (!memoryCache.TryGetValue(mkey, out string _imdbid))
+                    if (!hybridCache.TryGetValue(mkey, out string _imdbid))
                     {
                         string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
                         _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
-                        memoryCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
+                        hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
 
                     return Json(new { imdb_id = _imdbid, kinopoisk_id = id.Replace("KP_", "") });
@@ -227,9 +227,9 @@ namespace Lampac.Controllers
                     else
                     {
                         string mkey = $"externalids:locktmdb:{serial}:{id}";
-                        if (!memoryCache.TryGetValue(mkey, out _))
+                        if (!hybridCache.TryGetValue(mkey, out _))
                         {
-                            memoryCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+                            hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
 
                             string cat = serial == 1 ? "tv" : "movie";
                             var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
@@ -264,9 +264,9 @@ namespace Lampac.Controllers
                     else if (kinopoisk_id == 0)
                     {
                         string mkey = $"externalids:lockkpid:{imdb_id}";
-                        if (!memoryCache.TryGetValue(mkey, out _))
+                        if (!hybridCache.TryGetValue(mkey, out _))
                         {
-                            memoryCache.Set(mkey, 0, DateTime.Now.AddDays(1));
+                            hybridCache.Set(mkey, 0, DateTime.Now.AddDays(1));
 
                             switch (AppInit.conf.online.findkp ?? "all")
                             {
@@ -316,9 +316,16 @@ namespace Lampac.Controllers
             string json = null;
             JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
 
-            if (memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) res))
+            List<(string code, int index, bool work)> _links = null;
+            if (memoryCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links))
+                _links = links.ToList();
+
+            if (_links != null && _links.Count(i => i.code != null) > 0)
             {
-                if (res.ready && (res.online == null || !res.online.Contains("\"show\":true")))
+                bool ready = _links.Count == _links.Count(i => i.code != null);
+                string online = string.Join(",", _links.Where(i => i.code != null).OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
+
+                if (ready && !online.Contains("\"show\":true"))
                 {
                     if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
                         return error($"Добавьте \"IMDB ID\" {(serial == 1 ? "сериала" : "фильма")} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids");
@@ -326,8 +333,7 @@ namespace Lampac.Controllers
                     return error($"Не удалось найти онлайн для {(serial == 1 ? "сериала" : "фильма")}");
                 }
 
-                string online = res.online?.Replace("{localhost}", host) ?? string.Empty;
-                json = "{"+ $"\"ready\":{res.ready.ToString().ToLower()},\"tasks\":{res.tasks},\"online\":[{online}]" + "}";
+                json = "{" + $"\"ready\":{ready.ToString().ToLower()},\"tasks\":{_links.Count},\"online\":[{online.Replace("{localhost}", host)}]" + "}";
             }
 
             return Content(json ?? "{\"ready\":false,\"tasks\":0,\"online\":[]}", contentType: "application/javascript; charset=utf-8");
@@ -619,16 +625,16 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
+                if (conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
                     send(conf.VideoDB);
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                if (conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
                     send(conf.VDBmovies);
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                if (conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
                     send(conf.FanCDN);
             }
 
@@ -702,11 +708,43 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
-            if (!string.IsNullOrEmpty(imdb_id))
+            #region ENG
+            if (original_language == null || original_language == "en")
             {
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
+                    send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost))
+                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost))
                     send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost))
+                    send(conf.MovPI, "movpi", "MovPI (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost))
+                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost))
+                    send(conf.Twoembed, "twoembed", "2Embed (ENG)");
+
+                if (conf.Autoembed.priorityBrowser != "http")
+                {
+                    if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost))
+                        send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+                }
+
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost))
+                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+
+                if (conf.Autoembed.priorityBrowser == "http")
+                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+
+                send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
             }
+            #endregion
 
             if (!life && conf.litejac)
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));
@@ -725,43 +763,42 @@ namespace Lampac.Controllers
             {
                 string memkey = CrypTo.md5($"checkOnlineSearch:{id}:{serial}:{source?.Replace("tmdb", "")?.Replace("cub", "")}:{online.Count}:{(IsKitConf ? requestInfo.user_uid : null)}");
 
-                if (!memoryCache.TryGetValue(memkey, out (bool ready, int tasks, string online) cache) || !conf.multiaccess)
+                if (!memoryCache.TryGetValue(memkey, out List<(string code, int index, bool work)> links) || !conf.multiaccess)
                 {
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddSeconds(20));
-
                     var tasks = new List<Task>();
-                    var links = new List<(string code, int index, bool work)>();
+                    links = new List<(string code, int index, bool work)>(online.Count);
+                    for (int i = 0; i < online.Count; i++)
+                        links.Add(default);
+
+                    memoryCache.Set(memkey, links, DateTime.Now.AddMinutes(5));
 
                     foreach (var o in online)
-                        tasks.Add(checkSearch(memkey, links, tasks, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype));
+                    {
+                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype);
+                        tasks.Add(tk);
+                    }
 
                     if (life)
                         return Json(new { life = true, memkey, title = (fix_title ? title : null) });
 
                     await Task.WhenAll(tasks).ConfigureAwait(false);
-
-                    cache.ready = true;
-                    cache.tasks = tasks.Count;
-                    cache.online = string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
-
-                    memoryCache.Set(memkey, cache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (life)
                     return Json(new { life = true, memkey });
 
-                return Content($"[{cache.online.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
+                return ContentTo($"[{string.Join(",", links.Where(i => i.code != null).OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code)).Replace("{localhost}", host)}]");
             }
             #endregion
 
             string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
-            return Content($"[{online_result.Replace("{localhost}", host)}]", contentType: "application/javascript; charset=utf-8");
+            return ContentTo($"[{online_result.Replace("{localhost}", host)}]");
         }
         #endregion
 
 
         #region checkSearch
-        async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, List<Task> tasks, dynamic init, int index, string name, string uri, string plugin,
+        async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
             try
@@ -862,6 +899,15 @@ namespace Lampac.Controllers
                             case "fancdn":
                             case "cdnvideohub":
                             case "moonanime":
+                            case "playembed":
+                            case "rgshows":
+                            case "twoembed":
+                            case "vidsrc":
+                            case "smashystream":
+                            case "hydraflix":
+                            case "movpi":
+                            case "videasy":
+                            case "vidlink":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
@@ -875,6 +921,7 @@ namespace Lampac.Controllers
                             case "kinokrad":
                             case "kinoprofi":
                             case "seasonvar":
+                            case "autoembed":
                                 quality = " - 480p";
                                 break;
                             case "cdnmovies":
@@ -896,9 +943,7 @@ namespace Lampac.Controllers
                     name += quality;
                 }
 
-                links.Add(("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work));
-
-                memoryCache.Set(memkey, (links.Count == tasks.Count, tasks.Count, string.Join(",", links.OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code))), DateTime.Now.AddMinutes(5));
+                links[indexList] = ("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work);
             }
             catch (Exception ex) { Console.WriteLine("checkSearch: " + ex.ToString()); }
         }

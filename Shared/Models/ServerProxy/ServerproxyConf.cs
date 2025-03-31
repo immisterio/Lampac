@@ -10,6 +10,8 @@ namespace Shared.Models.ServerProxy
 
         public bool encrypt { get; set; }
 
+        public bool encrypt_aes { get; set; }
+
         public bool verifyip { get; set; }
 
         public bool showOrigUri { get; set; }

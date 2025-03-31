@@ -164,9 +164,14 @@ namespace SISI
                             return;
                     }
 
-                    string url = init.overridehost;
-                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
-                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                    string url = string.Empty;
+
+                    if (string.IsNullOrEmpty(init.overridepasswd))
+                    {
+                        url = init.overridehost;
+                        if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                            url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                    }
 
                     string displayname = init.displayname ?? name;
 
@@ -185,7 +190,7 @@ namespace SISI
             send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
-            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
+            if (conf.Spankbang.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
                 send("spankbang.com", conf.Spankbang, "sbg");
 
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
@@ -194,7 +199,7 @@ namespace SISI
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
             send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
 
-            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
+            if (conf.BongaCams.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
                 send("bongacams.com", conf.BongaCams, "bgs");
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");

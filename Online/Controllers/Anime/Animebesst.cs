@@ -151,16 +151,20 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string uri, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"animebesst:video:{uri}";
-            if (!hybridCache.TryGetValue(memKey, out string hls))
-            {
-                var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("cors,web", out string rch_error))
+                return ShowError(rch_error);
 
+            if (rch.IsNotConnected() && init.rhub_fallback && play)
+                rch.Disabled();
+
+            var cache = await InvokeCache<string>($"animebesst:video:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
+            {
                 if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
+                    return res.Fail(rch.connectionMsg);
 
                 string iframe;
                 if (rch.enable)
@@ -175,17 +179,20 @@ namespace Lampac.Controllers.LITE
                 if (iframe == null)
                     return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
+                string hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
                     return OnError();
 
-                if (!rch.enable)
-                    proxyManager.Success();
+                return hls;
+            });
 
-                hybridCache.Set(memKey, hls, cacheTime(30, init: init));
-            }
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
-            string link = HostStreamProxy(init, hls, proxy: proxyManager.Get());
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg, gbcache: !rch.enable);
+
+            string link = HostStreamProxy(init, cache.Value, proxy: proxyManager.Get());
 
             if (play)
                 return Redirect(link);

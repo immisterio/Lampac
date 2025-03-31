@@ -33,6 +33,8 @@ namespace Shared.Model
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
         };
 
+
+        #region SISI
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")
         {
             headers = HeadersModel.Init(
@@ -53,7 +55,12 @@ namespace Shared.Model
             headers = HeadersModel.Init("referer", "{host}").ToDictionary()
         };
 
-        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true);
+        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true) 
+        {
+            headers_stream = HeadersModel.Init(
+                ("referer", "{host}/")
+            ).ToDictionary()
+        };
 
         public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp");
 
@@ -107,9 +114,9 @@ namespace Shared.Model
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary()
         };
+        #endregion
 
-
-
+        #region Online
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, scheme = "http" };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
@@ -196,7 +203,12 @@ namespace Shared.Model
 
         public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("FilmixPartner", "kwws=22819418914;2sduwqhubdsl", enable: false);
 
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22}hw0iol{1rqolqh") { geostreamproxy = new string[] { "ALL" }, hls = true };
+        /// <summary>
+        /// aHR0cHM6Ly9nby56ZXQtZmxpeC5vbmxpbmU=
+        /// aHR0cHM6Ly9nby56ZXRmbGl4LW9ubGluZS5sb2w=
+        /// aHR0cHM6Ly96ZXRmbGl4LW9ubGluZS5hcnQv
+        /// </summary>
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh") { geostreamproxy = new string[] { "ALL" }, hls = true };
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
@@ -301,9 +313,11 @@ namespace Shared.Model
         /// </summary>
         public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.site", "API-токен", "https://portal.lumex.host", "ID клиент") 
         {
-            enable = false,
+            enable = false, log = false,
+            scheme = "http",
+            hls = false, // false - mp4 / true - m3u8
             disable_protection = false, // true - отключить проверку на парсер
-            scheme = "http", hls = false, log = true,
+            disable_ads = false, // отключить рекламу
             vast = new VastConf() { msg = "Реклама от VideoCDN" }
         };
 
@@ -359,15 +373,142 @@ namespace Shared.Model
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true) { enable = true, streamproxy = true };
+        #endregion
 
-        public OnlinesSettings Vidsrc { get; set; } = new OnlinesSettings("Vidsrc", "kwwsv=22ylgvuf1wr") 
+        #region ENG
+        /// <summary>
+        /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
+        /// </summary>
+        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
+
+        /// <summary>
+        /// aHR0cHM6Ly92aWRzcmMueHl6
+        /// aHR0cHM6Ly92aWRzcmMucHJv
+        /// aHR0cHM6Ly92aWRzcmMudG8=
+        /// </summary>
+        public OnlinesSettings Vidsrc { get; set; } = new OnlinesSettings("Vidsrc", "kwwsv=22ylgvuf1ff", streamproxy: true) 
         {
-            headers = HeadersModel.Init(
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
+        public OnlinesSettings MovPI { get; set; } = new OnlinesSettings("MovPI", "kwwsv=22prylhvdsl1foxe", streamproxy: true)
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "encrypt:kwwsv=22z41prylhvdsl1foxe2"),
+                ("origin", "encrypt:kwwsv=22z41prylhvdsl1foxe"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
+            ).ToDictionary()
+        };
 
+        /// <summary>
+        /// aHR0cHM6Ly9kYXkyc29hcC54eXov
+        /// </summary>
+        public OnlinesSettings VidLink { get; set; } = new OnlinesSettings("VidLink", "kwwsv=22ylgolqn1sur", streamproxy: true)
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ).ToDictionary()
+        };
+
+        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true)
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ).ToDictionary()
+        };
+
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true)
+        {
+            priorityBrowser = "http",
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ).ToDictionary()
+        };
+
+        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
+
+        /// <summary>
+        /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
+        /// </summary>
+        public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true) 
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("origin", "encrypt:kwwsv=22vpdvk|sod|hu1wrs"),
+                ("referer", "encrypt:kwwsv=22vpdvk|sod|hu1wrs2"),
+                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+            ).ToDictionary()
+        };
+
+        public OnlinesSettings Rgshows { get; set; } = new OnlinesSettings("Rgshows", "kwwsv=22dsl1ujvkrzv1ph", streamproxy: true)
+        {
+            headers = HeadersModel.Init(
+                ("user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"),
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "encrypt:kwwsv=22zzz1ujvkrzv1ph2"),
+                ("origin", "encrypt:kwwsv=22zzz1ujvkrzv1ph"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site")
+            ).ToDictionary()
+        };
+
+        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "kwwsv=22sod|51456hpehg1qhw", streamproxy: true)
+        {
+            headers = HeadersModel.Init(
+                ("user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"),
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site")
+            ).ToDictionary()
+        };
+        #endregion
+
+        #region Anime
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy");
@@ -412,13 +553,11 @@ namespace Shared.Model
                 ("referer", "https://aniboom.one/")
             ).ToDictionary()
         };
+        #endregion
 
 
 
-
-
-
-
+        #region RIP
         public RezkaSettings Voidboost { get; set; } = new RezkaSettings("Voidboost", "kwwsv=22yrlgerrvw1qhw", streamproxy: true) { enable = false, rip = true };
 
         public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("Seasonvar", "kwws=22dsl1vhdvrqydu1ux", enable: false, rip: true);
@@ -426,5 +565,6 @@ namespace Shared.Model
         public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("Lostfilmhd", "kwws=22zzz1glvqh|oryh1ux", streamproxy: true, rip: true);
 
         public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rip: true);
+        #endregion
     }
 }
