@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
+using NetVips;
 using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
@@ -61,35 +62,28 @@ namespace Lampac.Controllers.BongaCams
         async public Task<ActionResult> Index2(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.BongaCams);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
+            init.rhub = true;
+            init.rhub_fallback = false;
+            init.rhub_geo_disable = null;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            string memKey = $"BongaCams2:list:{sort}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
+            string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
             {
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
+                return rch.Get(url, headers: httpHeaders(init));
+            });
 
-                string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                {
-                    return rch.Get(url, headers: httpHeaders(init));
-                });
+            var playlists = BongaCamsTo.Playlist(html, out int total_pages);
 
-                cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);
-                cache.total_pages = total_pages;
+            if ( playlists.Count == 0)
+                return OnError("playlists");
 
-                if (cache.playlists.Count == 0)
-                    return OnError("playlists");
-
-                hybridCache.Set(memKey, cache, cacheTime(5, init: init));
-            }
-
-            return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), total_pages: cache.total_pages);
+            return OnResult(playlists, init, BongaCamsTo.Menu(host, sort), total_pages: total_pages);
         }
     }
 }
