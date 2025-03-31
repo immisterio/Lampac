@@ -205,6 +205,9 @@ namespace SISI
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
 
+            send("bongatest", conf.BongaCams, "bgs2");
+
+
             if (conf.sisi.xdb)
             {
                 try

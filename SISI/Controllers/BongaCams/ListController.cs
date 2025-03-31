@@ -53,5 +53,43 @@ namespace Lampac.Controllers.BongaCams
 
             return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy.proxy, total_pages: cache.total_pages);
         }
+
+
+
+        [HttpGet]
+        [Route("bgs2")]
+        async public Task<ActionResult> Index2(string search, string sort, int pg = 1)
+        {
+            var init = await loadKit(AppInit.conf.BongaCams);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (!string.IsNullOrEmpty(search))
+                return OnError("no search", false);
+
+            string memKey = $"BongaCams2:list:{sort}:{pg}";
+            if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
+            {
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
+                {
+                    return rch.Get(url, headers: httpHeaders(init));
+                });
+
+                cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);
+                cache.total_pages = total_pages;
+
+                if (cache.playlists.Count == 0)
+                    return OnError("playlists");
+
+                hybridCache.Set(memKey, cache, cacheTime(5, init: init));
+            }
+
+            return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), total_pages: cache.total_pages);
+        }
     }
 }
