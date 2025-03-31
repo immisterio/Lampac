@@ -190,8 +190,8 @@ namespace SISI
             send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
-            if (conf.Spankbang.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
-                send("spankbang.com", conf.Spankbang, "sbg");
+            if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
+                send("spankbang.com", conf.Spankbang, "sbg", "apk,cors");
 
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
             send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
@@ -199,13 +199,10 @@ namespace SISI
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
             send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
 
-            if (conf.BongaCams.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
-                send("bongacams.com", conf.BongaCams, "bgs");
+            if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
+                send("bongacams.com", conf.BongaCams, "bgs", "apk");
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
-
-
-            send("bongatest", conf.BongaCams, "bgs2");
 
 
             if (conf.sisi.xdb)

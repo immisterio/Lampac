@@ -3,8 +3,6 @@ using System.Threading.Tasks;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
-using NetVips;
-using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Engine.SISI;
 using Shared.PlaywrightCore;
@@ -19,11 +17,8 @@ namespace Lampac.Controllers.BongaCams
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.BongaCams);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
-
-            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                return OnError("NoHeadless");
 
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
@@ -34,8 +29,18 @@ namespace Lampac.Controllers.BongaCams
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
             {
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web,cors", out string rch_error))
+                    return OnError(rch_error);
+
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
                 string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url => 
                 {
+                    if (rch.enable)
+                        return rch.Get(init.cors(url), httpHeaders(init));
+
                     if (init.priorityBrowser == "http")
                         return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
@@ -46,44 +51,20 @@ namespace Lampac.Controllers.BongaCams
                 cache.total_pages = total_pages;
 
                 if (cache.playlists.Count == 0)
-                    return OnError("playlists", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", rch.enable ? null : proxyManager);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, cache, cacheTime(5, init: init));
             }
 
             return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy.proxy, total_pages: cache.total_pages);
-        }
-
-
-
-        [HttpGet]
-        [Route("bgs2")]
-        async public Task<ActionResult> Index2(string search, string sort, int pg = 1)
-        {
-            var init = await loadKit(AppInit.conf.BongaCams);
-            init.rhub = true;
-            init.rhub_fallback = false;
-            init.rhub_geo_disable = null;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (!string.IsNullOrEmpty(search))
-                return OnError("no search", false);
-
-            string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-            {
-                return rch.Get(url, headers: httpHeaders(init));
-            });
-
-            var playlists = BongaCamsTo.Playlist(html, out int total_pages);
-
-            if ( playlists.Count == 0)
-                return OnError("playlists");
-
-            return OnResult(playlists, init, BongaCamsTo.Menu(host, sort), total_pages: total_pages);
         }
     }
 }
