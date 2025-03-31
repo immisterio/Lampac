@@ -13,7 +13,7 @@ namespace Lampac.Engine
     public class soks : Hub, ISoks
     {
         #region soks
-        static ConcurrentDictionary<string, HubCallerContext> _connections = new ConcurrentDictionary<string, HubCallerContext>();
+        public static ConcurrentDictionary<string, HubCallerContext> _connections = new ConcurrentDictionary<string, HubCallerContext>();
 
         public static IHubCallerClients hubClients = null;
 

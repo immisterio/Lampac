@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "138";
 
-        public static string minorversion => "16";
+        public static string minorversion => "17";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -144,7 +144,7 @@ namespace Lampac.Engine
         }
         #endregion
 
-        #region proxy
+        #region HostImgProxy
         public string HostImgProxy(string uri, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
             if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
@@ -196,7 +196,9 @@ namespace Lampac.Engine
 
             return $"{host}/proxyimg:{width}:{height}/{goEncryptUri()}";
         }
+        #endregion
 
+        #region HostStreamProxy
         public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)

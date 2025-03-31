@@ -61,7 +61,7 @@ namespace Lampac.Controllers
                     req_hour += _r;
             }
 
-            return Json(new { req_min, req_hour });
+            return Json(new { req_min, req_hour, soks_online = soks._connections.Count });
         }
         #endregion
     }
