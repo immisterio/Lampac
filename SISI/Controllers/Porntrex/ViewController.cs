@@ -75,10 +75,7 @@ namespace Lampac.Controllers.Porntrex
                 var headers = httpHeaders(init, HeadersModel.Init(
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "none"),
-                    ("sec-fetch-user", "?1"),
-                    ("upgrade-insecure-requests", "1"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
+                    ("sec-fetch-site", "none")
                 ));
 
                 if (rch.enable)

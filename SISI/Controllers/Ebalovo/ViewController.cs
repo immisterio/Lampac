@@ -42,7 +42,7 @@ namespace Lampac.Controllers.Ebalovo
                                 ("referer", $"{init.host}/")
                             )));
 
-                            location = res.currentUrl;
+                            return res.currentUrl;
                         }
 
                         return await HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{init.host}/", headers: httpHeaders(init));
