@@ -51,7 +51,8 @@ namespace Lampac.Controllers.Porntrex
                 hybridCache.Set(memKey, links, cacheTime(20, init: init));
             }
 
-            return Json(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
+            var hdstr = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
+            return OnResult(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"), init, proxyManager.Get(), headers_stream: hdstr);
         }
 
 

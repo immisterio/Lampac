@@ -8,6 +8,8 @@ namespace Shared.Model.SISI
 
         public Dictionary<string, string>? qualitys_proxy { get; set; }
 
+        public Dictionary<string, string>? headers_stream { get; set; }
+
         public IEnumerable<PlaylistItem>? recomends { get; set; }
     }
 }
