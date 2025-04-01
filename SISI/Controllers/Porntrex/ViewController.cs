@@ -23,16 +23,31 @@ namespace Lampac.Controllers.Porntrex
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return OnError(rch_error);
+
+            string memKey = rch.ipkey($"porntrex:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> links))
             {
-                var proxy = proxyManager.Get();
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
 
-                links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
+                links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url =>
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init))
+                );
+
                 if (links == null || links.Count == 0)
-                    return OnError("stream_links", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("stream_links", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, links, cacheTime(20, init: init));
             }
 
@@ -50,22 +65,46 @@ namespace Lampac.Controllers.Porntrex
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"Porntrex:strem:{link}";
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return OnError(rch_error);
+
+            string memKey = rch.ipkey($"Porntrex:strem:{link}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
-                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
-                    ("sec-fetch-dest", "document"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "none"),
-                    ("sec-fetch-user", "?1"),
-                    ("upgrade-insecure-requests", "1"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
-                )));
+                if (rch.enable)
+                {
+                    var res = await rch.Headers(link, null, httpHeaders(init, HeadersModel.Init(
+                        ("sec-fetch-dest", "document"),
+                        ("sec-fetch-mode", "navigate"),
+                        ("sec-fetch-site", "none")
+                    )));
 
-                if (location == null || link == location)
-                    return OnError("location");
+                    location = res.currentUrl;
+                }
+                else
+                {
+                    location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                        ("sec-fetch-dest", "document"),
+                        ("sec-fetch-mode", "navigate"),
+                        ("sec-fetch-site", "none"),
+                        ("sec-fetch-user", "?1"),
+                        ("upgrade-insecure-requests", "1"),
+                        ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
+                    )));
+                }
 
-                proxyManager.Success();
+                if (string.IsNullOrEmpty(location) || link == location)
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
+                    return OnError("location", proxyManager, !rch.enable);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, location, cacheTime(40, init: init));
             }
 

@@ -26,7 +26,7 @@ namespace Lampac.Controllers.Spankbang
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.BaseGet();
 
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
@@ -48,7 +48,7 @@ namespace Lampac.Controllers.Spankbang
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search) && !rch.enable);
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)

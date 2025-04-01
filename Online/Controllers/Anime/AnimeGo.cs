@@ -176,7 +176,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string host, string token, string t, int e)
         {
             var init = await loadKit(AppInit.conf.AnimeGo);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             string memKey = $"animego:video:{token}:{t}:{e}";

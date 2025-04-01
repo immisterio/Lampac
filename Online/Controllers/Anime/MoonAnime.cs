@@ -197,7 +197,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))

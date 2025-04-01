@@ -71,7 +71,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.IframeVideo);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();

@@ -134,7 +134,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
@@ -166,7 +166,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var oninvk = await InitRezkaInvoke(init);

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.Online;
 using Online;
 using Shared.Model.Online.VideoDB;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Model.Templates;
 using Shared.Engine;
 using Lampac.Models.LITE;
@@ -23,30 +22,37 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
             var init = await loadKit(AppInit.conf.VideoDB);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (kinopoisk_id == 0)
                 return OnError();
 
-            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                return OnError();
-
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
+
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
 
             var oninvk = new VideoDBInvoke
             (
                host,
                init.host,
-               (url, head) => black_magic(url, init, proxy),
+               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : black_magic(url, init, proxy),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
             var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
                 return await oninvk.Embed(kinopoisk_id);
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson), origsource: origsource);
         }
@@ -59,24 +65,30 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Manifest(string link, bool serial)
         {
             var init = await loadKit(AppInit.conf.VideoDB);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(link))
                 return OnError();
 
-            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                return OnError();
-
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            string memKey = $"videodb:video:{link}";
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
+            string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 try
                 {
-                    if (init.priorityBrowser == "http")
+                    if (rch.enable)
+                    {
+                        var res = await rch.Headers(link, null, httpHeaders(init));
+                        location = res.currentUrl;
+                    }
+                    else if (init.priorityBrowser == "http")
                     {
                         location = await HttpClient.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
                     }
@@ -129,7 +141,17 @@ namespace Lampac.Controllers.LITE
                 catch { }
 
                 if (string.IsNullOrEmpty(location) || link == location)
+                {
+                    if (init.rhub && init.rhub_fallback)
+                    {
+                        init.rhub = false;
+                        goto reset;
+                    }
                     return OnError();
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
 
                 hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
             }

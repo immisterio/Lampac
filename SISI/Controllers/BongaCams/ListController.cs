@@ -29,7 +29,7 @@ namespace Lampac.Controllers.BongaCams
             string memKey = $"BongaCams:list:{sort}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
             {
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web,cors", out string rch_error))
                     return OnError(rch_error);
 
@@ -55,7 +55,7 @@ namespace Lampac.Controllers.BongaCams
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, !rch.enable);
+                    return OnError("playlists", proxyManager);
                 }
 
                 if (!rch.enable)

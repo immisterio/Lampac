@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
@@ -185,7 +185,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var oninvk = InitKodikInvoke(init);

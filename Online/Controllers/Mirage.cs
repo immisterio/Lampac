@@ -200,7 +200,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(long id_file, string token_movie, string acceptsControls, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";

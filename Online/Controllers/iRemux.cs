@@ -55,7 +55,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
             var init = await loadKit(AppInit.conf.iRemux);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var oninvk = InitRemuxInvoke();

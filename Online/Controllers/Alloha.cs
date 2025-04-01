@@ -150,7 +150,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();

@@ -26,7 +26,7 @@ namespace Lampac.Controllers.Porntrex
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web,cors", out string rch_error))
                     return OnError(rch_error);
 
@@ -44,7 +44,7 @@ namespace Lampac.Controllers.Porntrex
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search) && !rch.enable);
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
                 }
 
                 if (!rch.enable)

@@ -22,7 +22,7 @@ namespace Lampac.Controllers.Eporner
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotSupport("web", out string rch_error))
                 return OnError(rch_error);
 

@@ -68,6 +68,15 @@ cat <<EOF > $DEST/init.conf
   },
   "BongaCams": {
     "rhub": true
+  },
+  "VDBmovies": {
+    "rhub": true
+  },
+  "VideoDB": {
+    "rhub": true
+  },
+  "FanCDN": {
+    "rhub": true
   }
 }
 EOF

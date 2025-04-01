@@ -46,7 +46,7 @@ namespace Lampac.Controllers.Spankbang
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)

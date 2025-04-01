@@ -187,14 +187,14 @@ namespace SISI
             send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
             send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
             send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors"); // !rhub - elo/vidosik
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors");
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
             if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
                 send("spankbang.com", conf.Spankbang, "sbg");
 
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
-            send("porntrex.com", conf.Porntrex, "ptx", "apk"); // !rhub - ptx/vidosik
+            send("porntrex.com", conf.Porntrex, "ptx", "apk");
             send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
             send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
