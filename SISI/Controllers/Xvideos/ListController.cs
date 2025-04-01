@@ -19,7 +19,7 @@ namespace Lampac.Controllers.Xvideos
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -68,7 +68,7 @@ namespace Lampac.Controllers.Xvideos
         async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;

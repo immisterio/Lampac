@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Tizam
         async public Task<ActionResult> Index(string uri)
         {
             var init = await loadKit(AppInit.conf.Tizam);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);

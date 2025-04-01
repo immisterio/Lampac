@@ -17,7 +17,7 @@ namespace Lampac.Controllers.Porntrex
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string memKey = $"ptx:{search}:{sort}:{c}:{pg}";
@@ -27,6 +27,9 @@ namespace Lampac.Controllers.Porntrex
                 var proxy = proxyManager.Get();
 
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotSupport("web,cors", out string rch_error))
+                    return OnError(rch_error);
+
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
@@ -41,7 +44,7 @@ namespace Lampac.Controllers.Porntrex
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search) && !rch.enable);
                 }
 
                 if (!rch.enable)

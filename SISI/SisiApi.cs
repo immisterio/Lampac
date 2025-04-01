@@ -191,10 +191,10 @@ namespace SISI
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
             if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
-                send("spankbang.com", conf.Spankbang, "sbg", "apk,cors");
+                send("spankbang.com", conf.Spankbang, "sbg");
 
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
-            send("porntrex.com", conf.Porntrex, "ptx"); // !rhub - ptx/vidosik
+            send("porntrex.com", conf.Porntrex, "ptx", "apk"); // !rhub - ptx/vidosik
             send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
             send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");

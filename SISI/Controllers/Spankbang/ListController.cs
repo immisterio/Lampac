@@ -48,7 +48,7 @@ namespace Lampac.Controllers.Spankbang
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", rch.enable ? null : proxyManager, string.IsNullOrEmpty(search));
+                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search) && !rch.enable);
                 }
 
                 if (!rch.enable)

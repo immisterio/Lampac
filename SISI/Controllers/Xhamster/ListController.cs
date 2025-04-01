@@ -19,7 +19,7 @@ namespace Lampac.Controllers.Xhamster
         async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xhamster);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             pg++;

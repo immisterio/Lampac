@@ -629,7 +629,7 @@ namespace Lampac.Controllers
                     send(conf.VideoDB);
 
                 if (conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
-                    send(conf.VDBmovies);
+                    send(conf.VDBmovies, rch_access: "apk");
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);

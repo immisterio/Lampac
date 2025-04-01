@@ -16,7 +16,7 @@ namespace Lampac.Controllers.PornHub
         async public Task<ActionResult> Index(string vkey, bool related)
         {
             var init = await loadKit(AppInit.conf.PornHub);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
@@ -62,7 +62,7 @@ namespace Lampac.Controllers.PornHub
         async public Task<ActionResult> Prem(string vkey, bool related)
         {
             var init = await loadKit(AppInit.conf.PornHubPremium);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);

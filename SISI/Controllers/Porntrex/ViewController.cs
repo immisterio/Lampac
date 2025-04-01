@@ -20,7 +20,7 @@ namespace Lampac.Controllers.Porntrex
         async public Task<ActionResult> vidosik(string uri)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
@@ -45,7 +45,7 @@ namespace Lampac.Controllers.Porntrex
         async public Task<ActionResult> strem(string link)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();

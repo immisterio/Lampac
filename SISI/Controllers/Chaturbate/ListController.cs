@@ -16,7 +16,7 @@ namespace Lampac.Controllers.Chaturbate
         async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Chaturbate);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (!string.IsNullOrEmpty(search))

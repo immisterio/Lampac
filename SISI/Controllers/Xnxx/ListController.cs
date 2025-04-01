@@ -16,7 +16,7 @@ namespace Lampac.Controllers.Xnxx
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xnxx);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string memKey = $"xnx:list:{search}:{pg}";

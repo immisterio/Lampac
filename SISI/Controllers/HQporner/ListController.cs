@@ -16,7 +16,7 @@ namespace Lampac.Controllers.HQporner
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.HQporner);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string memKey = $"hqr:{search}:{sort}:{c}:{pg}";

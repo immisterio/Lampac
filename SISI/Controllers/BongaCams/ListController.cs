@@ -55,7 +55,7 @@ namespace Lampac.Controllers.BongaCams
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("playlists", rch.enable ? null : proxyManager);
+                    return OnError("playlists", proxyManager, !rch.enable);
                 }
 
                 if (!rch.enable)
