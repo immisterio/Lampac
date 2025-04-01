@@ -21,11 +21,11 @@ namespace Lampac.Controllers.Porntrex
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = rch.ipkey($"porntrex:view:{uri}", proxyManager);
+            string memKey = $"porntrex:view:{uri}";
             if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> links))
             {
                 if (rch.IsNotConnected())
