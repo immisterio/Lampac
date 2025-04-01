@@ -22,7 +22,7 @@ namespace Lampac.Controllers.Ebalovo
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return OnError(rch_error);
 
