@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"videodb:view:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -85,6 +85,9 @@ namespace Lampac.Controllers.LITE
                 {
                     if (rch.enable)
                     {
+                        if (rch.IsNotConnected())
+                            return ContentTo(rch.connectionMsg);
+
                         var res = await rch.Headers(link, null, httpHeaders(init));
                         location = res.currentUrl;
                     }

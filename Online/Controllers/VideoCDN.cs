@@ -198,11 +198,11 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))
-                return OnError();
+                return OnError("hash", gbcache: false);
 
             string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))
-                return OnError();
+                return OnError("token", gbcache: false);
 
             try
             {
