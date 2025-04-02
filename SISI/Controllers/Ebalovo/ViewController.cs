@@ -34,7 +34,7 @@ namespace Lampac.Controllers.Ebalovo
                     {
                         return rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     },
-                    async location => 
+                    async location =>
                     {
                         if (rch.enable)
                         {

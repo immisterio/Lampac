@@ -12,8 +12,10 @@ namespace Lampac.Controllers
     {
         public OpenStatConf openstat => AppInit.conf.openstat;
 
-        public bool IsDeny() 
+        public bool IsDeny(out string ermsg) 
         {
+            ermsg = "Включите openstat в init.conf\n\n\"openstat\": {\n   \"enable\": true\n}";
+
             if (!openstat.enable || (!string.IsNullOrEmpty(openstat.token) && openstat.token != HttpContext.Request.Query["token"].ToString()))
                 return true;
 
@@ -24,8 +26,8 @@ namespace Lampac.Controllers
         [Route("/stats/browser/context")]
         public ActionResult BrowserContext()
         {
-            if (IsDeny())
-                return ContentTo("{}");
+            if (IsDeny(out string ermsg))
+                return Content(ermsg, "text/plain; charset=utf-8");
 
             return Json(new
             {
@@ -49,8 +51,8 @@ namespace Lampac.Controllers
         [Route("/stats/request")]
         public ActionResult Requests()
         {
-            if (IsDeny())
-                return ContentTo("{}");
+            if (IsDeny(out string ermsg))
+                return Content(ermsg, "text/plain; charset=utf-8");
 
             long req_min = memoryCache.Get<long>($"stats:request:{DateTime.Now.AddMinutes(-1).Minute}");
 

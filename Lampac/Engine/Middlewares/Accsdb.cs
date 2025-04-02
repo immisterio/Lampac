@@ -102,8 +102,20 @@ namespace Lampac.Engine.Middlewares
                                 return _next(httpContext);
                         }
 
+                        if (uri.StartsWith("/tmdb/api.themoviedb.org/") || uri.StartsWith("/tmdb/api/"))
+                        {
+                            httpContext.Response.Redirect("https://api.themoviedb.org/" + Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/[^/]+/", ""));
+                            return Task.CompletedTask;
+                        }
+
                         if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
                         {
+                            if (uri.StartsWith("/tmdb/image.tmdb.org/") || uri.StartsWith("/tmdb/img/"))
+                            {
+                                httpContext.Response.Redirect("https://image.tmdb.org/" + Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/[^/]+/", ""));
+                                return Task.CompletedTask;
+                            }
+
                             httpContext.Response.StatusCode = 404;
                             httpContext.Response.ContentType = "application/octet-stream";
                             return Task.CompletedTask;

@@ -57,6 +57,9 @@ namespace Shared.Model
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true) 
         {
+            headers = HeadersModel.Init(
+                ("referer", "{host}/")
+            ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("referer", "{host}/")
             ).ToDictionary()

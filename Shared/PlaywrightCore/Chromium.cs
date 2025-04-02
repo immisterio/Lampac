@@ -191,7 +191,7 @@ namespace Shared.Engine
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true)
         {
             try
             {
@@ -201,23 +201,26 @@ namespace Shared.Engine
                 if (proxy != default)
                 {
                     #region NewPageAsync
-                    foreach (var pg in pages_keepopen.ToArray())
+                    if (keepopen)
                     {
-                        if (pg.plugin == plugin)
+                        foreach (var pg in pages_keepopen.ToArray())
                         {
-                            if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                            if (pg.plugin == plugin)
                             {
-                                _ = pg.context.CloseAsync();
-                                pages_keepopen.Remove(pg);
-                                continue;
+                                if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                                {
+                                    _ = pg.context.CloseAsync();
+                                    pages_keepopen.Remove(pg);
+                                    continue;
+                                }
                             }
-                        }
 
-                        if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
-                        {
-                            stats_keepopen++;
-                            keepopen_page = pg;
-                            page = await pg.context.NewPageAsync();
+                            if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
+                            {
+                                stats_keepopen++;
+                                keepopen_page = pg;
+                                page = await pg.context.NewPageAsync();
+                            }
                         }
                     }
 
@@ -247,7 +250,7 @@ namespace Shared.Engine
                     page.Download += Page_Download;
                     page.RequestFailed += Page_RequestFailed;
 
-                    if (keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
+                    if (!keepopen || keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
                         return page;
 
                     await context.NewPageAsync(); // что-бы context не закрывался с последней закрытой вкладкой
@@ -265,7 +268,7 @@ namespace Shared.Engine
                 else
                 {
                     #region NewPageAsync
-                    if (keepopen_context != default)
+                    if (keepopen && keepopen_context != default)
                     {
                         stats_keepopen++;
                         page = await keepopen_context.NewPageAsync();
