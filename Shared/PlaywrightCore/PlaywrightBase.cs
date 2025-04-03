@@ -226,7 +226,7 @@ namespace Shared.Engine
             catch { }
         }
 
-        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default)
+        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
         {
             try
             {
@@ -242,6 +242,13 @@ namespace Shared.Engine
                 if (request?.Headers != null)
                 {
                     foreach (var item in request.Headers)
+                        log += $"{item.Key}: {item.Value}\n";
+                }
+
+                if (response?.Headers != null)
+                {
+                    log += $"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n";
+                    foreach (var item in response.Headers)
                         log += $"{item.Key}: {item.Value}\n";
                 }
 

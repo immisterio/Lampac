@@ -16,7 +16,7 @@ namespace Shared.Model.Online.Settings
         }
 
 
-        public bool black_magic { get; set; }
+        public bool browser_keepopen { get; set; }
 
         public ZetflixSettings Clone()
         {

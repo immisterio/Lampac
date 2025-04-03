@@ -33,9 +33,13 @@ namespace Lampac.Controllers.Porntrex
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                cache.links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init))
-                );
+                cache.links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => 
+                {
+                    if (rch.enable)
+                        return rch.Get(init.cors(url), httpHeaders(init));
+
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                });
 
                 if (cache.links == null || cache.links.Count == 0)
                 {
@@ -70,12 +74,12 @@ namespace Lampac.Controllers.Porntrex
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (!init.rhub_fallback)
+            if (init.rhub && !init.rhub_fallback)
                 return OnError("rhub_fallback");
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"Porntrex:strem:{link}";
+            string memKey = $"Porntrex:strem:{link}:{proxyManager.CurrentProxyIp}";
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
@@ -91,7 +95,6 @@ namespace Lampac.Controllers.Porntrex
                 hybridCache.Set(memKey, location, cacheTime(40, init: init));
             }
 
-            init.streamproxy = true;
             return Redirect(HostStreamProxy(init, location, proxy: proxy));
         }
     }

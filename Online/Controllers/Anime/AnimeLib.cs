@@ -261,7 +261,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streams[0].link);
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: headers));
         }
         #endregion
     }

@@ -25,59 +25,15 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Embed
-        static string? api_frameUrl = null;
-
-        async public ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
+        #region EmbedSearch
+        async public ValueTask<EmbedModel?> EmbedSearch(string title, string original_title, int year, int serial)
         {
             if (serial == 1)
             {
-                if (kinopoisk_id == 0)
-                    return null;
-
-                if (api_frameUrl == null)
-                {
-                    string? films = await onget($"{apihost}/films/");
-                    if (string.IsNullOrEmpty(films) || !films.Contains("class=\"box-tab\""))
-                        return null;
-
-                    string? href = null;
-
-                    foreach (string row in films.Split("class=\"box-tab\"")[1].Split("<div class=\"owl-item\">"))
-                    {
-                        if (!row.Contains(" США, "))
-                            continue;
-
-                        href = Regex.Match(row, "class=\"field-poster\" href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
-                        if (string.IsNullOrEmpty(href))
-                            continue;
-                    }
-
-                    if (string.IsNullOrEmpty(href))
-                        return null;
-
-                    string? html = await onget(href);
-                    if (string.IsNullOrEmpty(html))
-                        return null;
-
-                    string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(iframe_url) || !iframe_url.Contains("kinopoisk="))
-                        return null;
-
-                    api_frameUrl = iframe_url;
-                }
-
-                return await Embed(Regex.Replace(api_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
+                return null;
             }
             else
             {
-                if (kinopoisk_id > 0 && api_frameUrl != null)
-                {
-                    var _res = await Embed(Regex.Replace(api_frameUrl, "kinopoisk=[0-9]+", $"kinopoisk={kinopoisk_id}"));
-                    if (_res != null)
-                        return _res;
-                }
-
                 if (string.IsNullOrEmpty(title) || year == 0)
                     return null;
 
@@ -110,12 +66,22 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(iframe_url))
                     return null;
 
-                api_frameUrl = iframe_url;
                 return await Embed(iframe_url);
             }
         }
+        #endregion
 
+        #region EmbedToken
+        async public ValueTask<EmbedModel?> EmbedToken(long kinopoisk_id, string token)
+        {
+            if (kinopoisk_id == 0)
+                return null;
 
+            return await Embed($"https://fancdn.net/iframe/?kinopoisk={kinopoisk_id}&key={token}");
+        }
+        #endregion
+
+        #region Embed
         async public ValueTask<EmbedModel?> Embed(string iframe_url)
         {
             if (string.IsNullOrEmpty(iframe_url))

@@ -75,10 +75,19 @@ namespace Lampac.Controllers.LITE
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        }, proxy: proxy.data, keepopen: false);
+                        }, proxy: proxy.data, keepopen: init.browser_keepopen);
 
                         if (page == null)
                             return null;
+
+                        if (init.browser_keepopen)
+                        {
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions
+                            {
+                                Domain = Regex.Replace(ztfhost, "^https?://", ""),
+                                Name = "PHPSESSID"
+                            });
+                        }
 
                         log += "page init\n";
 

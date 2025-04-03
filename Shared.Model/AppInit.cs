@@ -57,9 +57,6 @@ namespace Shared.Model
 
         public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true) 
         {
-            headers = HeadersModel.Init(
-                ("referer", "{host}/")
-            ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("referer", "{host}/")
             ).ToDictionary()
@@ -211,7 +208,11 @@ namespace Shared.Model
         /// aHR0cHM6Ly9nby56ZXRmbGl4LW9ubGluZS5sb2w=
         /// aHR0cHM6Ly96ZXRmbGl4LW9ubGluZS5hcnQv
         /// </summary>
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh") { geostreamproxy = new string[] { "ALL" }, hls = true };
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh") 
+        {
+            browser_keepopen = true,
+            geostreamproxy = new string[] { "ALL" }, hls = true 
+        };
 
         /// <summary>
         /// aHR0cHM6Ly9raW5vcGxheTIuc2l0ZS8=
@@ -272,27 +273,26 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22idqvhuldo1sz") 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22p|idqvhuldo1qhw") 
         { 
             enable = false,
             streamproxy = true,
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("accept-language", "ru-RU,ru;q=0.9"),
                 ("cache-control", "no-cache"),
-                ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
                 ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
                 ("cache-control", "no-cache"),
-                ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("referer", "encrypt:kwwsv=22idqfgq1qhw2"),
                 ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
@@ -301,6 +301,7 @@ namespace Shared.Model
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-site"),
+                ("sec-fetch-user", "?1"),
                 ("sec-fetch-storage-access", "active"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
             ).ToDictionary(),
