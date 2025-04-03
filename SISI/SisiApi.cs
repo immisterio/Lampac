@@ -187,7 +187,7 @@ namespace SISI
             send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
             send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
             send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            send("ebalovo.porn", conf.Ebalovo, "elo", "apk,cors", media_access: "apk,cors");
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk", media_access: "apk,cors");
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
             if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))

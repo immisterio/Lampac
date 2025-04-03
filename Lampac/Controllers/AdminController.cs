@@ -461,7 +461,7 @@ namespace Lampac.Controllers
 			<input name=""tracks"" type=""checkbox"" checked /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
 		</div>
 		<div class=""flex"">
-			<input name=""jac"" type=""checkbox"" /> Локальный jacred.xyz (не рекомендуется ставить локально из за частых операций с диском)
+			<input name=""jac"" type=""checkbox"" /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства из за частых операций с диском)
 		</div>
 		<div class=""flex"">
 			<input name=""merch"" type=""checkbox"" /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud

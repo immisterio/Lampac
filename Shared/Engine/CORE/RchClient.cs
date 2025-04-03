@@ -285,14 +285,19 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region InfoConnected
-        public (int version, string host, string href, string rchtype) InfoConnected()
+        public (int version, string host, string href, string rchtype, int apkVersion) InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
             if (client.Value.json == null)
                 return default;
 
             JObject json = client.Value.json;
-            return (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("href"), json.Value<string>("rchtype"));
+            (int version, string host, string href, string rchtype, int apkVersion) info = (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("href"), json.Value<string>("rchtype"), 0);
+
+            if (info.version >= 142)
+                info.apkVersion = json.Value<int>("apkVersion");
+
+            return info;
         }
         #endregion
     }
