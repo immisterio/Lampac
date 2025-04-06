@@ -8,6 +8,7 @@ using Online;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -22,6 +23,9 @@ namespace Lampac.Controllers.LITE
             var init = await loadKit(AppInit.conf.AnimeLib);
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
+
+            if (string.IsNullOrEmpty(init.token))
+                return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
@@ -197,7 +201,10 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var headers = httpHeaders(init);
+            if (string.IsNullOrEmpty(init.token))
+                return OnError();
+
+            var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() && init.rhub_fallback && play)

@@ -345,7 +345,7 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(20);
-            bool isanime = original_language == "ja";
+            bool isanime = original_language is "ja" or "zh";
 
             #region fix title
             bool fix_title = false;
@@ -738,11 +738,13 @@ namespace Lampac.Controllers
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost))
                     send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
 
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost))
+                    send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+
+                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
+
                 if (conf.Autoembed.priorityBrowser == "http")
                     send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-
-                send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
-                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
             }
             #endregion
 

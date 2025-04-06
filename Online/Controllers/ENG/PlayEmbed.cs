@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Lampac.Models.LITE;
-using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
-using System.Web;
-using System.Net;
+using Shared.Engine;
+using System;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/playembed")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Playembed, false, checksearch, id, imdb_id, title, original_title, serial, s, rjson);
+            return ViewTmdb(AppInit.conf.Playembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson);
         }
 
 
@@ -32,55 +32,93 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(imdb_id))
                 return OnError();
 
-            string m3u = null;
+            if (Firefox.Status == PlaywrightStatus.disabled)
+                return OnError();
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            for (int i = 3; i > 0; i--)
-            {
-                string embed = $"{init.host}/server/{i}?path=/movie/{imdb_id}";
-                if (s > 0)
-                    embed = $"{init.host}/server/{i}?path=/tv/{imdb_id}/{s}/{e}";
+            string embed = $"{init.host}/movie/{imdb_id}";
+            if (s > 0)
+                embed = $"{init.host}/tv/{imdb_id}/{s}/{e}";
 
-                m3u = await magic(embed, init, proxy.proxy);
-                if (!string.IsNullOrEmpty(m3u))
-                    break;
-            }
-
-            if (string.IsNullOrEmpty(m3u))
+            var cache = await black_magic(embed, init, proxy.data);
+            if (cache.m3u8 == null)
                 return StatusCode(502);
 
-            return Redirect(HostStreamProxy(init, m3u, proxy: proxy.proxy));
+            return Redirect(HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers));
         }
         #endregion
 
-        #region magic
-        async ValueTask<string> magic(string uri, OnlinesSettings init, WebProxy proxy)
+        #region black_magic
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
-                return uri;
+                return default;
 
             try
             {
-                string memKey = $"playembed:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out string m3u8))
+                string memKey = $"playembed:black_magic:{uri}";
+                if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 30, headers: httpHeaders(init));
-                    if (root == null || !root.ContainsKey("playlist"))
-                        return null;
+                    using (var browser = new Firefox())
+                    {
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                        if (page == null)
+                            return default;
 
-                    m3u8 = root["playlist"].First.Value<string>("file");
-                    m3u8 = Regex.Match(m3u8, "url=([^&]+)").Groups[1].Value;
-                    if (string.IsNullOrEmpty(m3u8))
-                        return null;
+                        await page.RouteAsync("**/*", async route =>
+                        {
+                            try
+                            {
+                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(/ads/)"))
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
 
-                    m3u8 = HttpUtility.UrlDecode(m3u8);
-                    hybridCache.Set(memKey, m3u8, cacheTime(20, init: init));
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
+
+                                if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains("/playlist/"))
+                                {
+                                    cache.headers = new List<HeadersModel>();
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
+                                            continue;
+
+                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                    }
+
+                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    browser.completionSource.SetResult(route.Request.Url);
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                await route.ContinueAsync();
+                            }
+                            catch { }
+                        });
+
+                        var response = await page.GotoAsync(uri);
+                        if (response == null)
+                            return default;
+
+                        cache.m3u8 = await browser.WaitPageResult();
+                    }
+
+                    if (cache.m3u8 == null)
+                        return default;
+
+                    hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
-                return m3u8;
+                return cache;
             }
-            catch { return null; }
+            catch { return default; }
         }
         #endregion
     }

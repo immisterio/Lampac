@@ -10,7 +10,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Model.Online.Lumex;
 using Shared.Model.Online;
-using Microsoft.Extensions.Caching.Memory;
 using System.Linq;
 using System.Collections.Generic;
 using System;

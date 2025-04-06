@@ -442,7 +442,7 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
-            if (ismedia)
+            if (ismedia || headers != null)
             {
                 foreach (var header in request.Headers)
                 {

@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Base;
+using Shared.Model.Online;
 using Shared.Model.Online.FanCDN;
 using Shared.Model.Templates;
 using System.Text.Json;
@@ -123,7 +124,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string imdb_id, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf? vast = null)
+        public string Html(EmbedModel? root, string imdb_id, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf? vast = null, List<HeadersModel>? headers = null)
         {
             if (root == null)
                 return string.Empty;
@@ -153,7 +154,7 @@ namespace Shared.Engine.Online
                     }
                     #endregion
 
-                    mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles, vast: vast);
+                    mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles, vast: vast, headers: headers);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -207,7 +208,7 @@ namespace Shared.Engine.Online
                     var etpl = new EpisodeTpl();
 
                     foreach (var episode in root.serial.First(i => i.id == t).folder[s.ToString()].folder)
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast);
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast, headers: headers);
 
                     if (rjson)
                         return etpl.ToJson(vtpl);

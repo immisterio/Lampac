@@ -7,7 +7,7 @@ namespace Shared.Model.Templates
 {
     public static class VideoTpl
     {
-        public static string ToJson(string method, string url, string title, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null)
+        public static string ToJson(string method, string url, string title, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
         {
             return JsonSerializer.Serialize(new
             {
@@ -18,7 +18,8 @@ namespace Shared.Model.Templates
                 quality = streamquality?.ToObject() ?? new StreamQualityTpl(new List<(string, string)>() { (url, quality??"auto") }).ToObject(),
                 subtitles = subtitles?.ToObject(),
                 vast_url = (vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
-                vast_msg = vast?.msg ?? AppInit._vast?.msg
+                vast_msg = vast?.msg ?? AppInit._vast?.msg,
+                hls_manifest_timeout
 
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }

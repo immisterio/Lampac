@@ -318,7 +318,7 @@ namespace Shared.Engine.Online
                         string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e =>
                         {
                             int eCharCode = Convert.ToInt32(e.Value[0]);
-                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 13) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
+                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 18) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
                         });
 
                         m3u = DecodeUrlBase64(src);
