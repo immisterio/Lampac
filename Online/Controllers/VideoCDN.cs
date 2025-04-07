@@ -223,10 +223,12 @@ namespace Lampac.Controllers.LITE
             }
             catch { }
 
-            string memkey = $"videocdn/video:{playlist}:{requestInfo.IP}";
+            string clientIP = init.verifyip ? requestInfo.IP : "::1";
+            string memkey = $"videocdn/video:{playlist}:{clientIP}";
+
             if (!hybridCache.TryGetValue(memkey, out string hls))
             {
-                var headers = HeadersModel.Join(HeadersModel.Init("Authorization", $"Bearer {accessToken}"), HeadersModel.Init(("x-forwarded-for", requestInfo.IP)));
+                var headers = HeadersModel.Join(HeadersModel.Init("Authorization", $"Bearer {accessToken}"), HeadersModel.Init(("x-forwarded-for", clientIP)));
 
                 var result = await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers);
                 if (result == null || !result.ContainsKey("url"))
@@ -241,7 +243,7 @@ namespace Lampac.Controllers.LITE
             }
 
             if (play)
-                return Redirect(hls);
+                return Redirect(HostStreamProxy(init, hls));
 
             var player = await getPlayer(content_id, content_type, accessToken);
             VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
@@ -297,13 +299,13 @@ namespace Lampac.Controllers.LITE
                 foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                 {
                     if (max_quality >= q)
-                        streams.Add((Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4"), $"{q}p"));
+                        streams.Add((HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
                 }
 
                 return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast));
             }
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "auto", subtitles: subtitles, vast: vast));
+            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, hls), "auto", subtitles: subtitles, vast: vast));
         }
         #endregion
 
@@ -330,11 +332,13 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            memKey = $"videocdn:accessToken:{requestInfo.IP}";
+            string clientIP = init.verifyip ? requestInfo.IP : "::1";
+
+            memKey = $"videocdn:accessToken:{clientIP}";
             if (!hybridCache.TryGetValue(memKey, out string accessToken))
             {
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", requestInfo.IP)));
+                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", clientIP)));
                 if (job == null || !job.ContainsKey("accessToken"))
                     return null;
 
@@ -356,13 +360,14 @@ namespace Lampac.Controllers.LITE
                 return null;
 
             var init = await Initialization();
+            string clientIP = init.verifyip ? requestInfo.IP : "::1";
 
-            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{requestInfo.IP}", TimeSpan.FromMinutes(5), async () =>
+            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{clientIP}", TimeSpan.FromMinutes(5), async () =>
             {
                 var headers = HeadersModel.Init(
                     ("Authorization", $"Bearer {accessToken}"),
                     ("User-Agent", HttpContext.Request.Headers.UserAgent),
-                    ("x-forwarded-for", requestInfo.IP)
+                    ("x-forwarded-for", clientIP)
                 );
 
                 string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers);

@@ -96,6 +96,8 @@
         public ApnConf? apn { get; set; }
 
         public bool qualitys_proxy { get; set; } = true;
+
+        public bool url_reserve { get; set; }
         #endregion
 
         #region cors

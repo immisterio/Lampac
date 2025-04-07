@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "139";
 
-        public static string minorversion => "2";
+        public static string minorversion => "3";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -263,6 +263,17 @@ namespace Lampac.Engine
                     uri = AccsDbInvk.Args(uri, HttpContext);
 
                 return $"{host}/proxy/{uri}";
+            }
+
+            if (conf.url_reserve && !uri.Contains(" or ") && !uri.Contains("/proxy/") &&
+                !Regex.IsMatch(HttpContext.Request.QueryString.Value, "&play=true", RegexOptions.IgnoreCase))
+            {
+                string url_reserve = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+
+                if (AppInit.conf.accsdb.enable)
+                    url_reserve = AccsDbInvk.Args(uri, HttpContext);
+
+                uri += $" or {host}/proxy/{url_reserve}";
             }
 
             return uri;

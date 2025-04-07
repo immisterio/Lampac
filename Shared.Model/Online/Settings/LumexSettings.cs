@@ -38,6 +38,8 @@ namespace Lampac.Models.LITE
 
         public bool log { get; set; }
 
+        public bool verifyip { get; set; }
+
 
         public LumexSettings Clone()
         {

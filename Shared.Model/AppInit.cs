@@ -316,8 +316,11 @@ namespace Shared.Model
         /// </summary>
         public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.site", "API-токен", "https://portal.lumex.host", "ID клиент") 
         {
-            enable = false, log = false,
+            enable = false, 
+            log = false,
+            verifyip = true, // ссылки привязаны к ip пользователя
             scheme = "http",
+            geostreamproxy = new string[] { "UA" },
             hls = false, // false - mp4 / true - m3u8
             disable_protection = false, // true - отключить проверку на парсер
             disable_ads = false, // отключить рекламу
@@ -457,6 +460,7 @@ namespace Shared.Model
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true)
         {
             cdn_is_working = true,
+            geostreamproxy = new string[] { "UA" },
             headers = HeadersModel.Init(
                 ("referer", "encrypt:kwwsv=22dqlole1ph2")
             ).ToDictionary()
