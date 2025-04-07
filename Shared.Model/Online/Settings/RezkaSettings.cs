@@ -21,6 +21,8 @@ namespace Lampac.Models.LITE
 
         public bool premium { get; set; }
 
+        public bool reserve { get; set; }
+
         public string? uacdn { get; set; }
 
         public bool forceua { get; set; }

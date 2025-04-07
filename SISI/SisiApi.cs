@@ -123,7 +123,7 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null, string media_access = null)
+            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null)
             {
                 var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
@@ -146,8 +146,8 @@ namespace SISI
                 if (!enable)
                     return;
 
-                if (!init.qualitys_proxy && media_access != null && rchtype != null)
-                    enable = media_access.Contains(rchtype);
+                if (init.client_type != null && rchtype != null)
+                    enable = init.client_type.Contains(rchtype);
 
                 if (init.geo_hide != null)
                 {
@@ -184,10 +184,10 @@ namespace SISI
             #endregion
 
             send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
-            send("pornhub.com", conf.PornHub, "phub", "apk,cors", media_access: "apk,cors");
+            send("pornhub.com", conf.PornHub, "phub", "apk,cors");
             send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
             send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            send("ebalovo.porn", conf.Ebalovo, "elo", "apk", media_access: "apk,cors");
+            send("ebalovo.porn", conf.Ebalovo, "elo", "apk");
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
             if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
@@ -197,7 +197,7 @@ namespace SISI
             send("porntrex.com", conf.Porntrex, "ptx", "apk");
             send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
-            send("tizam.pw", conf.Tizam, "tizam", "apk,cors", media_access: "apk,cors");
+            send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
 
             if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
                 send("bongacams.com", conf.BongaCams, "bgs", "apk");

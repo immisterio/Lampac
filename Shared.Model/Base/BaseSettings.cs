@@ -41,6 +41,8 @@
 
         public string[]? geo_hide { get; set; }
 
+        public string? client_type { get; set; }
+
         public bool rip { get; set; }
 
         public int cache_time { get; set; }

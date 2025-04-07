@@ -237,6 +237,8 @@ namespace Lampac
 
         public bool filelog = false;
 
+        public bool disableEng = false;
+
         public string anticaptchakey;
 
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
@@ -261,7 +263,7 @@ namespace Lampac
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 1 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 2, max = 2 }
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };

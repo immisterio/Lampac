@@ -31,6 +31,7 @@ namespace Lampac.Controllers.LITE
                 init.apihost,
                 init.token,
                 init.hls,
+                init.cdn_is_working,
                 string.IsNullOrEmpty(init.secret_token) ? "videoparse" : "video",
                 (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),

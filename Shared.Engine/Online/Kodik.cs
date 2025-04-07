@@ -16,14 +16,14 @@ namespace Shared.Engine.Online
 
         string? host;
         string apihost, token, videopath;
-        bool usehls;
+        bool usehls, cdn_is_working;
         Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
         Func<string, string, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public KodikInvoke(string? host, string apihost, string token, bool hls, string videopath, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KodikInvoke(string? host, string apihost, string token, bool hls, bool cdn_is_working, string videopath, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -34,6 +34,7 @@ namespace Shared.Engine.Online
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.usehls = hls;
+            this.cdn_is_working = cdn_is_working;
             this.requesterror = requesterror;
         }
         #endregion
@@ -296,7 +297,7 @@ namespace Shared.Engine.Online
             string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
             string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
 
-            string? json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&type={type}&hash={hash}&id={id}&info=%7B%7D");
+            string? json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&bad_user=false&cdn_is_working={cdn_is_working.ToString().ToLower()}&type={type}&hash={hash}&id={id}&info=%7B%7D");
             if (json == null || !json.Contains("\"src\":\""))
             {
                 requesterror?.Invoke();

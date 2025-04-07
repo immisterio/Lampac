@@ -3,8 +3,6 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Rezka;
 using Shared.Model.Templates;
-using System.IO;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -17,7 +15,7 @@ namespace Shared.Engine.Online
         #region RezkaInvoke
         string? host, scheme;
         string apihost;
-        bool usehls, userprem;
+        bool usehls, userprem, usereserve;
         Func<string, List<HeadersModel>, ValueTask<string?>> onget;
         Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost;
         Func<string, string> onstreamfile;
@@ -34,7 +32,7 @@ namespace Shared.Engine.Online
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool reserve, bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -44,6 +42,7 @@ namespace Shared.Engine.Online
             this.onlog = onlog;
             this.onpost = onpost;
             usehls = hls;
+            usereserve = reserve;
             this.userprem = userprem;
             this.requesterror = requesterror;
 
@@ -675,7 +674,12 @@ namespace Shared.Engine.Online
             foreach (var l in md.links)
                 streamquality.Append(onstreamfile(l.stream_url!), l.title);
 
-            return VideoTpl.ToJson("play", onstreamfile(md.links[0].stream_url!), (title ?? original_title ?? "auto"), streamquality: streamquality, subtitles: subtitles, vast: vast);
+            return VideoTpl.ToJson("play", onstreamfile(md.links[0].stream_url!), (title ?? original_title ?? "auto"), 
+                streamquality: streamquality, 
+                subtitles: subtitles, 
+                vast: vast, 
+                hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            );
         }
         #endregion
 
@@ -724,23 +728,31 @@ namespace Shared.Engine.Online
             #region getLink
             string? getLink(string _q)
             {
-                string qline = Regex.Match(_data, $"\\[{_q}\\]([^\\[]+)").Groups[1].Value;
+                string qline = Regex.Match(_data, $"\\[{_q}\\]([^,\\[]+)").Groups[1].Value;
                 if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
                     return null;
 
-                string link = usehls ? Regex.Match(qline, "(https?://[^\\[\n\r, ]+:manifest.m3u8)").Groups[1].Value : string.Empty;
-
-                if (string.IsNullOrEmpty(link))
-                    link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+\\.mp4)(,| |$)").Groups[1].Value;
-
-                if (string.IsNullOrEmpty(link))
+                if (usereserve && qline.Contains(" or "))
                 {
-                    link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
-                    if (string.IsNullOrEmpty(link))
-                        return null;
+                    var links = qline.Split(" or ").Where(i => usehls ? i.EndsWith(".m3u8") : i.EndsWith(".mp4"));
+                    return string.Join(" or ", links);
                 }
+                else
+                {
+                    string link = usehls ? Regex.Match(qline, "(https?://[^\\[\n\r, ]+:manifest.m3u8)").Groups[1].Value : string.Empty;
 
-                return link;
+                    if (string.IsNullOrEmpty(link))
+                        link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+\\.mp4)(,| |$)").Groups[1].Value;
+
+                    if (string.IsNullOrEmpty(link))
+                    {
+                        link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                        if (string.IsNullOrEmpty(link))
+                            return null;
+                    }
+
+                    return link;
+                }
             }
             #endregion
 

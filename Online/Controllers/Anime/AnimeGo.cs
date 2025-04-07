@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animego")]
-        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t)
+        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.AnimeGo);
             if (await IsBadInitialization(init, rch: false))
@@ -27,6 +27,8 @@ namespace Lampac.Controllers.LITE
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
+
+            var headers_stream = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
 
             if (pid == 0)
             {
@@ -77,9 +79,6 @@ namespace Lampac.Controllers.LITE
             else 
             {
                 #region Серии
-                bool firstjson = true;
-                string html = "<div class=\"videos__line\">";
-
                 string memKey = $"animego:playlist:{pid}";
                 if (!hybridCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                 {
@@ -142,29 +141,30 @@ namespace Lampac.Controllers.LITE
                 }
 
                 #region Перевод
+                var vtpl = new VoiceTpl();
                 if (string.IsNullOrWhiteSpace(t))
                     t = cache.translation;
 
                 foreach (var translation in cache.translations)
                 {
                     string link = $"{host}/lite/animego?pid={pid}&title={HttpUtility.UrlEncode(title)}&s={s}&t={translation.id}";
-                    string active = t == translation.id ? "active" : "";
-
-                    html += "<div class=\"videos__button selector " + active + "\" data-json='{\"method\":\"link\",\"url\":\"" + link + "\"}'>" + translation.name + "</div>";
+                    vtpl.Append(translation.name, t == translation.id, link);
                 }
-
-                html += "</div><div class=\"videos__line\">";
                 #endregion
+
+                var etpl = new EpisodeTpl();
 
                 foreach (var l in cache.links)
                 {
                     string hls = accsArgs($"{host}/lite/animego/{l.uri}&t={t ?? cache.translation}");
 
-                    html += "<div class=\"videos__item videos__movie selector " + (firstjson ? "focused" : "") + "\" media=\"\" s=\"" + s + "\" e=\"" + l.episode + "\" data-json='{\"method\":\"play\",\"url\":\"" + hls + "\",\"title\":\"" + $"{title} ({l.episode} серия)" + "\"}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">" + $"{l.episode} серия" + "</div></div>";
-                    firstjson = true;
+                    etpl.Append($"{l.episode} серия", title, s.ToString(), l.episode, hls, "play", headers: headers_stream);
                 }
 
-                return Content(html + "</div>", "text/html; charset=utf-8");
+                if (rjson)
+                    return ContentTo(etpl.ToJson(vtpl));
+
+                return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                 #endregion
             }
         }

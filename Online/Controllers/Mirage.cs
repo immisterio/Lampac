@@ -257,7 +257,12 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streamquality.Firts().link);
 
-            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"), streamquality: streamquality, vast: init.vast, headers: streamHeaders));
+            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"), 
+                   streamquality: streamquality, 
+                   vast: init.vast, 
+                   headers: streamHeaders, 
+                   hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            ));
         }
         #endregion
 

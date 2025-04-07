@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
 
             try
             {
-                string memKey = $"movpi:black_magic:{uri}";
+                string memKey = $"movpi:black_magic:{uri}:{proxy.ip}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
                     using (var browser = new Firefox())

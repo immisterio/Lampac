@@ -44,6 +44,7 @@ namespace Lampac.Controllers.LITE
                 init.corsHost(),
                 init.scheme,
                 MaybeInHls(init.hls, init),
+                init.reserve,
                 init.premium,
                 (url, hed) => rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) : 
                                            HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),

@@ -376,8 +376,9 @@ namespace Shared.Model
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true) 
-        { 
-            enable = true, streamproxy = true,
+        {
+            enable = true, 
+            streamproxy = true, reserve = true,
             headers = HeadersModel.Init(
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
@@ -396,7 +397,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
         /// </summary>
-        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
+        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur");
 
         /// <summary>
         /// aHR0cHM6Ly92aWRzcmMueHl6
@@ -414,7 +415,7 @@ namespace Shared.Model
 
         public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true, enable: false);
 
-        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true)
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff")
         {
             priorityBrowser = "http",
             headers_stream = HeadersModel.Init(
@@ -428,7 +429,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
+        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw");
 
         /// <summary>
         /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
@@ -453,14 +454,20 @@ namespace Shared.Model
         #endregion
 
         #region Anime
-        public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true);
+        public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true)
+        {
+            cdn_is_working = true,
+            headers = HeadersModel.Init(
+                ("referer", "encrypt:kwwsv=22dqlole1ph2")
+            ).ToDictionary()
+        };
 
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy");
 
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl51pdqjdole1ph", streamproxy: true) 
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true) 
         {
             enable = false,
             headers = HeadersModel.Init(
@@ -471,15 +478,30 @@ namespace Shared.Model
                 ("referer", "encrypt:kwwsv=22dqlole1ph2"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "document"),
-                ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "none"),
-                ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+            ).ToDictionary(),
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("origin", "encrypt:kwwsv=22dqlole1ph"),
+                ("referer", "encrypt:kwwsv=22dqlole1ph2"),
+                ("pragma", "no-cache"),
+                ("priority", "i"),
+                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "video"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
@@ -491,7 +513,7 @@ namespace Shared.Model
 
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw");
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1ruj", streamproxy: true, enable: false) 
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1df", streamproxy: true) 
         {
             headers_stream = HeadersModel.Init(
                 ("origin", "https://aniboom.one"),

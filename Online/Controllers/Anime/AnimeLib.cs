@@ -28,6 +28,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
 
             if (string.IsNullOrWhiteSpace(uri))
             {
@@ -47,8 +48,8 @@ namespace Lampac.Controllers.LITE
                             return null;
 
                         string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
-                        var result = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
-                                                  await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        var result = rch.enable ? await rch.Get<JObject>(req_uri, headers) :
+                                                  await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
 
                         if (result == null || !result.ContainsKey("data"))
                             return null;
@@ -114,8 +115,8 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) : 
-                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, headers) : 
+                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxyManager.Get(), headers: headers);
 
                     if (root == null || !root.ContainsKey("data"))
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -140,8 +141,8 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) : 
-                                            await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, headers) : 
+                                            await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
 
                     if (root == null || !root.ContainsKey("data"))
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -204,8 +205,6 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
-
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() && init.rhub_fallback && play)
                 rch.Disabled();
@@ -216,6 +215,7 @@ namespace Lampac.Controllers.LITE
                     return res.Fail(rch.connectionMsg);
 
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
+                var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
 
                 var root = rch.enable ? await rch.Get<JObject>(req_uri, headers) :
                                         await HttpClient.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
@@ -231,6 +231,8 @@ namespace Lampac.Controllers.LITE
 
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg, gbcache: !rch.enable);
+
+            var headers_stream = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
 
             List<(string link, string quality)> goStreams(string _voice)
             {
@@ -250,7 +252,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(href))
                             continue;
 
-                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), headers: headers);
+                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), headers: headers_stream);
 
                         _streams.Add((file, $"{item.Value<int>("quality")}p"));
                     }
@@ -261,14 +263,23 @@ namespace Lampac.Controllers.LITE
                 return _streams;
             }
 
-            var streams = goStreams(voice);
-            if (streams.Count == 0)
+            List<(string link, string quality)> streams;
+
+            if (string.IsNullOrEmpty(voice))
+            {
                 streams = goStreams(null);
+            }
+            else
+            {
+                streams = goStreams(voice);
+                if (streams.Count == 0)
+                    streams = goStreams(null);
+            }
 
             if (play)
                 return Redirect(streams[0].link);
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: headers));
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: headers_stream));
         }
         #endregion
     }

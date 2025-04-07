@@ -447,6 +447,9 @@ namespace Lampac.Controllers
                     }
                 }
 
+                if (enable && init.client_type != null && rchtype != null)
+                    enable = init.client_type.Contains(rchtype);
+
                 if (init.geo_hide != null)
                 {
                     if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
@@ -634,8 +637,11 @@ namespace Lampac.Controllers
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
 
-                if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
-                    send(conf.FanCDN, rch_access: "apk");
+                if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                {
+                    if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless)
+                        send(conf.FanCDN, rch_access: "apk");
+                }
             }
 
             send(conf.Videoseed);
@@ -709,7 +715,7 @@ namespace Lampac.Controllers
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
             #region ENG
-            if (original_language == null || original_language == "en")
+            if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
                 if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
                     send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");

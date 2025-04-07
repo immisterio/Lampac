@@ -103,6 +103,7 @@ namespace Lampac.Controllers.LITE
                 init.host,
                 init.scheme,
                 init.hls,
+                init.reserve,
                 true,
                 (url, _) => rch.enable ? rch.Get(url, headers) : HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search")),
                 (url, data, _) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),

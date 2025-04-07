@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "139";
 
-        public static string minorversion => "1";
+        public static string minorversion => "2";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -257,31 +257,12 @@ namespace Lampac.Engine
                 if (conf.headers_stream != null && conf.headers_stream.Count > 0)
                     headers = HeadersModel.Init(conf.headers_stream);
 
-                if (uri.Contains(" or "))
-                {
-                    string link = string.Empty;
+                uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                    foreach (string i in uri.Split(" or "))
-                    {
-                        string enc = ProxyLink.Encrypt(i.Trim(), requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+                if (AppInit.conf.accsdb.enable)
+                    uri = AccsDbInvk.Args(uri, HttpContext);
 
-                        if (AppInit.conf.accsdb.enable)
-                            enc = AccsDbInvk.Args(enc, HttpContext);
-
-                        link += $"{host}/proxy/{enc} or ";
-                    }
-
-                    return Regex.Replace(link, " or $", "");
-                }
-                else
-                {
-                    uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
-
-                    if (AppInit.conf.accsdb.enable)
-                        uri = AccsDbInvk.Args(uri, HttpContext);
-
-                    return $"{host}/proxy/{uri}";
-                }
+                return $"{host}/proxy/{uri}";
             }
 
             return uri;
