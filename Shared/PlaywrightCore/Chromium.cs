@@ -175,7 +175,7 @@ namespace Shared.Engine
         #endregion
 
 
-        static IBrowserContext keepopen_context { get; set; }
+        public static IBrowserContext keepopen_context { get; set; }
 
         public static List<KeepopenPage> pages_keepopen = new();
 
@@ -387,12 +387,12 @@ namespace Shared.Engine
                         if (init.context.min >= pages_keepopen.Count)
                             break;
 
-                        if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
+                        if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
                         {
                             try
                             {
-                                await k.context.CloseAsync();
-                                pages_keepopen.Remove(k);
+                                if (pages_keepopen.Remove(k))
+                                    await k.context.CloseAsync();
                             }
                             catch { }
                         }

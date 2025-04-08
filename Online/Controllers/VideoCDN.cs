@@ -22,6 +22,8 @@ namespace Lampac.Controllers.LITE
 {
     public class VideoCDN : BaseOnlineController
     {
+        static VideoCDN() { Directory.CreateDirectory("cache/logs/VideoCDN"); }
+
         #region Initialization
         async ValueTask<LumexSettings> Initialization()
         {
@@ -188,6 +190,8 @@ namespace Lampac.Controllers.LITE
 
 
         #region Video
+        static FileStream logFileStream = null;
+
         [HttpGet]
         [Route("lite/videocdn/video")]
         [Route("lite/videocdn/video.m3u8")]
@@ -208,7 +212,7 @@ namespace Lampac.Controllers.LITE
             {
                 if (init.log)
                 {
-                    string data = JsonConvert.SerializeObject(new
+                    string data = System.Text.Json.JsonSerializer.Serialize(new
                     {
                         time = DateTime.Now,
                         requestInfo.Country,
@@ -217,8 +221,14 @@ namespace Lampac.Controllers.LITE
                         video = new { content_id, content_type, playlist, accessToken }
                     });
 
-                    Directory.CreateDirectory("cache/logs/VideoCDN");
-                    System.IO.File.AppendAllText($"cache/logs/VideoCDN/{DateTime.Today:dd-MM}.txt", $"{data}\n");
+                    string patchlog = $"cache/logs/VideoCDN/{DateTime.Today:dd-MM}.txt";
+
+                    if (logFileStream == null || !System.IO.File.Exists(patchlog))
+                        logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
+
+                    var buffer = Encoding.UTF8.GetBytes($"{data}\n");
+                    logFileStream.Write(buffer, 0, buffer.Length);
+                    logFileStream.Flush();
                 }
             }
             catch { }

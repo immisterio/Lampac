@@ -33,7 +33,7 @@ namespace Lampac.Controllers
             {
                 Chromium = new
                 {
-                    open = Chromium.pages_keepopen.Count,
+                    open = Chromium.pages_keepopen.Count + (Chromium.keepopen_context != default ? 1 : 0),
                     req_keepopen = Chromium.stats_keepopen,
                     req_newcontext = Chromium.stats_newcontext,
                 },

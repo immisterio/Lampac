@@ -62,7 +62,7 @@ namespace Lampac
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
-                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=64");
+                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=128");
 
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {

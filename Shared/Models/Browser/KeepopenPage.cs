@@ -18,6 +18,8 @@ namespace Shared.Models.Browser
 
         public DateTime lastActive { get; set; } = DateTime.Now;
 
+        public DateTime create { get; set; } = DateTime.Now;
+
 
         public string plugin { get; set; }
 

@@ -257,13 +257,13 @@ namespace Lampac
         { 
             enable = true, Xvfb = true,
             Args = new string[] { "--disable-blink-features=AutomationControlled" },
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 0, max = 4 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 2, max = 2 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 1, max = 2 }
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
@@ -317,7 +317,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "0fc5be14006ed4a73a8c5a3cab985c3c875d8c00"
+            tree = "fd8e6edea252ebc4806c1a8f77bbc38d4778ee9a"
         };
 
         public OnlineConf online = new OnlineConf()
