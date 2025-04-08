@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
             if (checksearch)
                 return Content("data-json=");
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
@@ -203,6 +203,10 @@ namespace Lampac.Controllers.LITE
 
             if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))
                 return OnError("hash", gbcache: false);
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))

@@ -392,7 +392,10 @@ namespace Shared.Engine
                             try
                             {
                                 if (pages_keepopen.Remove(k))
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(20));
                                     await k.context.CloseAsync();
+                                }
                             }
                             catch { }
                         }
