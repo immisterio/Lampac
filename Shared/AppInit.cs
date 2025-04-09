@@ -241,6 +241,8 @@ namespace Lampac
 
         public string anticaptchakey;
 
+        public string playerInner;
+
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
         public SyncConf sync = new SyncConf();
