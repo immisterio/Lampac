@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string hash = CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{media.playlist}:{requestInfo.IP}");
                     string link = accsArgs($"{host}/lite/videocdn/video?rjson={rjson}&content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(media.playlist)}&max_quality={media.max_quality}&translation_id={media.translation_id}&hash={hash}");
-                    string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
+                    string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
                     mtpl.Append(media.translation_name, link, "call", streamlink, quality: media.max_quality?.ToString());
                 }
@@ -172,7 +172,7 @@ namespace Lampac.Controllers.LITE
 
                                 string hash = CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{voice.playlist}:{requestInfo.IP}");
                                 string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&hash={hash}&serial=true");
-                                string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
+                                string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
                                 etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, "call", streamlink: streamlink);
                             }
