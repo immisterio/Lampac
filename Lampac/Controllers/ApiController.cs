@@ -602,6 +602,22 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        #region CMD
+        [HttpGet]
+        [Route("cmd/{key}/{*comand}")]
+        public void PlayerInner(string key, string comand)
+        {
+            if (!AppInit.conf.cmd.TryGetValue(key, out var cmd))
+                return;
+
+            Process.Start(new ProcessStartInfo()
+            {
+                FileName = cmd.path,
+                Arguments = cmd.arguments.Replace("{value}", comand + HttpContext.Request.QueryString.Value)
+            });
+        }
+        #endregion
+
         #region weblog
         [HttpGet]
         [Route("weblog")]

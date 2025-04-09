@@ -243,6 +243,8 @@ namespace Lampac
 
         public string playerInner;
 
+        public Dictionary<string, CmdConf> cmd = new Dictionary<string, CmdConf>();
+
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
         public SyncConf sync = new SyncConf();
