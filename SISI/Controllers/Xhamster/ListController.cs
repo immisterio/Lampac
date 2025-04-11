@@ -19,7 +19,7 @@ namespace Lampac.Controllers.Xhamster
         async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xhamster);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             pg++;
@@ -31,7 +31,7 @@ namespace Lampac.Controllers.Xhamster
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error);
 

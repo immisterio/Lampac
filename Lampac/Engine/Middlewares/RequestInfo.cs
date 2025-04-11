@@ -29,7 +29,7 @@ namespace Lampac.Engine.Middlewares
         }
         #endregion
 
-        async public Task InvokeAsync(HttpContext httpContext)
+        public Task Invoke(HttpContext httpContext)
         {
             #region stats
             {
@@ -48,10 +48,7 @@ namespace Lampac.Engine.Middlewares
             if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd))
             {
                 if (_localpasswd.ToString() != FileCache.ReadAllText("passwd"))
-                {
-                    await httpContext.Response.WriteAsync("error passwd", httpContext.RequestAborted);
-                    return;
-                }
+                    return httpContext.Response.WriteAsync("error passwd", httpContext.RequestAborted);
 
                 IsLocalRequest = true;
 
@@ -63,10 +60,10 @@ namespace Lampac.Engine.Middlewares
                 #region cloudflare
                 if (cloudflare_ips == null)
                 {
-                    string ips = await HttpClient.Get("https://www.cloudflare.com/ips-v4");
+                    string ips = HttpClient.Get("https://www.cloudflare.com/ips-v4").Result;
                     if (ips != null)
                     {
-                        string ips_v6 = await HttpClient.Get("https://www.cloudflare.com/ips-v6");
+                        string ips_v6 = HttpClient.Get("https://www.cloudflare.com/ips-v6").Result;
                         if (ips_v6 != null)
                         {
                             foreach (string ip in (ips + "\n" + ips_v6).Split('\n'))
@@ -149,7 +146,7 @@ namespace Lampac.Engine.Middlewares
                     req.@params = AppInit.conf.accsdb.@params;
 
                 httpContext.Features.Set(req);
-                await _next(httpContext);
+                return _next(httpContext);
             }
             else
             {
@@ -158,15 +155,12 @@ namespace Lampac.Engine.Middlewares
                 req.user_uid = uid;
 
                 if (req.user == null)
-                {
-                    await httpContext.Response.WriteAsync("user not found", httpContext.RequestAborted);
-                    return;
-                }
+                    return httpContext.Response.WriteAsync("user not found", httpContext.RequestAborted);
 
                 req.@params = AppInit.conf.accsdb.@params;
 
                 httpContext.Features.Set(req);
-                await _next(httpContext);
+                return _next(httpContext);
             }
         }
     }

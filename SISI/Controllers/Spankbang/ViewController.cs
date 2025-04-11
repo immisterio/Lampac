@@ -17,11 +17,8 @@ namespace Lampac.Controllers.Spankbang
         async public Task<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
-
-            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                return OnError("NoHeadless");
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
@@ -29,8 +26,15 @@ namespace Lampac.Controllers.Spankbang
             string memKey = $"spankbang:view:{uri}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
                 stream_links = await SpankbangTo.StreamLinks($"{host}/sbg/vidosik", init.corsHost(), uri, url =>
                 {
+                    if (rch.enable)
+                        return rch.Get(init.cors(url), httpHeaders(init));
+
                     if (init.priorityBrowser == "http")
                         return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
@@ -38,9 +42,16 @@ namespace Lampac.Controllers.Spankbang
                 });
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                    return OnError("stream_links", proxyManager);
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("stream_links", proxyManager);
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
             }
 

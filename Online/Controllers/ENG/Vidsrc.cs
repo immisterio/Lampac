@@ -9,6 +9,8 @@ using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Shared.Model.Templates;
 using System.Collections.Concurrent;
+using Shared.Model.Online;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -24,6 +26,9 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         static ConcurrentDictionary<long, string> lastvrf = new ConcurrentDictionary<long, string>();
+
+        static List<HeadersModel> lastHeaders = null;
+
 
         [HttpGet]
         [Route("lite/vidsrc/video")]
@@ -80,7 +85,7 @@ namespace Lampac.Controllers.LITE
                     }
                     catch { }
 
-                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy);
+                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders);
                     if (play)
                         return Redirect(file);
 
@@ -89,35 +94,35 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            string hls = await black_magic(id, embed, init, proxy.data);
-            if (hls == null)
+            var cache = await black_magic(id, embed, init, proxy.data);
+            if (cache.m3u8 == null)
                 return StatusCode(502);
 
-            hls = HostStreamProxy(init, hls, proxy: proxy.proxy);
+            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
 
             if (play)
                 return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: cache.headers));
         }
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(long id, string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
-                return uri;
+                return default;
 
             try
             {
                 string memKey = $"vidsrc:black_magic:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out string m3u8))
+                if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
                     using (var browser = new Firefox())
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
-                            return null;
+                            return default;
 
                         await page.RouteAsync("**/*", async route =>
                         {
@@ -142,6 +147,17 @@ namespace Lampac.Controllers.LITE
 
                                 if (route.Request.Url.Contains(".m3u8"))
                                 {
+                                    cache.headers = new List<HeadersModel>();
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
+                                            continue;
+
+                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                    }
+
+                                    lastHeaders = cache.headers;
+
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
@@ -156,20 +172,20 @@ namespace Lampac.Controllers.LITE
 
                         var response = await page.GotoAsync(uri);
                         if (response == null)
-                            return null;
+                            return default;
 
-                        m3u8 = await browser.WaitPageResult();
+                        cache.m3u8 = await browser.WaitPageResult();
                     }
 
-                    if (m3u8 == null)
-                        return null;
+                    if (cache.m3u8 == null)
+                        return default;
 
-                    hybridCache.Set(memKey, m3u8, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
-                return m3u8;
+                return cache;
             }
-            catch { return null; }
+            catch { return default; }
         }
         #endregion
     }

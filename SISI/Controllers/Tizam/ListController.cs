@@ -18,7 +18,7 @@ namespace Lampac.Controllers.Tizam
         async public Task<ActionResult> Index(string search, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Tizam);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (!string.IsNullOrEmpty(search))
@@ -30,7 +30,7 @@ namespace Lampac.Controllers.Tizam
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error);
 

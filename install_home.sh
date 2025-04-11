@@ -62,6 +62,21 @@ cat <<EOF > $DEST/init.conf
     "buffering": {
       "enable": false
     }
+  },
+  "Spankbang": {
+    "rhub": true
+  },
+  "BongaCams": {
+    "rhub": true
+  },
+  "VDBmovies": {
+    "rhub": true
+  },
+  "VideoDB": {
+    "rhub": true
+  },
+  "FanCDN": {
+    "rhub": true
   }
 }
 EOF

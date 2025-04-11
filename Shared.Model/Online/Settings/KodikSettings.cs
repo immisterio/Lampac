@@ -18,6 +18,7 @@ namespace Lampac.Models.LITE
             this.token = token.Contains(":") ? Decrypt(token)! : token;
         }
 
+        public bool cdn_is_working { get; set; }
 
         public string? secret_token { get; set; }
 

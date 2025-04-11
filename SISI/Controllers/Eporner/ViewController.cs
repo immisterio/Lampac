@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Eporner
         async public Task<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Eporner);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
@@ -40,7 +40,7 @@ namespace Lampac.Controllers.Eporner
                     if (IsRhubFallback(init))
                         goto reset;
 
-                    return OnError("stream_links", proxyManager, !rch.enable);
+                    return OnError("stream_links", proxyManager);
                 }
 
                 if (!rch.enable)

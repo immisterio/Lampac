@@ -334,7 +334,7 @@ namespace Lampac.Controllers
 
         #region manifest
         [Route("admin/manifest/install")]
-        public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string localua)
+        public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
             if (IO.File.Exists("module/manifest.json"))
 				return Content("Изменить список установленных модулей можно в файле /home/lampac/module/manifest.json");
@@ -366,34 +366,23 @@ namespace Lampac.Controllers
 
                 IO.File.WriteAllText("module/manifest.json", $"[{string.Join(",", modules)}]");
 
-                #region localua
-                if (localua == "on")
+                #region ENG
+                if (eng == "on")
                 {
 					if (IO.File.Exists("init.conf"))
 					{
-						string initconf = IO.File.ReadAllText("init.conf");
-						if (initconf != null && initconf.StartsWith("{")) 
-							IO.File.WriteAllText("init.conf", "{\"Kodik\":{\"streamproxy\":true,\"apnstream\":true},\"iRemux\":{\"streamproxy\":true,\"apnstream\":true}," + initconf.Remove(0, 1));
+						string initconf = IO.File.ReadAllText("init.conf").Trim();
+						if (initconf != null)
+						{
+                            if (initconf.StartsWith("{"))
+                                IO.File.WriteAllText("init.conf", "{\"firefox\":{\"enable\":true}," + initconf.Remove(0, 1));
+							else
+                                IO.File.WriteAllText("init.conf", "\"firefox\":{\"enable\":true}," + initconf);
+                        }
                     }
 					else
 					{
-						IO.File.WriteAllText("init.conf", @"{
-  ""mikrotik"": true,
-  ""typecache"": ""mem"",
-  ""serverproxy"": {
-    ""allow_tmdb"": true,
-    ""verifyip"": false
-  },
-  ""Kodik"": {
-    ""streamproxy"": true,
-	""apnstream"": true
-  },
-  ""iRemux"": {
-	""streamproxy"": true,
-	""apnstream"": true
-  }
-}
-");
+						IO.File.WriteAllText("init.conf", "\"firefox\":{\"enable\":true}");
 					}
                 }
                 #endregion
@@ -449,6 +438,9 @@ namespace Lampac.Controllers
 			<input name=""online"" type=""checkbox"" checked /> Онлайн балансеры Rezka, Filmix, etc
 		</div>
 		<div class=""flex"">
+			<input name=""eng"" type=""checkbox"" /> ENG балансеры, требуется дополнительно 1GB HDD и 1.5Gb RAM
+		</div>
+		<div class=""flex"">
 			<input name=""sisi"" type=""checkbox"" checked /> Клубничка 18+, PornHub, Xhamster, etc
 		</div>
 		<div class=""flex"">
@@ -461,7 +453,7 @@ namespace Lampac.Controllers
 			<input name=""tracks"" type=""checkbox"" checked /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
 		</div>
 		<div class=""flex"">
-			<input name=""jac"" type=""checkbox"" /> Локальный jacred.xyz (не рекомендуется ставить локально из за частых операций с диском)
+			<input name=""jac"" type=""checkbox"" /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства из за частых операций с диском)
 		</div>
 		<div class=""flex"">
 			<input name=""merch"" type=""checkbox"" /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud

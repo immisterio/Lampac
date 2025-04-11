@@ -37,7 +37,7 @@ namespace Lampac.Controllers.LITE
 
             #region search
             string memKey = $"videoseed:view:{kinopoisk_id}";
-            if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, JObject> seasons, JToken translation_iframe, string iframe) cache))
+            if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, JObject> seasons, string iframe) cache))
             {
                 string uri = $"{init.host}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}&kp={kinopoisk_id}";
                 var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
@@ -54,11 +54,10 @@ namespace Lampac.Controllers.LITE
                     cache.seasons = data?["seasons"]?.ToObject<Dictionary<string, JObject>>();
                 else
                 {
-                    cache.translation_iframe = data?["translation_iframe"];
                     cache.iframe = data?.Value<string>("iframe");
                 }
 
-                if (cache.seasons == null && cache.translation_iframe == null && string.IsNullOrEmpty(cache.iframe))
+                if (cache.seasons == null && string.IsNullOrEmpty(cache.iframe))
                 {
                     proxyManager.Refresh();
                     return OnError();
@@ -69,21 +68,7 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            if (cache.translation_iframe != null)
-            {
-                #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
-
-                foreach (var translation in cache.translation_iframe)
-                {
-                    string iframe = translation.First.Value<string>("iframe");
-                    mtpl.Append(translation.First.Value<string>("name"), accsArgs($"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(iframe)}"), vast: init.vast);
-                }
-
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
-                #endregion
-            }
-            else if (cache.iframe != null)
+            if (cache.iframe != null)
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);

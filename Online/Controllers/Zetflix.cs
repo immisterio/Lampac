@@ -12,7 +12,6 @@ using Microsoft.Playwright;
 using System.Text.RegularExpressions;
 using Shared.PlaywrightCore;
 using Shared.Engine;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers.LITE
 {
@@ -56,14 +55,14 @@ namespace Lampac.Controllers.LITE
             {
                 string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                string html = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
-                if (html != null && !html.StartsWith("<script>(function"))
+                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                if (result != null && !result.StartsWith("<script>(function"))
                 {
-                    if (!html.Contains("new Playerjs"))
+                    if (!result.Contains("new Playerjs"))
                         return null;
 
                     proxyManager.Success();
-                    return html;
+                    return result;
                 }
 
                 try
@@ -76,10 +75,19 @@ namespace Lampac.Controllers.LITE
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        }, proxy: proxy.data);
+                        }, proxy: proxy.data, keepopen: init.browser_keepopen);
 
                         if (page == null)
                             return null;
+
+                        if (init.browser_keepopen)
+                        {
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions
+                            {
+                                Domain = Regex.Replace(ztfhost, "^https?://", ""),
+                                Name = "PHPSESSID"
+                            });
+                        }
 
                         log += "page init\n";
 
@@ -104,19 +112,18 @@ namespace Lampac.Controllers.LITE
 
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                        var response = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
-                        if (response == null)
+                        responce = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
+                        if (responce == null)
                         {
                             proxyManager.Refresh();
                             return null;
                         }
 
+                        result = await responce.TextAsync();
 
-                        html = await response.TextAsync();
+                        log += $"{result}\n\n";
 
-                        log += $"{html}\n\n";
-
-                        if (html == null || html.StartsWith("<script>(function"))
+                        if (result == null || result.StartsWith("<script>(function"))
                         {
                             proxyManager.Refresh();
                             return null;
@@ -125,10 +132,10 @@ namespace Lampac.Controllers.LITE
                         var cook = await page.Context.CookiesAsync();
                         PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
 
-                        if (!html.Contains("new Playerjs"))
+                        if (!result.Contains("new Playerjs"))
                             return null;
 
-                        return html;
+                        return result;
                     }
                 }
                 catch (Exception ex) 
@@ -177,7 +184,7 @@ namespace Lampac.Controllers.LITE
                 if (!string.IsNullOrEmpty(ztfhost))
                 {
                     ztfhost = $"https://{ztfhost}";
-                    hybridCache.Set(memkey, ztfhost, DateTime.Now.AddHours(1));
+                    hybridCache.Set(memkey, ztfhost, DateTime.Now.AddMinutes(20));
                     return ztfhost;
                 }
             }

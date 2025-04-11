@@ -22,6 +22,8 @@ namespace Lampac.Controllers.LITE
 {
     public class VideoCDN : BaseOnlineController
     {
+        static VideoCDN() { Directory.CreateDirectory("cache/logs/VideoCDN"); }
+
         #region Initialization
         async ValueTask<LumexSettings> Initialization()
         {
@@ -75,7 +77,7 @@ namespace Lampac.Controllers.LITE
             if (checksearch)
                 return Content("data-json=");
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
@@ -96,7 +98,7 @@ namespace Lampac.Controllers.LITE
                 {
                     string hash = CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{media.playlist}:{requestInfo.IP}");
                     string link = accsArgs($"{host}/lite/videocdn/video?rjson={rjson}&content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(media.playlist)}&max_quality={media.max_quality}&translation_id={media.translation_id}&hash={hash}");
-                    string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
+                    string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
                     mtpl.Append(media.translation_name, link, "call", streamlink, quality: media.max_quality?.ToString());
                 }
@@ -170,7 +172,7 @@ namespace Lampac.Controllers.LITE
 
                                 string hash = CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{voice.playlist}:{requestInfo.IP}");
                                 string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&hash={hash}&serial=true");
-                                string streamlink = link.Replace("/video", "/video.m3u8") + "&play=true";
+                                string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
                                 etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, "call", streamlink: streamlink);
                             }
@@ -188,6 +190,8 @@ namespace Lampac.Controllers.LITE
 
 
         #region Video
+        static FileStream logFileStream = null;
+
         [HttpGet]
         [Route("lite/videocdn/video")]
         [Route("lite/videocdn/video.m3u8")]
@@ -198,17 +202,21 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))
-                return OnError();
+                return OnError("hash", gbcache: false);
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))
-                return OnError();
+                return OnError("token", gbcache: false);
 
             try
             {
                 if (init.log)
                 {
-                    string data = JsonConvert.SerializeObject(new
+                    string data = System.Text.Json.JsonSerializer.Serialize(new
                     {
                         time = DateTime.Now,
                         requestInfo.Country,
@@ -217,16 +225,24 @@ namespace Lampac.Controllers.LITE
                         video = new { content_id, content_type, playlist, accessToken }
                     });
 
-                    Directory.CreateDirectory("cache/logs/VideoCDN");
-                    System.IO.File.AppendAllText($"cache/logs/VideoCDN/{DateTime.Today:dd-MM}.txt", $"{data}\n");
+                    string patchlog = $"cache/logs/VideoCDN/{DateTime.Today:dd-MM}.txt";
+
+                    if (logFileStream == null || !System.IO.File.Exists(patchlog))
+                        logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
+
+                    var buffer = Encoding.UTF8.GetBytes($"{data}\n");
+                    logFileStream.Write(buffer, 0, buffer.Length);
+                    logFileStream.Flush();
                 }
             }
             catch { }
 
-            string memkey = $"videocdn/video:{playlist}:{requestInfo.IP}";
+            string clientIP = init.verifyip ? requestInfo.IP : "::1";
+            string memkey = $"videocdn/video:{playlist}:{clientIP}";
+
             if (!hybridCache.TryGetValue(memkey, out string hls))
             {
-                var headers = HeadersModel.Join(HeadersModel.Init("Authorization", $"Bearer {accessToken}"), HeadersModel.Init(("x-forwarded-for", requestInfo.IP)));
+                var headers = HeadersModel.Join(HeadersModel.Init("Authorization", $"Bearer {accessToken}"), HeadersModel.Init(("x-forwarded-for", clientIP)));
 
                 var result = await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers);
                 if (result == null || !result.ContainsKey("url"))
@@ -241,7 +257,7 @@ namespace Lampac.Controllers.LITE
             }
 
             if (play)
-                return Redirect(hls);
+                return Redirect(HostStreamProxy(init, hls));
 
             var player = await getPlayer(content_id, content_type, accessToken);
             VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
@@ -297,13 +313,13 @@ namespace Lampac.Controllers.LITE
                 foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                 {
                     if (max_quality >= q)
-                        streams.Add((Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4"), $"{q}p"));
+                        streams.Add((HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
                 }
 
                 return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast));
             }
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "auto", subtitles: subtitles, vast: vast));
+            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, hls), "auto", subtitles: subtitles, vast: vast));
         }
         #endregion
 
@@ -330,11 +346,13 @@ namespace Lampac.Controllers.LITE
             }
             #endregion
 
-            memKey = $"videocdn:accessToken:{requestInfo.IP}";
+            string clientIP = init.verifyip ? requestInfo.IP : "::1";
+
+            memKey = $"videocdn:accessToken:{clientIP}";
             if (!hybridCache.TryGetValue(memKey, out string accessToken))
             {
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", requestInfo.IP)));
+                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", clientIP)));
                 if (job == null || !job.ContainsKey("accessToken"))
                     return null;
 
@@ -356,13 +374,14 @@ namespace Lampac.Controllers.LITE
                 return null;
 
             var init = await Initialization();
+            string clientIP = init.verifyip ? requestInfo.IP : "::1";
 
-            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{requestInfo.IP}", TimeSpan.FromMinutes(5), async () =>
+            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{clientIP}", TimeSpan.FromMinutes(5), async () =>
             {
                 var headers = HeadersModel.Init(
                     ("Authorization", $"Bearer {accessToken}"),
                     ("User-Agent", HttpContext.Request.Headers.UserAgent),
-                    ("x-forwarded-for", requestInfo.IP)
+                    ("x-forwarded-for", clientIP)
                 );
 
                 string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers);

@@ -31,6 +31,7 @@ namespace Lampac.Controllers.LITE
                 init.apihost,
                 init.token,
                 init.hls,
+                init.cdn_is_working,
                 string.IsNullOrEmpty(init.secret_token) ? "videoparse" : "video",
                 (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
@@ -116,7 +117,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
@@ -141,7 +142,7 @@ namespace Lampac.Controllers.LITE
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                 string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
                 streams = new List<(string q, string url)>();
                 var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
@@ -185,7 +186,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var oninvk = InitKodikInvoke(init);

@@ -131,7 +131,7 @@ namespace Shared.Engine
                 {
                     if (!File.Exists("/usr/bin/Xvfb"))
                     {
-                        Console.WriteLine("Playwright: /usr/bin/Xvfb not found");
+                        Console.WriteLine("Playwright: install xvfb");
                         await Bash.Run("apt update && apt install -y xvfb libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2");
                     }
 
@@ -162,12 +162,16 @@ namespace Shared.Engine
 
             Directory.CreateDirectory(Path.GetDirectoryName(outfile));
 
+            Console.WriteLine($"Playwright: Download {outfile}");
+
             if (await HttpClient.DownloadFile(uri, outfile).ConfigureAwait(false))
             {
                 File.Create($"{outfile}.ok");
 
                 if (outfile.EndsWith(".zip"))
                 {
+                    Console.WriteLine($"Playwright: unzip {outfile}");
+
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
                         await Bash.Run($"unzip {Path.Combine(Environment.CurrentDirectory, outfile)} -d {Path.Combine(Environment.CurrentDirectory, ".playwright", folder ?? string.Empty)}");
@@ -222,7 +226,7 @@ namespace Shared.Engine
             catch { }
         }
 
-        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default)
+        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
         {
             try
             {
@@ -238,6 +242,13 @@ namespace Shared.Engine
                 if (request?.Headers != null)
                 {
                     foreach (var item in request.Headers)
+                        log += $"{item.Key}: {item.Value}\n";
+                }
+
+                if (response?.Headers != null)
+                {
+                    log += $"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n";
+                    foreach (var item in response.Headers)
                         log += $"{item.Key}: {item.Value}\n";
                 }
 

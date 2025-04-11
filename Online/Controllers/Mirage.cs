@@ -200,30 +200,21 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(long id_file, string token_movie, string acceptsControls, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
-                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: HeadersModel.Init(
+                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                     ("accepts-controls", $"{acceptsControls}"),
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
                     ("origin", init.linkhost),
-                    ("pragma", "no-cache"),
-                    ("priority", "u=1, i"),
                     ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
-                    ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
-                    ("sec-fetch-storage-access", "active"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"),
                     ("x-requested-with", "XMLHttpRequest")
-                ));
+                )));
 
                 if (root == null || !root.ContainsKey("hlsSource"))
                     return null;
@@ -243,22 +234,14 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(memKey, hlsSource, cacheTime(15));
             }
 
-            var streamHeaders = HeadersModel.Init(
+            var streamHeaders = httpHeaders(init, HeadersModel.Init(
                 ("accepts-controls", $"{acceptsControls}"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
                 ("origin", init.linkhost),
-                ("pragma", "no-cache"),
                 ("referer", $"{init.linkhost}/"),
-                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("sec-fetch-storage-access", "active"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
-            );
+                ("sec-fetch-site", "cross-site")
+            ));
 
             var streamquality = new StreamQualityTpl();
 
@@ -274,7 +257,12 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streamquality.Firts().link);
 
-            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"), streamquality: streamquality, vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"), 
+                   streamquality: streamquality, 
+                   vast: init.vast, 
+                   headers: streamHeaders, 
+                   hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            ));
         }
         #endregion
 
@@ -285,23 +273,14 @@ namespace Lampac.Controllers.LITE
             string memKey = $"mirage:iframe:{token_movie}";
             if (!hybridCache.TryGetValue(memKey, out (JToken all, string acceptsControls) cache))
             {
-                string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: HeadersModel.Init(
+                string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("pragma", "no-cache"),
-                    ("priority", "u=0, i"),
                     ("referer", $"https://kino-2024.org/" + reffers[Random.Shared.Next(0, reffers.Length)]),
-                    ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
                     ("sec-fetch-dest", "iframe"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "cross-site"),
-                    ("sec-fetch-storage-access", "active"),
-                    ("upgrade-insecure-requests", "1"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
-                ));
+                    ("upgrade-insecure-requests", "1")
+                )));
 
                 string json = Regex.Match(html ?? "", "fileList = JSON.parse\\('([^\n\r]+)'\\);").Groups[1].Value;
                 if (string.IsNullOrEmpty(json))

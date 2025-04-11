@@ -30,6 +30,8 @@ cat <<EOF > init.conf
   "listenport": 9118,
   "typecache": "mem",
   "mikrotik": true,
+  "compression": false,
+  "pirate_store": false,
   "chromium": {
     "enable": false
   },
@@ -40,8 +42,32 @@ cat <<EOF > init.conf
     "enable": false,
     "autoupdatetrackers": false
   },
+  "cub": {
+    "enable": false
+  },
+  "tmdb": {
+    "enable": false
+  },
   "weblog": {
     "enable": true
+  },
+  "rch": {
+    "enable": true,
+    "keepalive": 300,
+    "permanent_connection": true
+  },
+  "LampaWeb": {
+    "initPlugins": {
+      "dlna": false,
+      "tracks": false,
+      "tmdbProxy": false,
+      "online": true,
+      "sisi": true,
+      "timecode": false,
+      "torrserver": false,
+      "backup": true,
+      "sync": false
+    }
   },
   "serverproxy": {
     "enable": false,
@@ -59,6 +85,21 @@ cat <<EOF > init.conf
   },
   "sisi": {
     "rsize": false
+  },
+  "Spankbang": {
+    "rhub": true
+  },
+  "BongaCams": {
+    "rhub": true
+  },
+  "VDBmovies": {
+    "rhub": true
+  },
+  "VideoDB": {
+    "rhub": true
+  },
+  "FanCDN": {
+    "rhub": true
   }
 }
 EOF

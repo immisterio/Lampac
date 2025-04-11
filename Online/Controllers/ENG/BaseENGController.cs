@@ -8,18 +8,22 @@ using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
 using Shared.PlaywrightCore;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public Task<ActionResult> ViewTmdb(OnlinesSettings init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false)
+        async public Task<ActionResult> ViewTmdb(OnlinesSettings init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false, int? hls_manifest_timeout = null)
         {
             if (checksearch)
                 return Content("data-json=");
 
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            if (hls_manifest_timeout == null)
+                hls_manifest_timeout = (int)TimeSpan.FromSeconds(20).TotalMilliseconds;
 
             if (browser)
             {
@@ -88,7 +92,7 @@ namespace Lampac.Controllers.LITE
                             if (method == "play")
                                 uri = accsArgs(uri);
 
-                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), uri, method, streamlink: stream, vast: init.vast);
+                            etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), uri, method, streamlink: stream, vast: init.vast, hls_manifest_timeout: hls_manifest_timeout);
                         }
                     }
 
@@ -109,7 +113,7 @@ namespace Lampac.Controllers.LITE
                 if (method == "play")
                     uri = accsArgs(uri);
 
-                mtpl.Append("English", uri, method, stream: stream, vast: init.vast);
+                mtpl.Append("English", uri, method, stream: stream, vast: init.vast, hls_manifest_timeout: hls_manifest_timeout);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion

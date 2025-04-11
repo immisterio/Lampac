@@ -20,14 +20,14 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        static ConcurrentDictionary<string, (string ip, JObject json)> clients = new ConcurrentDictionary<string, (string, JObject)>();
+        public static ConcurrentDictionary<string, (string ip, string json, JObject jb)> clients = new ConcurrentDictionary<string, (string, string, JObject)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
-        public static void Registry(string ip, string connectionId, JObject json = null)
+        public static void Registry(string ip, string connectionId, string json = null)
         {
-            clients.AddOrUpdate(connectionId, (ip, json), (i,j) => (ip, json));
+            clients.AddOrUpdate(connectionId, (ip, json, null), (i,j) => (ip, json, null));
         }
 
 
@@ -285,14 +285,30 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region InfoConnected
-        public (int version, string host, string href, string rchtype) InfoConnected()
+        public (int version, string host, string href, string rchtype, int apkVersion) InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (client.Value.json == null)
+            if (client.Value.json == null && client.Value.jb == null)
                 return default;
 
-            JObject json = client.Value.json;
-            return (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("href"), json.Value<string>("rchtype"));
+            JObject job = client.Value.jb;
+
+            if (job == null)
+            {
+                try
+                {
+                    job = JsonConvert.DeserializeObject<JObject>(client.Value.json);
+                    clients[client.Key] = (client.Value.ip, null, job);
+                }
+                catch { return default; }
+            }
+
+            (int version, string host, string href, string rchtype, int apkVersion) info = (job.Value<int>("version"), job.Value<string>("host"), job.Value<string>("href"), job.Value<string>("rchtype"), 0);
+
+            if (info.version >= 142)
+                info.apkVersion = job.Value<int>("apkVersion");
+
+            return info;
         }
         #endregion
     }

@@ -30,9 +30,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "138";
+        public static string appversion => "139";
 
-        public static string minorversion => "16";
+        public static string minorversion => "4";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -144,7 +144,7 @@ namespace Lampac.Engine
         }
         #endregion
 
-        #region proxy
+        #region HostImgProxy
         public string HostImgProxy(string uri, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
             if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
@@ -196,7 +196,9 @@ namespace Lampac.Engine
 
             return $"{host}/proxyimg:{width}:{height}/{goEncryptUri()}";
         }
+        #endregion
 
+        #region HostStreamProxy
         public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
@@ -255,31 +257,23 @@ namespace Lampac.Engine
                 if (conf.headers_stream != null && conf.headers_stream.Count > 0)
                     headers = HeadersModel.Init(conf.headers_stream);
 
-                if (uri.Contains(" or "))
-                {
-                    string link = string.Empty;
+                uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                    foreach (string i in uri.Split(" or "))
-                    {
-                        string enc = ProxyLink.Encrypt(i.Trim(), requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+                if (AppInit.conf.accsdb.enable)
+                    uri = AccsDbInvk.Args(uri, HttpContext);
 
-                        if (AppInit.conf.accsdb.enable)
-                            enc = AccsDbInvk.Args(enc, HttpContext);
+                return $"{host}/proxy/{uri}";
+            }
 
-                        link += $"{host}/proxy/{enc} or ";
-                    }
+            if (conf.url_reserve && !uri.Contains(" or ") && !uri.Contains("/proxy/") &&
+                !Regex.IsMatch(HttpContext.Request.QueryString.Value, "&play=true", RegexOptions.IgnoreCase))
+            {
+                string url_reserve = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                    return Regex.Replace(link, " or $", "");
-                }
-                else
-                {
-                    uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
+                if (AppInit.conf.accsdb.enable)
+                    url_reserve = AccsDbInvk.Args(uri, HttpContext);
 
-                    if (AppInit.conf.accsdb.enable)
-                        uri = AccsDbInvk.Args(uri, HttpContext);
-
-                    return $"{host}/proxy/{uri}";
-                }
+                uri += $" or {host}/proxy/{url_reserve}";
             }
 
             return uri;

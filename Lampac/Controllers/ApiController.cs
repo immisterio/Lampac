@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using Shared.Engine.CORE;
+using System.Diagnostics;
 
 namespace Lampac.Controllers
 {
@@ -168,7 +169,8 @@ namespace Lampac.Controllers
                 file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
                 file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
 
-                file = file.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa 
+                file = file.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa
+                file = file.Replace("return status$1;", "return true;"); // отключение рекламы
 
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
@@ -193,6 +195,12 @@ namespace Lampac.Controllers
 
                     file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
                 }
+            }
+
+            if (!string.IsNullOrEmpty(AppInit.conf.playerInner))
+            {
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
+                file = file.Replace("Player.play(element);", playerinner);
             }
 
             return Content(file, "application/javascript; charset=utf-8");
@@ -575,6 +583,41 @@ namespace Lampac.Controllers
         #endregion
 
 
+        #region PlayerInner
+        [HttpGet]
+        [Route("player-inner/{*uri}")]
+        public void PlayerInner(string uri)
+        {
+            if (string.IsNullOrEmpty(AppInit.conf.playerInner))
+                return;
+
+            // убираем мусор из названия файла
+            uri = Regex.Replace(uri, "/stream/[^\n\r]+\\.([a-z0-9]+)$", "/stream/$1", RegexOptions.IgnoreCase);
+
+            Process.Start(new ProcessStartInfo()
+            {
+                FileName = AppInit.conf.playerInner,
+                Arguments = uri + HttpContext.Request.QueryString.Value
+            });
+        }
+        #endregion
+
+        #region CMD
+        [HttpGet]
+        [Route("cmd/{key}/{*comand}")]
+        public void PlayerInner(string key, string comand)
+        {
+            if (!AppInit.conf.cmd.TryGetValue(key, out var cmd))
+                return;
+
+            Process.Start(new ProcessStartInfo()
+            {
+                FileName = cmd.path,
+                Arguments = cmd.arguments.Replace("{value}", comand + HttpContext.Request.QueryString.Value)
+            });
+        }
+        #endregion
+
         #region weblog
         [HttpGet]
         [Route("weblog")]
@@ -594,7 +637,7 @@ namespace Lampac.Controllers
 </head>
 <body style='margin: 0px;'>
     <div id='log'></div>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.25/signalr.min.js'></script>
+    <script src='/signalr-6.0.25_es5.js'></script>
     <script>
         const hubConnection = new signalR.HubConnectionBuilder()
             .withUrl('/ws')

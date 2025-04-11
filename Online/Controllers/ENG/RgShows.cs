@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Net;
 using Shared.Model.Templates;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -15,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rgshows")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Rgshows, false, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
+            return ViewTmdb(AppInit.conf.Rgshows, false, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds);
         }
 
 
@@ -62,7 +63,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"rgshows:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out string file))
                 {
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 30, headers: httpHeaders(init));
+                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 40, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("stream"))
                         return null;
 

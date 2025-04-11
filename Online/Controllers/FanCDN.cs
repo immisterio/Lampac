@@ -12,6 +12,10 @@ using Shared.PlaywrightCore;
 using Lampac.Engine.CORE;
 using Shared.Model.Online;
 using System.Net;
+using BrowserCookie = Microsoft.Playwright.Cookie;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing;
 
 namespace Lampac.Controllers.LITE
 {
@@ -22,14 +26,15 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.FanCDN);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(init.cookie) || kinopoisk_id == 0)
+            if ((string.IsNullOrEmpty(init.token) && string.IsNullOrEmpty(init.cookie)) || kinopoisk_id == 0)
                 return OnError();
 
-            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                return OnError();
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
@@ -38,42 +43,99 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.host,
-               ongettourl => 
+               async ongettourl => 
                {
                    if (ongettourl.Contains("fancdn."))
-                       return black_magic(ongettourl, init, proxy);
+                       return await black_magic(init, rch, init.cors(ongettourl), proxy);
 
                    var headers = httpHeaders(init, HeadersModel.Init(
                        ("sec-fetch-dest", "document"),
                        ("sec-fetch-mode", "navigate"),
-                       ("sec-fetch-site", "same-origin")
+                       ("sec-fetch-site", "none"),
+                       ("cookie", init.cookie)
                    ));
 
-                   if (ongettourl.Contains("do=search"))
-                       headers.Add(new HeadersModel("referer", $"{init.host}/"));
+                   if (rch.enable)
+                       return await rch.Get(init.cors(ongettourl), headers);
 
-                   return HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, cookie: init.cookie, headers: headers);
+                   if (init.priorityBrowser == "http")
+                       return await HttpClient.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+
+                   #region Browser Search
+                   try
+                   {
+                       using (var browser = new PlaywrightBrowser())
+                       {
+                           var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                           if (page == null)
+                               return null;
+
+                           string fanhost = "." + Regex.Replace(init.host, "^https?://", "");
+                           var excookie = DateTimeOffset.UtcNow.AddYears(1).ToUnixTimeSeconds();
+
+                           await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = fanhost, Name = "cf_clearance" });
+
+                           var cookies = new List<BrowserCookie>();
+                           foreach (string line in init.cookie.Split(";"))
+                           {
+                               if (string.IsNullOrEmpty(line) || !line.Contains("=") || line.Contains("cf_clearance") || line.Contains("PHPSESSID"))
+                                   continue;
+
+                               cookies.Add(new BrowserCookie()
+                               {
+                                   Domain = fanhost,
+                                   Expires = excookie,
+                                   Path = "/",
+                                   HttpOnly = true,
+                                   Secure = true,
+                                   Name = line.Split("=")[0].Trim(),
+                                   Value = line.Split("=")[1].Trim()
+                               });
+                           }
+
+                           await page.Context.AddCookiesAsync(cookies);
+
+                           var response = await page.GotoAsync($"view-source:{ongettourl}");
+                           if (response == null)
+                               return null;
+
+                           //await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+
+                           string result = await response.TextAsync();
+                           PlaywrightBase.WebLog("GET", ongettourl, result, proxy.data, response: response);
+                           return result;
+                       }
+                   }
+                   catch
+                   {
+                       return null;
+                   }
+                   #endregion
                },
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"fancdn:{title}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"fancdn:{title}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
-                var result = await oninvk.Embed(imdb_id, kinopoisk_id, title, original_title, year, serial);
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                var result = string.IsNullOrEmpty(init.token) ? await oninvk.EmbedSearch(title, original_title, year, serial) : await oninvk.EmbedToken(kinopoisk_id, init.token);
                 if (result == null)
-                    return res.Fail(logRequest);
+                    return res.Fail("result");
 
                 return result;
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast), origsource: origsource);
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast, headers: httpHeaders(init)), origsource: origsource);
         }
 
 
         #region black_magic
-        string logRequest = string.Empty;
-
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async ValueTask<string> black_magic(OnlinesSettings init, RchClient rch, string uri, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
@@ -83,7 +145,10 @@ namespace Lampac.Controllers.LITE
                     ("sec-fetch-site", "cross-site"),
                     ("referer", $"{init.host}/")
                 ));
-                
+
+                if (rch.enable)
+                    return await rch.Get(uri, headers);
+
                 if (init.priorityBrowser == "http")
                     return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
@@ -91,10 +156,7 @@ namespace Lampac.Controllers.LITE
                 {
                     var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data);
                     if (page == null)
-                    {
-                        logRequest += "\nNewPageAsync null";
                         return null;
-                    }
 
                     browser.failedUrl = uri;
 
@@ -116,8 +178,6 @@ namespace Lampac.Controllers.LITE
                                 await route.AbortAsync();
                                 return;
                             }
-
-                            logRequest += $"{route.Request.Method}: {route.Request.Url}\n";
 
                             if (route.Request.Url == uri)
                             {
@@ -148,9 +208,8 @@ namespace Lampac.Controllers.LITE
                     return await browser.WaitPageResult();
                 }
             }
-            catch (Exception ex) 
+            catch
             {
-                logRequest += $"\n{ex.Message}";
                 return null; 
             }
         }

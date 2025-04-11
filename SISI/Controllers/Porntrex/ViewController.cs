@@ -1,13 +1,13 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Web;
 using Lampac.Engine.CORE;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
-using System.Linq;
 using Shared.Model.Online;
+using System.Linq;
+using System.Web;
 
 namespace Lampac.Controllers.Porntrex
 {
@@ -20,23 +20,49 @@ namespace Lampac.Controllers.Porntrex
         async public Task<ActionResult> vidosik(string uri)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"porntrex:view:{uri}:{proxyManager.CurrentProxyIp}";
-            if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> links))
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: init.apnstream ? -1 : null);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return OnError(rch_error);
+
+            string memKey = rch.ipkey($"porntrex:view:{uri}", proxyManager);
+            if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, string> links, bool userch) cache))
             {
-                var proxy = proxyManager.Get();
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
 
-                links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init)));
-                if (links == null || links.Count == 0)
+                cache.links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url => 
+                {
+                    if (rch.enable)
+                        return rch.Get(init.cors(url), httpHeaders(init));
+
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                });
+
+                if (cache.links == null || cache.links.Count == 0)
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
                     return OnError("stream_links", proxyManager);
+                }
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, links, cacheTime(20, init: init));
+                if (!rch.enable)
+                    proxyManager.Success();
+
+                cache.userch = rch.enable;
+                hybridCache.Set(memKey, cache, cacheTime(20, init: init));
             }
 
-            return Json(links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
+            if (cache.userch)
+            {
+                var hdstr = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
+                return OnResult(cache.links, init, proxyManager.Get(), headers_stream: hdstr);
+            }
+
+            return Json(cache.links.ToDictionary(k => k.Key, v => $"{host}/ptx/strem?link={HttpUtility.UrlEncode(v.Value)}"));
         }
 
 
@@ -45,25 +71,25 @@ namespace Lampac.Controllers.Porntrex
         async public Task<ActionResult> strem(string link)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
+
+            if (init.rhub && !init.rhub_fallback)
+                return OnError("rhub_fallback");
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"Porntrex:strem:{link}";
+            string memKey = $"Porntrex:strem:{link}:{proxyManager.CurrentProxyIp}";
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
                 location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "none"),
-                    ("sec-fetch-user", "?1"),
-                    ("upgrade-insecure-requests", "1"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
+                    ("sec-fetch-site", "none")
                 )));
 
-                if (location == null || link == location)
-                    return OnError("location");
+                if (string.IsNullOrEmpty(location) || link == location)
+                    return OnError("location", proxyManager);
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, location, cacheTime(40, init: init));

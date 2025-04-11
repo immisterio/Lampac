@@ -13,11 +13,19 @@ namespace Shared.Engine
     public class Chromium : PlaywrightBase, IDisposable
     {
         #region static
+
+        static List<KeepopenPage> pages_keepopen = new();
+
+        static IBrowserContext keepopen_context { get; set; }
+
+        static DateTime create_keepopen_context { get; set; }
+
         public static long stats_keepopen { get; set; }
+
         public static long stats_newcontext { get; set; }
 
 
-        static IBrowser browser = null;
+        public static IBrowser browser = null;
 
         static bool shutdown = false;
 
@@ -150,6 +158,7 @@ namespace Shared.Engine
 
                 if (AppInit.conf.chromium.context.keepopen)
                 {
+                    create_keepopen_context = DateTime.Now;
                     keepopen_context = await browser.NewContextAsync();
                     await keepopen_context.NewPageAsync();
                 }
@@ -175,11 +184,6 @@ namespace Shared.Engine
         #endregion
 
 
-        static IBrowserContext keepopen_context { get; set; }
-
-        public static List<KeepopenPage> pages_keepopen = new();
-
-
         public bool IsCompleted { get; set; }
 
         public string failedUrl { get; set; }
@@ -191,7 +195,7 @@ namespace Shared.Engine
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true)
         {
             try
             {
@@ -201,23 +205,26 @@ namespace Shared.Engine
                 if (proxy != default)
                 {
                     #region NewPageAsync
-                    foreach (var pg in pages_keepopen.ToArray())
+                    if (keepopen)
                     {
-                        if (pg.plugin == plugin)
+                        foreach (var pg in pages_keepopen.ToArray())
                         {
-                            if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                            if (pg.plugin == plugin)
                             {
-                                _ = pg.context.CloseAsync();
-                                pages_keepopen.Remove(pg);
-                                continue;
+                                if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                                {
+                                    _ = pg.context.CloseAsync();
+                                    pages_keepopen.Remove(pg);
+                                    continue;
+                                }
                             }
-                        }
 
-                        if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
-                        {
-                            stats_keepopen++;
-                            keepopen_page = pg;
-                            page = await pg.context.NewPageAsync();
+                            if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
+                            {
+                                stats_keepopen++;
+                                keepopen_page = pg;
+                                page = await pg.context.NewPageAsync();
+                            }
                         }
                     }
 
@@ -247,7 +254,7 @@ namespace Shared.Engine
                     page.Download += Page_Download;
                     page.RequestFailed += Page_RequestFailed;
 
-                    if (keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
+                    if (!keepopen || keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
                         return page;
 
                     await context.NewPageAsync(); // что-бы context не закрывался с последней закрытой вкладкой
@@ -265,7 +272,7 @@ namespace Shared.Engine
                 else
                 {
                     #region NewPageAsync
-                    if (keepopen_context != default)
+                    if (keepopen && keepopen_context != default)
                     {
                         stats_keepopen++;
                         page = await keepopen_context.NewPageAsync();
@@ -379,17 +386,40 @@ namespace Shared.Engine
                     if (0 >= init.context.keepalive)
                         continue;
 
+                    if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
+                    {
+                        create_keepopen_context = DateTime.Now;
+                        var kpc = await browser.NewContextAsync();
+                        await kpc.NewPageAsync();
+
+                        try
+                        {
+                            await keepopen_context.CloseAsync();
+                        }
+                        catch { }
+
+                        keepopen_context = kpc;
+                    }
+
                     foreach (var k in pages_keepopen.ToArray())
                     {
                         if (init.context.min >= pages_keepopen.Count)
                             break;
 
-                        if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
+                        if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
                         {
                             try
                             {
-                                await k.context.CloseAsync();
-                                pages_keepopen.Remove(k);
+                                if (pages_keepopen.Remove(k))
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(20));
+
+                                    try
+                                    {
+                                        await k.context.CloseAsync();
+                                    }
+                                    catch { pages_keepopen.Add(k); }
+                                }
                             }
                             catch { }
                         }

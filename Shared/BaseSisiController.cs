@@ -156,35 +156,36 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(Dictionary<string, string> stream_links, BaseSettings proxyconf, WebProxy proxy)
+        public JsonResult OnResult(Dictionary<string, string> stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_stream = null)
         {
-            return OnResult(new StreamItem() { qualitys = stream_links }, proxyconf, proxy);
+            return OnResult(new StreamItem() { qualitys = stream_links }, init, proxy, headers_stream: headers_stream);
         }
 
-        public JsonResult OnResult(StreamItem stream_links, BaseSettings proxyconf, WebProxy proxy, List<HeadersModel> headers = null)
+        public JsonResult OnResult(StreamItem stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers = null, List<HeadersModel> headers_stream = null)
         {
             Dictionary<string, string> qualitys_proxy = null;
 
-            if (!proxyconf.streamproxy && (proxyconf.geostreamproxy == null || proxyconf.geostreamproxy.Length == 0))
+            if (!init.streamproxy && (init.geostreamproxy == null || init.geostreamproxy.Length == 0))
             {
-                if (proxyconf.qualitys_proxy)
+                if (init.qualitys_proxy)
                 {
-                    var bsc = new BaseSettings() { streamproxy = true, useproxystream = proxyconf.useproxystream, apn = proxyconf.apn, apnstream = proxyconf.apnstream };
+                    var bsc = new BaseSettings() { streamproxy = true, useproxystream = init.useproxystream, apn = init.apn, apnstream = init.apnstream };
                     qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(bsc, v.Value, proxy: proxy));
                 }
             }
 
             return new JsonResult(new OnStreamResult()
             {
-                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(proxyconf, v.Value, proxy: proxy)),
+                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy)),
                 qualitys_proxy = qualitys_proxy,
                 recomends = stream_links?.recomends?.Select(pl => new PlaylistItem
                 {
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = HostImgProxy(pl.picture, height: 110, plugin: proxyconf?.plugin, headers: headers),
+                    picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers),
                     json = pl.json
-                })
+                }),
+                headers_stream = headers_stream?.ToDictionary()
             });
         }
         #endregion

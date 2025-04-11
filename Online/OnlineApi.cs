@@ -62,8 +62,6 @@ namespace Lampac.Controllers
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-            file = file.Replace("return status$1;", "return true;"); // отключение рекламы
-
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
         #endregion
@@ -345,7 +343,7 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(20);
-            bool isanime = original_language == "ja";
+            bool isanime = original_language is "ja" or "zh";
 
             #region fix title
             bool fix_title = false;
@@ -446,6 +444,9 @@ namespace Lampac.Controllers
                         }
                     }
                 }
+
+                if (enable && init.client_type != null && rchtype != null)
+                    enable = init.client_type.Contains(rchtype);
 
                 if (init.geo_hide != null)
                 {
@@ -625,17 +626,20 @@ namespace Lampac.Controllers
 
             if (kinopoisk_id > 0)
             {
-                if (conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
-                    send(conf.VideoDB);
+                if (conf.VideoDB.rhub || conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
+                    send(conf.VideoDB, rch_access: "apk");
 
-                if (conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
-                    send(conf.VDBmovies);
+                if (conf.VDBmovies.rhub || conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                    send(conf.VDBmovies, rch_access: "apk");
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
 
-                if (conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
-                    send(conf.FanCDN);
+                if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+                {
+                    if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless)
+                        send(conf.FanCDN, rch_access: "apk");
+                }
             }
 
             send(conf.Videoseed);
@@ -709,7 +713,7 @@ namespace Lampac.Controllers
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
             #region ENG
-            if (original_language == null || original_language == "en")
+            if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
                 if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
                     send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
@@ -738,11 +742,13 @@ namespace Lampac.Controllers
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost))
                     send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
 
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost))
+                    send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+
+                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
+
                 if (conf.Autoembed.priorityBrowser == "http")
                     send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-
-                send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
-                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
             }
             #endregion
 

@@ -15,7 +15,7 @@ namespace Lampac.Controllers.XvideosRED
         async public Task<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.XvideosRED);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);

@@ -120,7 +120,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();
@@ -193,7 +193,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();

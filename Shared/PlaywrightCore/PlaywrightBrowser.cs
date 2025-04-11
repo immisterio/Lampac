@@ -93,7 +93,7 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true)
         {
             try
             {
@@ -101,7 +101,7 @@ namespace Shared.PlaywrightCore
                     return default;
 
                 if (chromium != null)
-                    return chromium.NewPageAsync(plugin, headers, proxy);
+                    return chromium.NewPageAsync(plugin, headers, proxy, keepopen: keepopen);
 
                 return firefox.NewPageAsync(plugin, headers, proxy);
             }

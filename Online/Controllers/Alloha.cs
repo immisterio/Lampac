@@ -150,7 +150,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();
@@ -231,7 +231,12 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(streams[0].link);
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title), streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
+                   streamquality: new StreamQualityTpl(streams),
+                   vast: init.vast,
+                   subtitles: subtitles,
+                   hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            ));
         }
         #endregion
 

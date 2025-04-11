@@ -9,16 +9,16 @@ namespace Shared.Model.Templates
 {
     public class EpisodeTpl
     {
-        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers)> data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?)>();
+        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?, int?)>();
 
         public EpisodeTpl() { }
 
         public EpisodeTpl(int capacity) { data.Capacity = capacity; }
 
-        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, VastConf? vast = null, List<HeadersModel>? headers = null)
+        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
         {
             if (!string.IsNullOrEmpty(name))
-                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers));
+                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout));
         }
 
         public string ToHtml()
@@ -43,7 +43,8 @@ namespace Shared.Model.Templates
                     subtitles = i.subtitles?.ToObject(),
                     i.voice_name,
                     vast_url = i.vast?.url ?? AppInit._vast?.url,
-                    vast_msg = i.vast?.msg ?? AppInit._vast?.msg
+                    vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
+                    i.hls_manifest_timeout
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -77,7 +78,8 @@ namespace Shared.Model.Templates
                     vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     i.name,
-                    i.title
+                    i.title,
+                    i.hls_manifest_timeout
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
         }

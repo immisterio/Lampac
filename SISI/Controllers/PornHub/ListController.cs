@@ -21,7 +21,7 @@ namespace Lampac.Controllers.PornHub
         async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.PornHub);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -32,7 +32,7 @@ namespace Lampac.Controllers.PornHub
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error);
 
@@ -69,7 +69,7 @@ namespace Lampac.Controllers.PornHub
         async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.PornHubPremium);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";

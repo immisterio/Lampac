@@ -114,9 +114,6 @@ namespace Lampac.Engine.Middlewares
                     decryptLink = new ProxyLinkModel(reqip, null, null, servUri);
                 #endregion
 
-                if (init.showOrigUri)
-                    httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
-
                 #region Кеш файла
                 string md5file = httpContext.Request.Path.Value.Replace("/proxy/", "");
                 bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
@@ -140,6 +137,50 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
                 #endregion
+
+                #region Video OR
+                if (servUri.Contains(" or "))
+                {
+                    var hdlr = new HttpClientHandler()
+                    {
+                        AllowAutoRedirect = true,
+                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
+                    };
+
+                    hdlr.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+                    if (decryptLink.proxy != null)
+                    {
+                        hdlr.UseProxy = true;
+                        hdlr.Proxy = decryptLink.proxy;
+                    }
+
+                    string[] links = servUri.Split(" or ");
+                    servUri = links[0].Trim();
+
+                    try
+                    {
+                        using (var client = new HttpClient(hdlr))
+                        {
+                            client.Timeout = TimeSpan.FromSeconds(7);
+                            var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
+                            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
+                            if ((int)response.StatusCode != 200)
+                                servUri = links[1].Trim();
+                        }
+                    }
+                    catch 
+                    {
+                        servUri = links[1].Trim();
+                    }
+
+                    servUri = servUri.Split(" ")[0].Trim();
+                    decryptLink.uri = servUri;
+                }
+                #endregion
+
+                if (init.showOrigUri)
+                    httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
 
                 #region handler
                 HttpClientHandler handler = new HttpClientHandler()
@@ -442,7 +483,7 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
             }
 
-            if (ismedia)
+            if (ismedia || headers != null)
             {
                 foreach (var header in request.Headers)
                 {

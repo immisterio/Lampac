@@ -11,7 +11,7 @@ namespace Shared.Model.Templates
     {
         string? title, original_title;
 
-        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?)>();
+        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?, int?)>();
 
         public MovieTpl(string? title, string? original_title = null, int capacity = 0) 
         {
@@ -21,15 +21,15 @@ namespace Shared.Model.Templates
         }
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null)
+        public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
-                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers));
+                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout));
         }
 
-        public string ToHtml(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null)
+        public string ToHtml(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
         {
-            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers);
+            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout);
             return ToHtml();
         }
 
@@ -62,7 +62,8 @@ namespace Shared.Model.Templates
                     vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    title = $"{title ?? original_title} ({i.voiceOrQuality})"
+                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
+                    i.hls_manifest_timeout
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -102,7 +103,8 @@ namespace Shared.Model.Templates
                     vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    title = $"{title ?? original_title} ({i.voiceOrQuality})"
+                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
+                    i.hls_manifest_timeout
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }

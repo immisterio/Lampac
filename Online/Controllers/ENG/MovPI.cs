@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Engine;
 using Lampac.Models.LITE;
-using Microsoft.Extensions.Caching.Memory;
 using Lampac.Engine.CORE;
 using Microsoft.Playwright;
 using Shared.Model.Online;
 using System;
+using System.Collections.Generic;
 
 namespace Lampac.Controllers.LITE
 {
@@ -43,30 +43,30 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/tv/{id}-{s}-{e}?autoPlay=true&poster=false";
 
-            string hls = await black_magic(embed, init, proxy.data);
-            if (hls == null)
+            var cache = await black_magic(embed, init, proxy.data);
+            if (cache.m3u8 == null)
                 return StatusCode(502);
 
-            return Redirect(HostStreamProxy(init, hls, proxy: proxy.proxy));
+            return Redirect(HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers));
         }
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
-                return uri;
+                return default;
 
             try
             {
-                string memKey = $"movpi:black_magic:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out string m3u8))
+                string memKey = $"movpi:black_magic:{uri}:{proxy.ip}";
+                if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
                     using (var browser = new Firefox())
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
-                            return null;
+                            return default;
 
                         await page.RouteAsync("**/*", async route =>
                         {
@@ -99,6 +99,15 @@ namespace Lampac.Controllers.LITE
 
                                 if (route.Request.Url.Contains(".m3u8"))
                                 {
+                                    cache.headers = new List<HeadersModel>();
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
+                                            continue;
+
+                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                    }
+
                                     Console.WriteLine($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
@@ -113,20 +122,20 @@ namespace Lampac.Controllers.LITE
 
                         var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
                         if (response == null)
-                            return null;
+                            return default;
 
-                        m3u8 = await browser.WaitPageResult();
+                        cache.m3u8 = await browser.WaitPageResult();
                     }
 
-                    if (m3u8 == null)
-                        return null;
+                    if (cache.m3u8 == null)
+                        return default;
 
-                    hybridCache.Set(memKey, m3u8, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
-                return m3u8;
+                return cache;
             }
-            catch { return null; }
+            catch { return default; }
         }
         #endregion
     }

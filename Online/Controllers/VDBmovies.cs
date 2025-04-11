@@ -22,14 +22,15 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.VDBmovies);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (kinopoisk_id == 0)
                 return OnError();
 
-            if (init.priorityBrowser != "http" && PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                return OnError();
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
@@ -41,9 +42,15 @@ namespace Lampac.Controllers.LITE
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
-            var cache = await InvokeCache<EmbedModel>($"vdbmovies:{kinopoisk_id}:{proxyManager.CurrentProxyIp}", cacheTime(20, rhub: 2, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), proxyManager, async res =>
             {
-                string html = await black_magic($"{init.host}/kinopoisk/{kinopoisk_id}/iframe", init, proxy);
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
+
+                string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
+                                           await black_magic($"{init.host}/kinopoisk/{kinopoisk_id}/iframe", init, proxy);
 
                 if (html == null)
                     return res.Fail("html");
@@ -72,7 +79,10 @@ namespace Lampac.Controllers.LITE
                 return oninvk.Embed(oninvk.DecodeEval(file));
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson), origsource: origsource);
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
 
 

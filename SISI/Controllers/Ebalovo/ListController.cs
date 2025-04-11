@@ -16,7 +16,7 @@ namespace Lampac.Controllers.Ebalovo
         async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Ebalovo);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
@@ -25,7 +25,7 @@ namespace Lampac.Controllers.Ebalovo
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error);
 

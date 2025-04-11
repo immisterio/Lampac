@@ -8,7 +8,6 @@ using Online;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Model.Online;
 using System.Linq;
 using System.IO;
@@ -197,7 +196,7 @@ namespace Lampac.Controllers.LITE
         async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
-            if (await IsBadInitialization(init))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))

@@ -237,7 +237,13 @@ namespace Lampac
 
         public bool filelog = false;
 
+        public bool disableEng = false;
+
         public string anticaptchakey;
+
+        public string playerInner;
+
+        public Dictionary<string, CmdConf> cmd = new Dictionary<string, CmdConf>();
 
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
@@ -255,13 +261,13 @@ namespace Lampac
         { 
             enable = true, Xvfb = true,
             Args = new string[] { "--disable-blink-features=AutomationControlled" },
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 0, max = 4 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            context = new KeepopenContext() { keepopen = true, keepalive = 5, min = 1, max = 1 }
+            context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 1, max = 2 }
         };
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
@@ -315,7 +321,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "9b37e5bd49c92fe1efdd1c146a18c7fcd31253c8"
+            tree = "fd8e6edea252ebc4806c1a8f77bbc38d4778ee9a"
         };
 
         public OnlineConf online = new OnlineConf()

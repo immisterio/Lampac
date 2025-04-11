@@ -13,11 +13,13 @@ namespace Shared.Engine
     public class Firefox : PlaywrightBase, IDisposable
     {
         #region static
+        static List<KeepopenPage> pages_keepopen = new();
+
         public static long stats_keepopen { get; set; }
+
         public static long stats_newcontext { get; set; }
 
-
-        static IBrowser browser = null;
+        public static IBrowser browser = null;
 
         static bool shutdown = false;
 
@@ -179,8 +181,6 @@ namespace Shared.Engine
         IPage page { get; set; }
 
         KeepopenPage keepopen_page { get; set; }
-
-        public static List<KeepopenPage> pages_keepopen = new();
 
 
         async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
