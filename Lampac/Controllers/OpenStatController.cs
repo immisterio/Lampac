@@ -5,6 +5,7 @@ using Shared.Engine;
 using Microsoft.AspNetCore.Http;
 using System;
 using Microsoft.Extensions.Caching.Memory;
+using Lampac.Engine.CORE;
 
 namespace Lampac.Controllers
 {
@@ -64,6 +65,17 @@ namespace Lampac.Controllers
             }
 
             return Json(new { req_min, req_hour, soks_online = soks._connections.Count });
+        }
+        #endregion
+
+        #region rch
+        [Route("/stats/rch")]
+        public ActionResult Rhc()
+        {
+            if (IsDeny(out string ermsg))
+                return Content(ermsg, "text/plain; charset=utf-8");
+
+            return Json(new { clients = RchClient.clients.Count, rchIds = RchClient.rchIds.Count });
         }
         #endregion
     }

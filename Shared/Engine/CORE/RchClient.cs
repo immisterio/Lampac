@@ -20,7 +20,7 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        static ConcurrentDictionary<string, (string ip, string json, JObject jb)> clients = new ConcurrentDictionary<string, (string, string, JObject)>();
+        public static ConcurrentDictionary<string, (string ip, string json, JObject jb)> clients = new ConcurrentDictionary<string, (string, string, JObject)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
@@ -288,7 +288,7 @@ namespace Lampac.Engine.CORE
         public (int version, string host, string href, string rchtype, int apkVersion) InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (client.Value.json == null)
+            if (client.Value.json == null && client.Value.jb == null)
                 return default;
 
             JObject job = client.Value.jb;
@@ -298,7 +298,7 @@ namespace Lampac.Engine.CORE
                 try
                 {
                     job = JsonConvert.DeserializeObject<JObject>(client.Value.json);
-                    clients[client.Key] = (client.Value.ip, client.Value.json, job);
+                    clients[client.Key] = (client.Value.ip, null, job);
                 }
                 catch { return default; }
             }
