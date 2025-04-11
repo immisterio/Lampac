@@ -20,14 +20,14 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        static ConcurrentDictionary<string, (string ip, JObject json)> clients = new ConcurrentDictionary<string, (string, JObject)>();
+        static ConcurrentDictionary<string, (string ip, string json, JObject jb)> clients = new ConcurrentDictionary<string, (string, string, JObject)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
-        public static void Registry(string ip, string connectionId, JObject json = null)
+        public static void Registry(string ip, string connectionId, string json = null)
         {
-            clients.AddOrUpdate(connectionId, (ip, json), (i,j) => (ip, json));
+            clients.AddOrUpdate(connectionId, (ip, json, null), (i,j) => (ip, json, null));
         }
 
 
@@ -291,11 +291,22 @@ namespace Lampac.Engine.CORE
             if (client.Value.json == null)
                 return default;
 
-            JObject json = client.Value.json;
-            (int version, string host, string href, string rchtype, int apkVersion) info = (json.Value<int>("version"), json.Value<string>("host"), json.Value<string>("href"), json.Value<string>("rchtype"), 0);
+            JObject job = client.Value.jb;
+
+            if (job == null)
+            {
+                try
+                {
+                    job = JsonConvert.DeserializeObject<JObject>(client.Value.json);
+                    clients[client.Key] = (client.Value.ip, client.Value.json, job);
+                }
+                catch { return default; }
+            }
+
+            (int version, string host, string href, string rchtype, int apkVersion) info = (job.Value<int>("version"), job.Value<string>("host"), job.Value<string>("href"), job.Value<string>("rchtype"), 0);
 
             if (info.version >= 142)
-                info.apkVersion = json.Value<int>("apkVersion");
+                info.apkVersion = job.Value<int>("apkVersion");
 
             return info;
         }

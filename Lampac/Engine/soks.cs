@@ -28,16 +28,8 @@ namespace Lampac.Engine
             if (!AppInit.conf.rch.enable)
                 return;
 
-            JObject job = null;
-
-            try
-            {
-                job = JsonConvert.DeserializeObject<JObject>(json);
-            }
-            catch { }
-
             var requestInfo = Context.GetHttpContext().Features.Get<RequestModel>();
-            RchClient.Registry(requestInfo.IP, Context.ConnectionId, job);
+            RchClient.Registry(requestInfo.IP, Context.ConnectionId, json);
         }
 
         /// <summary>
