@@ -33,13 +33,13 @@ namespace Lampac.Controllers
             {
                 Chromium = new
                 {
-                    open = Chromium.browser.Contexts.Count,
+                    open = Chromium.browser?.Contexts?.Count,
                     req_keepopen = Chromium.stats_keepopen,
                     req_newcontext = Chromium.stats_newcontext,
                 },
                 Firefox = new
                 {
-                    open = Firefox.browser.Contexts.Count,
+                    open = Firefox.browser?.Contexts?.Count,
                     req_keepopen = Firefox.stats_keepopen,
                     req_newcontext = Firefox.stats_newcontext
                 }
