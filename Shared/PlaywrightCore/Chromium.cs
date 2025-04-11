@@ -13,17 +13,19 @@ namespace Shared.Engine
     public class Chromium : PlaywrightBase, IDisposable
     {
         #region static
-        public static IBrowserContext keepopen_context { get; set; }
-        public static DateTime create_keepopen_context { get; set; }
 
+        static List<KeepopenPage> pages_keepopen = new();
 
-        public static List<KeepopenPage> pages_keepopen = new();
+        static IBrowserContext keepopen_context { get; set; }
+
+        static DateTime create_keepopen_context { get; set; }
 
         public static long stats_keepopen { get; set; }
+
         public static long stats_newcontext { get; set; }
 
 
-        static IBrowser browser = null;
+        public static IBrowser browser = null;
 
         static bool shutdown = false;
 
