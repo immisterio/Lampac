@@ -13,6 +13,12 @@ namespace Shared.Engine
     public class Chromium : PlaywrightBase, IDisposable
     {
         #region static
+        public static IBrowserContext keepopen_context { get; set; }
+        public static DateTime create_keepopen_context { get; set; }
+
+
+        public static List<KeepopenPage> pages_keepopen = new();
+
         public static long stats_keepopen { get; set; }
         public static long stats_newcontext { get; set; }
 
@@ -150,6 +156,7 @@ namespace Shared.Engine
 
                 if (AppInit.conf.chromium.context.keepopen)
                 {
+                    create_keepopen_context = DateTime.Now;
                     keepopen_context = await browser.NewContextAsync();
                     await keepopen_context.NewPageAsync();
                 }
@@ -173,11 +180,6 @@ namespace Shared.Engine
             await CreateAsync();
         }
         #endregion
-
-
-        public static IBrowserContext keepopen_context { get; set; }
-
-        public static List<KeepopenPage> pages_keepopen = new();
 
 
         public bool IsCompleted { get; set; }
@@ -382,6 +384,21 @@ namespace Shared.Engine
                     if (0 >= init.context.keepalive)
                         continue;
 
+                    if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
+                    {
+                        create_keepopen_context = DateTime.Now;
+                        var kpc = await browser.NewContextAsync();
+                        await kpc.NewPageAsync();
+
+                        try
+                        {
+                            await keepopen_context.CloseAsync();
+                        }
+                        catch { }
+
+                        keepopen_context = kpc;
+                    }
+
                     foreach (var k in pages_keepopen.ToArray())
                     {
                         if (init.context.min >= pages_keepopen.Count)
@@ -394,7 +411,12 @@ namespace Shared.Engine
                                 if (pages_keepopen.Remove(k))
                                 {
                                     await Task.Delay(TimeSpan.FromSeconds(20));
-                                    await k.context.CloseAsync();
+
+                                    try
+                                    {
+                                        await k.context.CloseAsync();
+                                    }
+                                    catch { pages_keepopen.Add(k); }
                                 }
                             }
                             catch { }

@@ -28,6 +28,6 @@ RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://git
 RUN mkdir -p .playwright/node/linux-arm && curl -L -k -o .playwright/node/linux-arm/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l \
     && chmod +x .playwright/node/linux-arm/node
 
-RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"}, "typecache":"mem", "isarm":true, "mikrotik":true, "serverproxy":{"verifyip":false}}' > /home/init.conf
+RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"},"typecache":"mem","isarm":true,"mikrotik":true,"rch":{"keepalive":300,"permanent_connection":true},"serverproxy":{"verifyip":false,"cache":{"img": false,"img_rsize":false}}}' > /home/init.conf
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]
