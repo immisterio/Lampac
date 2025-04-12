@@ -360,8 +360,20 @@ namespace Lampac.Controllers
             }
             #endregion
 
+            send(AppInit.conf.Filmix);
+            send(AppInit.conf.FilmixTV, "filmixtv");
+            send(AppInit.conf.FilmixPartner, "fxapi");
+
             send(AppInit.conf.Rezka);
             send(AppInit.conf.RezkaPrem, "rhsprem");
+
+            send(AppInit.conf.KinoPub);
+
+            if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                send(AppInit.conf.VideoCDN);
+
+            if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
+                send(AppInit.conf.Lumex);
 
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }

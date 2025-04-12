@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.FilmixPartner);
             if (await IsBadInitialization(init, rch: false))
@@ -30,7 +30,9 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var res = await InvokeCache($"fxapi:search:{title}:{original_title}", cacheTime(40, init: init), () => Search(title, original_title, year));
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", cacheTime(40, init: init), () => Search(title, original_title, year, similar));
+                if (similar)
+                    return ContentTo(rjson ? res.similars.ToJson() : res.similars.ToHtml());
 
                 if (res != null)
                     postid = res.id;
@@ -252,9 +254,9 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async ValueTask<SearchResult> Search(string title, string original_title, int year)
+        async ValueTask<SearchResult> Search(string title, string original_title, int year, bool similar)
         {
-            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
+            if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
             var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
@@ -296,7 +298,7 @@ namespace Lampac.Controllers.LITE
 
                 string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/fxapi?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/fxapi?postid={item.id}&title={enc_title}&original_title={enc_original_title}", item.poster);
 
                 if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
                     (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
@@ -306,7 +308,7 @@ namespace Lampac.Controllers.LITE
                 }
             }
 
-            if (ids.Count == 1)
+            if (ids.Count == 1 &&!similar)
                 return new SearchResult() { id = ids[0] };
 
             return new SearchResult() { similars = stpl };

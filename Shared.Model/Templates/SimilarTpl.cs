@@ -7,7 +7,7 @@ namespace Shared.Model.Templates
 {
     public class SimilarTpl
     {
-        List<(string title, string year, string details, string link, string? img)> data = new List<(string, string, string, string, string?)>();
+        public List<(string title, string year, string details, string link, string? img)> data { get; set; } = new List<(string, string, string, string, string?)>();
 
         public SimilarTpl() { }
 

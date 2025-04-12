@@ -35,9 +35,9 @@ namespace Shared.Engine.Online
         /// 0 - Данные не получены
         /// 1 - Нет нужного контента 
         /// </returns>
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id, bool similar)
         {
-            if (string.IsNullOrEmpty(original_title) || string.IsNullOrEmpty(title))
+            if (string.IsNullOrEmpty(title))
                 return null;
 
             async ValueTask<SearchResult?> goSearch(string q, bool sendrequesterror)
@@ -68,10 +68,10 @@ namespace Shared.Engine.Online
 
                             foreach (var item in items)
                             {
+                                stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", item?.posters?.First().Value);
+
                                 if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                                 {
-                                    stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
-
                                     string _t = item.title.ToLower();
                                     string _s = q.ToLower();
 
@@ -80,7 +80,7 @@ namespace Shared.Engine.Online
                                 }
                             }
 
-                            if (ids.Count == 1)
+                            if (ids.Count == 1 && !similar)
                                 return new SearchResult() { id = ids[0] };
 
                             return new SearchResult() { similars = stpl };
@@ -168,7 +168,7 @@ namespace Shared.Engine.Online
                         if (streams.Count == 0)
                             continue;
 
-                        string voice = a.type.title;
+                        string voice = a.type?.title ?? a.lang ?? "оригинал";
                         if (!string.IsNullOrEmpty(a?.author?.title))
                             voice += $" ({a.author.title})";
 

@@ -13,5 +13,7 @@
         public long? imdb { get; set; }
 
         public int year { get; set; }
+
+        public Dictionary<string, string> posters { get; set; }
     }
 }

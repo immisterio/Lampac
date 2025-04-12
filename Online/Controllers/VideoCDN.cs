@@ -403,6 +403,9 @@ namespace Lampac.Controllers.LITE
         {
             async ValueTask<JToken> searchId(string imdb_id, long kinopoisk_id)
             {
+                if (string.IsNullOrEmpty(init.token))
+                    return null;
+
                 if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                     return null;
 
@@ -426,6 +429,9 @@ namespace Lampac.Controllers.LITE
             else
             {
                 if (string.IsNullOrEmpty(title ?? original_title))
+                    return default;
+
+                if (string.IsNullOrEmpty(init.token))
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";

@@ -47,6 +47,9 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
+            if (string.IsNullOrWhiteSpace(token))
+                return null;
+
             string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
             string? json = await onget.Invoke(uri, apihost);
