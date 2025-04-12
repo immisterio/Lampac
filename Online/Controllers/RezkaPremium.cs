@@ -148,7 +148,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.RezkaPrem);
             if (await IsBadInitialization(init, rch: true))
@@ -166,7 +166,7 @@ namespace Lampac.Controllers.LITE
                     return ShowError("rhub работает через cookie - IP:9118/lite/rhs/bind");
             }
 
-            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
+            if (string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(title))
                 return OnError("href/title = null");
 
             var onrezka = await InitRezkaInvoke(init);
@@ -175,12 +175,12 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = onrezka.invk;
 
-            var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res => 
+            var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}:{similar}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res => 
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, similar);
             });
 
             if (cache.IsSuccess && cache.Value.IsEmpty && cache.Value.content != null)
@@ -230,7 +230,7 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, false);
             });
 
             if (!cache_content.IsSuccess)

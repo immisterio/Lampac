@@ -7,7 +7,7 @@ namespace Shared.Model.Templates
 {
     public class SimilarTpl
     {
-        List<(string title, string year, string details, string link)> data = new List<(string, string, string, string)>();
+        List<(string title, string year, string details, string link, string? img)> data = new List<(string, string, string, string, string?)>();
 
         public SimilarTpl() { }
 
@@ -17,10 +17,10 @@ namespace Shared.Model.Templates
         public string OnlineSplit => "{prestige-split}";
 
 
-        public void Append(string? title, string year, string details, string link)
+        public void Append(string? title, string year, string details, string link, string? img = null)
         {
             if (!string.IsNullOrEmpty(title))
-                data.Add((title, year, details, link));
+                data.Add((title, year, details, link, img));
         }
 
         public string ToHtml()
@@ -40,7 +40,8 @@ namespace Shared.Model.Templates
                     url = i.link,
                     similar = true,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    i.details
+                    i.details,
+                    i.img
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -67,7 +68,8 @@ namespace Shared.Model.Templates
                     url = i.link,
                     details = i.details?.Replace("{prestige-split}", "<span class=\"online-prestige-split\">●</span>"),
                     i.title,
-                    year = int.TryParse(i.year, out int _year) ? _year : 0
+                    year = int.TryParse(i.year, out int _year) ? _year : 0,
+                    i.img
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }

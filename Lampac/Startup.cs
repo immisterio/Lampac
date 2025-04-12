@@ -305,7 +305,9 @@ namespace Lampac
             app.UseOverrideResponse();
             app.UseProxyIMG();
             app.UseProxyAPI();
-            app.UseModule();
+
+            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.middlewares != null) != null)
+                app.UseModule();
 
             app.UseEndpoints(endpoints =>
             {

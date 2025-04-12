@@ -61,7 +61,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href)
+        async public ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, bool similar)
         {
             var result = new EmbedModel();
             string? link = href, reservedlink = null;
@@ -124,7 +124,9 @@ namespace Shared.Engine.Online
                     if (result.similar == null)
                         result.similar = new List<SimilarModel>();
 
-                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value));
+                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value));
+                    if (similar)
+                        continue;
 
                     if (title != null && (name.Contains(" / ") && name.Contains(title.ToLower()) || name == title.ToLower()))
                     {
@@ -138,9 +140,9 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                if (string.IsNullOrEmpty(link))
+                if (string.IsNullOrEmpty(link) || similar)
                 {
-                    if (string.IsNullOrEmpty(reservedlink))
+                    if (string.IsNullOrEmpty(reservedlink) || similar)
                     {
                         if (result?.similar != null && result.similar.Count > 0)
                             return result;
@@ -200,7 +202,7 @@ namespace Shared.Engine.Online
                 if (result.similar == null)
                     result.similar = new List<SimilarModel>();
 
-                result.similar.Add(new SimilarModel(name, year, href));
+                result.similar.Add(new SimilarModel(name, year, href, null));
                 link = href;
             }
 
@@ -253,7 +255,7 @@ namespace Shared.Engine.Online
                     {
                         string link = host + $"lite/rezka?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                        stpl.Append(similar.title, similar.year, string.Empty, link);
+                        stpl.Append(similar.title, similar.year, string.Empty, link, similar.img);
                     }
 
                     return rjson ? stpl.ToJson() : stpl.ToHtml();

@@ -6,6 +6,8 @@
 
         public bool checkOnlineSearch { get; set; }
 
+        public bool spider { get; set; }
+
 
         public string component { get; set; }
 

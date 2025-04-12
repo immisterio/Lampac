@@ -47,6 +47,7 @@ namespace Lampac.Controllers
 
             if (init.component != "lampac")
             {
+                file = file.Replace("title: 'Lampac'", $"title: '{init.component}'");
                 file = file.Replace("component: 'lampac'", $"component: '{init.component}'");
                 file = file.Replace("'lampac', component", $"'{init.component}', component");
                 file = file.Replace("window.lampac_plugin", $"window.{init.component}_plugin");
@@ -305,6 +306,67 @@ namespace Lampac.Controllers
             return Content($"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{(kpid != null ? kpid : kinopoisk_id)}\"}}", "application/json; charset=utf-8");
         }
         #endregion
+
+        #region spider
+        [Route("lite/spider")]
+        public ActionResult Spider(string title)
+        {
+            if (!AppInit.conf.online.spider)
+                return ContentTo("{}");
+
+            var user = requestInfo.user;
+            var piders = new List<(string name, string uri, int index)>();
+
+            #region send
+            void send(BaseSettings init, string plugin = null)
+            {
+                if (init.rhub || !init.spider || !init.enable || init.rip)
+                    return;
+
+                if (init.geo_hide != null)
+                {
+                    if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
+                        return;
+                }
+
+                if (init.group_hide)
+                {
+                    if (init.group > 0)
+                    {
+                        if (user == null || init.group > user.group)
+                            return;
+                    }
+                    else if (AppInit.conf.accsdb.enable)
+                    {
+                        if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
+                            return;
+                    }
+                }
+
+                string url = null;
+                string displayname = init.displayname ?? init.plugin;
+
+                if (string.IsNullOrEmpty(init.overridepasswd))
+                {
+                    url = init.overridehost;
+                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                }
+
+                if (string.IsNullOrEmpty(url))
+                    url = $"{host}/lite/" + (plugin ?? init.plugin).ToLower();
+
+                piders.Add((init.displayname ?? init.plugin, $"{url}?title={title}&clarification=1&rjson=true&similar=true", init.displayindex));
+            }
+            #endregion
+
+            send(AppInit.conf.Rezka);
+            send(AppInit.conf.RezkaPrem, "rhsprem");
+
+            return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
+        }
+        #endregion
+
 
         #region events
         [HttpGet]
@@ -801,7 +863,6 @@ namespace Lampac.Controllers
             return ContentTo($"[{online_result.Replace("{localhost}", host)}]");
         }
         #endregion
-
 
         #region checkSearch
         async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,

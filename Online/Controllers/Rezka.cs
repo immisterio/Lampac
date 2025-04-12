@@ -77,7 +77,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -111,10 +111,10 @@ namespace Lampac.Controllers.LITE
             var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
 
-            string memKey = $"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}";
+            string memKey = $"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}:{similar}";
             if (!hybridCache.TryGetValue(memKey, out EmbedModel content))
             {
-                content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+                content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, similar);
                 if (content == null)
                     return OnError(null, gbcache: !rch.enable);
 
@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
             if (root == null)
                 return OnError(null, gbcache: !rch.enable);
 
-            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href));
+            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, false));
             if (content == null)
                 return OnError(null, gbcache: !rch.enable);
 
