@@ -12,6 +12,7 @@ using Shared.Model.Online;
 using System.Linq;
 using System.IO;
 using System;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -25,7 +26,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/moonanime")]
-        async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
             if (await IsBadInitialization(init, rch: false))
@@ -38,7 +39,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"moonanime:search:{imdb_id}:{title}:{original_title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, long id)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, long id, string poster)> catalog))
                 {
                     async ValueTask<JObject> goSearch(string arg)
                     {
@@ -59,7 +60,7 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string year, long id)>();
+                    catalog = new List<(string title, string year, long id, string poster)>();
 
                     foreach (var anime in search["anime_list"])
                     {
@@ -69,7 +70,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(_titl))
                             continue;
 
-                        catalog.Add((_titl, year.ToString(), anime.Value<long>("id")));
+                        catalog.Add((_titl, year.ToString(), anime.Value<long>("id"), anime.Value<string>("poster")));
                     }
 
                     if (catalog.Count == 0)
@@ -79,13 +80,16 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
-                if (catalog.Count == 1)
+                if (!similar && catalog.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/moonanime?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&animeid={catalog[0].id}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/moonanime?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&animeid={res.id}");
+                {
+                    string uri = $"{host}/lite/moonanime?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&animeid={res.id}";
+                    stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.poster));
+                }
 
                 return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion

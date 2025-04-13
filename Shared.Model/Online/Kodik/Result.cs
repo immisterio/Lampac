@@ -21,5 +21,8 @@ namespace Shared.Model.Online.Kodik
         public int last_season { get; set; }
 
         public Dictionary<string, Season> seasons { get; set; }
+
+
+        public MaterialData? material_data { get; set; }
     }
 }

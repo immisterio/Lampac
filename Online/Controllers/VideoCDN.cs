@@ -477,7 +477,8 @@ namespace Lampac.Controllers.LITE
 
                     string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
-                    stpl.Append(name, year, details, $"{host}/lite/videocdn?title={enc_title}&original_title={enc_original_title}&content_id={item.id}&content_type={item.content_type}");
+                    string img = PosterApi.Find(item.kp_id, item.imdb_id);
+                    stpl.Append(name, year, details, $"{host}/lite/videocdn?title={enc_title}&original_title={enc_original_title}&content_id={item.id}&content_type={item.content_type}", img);
 
                     count += 1;
                 }

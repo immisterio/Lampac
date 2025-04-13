@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false)
+        async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Animevost);
             if (await IsBadInitialization(init, rch: true))
@@ -33,7 +34,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
-                var cache = await InvokeCache<List<(string title, string year, string uri, string s)>>($"animevost:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCache<List<(string title, string year, string uri, string s, string img)>>($"animevost:search:{title}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -43,13 +44,16 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return res.Fail("search");
 
-                    var similar = new List<(string title, string year, string uri, string s)>();
-                    var catalog = new List<(string title, string year, string uri, string s)>();
+                    var smlr = new List<(string title, string year, string uri, string s, string img)>();
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>();
 
                     foreach (string row in search.Split("class=\"shortstory\"").Skip(1))
                     {
                         var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
                         string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>").Groups[1].Value;
+                        string img = Regex.Match(row, " src=\"(/uploads/[^\"]+)\"").Groups[1].Value;
+                        if (!string.IsNullOrEmpty(img))
+                            img = init.host + img;
 
                         if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                         {
@@ -61,26 +65,26 @@ namespace Lampac.Controllers.LITE
                                     season = "1";
                             }
 
-                            similar.Add((g[2].Value, animeyear, g[1].Value, season));
+                            smlr.Add((g[2].Value, animeyear, g[1].Value, season, string.IsNullOrEmpty(img) ? null : img));
 
                             if (animeyear == year.ToString() && g[2].Value.ToLower().StartsWith(title.ToLower()))
-                                catalog.Add((g[2].Value, animeyear, g[1].Value, season));
+                                catalog.Add((g[2].Value, animeyear, g[1].Value, season, null));
                         }
                     }
 
-                    if (catalog.Count == 0 && similar.Count == 0)
+                    if (catalog.Count == 0 && smlr.Count == 0)
                         return res.Fail("catalog");
 
-                    if (catalog.Count > 0)
+                    if (!similar && catalog.Count > 0)
                         return catalog;
 
-                    return similar;
+                    return smlr;
                 });
 
                 if (IsRhubFallback(cache, init))
                     goto reset;
 
-                if (cache.Value != null && cache.Value.Count == 1)
+                if (!similar && cache.Value != null && cache.Value.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
 
                 return OnResult(cache, () =>
@@ -91,7 +95,10 @@ namespace Lampac.Controllers.LITE
                     var stpl = new SimilarTpl(cache.Value.Count);
 
                     foreach (var res in cache.Value)
-                        stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
+                    {
+                        string uri = $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
+                        stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
+                    }
 
                     return rjson ? stpl.ToJson() : stpl.ToHtml();
 

@@ -9,6 +9,7 @@ using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using Shared.Model.Online;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +19,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animelib")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AnimeLib);
             if (await IsBadInitialization(init, rch: true))
@@ -33,11 +34,11 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
-                if (string.IsNullOrWhiteSpace(title) || year == 0)
+                if (string.IsNullOrWhiteSpace(title))
                     return OnError();
 
                 string memkey = $"animelib:search:{title}:{original_title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, bool coincidence)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, bool coincidence, string cover)> catalog))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -61,7 +62,7 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                    catalog = new List<(string title, string year, string uri, bool coincidence)>();
+                    catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>();
 
                     foreach (var anime in search["data"])
                     {
@@ -73,7 +74,12 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(slug_url))
                             continue;
 
-                        var model = ($"{rus_name} / {eng_name}", (releaseDate != null ? releaseDate.Split("-")[0] : "0"), slug_url, false);
+                        string img = null;
+                        var cover = anime["cover"];
+                        if (cover != null)
+                            img = cover.Value<string>("default");
+
+                        var model = ($"{rus_name} / {eng_name}", (releaseDate != null ? releaseDate.Split("-")[0] : "0"), slug_url, false, img);
 
                         if (StringConvert.SearchName(title) == StringConvert.SearchName(rus_name) || StringConvert.SearchName(title) == StringConvert.SearchName(eng_name))
                         {
@@ -93,13 +99,13 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
-                if (catalog.Where(i => i.coincidence).Count() == 1)
+                if (!similar && catalog.Where(i => i.coincidence).Count() == 1)
                     return LocalRedirect(accsArgs($"/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog.First(i => i.coincidence).uri)}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}");
+                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}", PosterApi.Size(res.cover));
 
                 return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion

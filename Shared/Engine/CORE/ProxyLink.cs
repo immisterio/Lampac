@@ -1,4 +1,5 @@
 ﻿using Shared.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Models;
 using System;
@@ -13,8 +14,11 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
-    public static class ProxyLink
+    public class ProxyLink : IProxyLink
     {
+        public string Encrypt(string uri, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex);
+
+
         static string conditionPath = "cache/proxylink.json";
 
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();

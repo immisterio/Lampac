@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE;
+using Lampac.Models.LITE.KinoPub;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Rezka;
@@ -124,7 +125,8 @@ namespace Shared.Engine.Online
                     if (result.similar == null)
                         result.similar = new List<SimilarModel>();
 
-                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value));
+                    string? img = PosterApi.Size(Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value);
+                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
                     if (similar)
                         continue;
 

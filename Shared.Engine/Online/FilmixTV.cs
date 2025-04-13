@@ -71,7 +71,7 @@ namespace Shared.Engine.Online
 
                 string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", item.poster);
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
                 if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
                     (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
@@ -139,7 +139,7 @@ namespace Shared.Engine.Online
 
                 string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
                 if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
                     (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))

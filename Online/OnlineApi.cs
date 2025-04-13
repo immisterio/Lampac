@@ -47,7 +47,6 @@ namespace Lampac.Controllers
 
             if (init.component != "lampac")
             {
-                file = file.Replace("title: 'Lampac'", $"title: '{init.component}'");
                 file = file.Replace("component: 'lampac'", $"component: '{init.component}'");
                 file = file.Replace("'lampac', component", $"'{init.component}', component");
                 file = file.Replace("window.lampac_plugin", $"window.{init.component}_plugin");
@@ -62,6 +61,12 @@ namespace Lampac.Controllers
             file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
+
+            if (!AppInit.conf.online.spider)
+            {
+                file = file.Replace("addSourceSearch('Spider', 'spider');", "");
+                file = file.Replace("addSourceSearch('Anime', 'spider/anime');", "");
+            }
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -309,6 +314,7 @@ namespace Lampac.Controllers
 
         #region spider
         [Route("lite/spider")]
+        [Route("lite/spider/anime")]
         public ActionResult Spider(string title)
         {
             if (!AppInit.conf.online.spider)
@@ -356,24 +362,36 @@ namespace Lampac.Controllers
                 if (string.IsNullOrEmpty(url))
                     url = $"{host}/lite/" + (plugin ?? init.plugin).ToLower();
 
-                piders.Add((init.displayname ?? init.plugin, $"{url}?title={title}&clarification=1&rjson=true&similar=true", init.displayindex));
+                piders.Add((init.displayname ?? init.plugin, $"{url}?title={HttpUtility.UrlEncode(title)}&clarification=1&rjson=true&similar=true", init.displayindex));
             }
             #endregion
 
-            send(AppInit.conf.Filmix);
-            send(AppInit.conf.FilmixTV, "filmixtv");
-            send(AppInit.conf.FilmixPartner, "fxapi");
+            if (HttpContext.Request.Path.Value.EndsWith("/anime"))
+            {
+                send(AppInit.conf.Kodik);
+                send(AppInit.conf.AnimeLib);
+                send(AppInit.conf.Animevost);
+                send(AppInit.conf.Animebesst);
+                send(AppInit.conf.MoonAnime);
+                send(AppInit.conf.AnimeGo);
+            }
+            else
+            {
+                send(AppInit.conf.Filmix);
+                send(AppInit.conf.FilmixTV, "filmixtv");
+                send(AppInit.conf.FilmixPartner, "fxapi");
 
-            send(AppInit.conf.Rezka);
-            send(AppInit.conf.RezkaPrem, "rhsprem");
+                send(AppInit.conf.Rezka);
+                send(AppInit.conf.RezkaPrem, "rhsprem");
 
-            send(AppInit.conf.KinoPub);
+                send(AppInit.conf.KinoPub);
 
-            if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
-                send(AppInit.conf.VideoCDN);
+                if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                    send(AppInit.conf.VideoCDN);
 
-            if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
-                send(AppInit.conf.Lumex);
+                if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
+                    send(AppInit.conf.Lumex);
+            }
 
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }

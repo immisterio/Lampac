@@ -81,7 +81,7 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
                     return null;
 
-                string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(original_title ?? title)}&with_episodes=true";
+                string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(original_title ?? title)}&with_episodes=true&with_material_data=true";
 
                 string? json = await onget(url, null);
                 if (json == null)
@@ -116,7 +116,9 @@ namespace Shared.Engine.Online
                     if (similar.last_season > 0)
                         details += $"{stpl.OnlineSplit} {similar.last_season}й сезон";
 
-                    stpl.Append(name, similar.year.ToString(), details, host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}");
+                    var matd = similar.material_data;
+                    string? img = PosterApi.Size(matd?.anime_poster_url ?? matd?.drama_poster_url ?? matd?.poster_url);
+                    stpl.Append(name, similar.year.ToString(), details, host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}", img);
                 }
 
                 return new EmbedModel()

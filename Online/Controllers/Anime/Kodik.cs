@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
             List<Result> content = null;
             var oninvk = InitKodikInvoke(init);
 
-            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
+            if (similar || clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
                 EmbedModel res = null;
 

@@ -68,7 +68,8 @@ namespace Shared.Engine.Online
 
                             foreach (var item in items)
                             {
-                                stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", item?.posters?.First().Value);
+                                string? img = PosterApi.Size(item?.posters?.Skip(1).First().Value);
+                                stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
 
                                 if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                                 {

@@ -96,6 +96,14 @@ namespace Lampac.Engine.Middlewares
                 string md5key = CrypTo.md5($"{href}:{width}:{height}");
                 string outFile = $"cache/img/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
 
+                string url_reserve = null;
+                if (href.Contains(" or "))
+                {
+                    var urls = href.Split(" or ");
+                    href = urls[0];
+                    url_reserve = urls[1];
+                }
+
                 string contentType = href.Contains(".png") ? "image/png" : href.Contains(".webp") ? "image/webp" : "image/jpeg";
                 if (width > 0 || height > 0)
                     contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
@@ -124,7 +132,7 @@ namespace Lampac.Engine.Middlewares
                 if (width == 0 && height == 0 && !cacheimg)
                 {
                     #region bypass
-                    var handler = CORE.HttpClient.Handler(href, proxy);
+                    bypass_reset:  var handler = CORE.HttpClient.Handler(href, proxy);
                     handler.AllowAutoRedirect = true;
 
                     using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
@@ -136,6 +144,13 @@ namespace Lampac.Engine.Middlewares
 
                         using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
                         {
+                            if (url_reserve != null && response.StatusCode != HttpStatusCode.OK)
+                            {
+                                href = url_reserve;
+                                url_reserve = null;
+                                goto bypass_reset;
+                            }
+
                             httpContext.Response.StatusCode = (int)response.StatusCode;
                             httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
 
@@ -151,9 +166,16 @@ namespace Lampac.Engine.Middlewares
                 else
                 {
                     #region rsize / cache
-                    var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
+                    rsize_reset: var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
                     if (array == null)
                     {
+                        if (url_reserve != null)
+                        {
+                            href = url_reserve;
+                            url_reserve = null;
+                            goto rsize_reset;
+                        }
+
                         if (cacheimg)
                             memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddSeconds(20));
 
