@@ -42,8 +42,9 @@ namespace Lampac.Controllers
             var init = AppInit.conf.online;
 
             string file = FileCache.ReadAllText("plugins/online.js");
-            file = file.Replace("{localhost}", host);
+            file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            file = file.Replace("{localhost}", host);
 
             if (init.component != "lampac")
             {
@@ -375,23 +376,21 @@ namespace Lampac.Controllers
                 send(AppInit.conf.MoonAnime);
                 send(AppInit.conf.AnimeGo);
             }
-            else
-            {
-                send(AppInit.conf.Filmix);
-                send(AppInit.conf.FilmixTV, "filmixtv");
-                send(AppInit.conf.FilmixPartner, "fxapi");
 
-                send(AppInit.conf.Rezka);
-                send(AppInit.conf.RezkaPrem, "rhsprem");
+            send(AppInit.conf.Filmix);
+            send(AppInit.conf.FilmixTV, "filmixtv");
+            send(AppInit.conf.FilmixPartner, "fxapi");
 
-                send(AppInit.conf.KinoPub);
+            send(AppInit.conf.Rezka);
+            send(AppInit.conf.RezkaPrem, "rhsprem");
 
-                if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
-                    send(AppInit.conf.VideoCDN);
+            send(AppInit.conf.KinoPub);
 
-                if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
-                    send(AppInit.conf.Lumex);
-            }
+            if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                send(AppInit.conf.VideoCDN);
+
+            if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
+                send(AppInit.conf.Lumex);
 
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }

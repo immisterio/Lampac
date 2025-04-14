@@ -222,20 +222,10 @@ namespace Shared.Model
         {
             geostreamproxy = new string[] { "ALL" },
             headers = HeadersModel.Init(
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("origin", "encrypt:kwwsv=22nlqrsod|51vlwh"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("referer", "encrypt:kwwsv=22nlqrsod|51vlwh2"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
+                ("referer", "encrypt:kwwsv=22nlqrjr1phgld2"),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
