@@ -86,7 +86,7 @@ namespace Lampac.Controllers.LITE
             if (init.premium || AppInit.conf.RezkaPrem.enable) 
                 return ShowError("Замените Rezka на RezkaPrem в init.conf");
 
-            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
+            if (string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(title))
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);

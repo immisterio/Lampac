@@ -7,18 +7,18 @@ namespace Shared.Models
 {
     public class ProxyLinkModel
     {
-        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, DateTime ex = default)
+        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTime ex = default)
         {
-            this.upd = DateTime.Now;
             this.ex = ex;
             this.reqip = reqip;
             this.headers = headers;
             this.proxy = proxy;
             this.uri = uri;
             this.plugin = plugin;
+            this.verifyip = verifyip;
         }
 
-        public DateTime upd { get; set; }
+        public DateTime upd { get; set; } = DateTime.Now;
 
         public DateTime ex { get; set; }
 
@@ -31,5 +31,7 @@ namespace Shared.Models
         public string uri { get; set; }
 
         public string plugin { get; set; }
+
+        public bool verifyip { get; set; }
     }
 }
