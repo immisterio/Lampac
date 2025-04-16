@@ -371,6 +371,7 @@ namespace Lampac.Controllers
             {
                 send(AppInit.conf.Kodik);
                 send(AppInit.conf.AnimeLib);
+                send(AppInit.conf.AnilibriaOnline, "anilibria");
                 send(AppInit.conf.Animevost);
                 send(AppInit.conf.Animebesst);
                 send(AppInit.conf.MoonAnime);

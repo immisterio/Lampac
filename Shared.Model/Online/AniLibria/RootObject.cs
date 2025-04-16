@@ -1,4 +1,6 @@
-﻿namespace Lampac.Models.LITE.AniLibria
+﻿using Shared.Model.Online.AniLibria;
+
+namespace Lampac.Models.LITE.AniLibria
 {
     public class RootObject
     {
@@ -9,5 +11,7 @@
         public Season season { get; set; }
 
         public Player player { get; set; }
+
+        public Poster posters { get; set; }
     }
 }

@@ -16,7 +16,7 @@ namespace Lampac.Engine.CORE
 {
     public class ProxyLink : IProxyLink
     {
-        public string Encrypt(string uri, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex);
+        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
 
 
         static string conditionPath = "cache/proxylink.json";

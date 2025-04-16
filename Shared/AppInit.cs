@@ -304,9 +304,9 @@ namespace Lampac
             {
                 enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
             },
-            cache = new ServerproxyCacheConf()
+            image = new ServerproxyImageConf()
             {
-                img = false, img_rsize = true
+                cache = false, cache_rsize = true
             },
             maxlength_m3u = 1900000,
             maxlength_ts = 10000000

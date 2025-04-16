@@ -41,8 +41,8 @@ namespace Lampac.Engine.Middlewares
             {
                 var requestInfo = httpContext.Features.Get<RequestModel>();
 
-                var init = AppInit.conf.serverproxy;
-                bool cacheimg = init.cache.img;
+                var init = AppInit.conf.serverproxy.image;
+                bool cacheimg = init.cache;
 
                 #region Проверки
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
@@ -55,13 +55,13 @@ namespace Lampac.Engine.Middlewares
 
                 var decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
 
-                if (init.encrypt)
+                if (AppInit.conf.serverproxy.encrypt)
                 {
                     href = decryptLink?.uri;
                 }
                 else
                 {
-                    if (!init.enable)
+                    if (!AppInit.conf.serverproxy.enable)
                     {
                         httpContext.Response.StatusCode = 403;
                         return;
@@ -78,6 +78,9 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
+                if (AppInit.conf.serverproxy.showOrigUri)
+                    httpContext.Response.Headers.Add("PX-Orig", href);
+
                 #region width / height
                 int width = 0;
                 int height = 0;
@@ -85,7 +88,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.StartsWith("/proxyimg:"))
                 {
                     if (!cacheimg)
-                        cacheimg = init.cache.img_rsize;
+                        cacheimg = init.cache_rsize;
 
                     var gimg = Regex.Match(httpContext.Request.Path.Value, "/proxyimg:([0-9]+):([0-9]+)").Groups;
                     width = int.Parse(gimg[1].Value);
@@ -126,7 +129,7 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                var proxyManager = new ProxyManager("proxyimg", AppInit.conf.serverproxy);
+                var proxyManager = decryptLink?.plugin == "posterapi" ? new ProxyManager("posterapi", AppInit.conf.posterApi) : new ProxyManager("proxyimg", init);
                 var proxy = proxyManager.Get();
 
                 if (width == 0 && height == 0 && !cacheimg)
@@ -207,6 +210,7 @@ namespace Lampac.Engine.Middlewares
                         }
                     }
 
+                    proxyManager.Success();
                     httpContext.Response.ContentType = contentType;
                     httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
                     await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);

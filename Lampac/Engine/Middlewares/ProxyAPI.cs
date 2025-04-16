@@ -432,7 +432,7 @@ namespace Lampac.Engine.Middlewares
         string fixuri(ProxyLinkModel decryptLink)
         {
             string uri = decryptLink.uri;
-            var confs = AppInit.conf.serverproxy?.cache?.hls;
+            var confs = AppInit.conf.serverproxy?.cache_hls;
 
             if (confs != null && confs.Count >= 0)
             {

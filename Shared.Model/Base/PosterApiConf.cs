@@ -1,6 +1,6 @@
 ﻿namespace Shared.Model.Base
 {
-    public class PosterApiConf
+    public class PosterApiConf : Iproxy
     {
         public string? host { get; set; }
 
@@ -20,5 +20,16 @@
         /// Не проксить
         /// </summary>
         public string? disable_rsize { get; set; }
+
+
+        #region proxy
+        public bool useproxy { get; set; }
+
+        public bool useproxystream { get; set; }
+
+        public string? globalnameproxy { get; set; }
+
+        public ProxySettings? proxy { get; set; }
+        #endregion
     }
 }
