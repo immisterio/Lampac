@@ -22,6 +22,8 @@ namespace Lampac.Models.LITE
                 this.token = token.Contains(":") ? Decrypt(token) : token;
         }
 
+        public bool imitationHuman { get; set; }
+
 
         public OnlinesSettings Clone()
         {

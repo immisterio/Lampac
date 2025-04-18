@@ -11,6 +11,7 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
 using Shared.Model.Online;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -20,14 +21,14 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.HDVB);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0)
-                return OnError();
+            if (similar || kinopoisk_id == 0)
+                return await SpiderSearch(title, origsource, rjson);
 
             JArray data = await search(kinopoisk_id);
             if (data == null)
@@ -257,6 +258,53 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region SpiderSearch
+        [HttpGet]
+        [Route("lite/hdvb-search")]
+        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        {
+            var init = await loadKit(AppInit.conf.HDVB);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
+
+            if (string.IsNullOrWhiteSpace(title))
+                return OnError();
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var cache = await InvokeCache<JArray>($"hdvb:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            {
+                var root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                if (root == null)
+                    return res.Fail("results");
+
+                return root;
+            });
+
+            return OnResult(cache, () =>
+            {
+                var hash = new HashSet<long>();
+                var stpl = new SimilarTpl(cache.Value.Count);
+
+                foreach (var j in cache.Value)
+                {
+                    var kinopoisk_id = j.Value<long?>("kinopoisk_id");
+                    if (kinopoisk_id > 0 && !hash.Contains((long)kinopoisk_id))
+                    {
+                        hash.Add((long)kinopoisk_id);
+                        string uri = $"{host}/lite/hdvb?kinopoisk_id={kinopoisk_id}";
+                        stpl.Append(j.Value<string>("title_ru") ?? j.Value<string>("title_en"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                    }
+                }
+
+                return rjson ? stpl.ToJson() : stpl.ToHtml();
+
+            }, origsource: origsource);
+        }
+        #endregion
+
+
         #region search
         async ValueTask<JArray> search(long kinopoisk_id)
         {
@@ -266,7 +314,7 @@ namespace Lampac.Controllers.LITE
             {
                 var init = await loadKit(AppInit.conf.HDVB);
 
-                root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null)
                 {
                     proxyManager.Refresh();

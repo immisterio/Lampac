@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace Shared.Engine
 {
@@ -148,7 +149,8 @@ namespace Shared.Engine
                 {
                     Headless = init.Headless,
                     ExecutablePath = executablePath,
-                    Args = init.Args
+                    Args = init.Args,
+                    Devtools = init.Devtools
                 });
 
                 Console.WriteLine("Chromium: LaunchAsync");
@@ -186,6 +188,8 @@ namespace Shared.Engine
 
         public bool IsCompleted { get; set; }
 
+        bool imitationHuman { get; set; }
+
         public string failedUrl { get; set; }
 
         IPage page { get; set; }
@@ -195,12 +199,14 @@ namespace Shared.Engine
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true)
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
                 if (browser == null)
                     return null;
+
+                this.imitationHuman = imitationHuman;
 
                 if (proxy != default)
                 {
@@ -254,6 +260,9 @@ namespace Shared.Engine
                     page.Download += Page_Download;
                     page.RequestFailed += Page_RequestFailed;
 
+                    if (AppInit.conf.chromium.Devtools)
+                        await Task.Delay(TimeSpan.FromSeconds(2)); // что бы devtools успел открыться
+
                     if (!keepopen || keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
                         return page;
 
@@ -290,6 +299,9 @@ namespace Shared.Engine
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;
                     page.RequestFailed += Page_RequestFailed;
+
+                    if (AppInit.conf.chromium.Devtools)
+                        await Task.Delay(TimeSpan.FromSeconds(2)); // что бы devtools успел открыться
 
                     return page;
                 }
@@ -338,22 +350,37 @@ namespace Shared.Engine
 
             try
             {
-                page.RequestFailed -= Page_RequestFailed;
-                page.Popup -= Page_Popup;
-                page.Download -= Page_Download;
+                void close()
+                {
+                    page.RequestFailed -= Page_RequestFailed;
+                    page.Popup -= Page_Popup;
+                    page.Download -= Page_Download;
 
-                if (keepopen_page != null)
-                {
-                    page.CloseAsync();
-                    keepopen_page.lastActive = DateTime.Now;
+                    if (keepopen_page != null)
+                    {
+                        page.CloseAsync();
+                        keepopen_page.lastActive = DateTime.Now;
+                    }
+                    else if (context != null)
+                    {
+                        context.CloseAsync();
+                    }
+                    else
+                    {
+                        page.CloseAsync();
+                    }
                 }
-                else if (context != null)
+
+                if (imitationHuman)
                 {
-                    context.CloseAsync();
+                    var timer = new Timer(10_000);
+                    timer.Elapsed += (s,e) => { close(); };
+                    timer.AutoReset = false;
+                    timer.Start();
                 }
                 else
                 {
-                    page.CloseAsync();
+                    close();
                 }
             }
             catch { }

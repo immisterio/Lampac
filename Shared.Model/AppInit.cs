@@ -121,8 +121,10 @@ namespace Shared.Model
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
 
-        public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1qlqvho1zv", streamproxy: true, two: false) 
+        public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1ox{hpeg1zv", streamproxy: true, two: false) 
         {
+            apihost = "https://api.bhcesh.me",
+            token = "eedefb541aeba871dcfc756e6b31c02e",
             headers = HeadersModel.Init(
                 ("Origin", "{host}"), 
                 ("Referer", "{host}/"),
@@ -218,14 +220,38 @@ namespace Shared.Model
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9maWxtLTIwMjQub3JnLw==
         /// </summary>
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=2263ei6:<31reuxw1vkrz") 
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=22nlqrjr1phgld", "kwwsv=2263ei6:<31reuxw1vkrz", streamproxy: true)
         {
-            geostreamproxy = new string[] { "ALL" },
+            imitationHuman = true,
             headers = HeadersModel.Init(
-                ("referer", "encrypt:kwwsv=22nlqrjr1phgld2"),
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-storage-access", "active"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+            ).ToDictionary(),
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("origin", "{host}"),
+                ("referer", "{host}/"),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
+                ("sec-fetch-site", "same-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
@@ -240,60 +266,59 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22xjo|0wxunh|1fgqprylhv0vwuhdp1rqolqh") 
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22xjo|0wxunh|1fgqprylhv0vwuhdp1rqolqh")
         {
             geostreamproxy = new string[] { "ALL" },
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("dnt", "1"),
+                ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("referer", "encrypt:kwwsv=22nlqrrqolqh0kg1frp2"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "iframe"),
-                ("sec-fetch-mode", "navigate"),
-                ("sec-fetch-site", "cross-site"),
                 ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
-        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22p|idqvhuldo1qhw") 
+        public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22p|idqvhuldo1qhw", streamproxy: true) 
         { 
             enable = false,
-            streamproxy = true,
+            imitationHuman = true,
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("dnt", "1"),
                 ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-user", "?1"),
+                ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("dnt", "1"),
                 ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),
+                ("origin", "encrypt:kwwsv=22idqfgq1qhw"),
                 ("referer", "encrypt:kwwsv=22idqfgq1qhw2"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-site"),
-                ("sec-fetch-user", "?1"),
-                ("sec-fetch-storage-access", "active"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
-            ).ToDictionary(),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+            ).ToDictionary()
         };
 
         public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { geostreamproxy = new string[] { "ALL" } };

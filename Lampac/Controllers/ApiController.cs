@@ -48,15 +48,7 @@ namespace Lampac.Controllers
         [Route("/extensions")]
         public ActionResult Extensions()
         {
-            if (!memoryCache.TryGetValue("LampaWeb.extensions", out string json))
-            {
-                json = IO.File.ReadAllText("plugins/extensions.json");
-                json = json.Replace("\n", "").Replace("\r", "");
-
-                memoryCache.Set("LampaWeb.extensions", json, DateTime.Now.AddMinutes(5));
-            }
-
-            return Content(json.Replace("{localhost}", host), contentType: "application/json; charset=utf-8");
+            return ContentTo(FileCache.ReadAllText("plugins/extensions.json").Replace("{localhost}", host).Replace("\n", "").Replace("\r", ""));
         }
         #endregion
 

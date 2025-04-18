@@ -1,6 +1,5 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Playwright;
 using Shared.Engine.CORE;
 using System;
@@ -260,6 +259,17 @@ namespace Shared.Engine
 
         public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
 
+        public static string IframeHtml(string link) => $@"<html lang=""ru"">
+                <head>
+                    <meta charset=""UTF-8"">
+                    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+                    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"">
+                </head>
+                <body>
+                    <iframe width=""560"" height=""400"" src=""{link}"" frameborder=""0"" allow=""*"" allowfullscreen></iframe>
+                </body>
+            </html>";
+
 
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
@@ -285,7 +295,7 @@ namespace Shared.Engine
         {
             try
             {
-                if (Regex.IsMatch(route.Request.Url, "(image.tmdb.org|yandex\\.|google-analytics|yahoo\\.|fonts.googleapis|googletagmanager|opensubtitles\\.)"))
+                if (Regex.IsMatch(route.Request.Url, "(image.tmdb.org|yandex\\.|google-analytics|yahoo\\.|fonts.googleapis|googletagmanager|opensubtitles\\.|/favicon\\.ico$)"))
                 {
                     await route.AbortAsync();
                     return true;
@@ -303,12 +313,12 @@ namespace Shared.Engine
                     bool valid = false;
                     string memkey = route.Request.Url;
 
-                    if (Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|css|svg|jpe?g|png|gif)$") || (fullCacheJS && route.Request.Url.Contains(".js")) || route.Request.Url.Contains(".googleapis.com/css"))
+                    if ((fullCacheJS && route.Request.Url.Contains(".js")) || Regex.IsMatch(route.Request.Url, "(\\.googleapis\\.com/css|gstatic\\.com|plrjs\\.com)", RegexOptions.IgnoreCase))
                     {
                         valid = true;
                         memkey = route.Request.Url.Split("?")[0];
                     }
-                    else if (Regex.IsMatch(route.Request.Url, "\\.(js|wasm)$"))
+                    else if (Regex.IsMatch(route.Request.Url, "\\.(js|wasm)$") || Regex.IsMatch(route.Request.Url, "\\.(css|woff2?|svg|jpe?g|png|gif)"))
                     {
                         valid = true;
                         memkey = route.Request.Url;

@@ -32,7 +32,9 @@ namespace Lampac.Controllers.Ebalovo
             string memKey = rch.ipkey($"ebalovo:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", init.corsHost(), uri,
+                string ehost = await RootController.goHost(init.corsHost());
+
+                stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", ehost, uri,
                     url => 
                     {
                         return rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
@@ -42,13 +44,13 @@ namespace Lampac.Controllers.Ebalovo
                         if (rch.enable)
                         {
                             var res = await rch.Headers(init.cors(location), null, httpHeaders(init, HeadersModel.Init(
-                                ("referer", $"{init.host}/")
+                                ("referer", $"{ehost}/")
                             )));
 
                             return res.currentUrl;
                         }
 
-                        return await HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{init.host}/", headers: httpHeaders(init));
+                        return await HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{ehost}/", headers: httpHeaders(init));
                     }
                 );
 

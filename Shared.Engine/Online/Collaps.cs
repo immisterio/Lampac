@@ -31,11 +31,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(string? imdb_id, long kinopoisk_id)
+        public async ValueTask<EmbedModel?> Embed(string? imdb_id, long kinopoisk_id, long orid)
         {
             string uri = $"{apihost}/embed/imdb/{imdb_id}";
             if (kinopoisk_id > 0)
                 uri = $"{apihost}/embed/kp/{kinopoisk_id}";
+            if (orid > 0)
+                uri = $"{apihost}/embed/movie/{orid}";
 
             string? content = await onget.Invoke(uri);
             if (string.IsNullOrEmpty(content))
@@ -62,7 +64,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int s, bool rjson = false, List<HeadersModel>? headers = null, VastConf? vast = null)
+        public string Html(EmbedModel? md, string? imdb_id, long kinopoisk_id, long orid, string? title, string? original_title, int s, bool rjson = false, List<HeadersModel>? headers = null, VastConf? vast = null)
         {
             if (md == null)
                 return string.Empty;
@@ -126,7 +128,7 @@ namespace Shared.Engine.Online
 
                         foreach (var season in md.serial.OrderBy(i => i.season))
                         {
-                            string link = host + $"lite/collaps?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season.season}";
+                            string link = host + $"lite/collaps?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&orid={orid}&title={enc_title}&original_title={enc_original_title}&s={season.season}";
                             tpl.Append($"{season.season} сезон", link, season.season);
                         }
 

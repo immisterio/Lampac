@@ -25,6 +25,8 @@ namespace Lampac.Controllers.Ebalovo
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
+                string ehost = await RootController.goHost(init.corsHost());
+
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web", out string rch_error))
                     return OnError(rch_error);
@@ -32,7 +34,7 @@ namespace Lampac.Controllers.Ebalovo
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                string html = await EbalovoTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
+                string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg, url =>
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 

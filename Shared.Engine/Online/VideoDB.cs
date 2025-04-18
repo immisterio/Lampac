@@ -82,7 +82,7 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("VideoDB: pl OK");
 
-            string quality = file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
+            string quality = file.Contains("2160p") ? "2160p" : file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
             return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };
         }
         #endregion
@@ -113,15 +113,16 @@ namespace Shared.Engine.Online
                         continue;
 
                     #region streams
-                    var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                    var streams = new List<(string link, string quality)>() { Capacity = 5 };
 
-                    foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
+                    foreach (Match m in Regex.Matches(file, $"\\[(Авто|2160|1440|1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
+                        string quality = file.Contains("2160p") ? "2160" : file.Contains("1080p") ? "1080" : file.Contains("720p") ? "720" : "480";
+                        streams.Insert(0, (host + $"lite/videodb/manifest.m3u8?link={HttpUtility.UrlEncode(link)}{args}", quality));
                     }
 
                     if (streams.Count == 0)
@@ -156,7 +157,7 @@ namespace Shared.Engine.Online
                     }
                     else
                     {
-                        mtpl.Append(name, streams[0].link);
+                        mtpl.Append(name, streams[0].link, quality: streams[0].quality);
                     }
                 }
 

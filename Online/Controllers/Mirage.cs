@@ -12,6 +12,8 @@ using Shared.Model.Online;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Lampac.Models.LITE;
+using Shared.Engine.CORE;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -29,13 +31,16 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/mirage")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            var result = await search(imdb_id, kinopoisk_id, title, serial, original_language, year);
+            if (similar)
+                return await SpiderSearch(title, origsource, rjson);
+
+            var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0 || result.data == null)
                 return OnError();
 
@@ -71,7 +76,7 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Сериал
-                string defaultargs = $"&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&original_language={original_language}";
+                string defaultargs = $"&orid={orid}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&original_language={original_language}";
 
                 if (s == -1)
                 {
@@ -307,14 +312,57 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region SpiderSearch
+        [HttpGet]
+        [Route("lite/mirage-search")]
+        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        {
+            var init = await Initialization();
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
+
+            if (string.IsNullOrWhiteSpace(title))
+                return OnError();
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var cache = await InvokeCache<JArray>($"mirage:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            {
+                var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get());
+                if (root == null || !root.ContainsKey("data"))
+                    return res.Fail("data");
+
+                return root["data"].ToObject<JArray>();
+            });
+
+            return OnResult(cache, () =>
+            {
+                var stpl = new SimilarTpl(cache.Value.Count);
+
+                foreach (var j in cache.Value)
+                {
+                    string uri = $"{host}/lite/mirage?orid={j.Value<string>("token_movie")}";
+                    stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                }
+
+                return rjson ? stpl.ToJson() : stpl.ToHtml();
+
+            }, origsource: origsource);
+        }
+        #endregion
+
 
         #region search
-        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
             var init = await Initialization();
             string memKey = $"mirage:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"mirage:viewsearch:{title}:{serial}:{original_language}:{year}";
+
+            if (!string.IsNullOrEmpty(token_movie))
+                memKey = $"mirage:view:{token_movie}";
 
             JObject root;
 
@@ -325,7 +373,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, headers: httpHeaders(init));
+                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8);
                     if (root == null)
                         return (true, 0, null);
 
@@ -351,7 +399,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, headers: httpHeaders(init));
+                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8);
                     if (root == null)
                         return (true, 0, null);
 

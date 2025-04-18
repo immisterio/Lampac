@@ -55,7 +55,7 @@ namespace Lampac.Engine.Middlewares
 
                 var decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
 
-                if (AppInit.conf.serverproxy.encrypt)
+                if (AppInit.conf.serverproxy.encrypt || decryptLink?.uri != null)
                 {
                     href = decryptLink?.uri;
                 }
@@ -66,9 +66,6 @@ namespace Lampac.Engine.Middlewares
                         httpContext.Response.StatusCode = 403;
                         return;
                     }
-
-                    if (decryptLink?.uri != null)
-                        href = decryptLink.uri;
                 }
 
                 if (string.IsNullOrWhiteSpace(href) || !href.StartsWith("http"))

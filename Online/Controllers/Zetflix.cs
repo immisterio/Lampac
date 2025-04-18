@@ -170,14 +170,21 @@ namespace Lampac.Controllers.LITE
 
         async Task<string> goHost(string host)
         {
-            if (!Regex.IsMatch(host, "^https?://go."))
+            if (!Regex.IsMatch(host, "^https?://go\\."))
                 return host;
+
+            string backhost = CrypTo.DecodeBase64("aHR0cHM6Ly96ZXQtZmxpeC5vbmxpbmU=");
 
             string memkey = $"zeflix:gohost:{host}";
             if (hybridCache.TryGetValue(memkey, out string ztfhost))
-                return ztfhost;
+            {
+                if (string.IsNullOrEmpty(ztfhost))
+                    return backhost;
 
-            string html = await HttpClient.Get(host);
+                return ztfhost;
+            }
+
+            string html = await HttpClient.Get(host, timeoutSeconds: 8);
             if (html != null)
             {
                 ztfhost = Regex.Match(html, "\"([^\"]+)\"\\);</script>").Groups[1].Value;
@@ -188,8 +195,12 @@ namespace Lampac.Controllers.LITE
                     return ztfhost;
                 }
             }
+            else
+            {
+                hybridCache.Set(memkey, string.Empty, DateTime.Now.AddMinutes(1));
+            }
 
-            return CrypTo.DecodeBase64("aHR0cHM6Ly96ZXQtZmxpeC5vbmxpbmU=");
+            return backhost;
         }
     }
 }

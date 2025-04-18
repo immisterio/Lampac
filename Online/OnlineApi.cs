@@ -321,13 +321,17 @@ namespace Lampac.Controllers
             if (!AppInit.conf.online.spider)
                 return ContentTo("{}");
 
+            var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             var user = requestInfo.user;
             var piders = new List<(string name, string uri, int index)>();
 
             #region send
             void send(BaseSettings init, string plugin = null)
             {
-                if (init.rhub || !init.spider || !init.enable || init.rip)
+                if (!init.spider || !init.enable || init.rip)
                     return;
 
                 if (init.geo_hide != null)
@@ -386,12 +390,17 @@ namespace Lampac.Controllers
             send(AppInit.conf.RezkaPrem, "rhsprem");
 
             send(AppInit.conf.KinoPub);
+            send(AppInit.conf.Alloha, "alloha-search");
+            send(AppInit.conf.Mirage, "mirage-search");
+            send(AppInit.conf.Collaps, "collaps-search");
 
             if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
                 send(AppInit.conf.VideoCDN);
 
             if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
                 send(AppInit.conf.Lumex);
+
+            send(AppInit.conf.HDVB, "hdvb-search");
 
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }
@@ -971,9 +980,9 @@ namespace Lampac.Controllers
                             case "rhsprem":
                             case "animelib":
                             case "mirage":
+                            case "videodb":
                                 quality = " ~ 2160p";
                                 break;
-                            case "videodb":
                             case "kinobase":
                             case "zetflix":
                             case "vcdn":

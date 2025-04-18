@@ -113,7 +113,7 @@ namespace Shared.Engine.Online
                     if (!string.IsNullOrEmpty(img))
                         img = "https://anilibria.tv" + img;
 
-                    stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}", img);
+                    stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}", PosterApi.Size(img));
                 }
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
