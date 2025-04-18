@@ -111,6 +111,20 @@ namespace Lampac.Engine
             catch { }
         }
 
+        public async Task eventsId(string connectionId, string uid, string name, string data)
+        {
+            if (hubClients == null || string.IsNullOrEmpty(connectionId) || string.IsNullOrEmpty(name) || (data != null && data.Length > 10_000000))
+                return;
+
+            try
+            {
+                var clients = event_clients.Where(i => i.Key == connectionId);
+                if (clients.Any())
+                    await hubClients.Clients(clients.Select(i => i.Key)).SendAsync("event", uid ?? string.Empty, name, data ?? string.Empty).ConfigureAwait(false);
+            }
+            catch { }
+        }
+
         public Task EventsAsync(string connectionId, string uid, string name, string data) => SendEvents(connectionId, uid, name, data);
 
         /// <summary>
