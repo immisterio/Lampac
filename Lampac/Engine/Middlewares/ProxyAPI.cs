@@ -88,7 +88,7 @@ namespace Lampac.Engine.Middlewares
                 #region decryptLink
                 var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri, "(\\?|&).*", ""), reqip);
 
-                if (init.encrypt)
+                if (init.encrypt || decryptLink?.uri != null)
                 {
                     servUri = decryptLink?.uri;
                 }
@@ -99,9 +99,6 @@ namespace Lampac.Engine.Middlewares
                         httpContext.Response.StatusCode = 403;
                         return;
                     }
-
-                    if (decryptLink?.uri != null)
-                        servUri = decryptLink.uri;
                 }
 
                 if (string.IsNullOrWhiteSpace(servUri) || !servUri.StartsWith("http"))
@@ -432,7 +429,7 @@ namespace Lampac.Engine.Middlewares
         string fixuri(ProxyLinkModel decryptLink)
         {
             string uri = decryptLink.uri;
-            var confs = AppInit.conf.serverproxy?.cache?.hls;
+            var confs = AppInit.conf.serverproxy?.cache_hls;
 
             if (confs != null && confs.Count >= 0)
             {

@@ -42,9 +42,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int clarification, int year)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int clarification, int year, bool similar)
         {
-            if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
+            if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&{args}";
@@ -78,7 +78,7 @@ namespace Shared.Engine.Online
 
                 string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}"  : (item.title ?? item.original_title);
 
-                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}"); 
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster)); 
 
                 if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
                     (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
@@ -90,7 +90,7 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("ids: " + ids.Count);
 
-            if (ids.Count == 1)
+            if (ids.Count == 1 && !similar)
                 return new SearchResult() { id = ids[0] };
 
             return new SearchResult() { similars = stpl };

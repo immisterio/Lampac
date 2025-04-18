@@ -154,38 +154,29 @@ namespace Lampac.Controllers.LITE
 
                 using (var browser = new PlaywrightBrowser())
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman);
                     if (page == null)
                         return null;
 
                     browser.failedUrl = uri;
-
+                    await page.SetExtraHTTPHeadersAsync(init.headers);
                     await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
                     await page.RouteAsync("**/*", async route =>
                     {
                         try
                         {
-                            if (route.Request.Url.Contains("api/chromium/iframe"))
+                            if (route.Request.Url.StartsWith(init.host))
                             {
-                                await route.ContinueAsync();
-                                return;
+                                await route.FulfillAsync(new RouteFulfillOptions
+                                {
+                                    Body = PlaywrightBase.IframeHtml(uri)
+                                });
                             }
-
-                            if (browser.IsCompleted)
-                            {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
-
-                            if (route.Request.Url == uri)
+                            else if (route.Request.Url == uri)
                             {
                                 string html = null;
-                                await route.ContinueAsync(new RouteContinueOptions
-                                {
-                                    Headers = headers.ToDictionary()
-                                });
+                                await route.ContinueAsync();
 
                                 var response = await page.WaitForResponseAsync(route.Request.Url);
                                 if (response != null)
@@ -193,18 +184,27 @@ namespace Lampac.Controllers.LITE
 
                                 browser.SetPageResult(html);
                                 PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
-                                return;
                             }
+                            else
+                            {
+                                if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8") || route.Request.Url.Contains("/cdn-cgi/challenge-platform/"))
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                }
+                                else
+                                {
+                                    if (await PlaywrightBase.AbortOrCache(page, route))
+                                        return;
 
-                            await route.AbortAsync();
+                                    await route.ContinueAsync();
+                                }
+                            }
                         }
                         catch { }
                     });
 
-                    var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
-                    if (response == null)
-                        return null;
-
+                    _ = page.GotoAsync(init.host);
                     return await browser.WaitPageResult();
                 }
             }

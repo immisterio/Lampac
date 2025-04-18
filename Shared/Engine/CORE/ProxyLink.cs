@@ -1,4 +1,5 @@
 ﻿using Shared.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Models;
 using System;
@@ -13,8 +14,11 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
-    public static class ProxyLink
+    public class ProxyLink : IProxyLink
     {
+        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
+
+
         static string conditionPath = "cache/proxylink.json";
 
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
@@ -95,7 +99,7 @@ namespace Lampac.Engine.CORE
 
             if (IsMd5 && !links.ContainsKey(hash))
             {
-                var md = new ProxyLinkModel(reqip, headers, proxy, uri, plugin, ex: ex);
+                var md = new ProxyLinkModel(reqip, headers, proxy, uri, plugin, verifyip, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
             }
 
@@ -131,7 +135,7 @@ namespace Lampac.Engine.CORE
 
             if (links.TryGetValue(hash, out ProxyLinkModel val))
             {
-                if (!AppInit.conf.serverproxy.verifyip || reqip == null || reqip == val.reqip)
+                if (!val.verifyip || !AppInit.conf.serverproxy.verifyip || reqip == null || reqip == val.reqip)
                     return val;
             }
 

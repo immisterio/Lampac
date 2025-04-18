@@ -21,26 +21,8 @@ namespace Lampac.Controllers.LITE
         #region InitRezkaInvoke
         static string uid = null, typeuid = null;
 
-        List<HeadersModel> apiHeaders(RezkaSettings init, string cookie)
+        static void genUid()
         {
-            return httpHeaders(init, HeadersModel.Init(
-               ("X-Lampac-App", "1"),
-               ("X-Lampac-Version", $"{appversion}.{minorversion}"),
-               ("X-Lampac-Device-Id", $"{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
-               ("X-Lampac-Cookie", cookie),
-               ("User-Agent", requestInfo.UserAgent)
-            ));
-        }
-
-        async public ValueTask<(RezkaInvoke invk, string log)> InitRezkaInvoke(RezkaSettings init)
-        {
-            init.host = new RezkaSettings(null, "kwwsv=22odps1df").host;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            #region uid
             if (uid == null)
             {
                 try
@@ -81,7 +63,29 @@ namespace Lampac.Controllers.LITE
                     typeuid = "generate";
                 }
             }
-            #endregion
+        }
+
+        List<HeadersModel> apiHeaders(RezkaSettings init, string cookie)
+        {
+            genUid();
+            return httpHeaders(init, HeadersModel.Init(
+               ("X-Lampac-App", "1"),
+               ("X-Lampac-Version", $"{appversion}.{minorversion}"),
+               ("X-Lampac-Device-Id", $"{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
+               ("X-Lampac-Cookie", cookie),
+               ("User-Agent", requestInfo.UserAgent)
+            ));
+        }
+
+        async public ValueTask<(RezkaInvoke invk, string log)> InitRezkaInvoke(RezkaSettings init)
+        {
+            init.host = new RezkaSettings(null, "kwwsv=22odps1df").host;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            genUid();
 
             var cook = await getCookie(init, proxy);
             if (string.IsNullOrEmpty(cook.cookie))
@@ -126,19 +130,19 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                string cookie = (await getCookie(new RezkaSettings(null, "kwwsv=22odps1df") 
+                var result = await getCookie(new RezkaSettings(null, "kwwsv=22odps1df") 
                 {
                     login = login,
                     passwd = pass
-                })).cookie;
+                }, timeoutError: 5);
 
-                if (string.IsNullOrEmpty(cookie))
+                if (string.IsNullOrEmpty(result.cookie))
                 {
-                    html = "Ошибка авторизации ;(";
+                    html = "Ошибка авторизации ;(<br><br>" + result.log.Replace("\n", "<br>");
                 }
                 else
                 {
-                    html = "Добавьте в init.conf<br><br>\"RezkaPrem\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"cookie\": \"" + cookie + "\"<br>},\"Rezka\": {<br>&nbsp;&nbsp;\"enable\": false<br>}";
+                    html = "Добавьте в init.conf<br><br>\"RezkaPrem\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"cookie\": \"" + result.cookie + "\"<br>},<br>\"Rezka\": {<br>&nbsp;&nbsp;\"enable\": false<br>}";
                 }
             }
 
@@ -148,7 +152,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.RezkaPrem);
             if (await IsBadInitialization(init, rch: true))
@@ -166,7 +170,7 @@ namespace Lampac.Controllers.LITE
                     return ShowError("rhub работает через cookie - IP:9118/lite/rhs/bind");
             }
 
-            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
+            if (string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(title))
                 return OnError("href/title = null");
 
             var onrezka = await InitRezkaInvoke(init);
@@ -175,12 +179,12 @@ namespace Lampac.Controllers.LITE
 
             var oninvk = onrezka.invk;
 
-            var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res => 
+            var cache = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}:{similar}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res => 
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, similar);
             });
 
             if (cache.IsSuccess && cache.Value.IsEmpty && cache.Value.content != null)
@@ -230,7 +234,7 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href);
+                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, false);
             });
 
             if (!cache_content.IsSuccess)
@@ -285,7 +289,7 @@ namespace Lampac.Controllers.LITE
         #region getCookie
         static string authCookie = null;
 
-        async ValueTask<(string cookie, string log)> getCookie(RezkaSettings init, WebProxy proxy = null)
+        async ValueTask<(string cookie, string log)> getCookie(RezkaSettings init, WebProxy proxy = null, int timeoutError = 20)
         {
             if (authCookie != null)
                 return (authCookie, null);
@@ -300,7 +304,7 @@ namespace Lampac.Controllers.LITE
                 return default;
 
             string loglines = string.Empty;
-            memoryCache.Set("rhsprem:login", 0, TimeSpan.FromSeconds(20));
+            memoryCache.Set("rhsprem:login", 0, TimeSpan.FromSeconds(timeoutError));
 
             try
             {

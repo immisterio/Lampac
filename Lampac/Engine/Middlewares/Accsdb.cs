@@ -98,7 +98,8 @@ namespace Lampac.Engine.Middlewares
                     {
                         if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
                         {
-                            if (AppInit.conf.serverproxy.encrypt)
+                            string hash = Regex.Replace(httpContext.Request.Path.Value, "/(proxy|proxyimg([^/]+)?)/", "");
+                            if (AppInit.conf.serverproxy.encrypt || ProxyLink.Decrypt(hash, requestInfo.IP)?.uri != null)
                                 return _next(httpContext);
                         }
 

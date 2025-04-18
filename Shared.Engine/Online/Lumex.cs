@@ -4,6 +4,7 @@ using System.Text.Json;
 using Shared.Model.Online.Lumex;
 using Shared.Model.Templates;
 using Lampac.Models.LITE;
+using Shared.Model.Base;
 
 namespace Shared.Engine.Online
 {
@@ -45,6 +46,9 @@ namespace Shared.Engine.Online
         public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial, int clarification)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
+                return null;
+
+            if (string.IsNullOrWhiteSpace(token))
                 return null;
 
             string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
@@ -96,7 +100,8 @@ namespace Shared.Engine.Online
 
                 string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
-                stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
+                string? img = PosterApi.Find(item.kp_id, item.imdb_id);
+                stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}", img);
             }
 
             return stpl;

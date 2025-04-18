@@ -12,6 +12,7 @@ using Shared.Engine.CORE;
 using Shared.Model.Templates;
 using Newtonsoft.Json;
 using Lampac.Models.LITE;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -39,13 +40,16 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            var result = await search(init, imdb_id, kinopoisk_id, title, serial, original_language, year);
+            if (similar)
+                return await SpiderSearch(title, origsource, rjson);
+
+            var result = await search(init, orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
                 return OnError("data", proxyManager, result.refresh_proxy);
 
@@ -57,7 +61,7 @@ namespace Lampac.Controllers.LITE
 
             JToken data = result.data;
 
-            string defaultargs = $"&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&serial={serial}&year={year}&original_language={original_language}";
+            string defaultargs = $"&orid={orid}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&serial={serial}&year={year}&original_language={original_language}";
 
             if (result.category_id is 1 or 3)
             {
@@ -240,12 +244,56 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region SpiderSearch
+        [HttpGet]
+        [Route("lite/alloha-search")]
+        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        {
+            var init = await Initialization();
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
+
+            if (string.IsNullOrWhiteSpace(title))
+                return OnError();
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var cache = await InvokeCache<JArray>($"alloha:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            {
+                var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                if (root == null || !root.ContainsKey("data"))
+                    return res.Fail("data");
+
+                return root["data"].ToObject<JArray>();
+            });
+
+            return OnResult(cache, () =>
+            {
+                var stpl = new SimilarTpl(cache.Value.Count);
+
+                foreach (var j in cache.Value)
+                {
+                    string uri = $"{host}/lite/alloha?orid={j.Value<string>("token_movie")}";
+                    stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                }
+
+                return rjson ? stpl.ToJson() : stpl.ToHtml();
+
+            }, origsource: origsource);
+        }
+        #endregion
+
+
         #region search
-        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(AllohaSettings init, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(AllohaSettings init, string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";
+
+            if (!string.IsNullOrEmpty(token_movie))
+                memKey = $"alloha:view:{token_movie}";
 
             JObject root;
 
@@ -282,7 +330,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null)
                         return (true, 0, null);
 

@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/filmixtv")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.FilmixTV, (j, i, c) =>
             {
@@ -77,9 +77,9 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmixtv:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"filmixtv:search:{title}:{original_title}:{clarification}:{similar}", cacheTime(40, init: init), proxyManager, async res =>
                 {
-                    return await oninvk.Search(title, original_title, clarification, year);
+                    return await oninvk.Search(title, original_title, clarification, year, similar);
                 });
 
                 if (!search.IsSuccess)

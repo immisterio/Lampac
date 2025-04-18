@@ -52,12 +52,12 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject>? result, string title, string? code, int year, bool rjson = false, VastConf? vast = null)
+        public string Html(List<RootObject>? result, string title, string? code, int year, bool rjson = false, VastConf? vast = null, bool similar = false)
         {
             if (result == null || result.Count == 0)
                 return string.Empty;
 
-            if (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (result[0].names.ru?.ToLower() == title.ToLower() || result[0].names.en?.ToLower() == title.ToLower())))
+            if (!similar && (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (result[0].names.ru?.ToLower() == title.ToLower() || result[0].names.en?.ToLower() == title.ToLower()))))
             {
                 #region Серии
                 var etpl = new EpisodeTpl();
@@ -109,7 +109,11 @@ namespace Shared.Engine.Online
                 {
                     string? name = !string.IsNullOrEmpty(root.names.ru) && !string.IsNullOrEmpty(root.names.en) ? $"{root.names.ru} / {root.names.en}" : (root.names.ru ?? root.names.en);
 
-                    stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}");
+                    string? img = root?.posters?.original?.url;
+                    if (!string.IsNullOrEmpty(img))
+                        img = "https://anilibria.tv" + img;
+
+                    stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}", PosterApi.Size(img));
                 }
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();

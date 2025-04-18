@@ -42,8 +42,9 @@ namespace Lampac.Controllers
             var init = AppInit.conf.online;
 
             string file = FileCache.ReadAllText("plugins/online.js");
-            file = file.Replace("{localhost}", host);
+            file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            file = file.Replace("{localhost}", host);
 
             if (init.component != "lampac")
             {
@@ -61,6 +62,12 @@ namespace Lampac.Controllers
             file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
+
+            if (!AppInit.conf.online.spider)
+            {
+                file = file.Replace("addSourceSearch('Spider', 'spider');", "");
+                file = file.Replace("addSourceSearch('Anime', 'spider/anime');", "");
+            }
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -305,6 +312,108 @@ namespace Lampac.Controllers
             return Content($"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{(kpid != null ? kpid : kinopoisk_id)}\"}}", "application/json; charset=utf-8");
         }
         #endregion
+
+        #region spider
+        [Route("lite/spider")]
+        [Route("lite/spider/anime")]
+        public ActionResult Spider(string title)
+        {
+            if (!AppInit.conf.online.spider)
+                return ContentTo("{}");
+
+            bool rhub = false;
+
+            var user = requestInfo.user;
+            var piders = new List<(string name, string uri, int index)>();
+
+            #region send
+            void send(BaseSettings init, string plugin = null)
+            {
+                if (!init.spider || !init.enable || init.rip)
+                    return;
+
+                if (init.geo_hide != null)
+                {
+                    if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
+                        return;
+                }
+
+                if (init.group_hide)
+                {
+                    if (init.group > 0)
+                    {
+                        if (user == null || init.group > user.group)
+                            return;
+                    }
+                    else if (AppInit.conf.accsdb.enable)
+                    {
+                        if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
+                            return;
+                    }
+                }
+
+                if (init.rhub)
+                    rhub = true;
+
+                string url = null;
+                string displayname = init.displayname ?? init.plugin;
+
+                if (string.IsNullOrEmpty(init.overridepasswd))
+                {
+                    url = init.overridehost;
+                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                }
+
+                if (string.IsNullOrEmpty(url))
+                    url = $"{host}/lite/" + (plugin ?? init.plugin).ToLower();
+
+                piders.Add((init.displayname ?? init.plugin, $"{url}?title={HttpUtility.UrlEncode(title)}&clarification=1&rjson=true&similar=true", init.displayindex));
+            }
+            #endregion
+
+            if (HttpContext.Request.Path.Value.EndsWith("/anime"))
+            {
+                send(AppInit.conf.Kodik);
+                send(AppInit.conf.AnimeLib);
+                send(AppInit.conf.AnilibriaOnline, "anilibria");
+                send(AppInit.conf.Animevost);
+                send(AppInit.conf.Animebesst);
+                send(AppInit.conf.MoonAnime);
+                send(AppInit.conf.AnimeGo);
+            }
+
+            send(AppInit.conf.Filmix);
+            send(AppInit.conf.FilmixTV, "filmixtv");
+            send(AppInit.conf.FilmixPartner, "fxapi");
+
+            send(AppInit.conf.Rezka);
+            send(AppInit.conf.RezkaPrem, "rhsprem");
+
+            send(AppInit.conf.KinoPub);
+            send(AppInit.conf.Alloha, "alloha-search");
+            send(AppInit.conf.Mirage, "mirage-search");
+            send(AppInit.conf.Collaps, "collaps-search");
+
+            if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                send(AppInit.conf.VideoCDN);
+
+            if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
+                send(AppInit.conf.Lumex);
+
+            send(AppInit.conf.HDVB, "hdvb-search");
+
+            if (rhub)
+            {
+                var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
+        }
+        #endregion
+
 
         #region events
         [HttpGet]
@@ -802,7 +911,6 @@ namespace Lampac.Controllers
         }
         #endregion
 
-
         #region checkSearch
         async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
                                long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
@@ -880,9 +988,9 @@ namespace Lampac.Controllers
                             case "rhsprem":
                             case "animelib":
                             case "mirage":
+                            case "videodb":
                                 quality = " ~ 2160p";
                                 break;
-                            case "videodb":
                             case "kinobase":
                             case "zetflix":
                             case "vcdn":

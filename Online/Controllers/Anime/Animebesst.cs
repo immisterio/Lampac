@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
             if (await IsBadInitialization(init, rch: true))
@@ -34,7 +35,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"animebesst:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s, string img)> catalog))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -44,7 +45,7 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                    catalog = new List<(string title, string year, string uri, string s)>();
+                    catalog = new List<(string title, string year, string uri, string s, string img)>();
 
                     foreach (string row in search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"").Skip(1))
                     {
@@ -63,8 +64,12 @@ namespace Lampac.Controllers.LITE
                                     season = "1";
                             }
 
+                            string img = Regex.Match(row, "<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"").Groups[1].Value;
+                            if (string.IsNullOrEmpty(img))
+                                img = null;
+
                             //if (g[2].Value.ToLower().Contains(title.ToLower()))
-                                catalog.Add((g[2].Value, Regex.Match(row, "\">([0-9]{4})</a>").Groups[1].Value, g[1].Value, season));
+                                catalog.Add((g[2].Value, Regex.Match(row, "\">([0-9]{4})</a>").Groups[1].Value, g[1].Value, season, img));
                         }
                     }
 
@@ -80,13 +85,16 @@ namespace Lampac.Controllers.LITE
                 if (catalog.Count == 0)
                     return OnError();
 
-                if (catalog.Count == 1)
+                if (!similar && catalog.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}");
+                {
+                    string _u = $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
+                    stpl.Append(res.title, res.year, string.Empty, _u, PosterApi.Size(res.img));
+                }
 
                 return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion

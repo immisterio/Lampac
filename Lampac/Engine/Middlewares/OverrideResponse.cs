@@ -14,7 +14,7 @@ namespace Lampac.Engine.Middlewares
             _next = next;
         }
 
-        async public Task InvokeAsync(HttpContext httpContext)
+        public Task Invoke(HttpContext httpContext)
         {
             if (AppInit.conf.overrideResponse != null && AppInit.conf.overrideResponse.Count > 0)
             {
@@ -29,8 +29,7 @@ namespace Lampac.Engine.Middlewares
                             case "html":
                                 {
                                     httpContext.Response.ContentType = over.type;
-                                    await httpContext.Response.WriteAsync(over.val.Replace("{localhost}", AppInit.Host(httpContext)), httpContext.RequestAborted);
-                                    return;
+                                    return httpContext.Response.WriteAsync(over.val.Replace("{localhost}", AppInit.Host(httpContext)), httpContext.RequestAborted);
                                 }
                             case "file":
                                 {
@@ -38,19 +37,17 @@ namespace Lampac.Engine.Middlewares
                                     if (Regex.IsMatch(over.val, "\\.(html|txt|css|js|json|xml)$", RegexOptions.IgnoreCase))
                                     {
                                         string val = FileCache.ReadAllText(over.val);
-                                        await httpContext.Response.WriteAsync(val.Replace("{localhost}", AppInit.Host(httpContext)), httpContext.RequestAborted);
+                                        return httpContext.Response.WriteAsync(val.Replace("{localhost}", AppInit.Host(httpContext)), httpContext.RequestAborted);
                                     }
                                     else
                                     {
-                                        using (var fs = new FileStream(over.val, FileMode.Open, FileAccess.Read))
-                                            await fs.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                                        return httpContext.Response.SendFileAsync(over.val);
                                     }
-                                    return;
                                 }
                             case "redirect":
                                 {
                                     httpContext.Response.Redirect(over.val);
-                                    return;
+                                    return Task.CompletedTask;
                                 }
                             default:
                                 break;
@@ -59,7 +56,7 @@ namespace Lampac.Engine.Middlewares
                 }
             }
 
-            await _next(httpContext);
+            return _next(httpContext);
         }
     }
 }

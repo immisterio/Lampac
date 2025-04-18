@@ -16,14 +16,17 @@ namespace Lampac.Controllers
 {
     public class StorageController : BaseController
     {
+        #region StorageController
         static readonly ConcurrentDictionary<string, SemaphoreSlim> _fileLocks = new();
 
         static StorageController()
         {
             Directory.CreateDirectory("cache/storage");
+            Directory.CreateDirectory("cache/storage/temp");
         }
+        #endregion
 
-
+        #region Get
         [Route("/storage/get")]
         public ActionResult Get(string path, string pathfile, bool responseInfo)
         {
@@ -41,8 +44,9 @@ namespace Lampac.Controllers
 
             return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data });
         }
+        #endregion
 
-
+        #region Set
         [HttpPost]
         [Route("/storage/set")]
         async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string pathfile, [FromQuery]string events)
@@ -105,22 +109,110 @@ namespace Lampac.Controllers
                 fileInfo = new { inf.Name, path = outFile, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds() }
             });
         }
+        #endregion
+
+        #region TempGet
+        [HttpGet]
+        [Route("/storage/temp/{key}")]
+        public ActionResult TempGet(string key, bool responseInfo)
+        {
+            string outFile = getFilePath("temp", null, false, user_uid: key);
+            if (outFile == null || !IO.File.Exists(outFile))
+                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+
+            var file = new FileInfo(outFile);
+            var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
+
+            if (responseInfo)
+                return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo });
+
+            string data = AppInit.conf.storage.brotli ? BrotliTo.Decompress(outFile) : IO.File.ReadAllText(outFile);
+
+            return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data });
+        }
+        #endregion
+
+        #region TempSet
+        [HttpPost]
+        [Route("/storage/temp/{key}")]
+        async public Task<ActionResult> TempSet(string key)
+        {
+            if (!AppInit.conf.storage.enable)
+                return Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
+
+            if (HttpContext.Request.ContentLength > AppInit.conf.storage.max_size)
+                return Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
+
+            string outFile = getFilePath("temp", null, true, user_uid: key);
+            if (outFile == null)
+                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+
+            byte[] array = null;
+            using (var memoryStream = new MemoryStream())
+            {
+                await HttpContext.Request.Body.CopyToAsync(memoryStream);
+                array = memoryStream.ToArray();
+            }
+
+            var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
+            await fileLock.WaitAsync();
+
+            try
+            {
+                if (AppInit.conf.storage.brotli)
+                    BrotliTo.Compress(outFile, array);
+                else
+                {
+                    using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                        fileStream.Write(array, 0, array.Length);
+                }
+            }
+            finally
+            {
+                fileLock.Release();
+
+                if (fileLock.CurrentCount == 1)
+                {
+                    _fileLocks.TryRemove(outFile, out _);
+                }
+            }
+
+            var inf = new FileInfo(outFile);
+
+            return Json(new
+            {
+                success = true,
+                uid = requestInfo?.user_uid,
+                fileInfo = new { inf.Name, path = outFile, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds() }
+            });
+        }
+        #endregion
 
 
         #region getFilePath
-        string getFilePath(string path, string pathfile, bool createDirectory)
+        string getFilePath(string path, string pathfile, bool createDirectory, string user_uid = null)
         {
-            string id = requestInfo.user_uid;
+            if (path == "temp" && string.IsNullOrEmpty(user_uid))
+                return null;
+
+            string id = user_uid ?? requestInfo.user_uid;
             if (string.IsNullOrEmpty(id))
                 return null;
 
             id += pathfile;
             string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(id) : Regex.Replace(id, "(\\@|_)", "");
 
-            if (createDirectory)
-                Directory.CreateDirectory($"cache/storage/{path}/{md5key.Substring(0, 2)}");
+            if (path == "temp")
+            {
+                return $"cache/storage/{path}/{md5key}";
+            }
+            else
+            {
+                if (createDirectory)
+                    Directory.CreateDirectory($"cache/storage/{path}/{md5key.Substring(0, 2)}");
 
-            return $"cache/storage/{path}/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+                return $"cache/storage/{path}/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+            }
         }
         #endregion
     }

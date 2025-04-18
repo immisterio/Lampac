@@ -105,10 +105,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        var response = await page.GotoAsync(uri);
-                        if (response == null)
-                            return default;
-
+                        _ = await page.GotoAsync(uri);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");

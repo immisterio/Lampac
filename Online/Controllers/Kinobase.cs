@@ -67,10 +67,7 @@ namespace Lampac.Controllers.LITE
                                catch { }
                            });
 
-                           var result = await page.GotoAsync(ongettourl);
-                           if (result == null)
-                               return null;
-
+                           _ = await page.GotoAsync(ongettourl);
                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                            string content = await page.ContentAsync();
 

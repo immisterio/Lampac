@@ -149,6 +149,13 @@ LimitNOFILE=32000
 WantedBy=multi-user.target
 EOF
 
+if [ ! -f "$DEST/init.conf" ]; then
+random_port=$(shuf -i 9000-12999 -n 1)
+cat <<EOF > $DEST/init.conf
+"listenport": $random_port
+EOF
+fi
+
 # Enable service
 systemctl daemon-reload
 systemctl enable lampac

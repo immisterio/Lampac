@@ -12,6 +12,7 @@ using Shared.PlaywrightCore;
 using System;
 using Lampac.Engine.CORE;
 using System.Net;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -38,7 +39,7 @@ namespace Lampac.Controllers.LITE
             var oninvk = new VideoDBInvoke
             (
                host,
-               init.host,
+               init.apihost,
                (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : black_magic(url, init, proxy),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
@@ -83,17 +84,25 @@ namespace Lampac.Controllers.LITE
             {
                 try
                 {
+                    var headers = httpHeaders(init, HeadersModel.Init(
+                        ("sec-fetch-dest", "empty"),
+                        ("sec-fetch-mode", "cors"),
+                        ("sec-fetch-site", "same-site"),
+                        ("origin", "{host}"),
+                        ("referer", "{host}/")
+                    ));
+
                     if (rch.enable)
                     {
                         if (rch.IsNotConnected())
                             return ContentTo(rch.connectionMsg);
 
-                        var res = await rch.Headers(link, null, httpHeaders(init));
+                        var res = await rch.Headers(link, null, headers);
                         location = res.currentUrl;
                     }
                     else if (init.priorityBrowser == "http")
                     {
-                        location = await HttpClient.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                        location = await HttpClient.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
                     }
                     else
                     {
@@ -117,7 +126,7 @@ namespace Lampac.Controllers.LITE
 
                                     if (route.Request.Url == link)
                                     {
-                                        await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+                                        await route.ContinueAsync(new RouteContinueOptions { Headers = headers.ToDictionary() });
 
                                         var response = await page.WaitForResponseAsync(route.Request.Url);
                                         if (response != null)
@@ -133,9 +142,7 @@ namespace Lampac.Controllers.LITE
                                 catch { }
                             });
 
-                            var response = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
-                            if (response == null)
-                                return null;
+                            _ = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
 
                             location = await browser.WaitPageResult();
                         }
@@ -173,38 +180,40 @@ namespace Lampac.Controllers.LITE
         {
             try
             {
+                var headers = httpHeaders(init, HeadersModel.Init(
+                    ("sec-fetch-dest", "iframe"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "cross-site"),
+                    ("referer", "{host}/")
+                ));
+
                 if (init.priorityBrowser == "http")
-                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: httpHeaders(init));
+                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman);
                     if (page == null)
                         return null;
 
                     browser.failedUrl = uri;
+                    await page.SetExtraHTTPHeadersAsync(init.headers);
 
                     await page.RouteAsync("**/*", async route =>
                     {
                         try
                         {
-                            if (route.Request.Url.Contains("api/chromium/iframe"))
+                            if (route.Request.Url.StartsWith(init.host))
                             {
-                                await route.ContinueAsync();
-                                return;
+                                await route.FulfillAsync(new RouteFulfillOptions
+                                {
+                                    Body = PlaywrightBase.IframeHtml(uri)
+                                });
                             }
-
-                            if (browser.IsCompleted)
-                            {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
-
-                            if (route.Request.Url == uri)
+                            else if (route.Request.Url == uri)
                             {
                                 string html = null;
-                                await route.ContinueAsync(new RouteContinueOptions { Headers = httpHeaders(init).ToDictionary() });
+                                await route.ContinueAsync();
 
                                 var response = await page.WaitForResponseAsync(route.Request.Url);
                                 if (response != null)
@@ -214,16 +223,26 @@ namespace Lampac.Controllers.LITE
                                 PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
                                 return;
                             }
+                            else
+                            {
+                                if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8") || route.Request.Url.Contains("/cdn-cgi/challenge-platform/"))
+                                {
+                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                }
+                                else
+                                {
+                                    if (await PlaywrightBase.AbortOrCache(page, route))
+                                        return;
 
-                            await route.AbortAsync();
+                                    await route.ContinueAsync();
+                                }
+                            }
                         }
                         catch { }
                     });
 
-                    var response = await page.GotoAsync(PlaywrightBase.IframeUrl(uri));
-                    if (response == null)
-                        return null;
-
+                    _ = await page.GotoAsync(init.host);
                     return await browser.WaitPageResult();
                 }
             }

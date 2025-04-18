@@ -69,6 +69,7 @@ namespace Lampac
 
                         _vast = cacheconf.Item1.vast;
                         _defaultOn = cacheconf.Item1.defaultOn;
+                        PosterApi.Initialization(cacheconf.Item1.omdbapi_key, cacheconf.Item1.posterApi, new ProxyLink());
                     }
 
                     #region accounts
@@ -241,9 +242,17 @@ namespace Lampac
 
         public string anticaptchakey;
 
+        public string omdbapi_key;
+
         public string playerInner;
 
         public Dictionary<string, CmdConf> cmd = new Dictionary<string, CmdConf>();
+
+        public PosterApiConf posterApi = new PosterApiConf() 
+        {
+            rsize = true, width = 210,
+            bypass = "statichdrezka\\."
+        };
 
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
@@ -295,9 +304,9 @@ namespace Lampac
             {
                 enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
             },
-            cache = new ServerproxyCacheConf()
+            image = new ServerproxyImageConf()
             {
-                img = false, img_rsize = true
+                cache = false, cache_rsize = true
             },
             maxlength_m3u = 1900000,
             maxlength_ts = 10000000
@@ -321,13 +330,13 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "fd8e6edea252ebc4806c1a8f77bbc38d4778ee9a"
+            tree = "656d14cb16f65c1591704e9a775cea7ca15c9a75"
         };
 
         public OnlineConf online = new OnlineConf()
         {
-            findkp = "all", checkOnlineSearch = true,
-            component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов", 
+            findkp = "all", checkOnlineSearch = true, spider = true,
+            component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов",
             version = true, btn_priority_forced = true, showquality = true
         };
 

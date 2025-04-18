@@ -403,6 +403,9 @@ namespace Lampac.Controllers.LITE
         {
             async ValueTask<JToken> searchId(string imdb_id, long kinopoisk_id)
             {
+                if (string.IsNullOrEmpty(init.token))
+                    return null;
+
                 if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                     return null;
 
@@ -426,6 +429,9 @@ namespace Lampac.Controllers.LITE
             else
             {
                 if (string.IsNullOrEmpty(title ?? original_title))
+                    return default;
+
+                if (string.IsNullOrEmpty(init.token))
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
@@ -471,7 +477,8 @@ namespace Lampac.Controllers.LITE
 
                     string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
-                    stpl.Append(name, year, details, $"{host}/lite/videocdn?title={enc_title}&original_title={enc_original_title}&content_id={item.id}&content_type={item.content_type}");
+                    string img = PosterApi.Find(item.kp_id, item.imdb_id);
+                    stpl.Append(name, year, details, $"{host}/lite/videocdn?title={enc_title}&original_title={enc_original_title}&content_id={item.id}&content_type={item.content_type}", img);
 
                     count += 1;
                 }

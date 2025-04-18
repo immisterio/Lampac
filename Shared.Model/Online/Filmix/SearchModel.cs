@@ -8,6 +8,8 @@
 
         public string? original_title { get; set; }
 
+        public string poster { get; set; }
+
         public int year { get; set; }
     }
 }

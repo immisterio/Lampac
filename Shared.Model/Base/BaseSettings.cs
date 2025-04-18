@@ -21,6 +21,7 @@
 
         public bool enabled { get; set; }
 
+        public bool spider { get; set; } = true;
 
 
         public bool kit { get; set; } = true;

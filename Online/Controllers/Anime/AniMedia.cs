@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +19,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AniMedia);
             if (await IsBadInitialization(init, rch: false))
@@ -31,20 +32,20 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"animedia:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string code)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string code, string img)> catalog))
                 {
                     string search = await HttpClient.Get($"{init.corsHost()}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string url)>();
+                    catalog = new List<(string title, string url, string img)>();
 
                     foreach (string row in search.Split("<div class=\"ads-list__item\">").Skip(1))
                     {
                         var g = Regex.Match(row, "href=\"/anime/([^\"]+)\"[^>]+ class=\"h3 ads-list__item__title\">([^<]+)</a>").Groups;
 
                         if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
-                            catalog.Add((g[2].Value, g[1].Value));
+                            catalog.Add((g[2].Value, g[1].Value, null));
                     }
 
                     if (catalog.Count == 0 && !search.Contains("xads-list"))
@@ -57,13 +58,16 @@ namespace Lampac.Controllers.LITE
                 if (catalog.Count == 0)
                     return OnError();
 
-                if (catalog.Count == 1)
+                if (!similar && catalog.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animedia?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                    stpl.Append(res.title, string.Empty, string.Empty, $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}");
+                {
+                    string uri = $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}";
+                    stpl.Append(res.title, string.Empty, string.Empty, uri, PosterApi.Size(res.img));
+                }
 
                 return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion

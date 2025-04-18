@@ -6,6 +6,10 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Online.Collaps;
 using Shared.Model.Online;
+using System.Web;
+using Newtonsoft.Json.Linq;
+using Shared.Model.Templates;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -14,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/collaps")]
         [Route("lite/collaps-dash")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Collaps, (j, i, c) =>
             {
@@ -28,8 +32,8 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
-                return OnError();
+            if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
+                return await Search(title, origsource, rjson);
 
             string module = HttpContext.Request.Path.Value.StartsWith("/lite/collaps-dash") ? "dash" : "hls";
             if (module == "dash")
@@ -54,12 +58,12 @@ namespace Lampac.Controllers.LITE
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(imdb_id, kinopoisk_id);
+                return await oninvk.Embed(imdb_id, kinopoisk_id, orid);
             });
 
             if (IsRhubFallback(cache, init))
@@ -67,11 +71,58 @@ namespace Lampac.Controllers.LITE
 
             return OnResult(cache, () => 
             {
-                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, HeadersModel.Init(init.headers_stream)));
+                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, HeadersModel.Init(init.headers_stream)));
                 if (module == "dash")
                     html = html.Replace("lite/collaps", "lite/collaps-dash");
 
                 return html;
+
+            }, origsource: origsource, gbcache: !rch.enable);
+        }
+
+
+        [HttpGet]
+        [Route("lite/collaps-search")]
+        async public Task<ActionResult> Search(string title, bool origsource = false, bool rjson = false)
+        {
+            var init = await loadKit(AppInit.conf.Collaps);
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
+
+            if (string.IsNullOrWhiteSpace(title))
+                return OnError();
+
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var cache = await InvokeCache<JArray>($"collaps:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+            {
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                string uri = $"{init.apihost}/list?token={init.token}&name={HttpUtility.UrlEncode(title)}";
+                var root = rch.enable ? await rch.Get<JObject>(uri) : await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
+                if (root == null || !root.ContainsKey("results"))
+                    return res.Fail("results");
+
+                return root["results"].ToObject<JArray>();
+            });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
+            return OnResult(cache, () =>
+            {
+                var stpl = new SimilarTpl(cache.Value.Count);
+
+                foreach (var j in cache.Value)
+                {
+                    string uri = $"{host}/lite/collaps?orid={j.Value<long>("id")}";
+                    stpl.Append(j.Value<string>("name") ?? j.Value<string>("origin_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                }
+
+                return rjson ? stpl.ToJson() : stpl.ToHtml();
 
             }, origsource: origsource, gbcache: !rch.enable);
         }

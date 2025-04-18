@@ -10,6 +10,7 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
 using Shared.Model.Online;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,7 +20,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animego")]
-        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, bool rjson = false)
+        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AnimeGo);
             if (await IsBadInitialization(init, rch: false))
@@ -34,19 +35,22 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"animego:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s, string img)> catalog))
                 {
                     string search = await HttpClient.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string year, string pid, string s)>();
+                    catalog = new List<(string title, string year, string pid, string s, string img)>();
 
                     foreach (string row in search.Split("class=\"p-poster__stack\"").Skip(1))
                     {
                         string player_id = Regex.Match(row, "data-ajax-url=\"/[^\"]+-([0-9]+)\"").Groups[1].Value;
                         string name = Regex.Match(row, "card-title text-truncate\"><a [^>]+>([^<]+)<").Groups[1].Value;
                         string animeyear = Regex.Match(row, "class=\"anime-year\"><a [^>]+>([0-9]{4})<").Groups[1].Value;
+                        string img = Regex.Match(row, "data-original=\"([^\"]+)\"").Groups[1].Value;
+                        if (string.IsNullOrEmpty(img))
+                            img = null;
 
                         if (!string.IsNullOrWhiteSpace(player_id) && !string.IsNullOrWhiteSpace(name) && name.ToLower().Contains(title.ToLower()))
                         {
@@ -54,7 +58,7 @@ namespace Lampac.Controllers.LITE
                             if (animeyear == year.ToString() && name.ToLower() == title.ToLower())
                                 season = "1";
 
-                            catalog.Add((name, Regex.Match(row, ">([0-9]{4})</a>").Groups[1].Value, player_id, season));
+                            catalog.Add((name, Regex.Match(row, ">([0-9]{4})</a>").Groups[1].Value, player_id, season, img));
                         }
                     }
 
@@ -65,15 +69,18 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
                 }
 
-                if (catalog.Count == 1)
+                if (!similar && catalog.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={catalog[0].pid}&s={catalog[0].s}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={res.pid}&s={res.s}");
+                {
+                    string uri = $"{host}/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={res.pid}&s={res.s}";
+                    stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
+                }
 
-                return Content(stpl.ToHtml(), "text/html; charset=utf-8");
+                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion
             }
             else 
