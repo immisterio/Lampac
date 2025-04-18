@@ -23,7 +23,8 @@ namespace Lampac.Engine.CRON
                         ("img", AppInit.conf.fileCacheInactive.img),
                         ("torrent", AppInit.conf.fileCacheInactive.torrent),
                         ("html", AppInit.conf.fileCacheInactive.html),
-                        ("hls", AppInit.conf.fileCacheInactive.hls)
+                        ("hls", AppInit.conf.fileCacheInactive.hls),
+                        ("storage/temp", 10)
                     })
                     {
                         try
