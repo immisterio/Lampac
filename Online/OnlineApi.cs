@@ -321,9 +321,7 @@ namespace Lampac.Controllers
             if (!AppInit.conf.online.spider)
                 return ContentTo("{}");
 
-            var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
+            bool rhub = false;
 
             var user = requestInfo.user;
             var piders = new List<(string name, string uri, int index)>();
@@ -353,6 +351,9 @@ namespace Lampac.Controllers
                             return;
                     }
                 }
+
+                if (init.rhub)
+                    rhub = true;
 
                 string url = null;
                 string displayname = init.displayname ?? init.plugin;
@@ -401,6 +402,13 @@ namespace Lampac.Controllers
                 send(AppInit.conf.Lumex);
 
             send(AppInit.conf.HDVB, "hdvb-search");
+
+            if (rhub)
+            {
+                var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+            }
 
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }
