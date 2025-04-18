@@ -161,10 +161,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        var result = await page.GotoAsync(iframe);
-                        if (result == null)
-                            return OnError();
-
+                        _ = await page.GotoAsync(iframe);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                         string html = await page.ContentAsync();
 

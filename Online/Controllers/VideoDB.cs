@@ -142,9 +142,7 @@ namespace Lampac.Controllers.LITE
                                 catch { }
                             });
 
-                            var response = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
-                            if (response == null)
-                                return null;
+                            _ = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
 
                             location = await browser.WaitPageResult();
                         }
@@ -244,10 +242,7 @@ namespace Lampac.Controllers.LITE
                         catch { }
                     });
 
-                    var response = await page.GotoAsync(init.host);
-                    if (response == null)
-                        return null;
-
+                    _ = await page.GotoAsync(init.host);
                     return await browser.WaitPageResult();
                 }
             }

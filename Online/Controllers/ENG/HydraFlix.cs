@@ -93,10 +93,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        var response = await page.GotoAsync(uri);
-                        if (response == null)
-                            return null;
-
+                        _ = await page.GotoAsync(uri);
                         m3u8 = await browser.WaitPageResult();
                     }
 

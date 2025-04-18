@@ -204,10 +204,7 @@ namespace Lampac.Controllers.LITE
                         catch { }
                     });
 
-                    var response = await page.GotoAsync(init.host);
-                    if (response == null)
-                        return null;
-
+                    _ = page.GotoAsync(init.host);
                     return await browser.WaitPageResult();
                 }
             }

@@ -142,9 +142,9 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                if (string.IsNullOrEmpty(link) || similar)
+                if (string.IsNullOrEmpty(link))
                 {
-                    if (string.IsNullOrEmpty(reservedlink) || similar)
+                    if (string.IsNullOrEmpty(reservedlink))
                     {
                         if (result?.similar != null && result.similar.Count > 0)
                             return result;

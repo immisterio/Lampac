@@ -103,16 +103,10 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        var responce = await page.GotoAsync(uri);
-                        if (responce == null)
-                        {
-                            proxyManager.Refresh();
-                            return null;
-                        }
-
+                        _ = await page.GotoAsync(uri);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                        responce = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
+                        var responce = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
                         if (responce == null)
                         {
                             proxyManager.Refresh();
