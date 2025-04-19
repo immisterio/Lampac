@@ -1,4 +1,4 @@
-# Telegram группа 
+# Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
 # Установка на linux
