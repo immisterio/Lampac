@@ -93,7 +93,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         //await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         string playbtn = "div.flex.flex-col.items-center.gap-y-3.title-year > button";

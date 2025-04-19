@@ -156,7 +156,7 @@ namespace Lampac.Controllers.LITE
                         catch { }
                     });
 
-                    _ = await page.GotoAsync(host);
+                    PlaywrightBase.GotoAsync(page, host);
                     return await browser.WaitPageResult();
                 }
             }

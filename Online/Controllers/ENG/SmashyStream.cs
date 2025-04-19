@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");

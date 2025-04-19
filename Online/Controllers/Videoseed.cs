@@ -161,7 +161,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(iframe);
+                        PlaywrightBase.GotoAsync(page, iframe);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                         string html = await page.ContentAsync();
 

@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var responce = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();

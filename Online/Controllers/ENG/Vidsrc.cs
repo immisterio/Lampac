@@ -170,7 +170,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         cache.m3u8 = await browser.WaitPageResult();
                     }
 

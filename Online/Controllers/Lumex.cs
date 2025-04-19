@@ -108,7 +108,7 @@ namespace Lampac.Controllers.LITE
                         if (!string.IsNullOrEmpty(imdb_id))
                             uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         await browser.WaitPageResult();
                     }
                 }

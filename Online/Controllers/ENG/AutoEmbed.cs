@@ -168,7 +168,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = page.GotoAsync(uri).ConfigureAwait(false);
+                        PlaywrightBase.GotoAsync(page, uri);
                         mp4 = await browser.WaitPageResult();
                     }
 

@@ -363,5 +363,10 @@ namespace Shared.Engine
             }
             catch { return false; }
         }
+
+        public static void GotoAsync(IPage page, string uri)
+        {
+            _ = page.GotoAsync(uri).ConfigureAwait(false);
+        }
     }
 }

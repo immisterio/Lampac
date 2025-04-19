@@ -8,6 +8,7 @@ using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.PlaywrightCore;
+using System;
 
 namespace Lampac.Controllers.LITE
 {
@@ -67,7 +68,7 @@ namespace Lampac.Controllers.LITE
                                catch { }
                            });
 
-                           _ = await page.GotoAsync(ongettourl);
+                           PlaywrightBase.GotoAsync(page, ongettourl);
                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                            string content = await page.ContentAsync();
 
