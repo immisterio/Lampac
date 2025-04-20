@@ -187,7 +187,7 @@ namespace Lampac.Controllers.LITE
                             }
                             else
                             {
-                                if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8") || route.Request.Url.Contains("/cdn-cgi/challenge-platform/"))
+                                if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8"))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();

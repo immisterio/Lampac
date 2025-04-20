@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
                 host,
                 init.corsHost(),
                 init.scheme,
-                MaybeInHls(init.hls, init),
+                init.hls,
                 init.reserve,
                 init.premium,
                 (url, hed) => rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) : 

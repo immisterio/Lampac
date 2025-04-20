@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
             var oninvk = new VDBmoviesInvoke
             (
                host,
-               MaybeInHls(init.hls, init),
+               init.hls,
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
