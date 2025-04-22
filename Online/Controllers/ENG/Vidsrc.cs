@@ -89,12 +89,12 @@ namespace Lampac.Controllers.LITE
                     if (play)
                         return Redirect(file);
 
-                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast));
+                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders));
                 }
             }
             #endregion
 
-            var cache = await black_magic(id, embed, init, proxy.data);
+            var cache = await black_magic(id, embed, init, proxyManager, proxy.data);
             if (cache.m3u8 == null)
                 return StatusCode(502);
 
@@ -108,7 +108,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -175,8 +175,12 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (cache.m3u8 == null)
+                    {
+                        proxyManager.Refresh();
                         return default;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 

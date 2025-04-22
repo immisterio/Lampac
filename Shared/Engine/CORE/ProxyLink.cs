@@ -44,6 +44,7 @@ namespace Lampac.Engine.CORE
 
             string hash;
             bool IsMd5 = false;
+            string uri_clear = uri.Split("#")[0].Trim();
 
             if (AppInit.conf.serverproxy.encrypt_aes && headers == null && proxy == null)
             {
@@ -51,7 +52,7 @@ namespace Lampac.Engine.CORE
                 {
                     hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new
                     {
-                        u = uri,
+                        u = uri_clear,
                         i = reqip,
                         v = true,
                         e = DateTime.Now.AddHours(36)
@@ -59,13 +60,13 @@ namespace Lampac.Engine.CORE
                 }
                 else
                 {
-                    hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri }));
+                    hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri_clear }));
                 }
             }
             else
             {
                 IsMd5 = true;
-                hash = CrypTo.md5(uri + (verifyip && AppInit.conf.serverproxy.verifyip ? reqip : string.Empty));
+                hash = CrypTo.md5(uri_clear + (verifyip && AppInit.conf.serverproxy.verifyip ? reqip : string.Empty));
             }
 
             if (uri.Contains(".m3u8"))
@@ -99,7 +100,7 @@ namespace Lampac.Engine.CORE
 
             if (IsMd5 && !links.ContainsKey(hash))
             {
-                var md = new ProxyLinkModel(reqip, headers, proxy, uri, plugin, verifyip, ex: ex);
+                var md = new ProxyLinkModel(reqip, headers, proxy, uri_clear, plugin, verifyip, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
             }
 

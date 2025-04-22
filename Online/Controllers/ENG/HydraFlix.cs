@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Engine;
 using Lampac.Models.LITE;
-using Microsoft.Extensions.Caching.Memory;
 using System;
 using Shared.PlaywrightCore;
 
@@ -41,7 +40,7 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/tv/{id}/{s}/{e}?autoPlay=true&theme=e1216d";
 
-            string hls = await black_magic(embed, init, proxy.data);
+            string hls = await black_magic(embed, init, proxyManager, proxy.data);
             if (hls == null)
                 return StatusCode(502);
 
@@ -50,7 +49,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return uri;
@@ -98,8 +97,12 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (m3u8 == null)
+                    {
+                        proxyManager.Refresh();
                         return null;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, m3u8, cacheTime(20, init: init));
                 }
 

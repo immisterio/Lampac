@@ -431,7 +431,18 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings VidLink { get; set; } = new OnlinesSettings("VidLink", "kwwsv=22ylgolqn1sur", streamproxy: true);
 
-        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true, enable: false);
+        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true) 
+        {
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "{host}/"),
+                ("origin", "{host}"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ).ToDictionary()
+        };
 
         public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff")
         {

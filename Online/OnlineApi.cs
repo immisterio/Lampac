@@ -1028,6 +1028,7 @@ namespace Lampac.Controllers
                             case "movpi":
                             case "videasy":
                             case "vidlink":
+                            case "autoembed":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
@@ -1041,7 +1042,6 @@ namespace Lampac.Controllers
                             case "kinokrad":
                             case "kinoprofi":
                             case "seasonvar":
-                            case "autoembed":
                                 quality = " - 480p";
                                 break;
                             case "cdnmovies":

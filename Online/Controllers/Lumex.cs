@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                                 content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
                                 foreach (var item in route.Request.Headers)
                                 {
-                                    if (item.Key == "host" || item.Key == "accept-encoding")
+                                    if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection")
                                         continue;
 
                                     content_headers.Add(new HeadersModel(item.Key, item.Value));
@@ -187,7 +187,11 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(url))
                     return OnError();
 
-                hls = $"{init.scheme}:{url}";
+                if (url.StartsWith("/"))
+                    hls = $"{init.scheme}:{url}";
+                else
+                    hls = url;
+
                 hybridCache.Set(memkey, hls, cacheTime(20, init: init));
             }
 

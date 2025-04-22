@@ -58,7 +58,7 @@ namespace Lampac.Controllers.Porntrex
 
             if (cache.userch)
             {
-                var hdstr = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
+                var hdstr = httpHeaders(init.host, init.headers_stream);
                 return OnResult(cache.links, init, proxyManager.Get(), headers_stream: hdstr);
             }
 

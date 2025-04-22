@@ -238,7 +238,7 @@ namespace Lampac.Controllers.LITE
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg, gbcache: !rch.enable);
 
-            var headers_stream = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
 
             List<(string link, string quality)> goStreams(string _voice)
             {

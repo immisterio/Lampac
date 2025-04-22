@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var headers_stream = httpHeaders(init.host, HeadersModel.Init(init.headers_stream));
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
 
             if (pid == 0)
             {

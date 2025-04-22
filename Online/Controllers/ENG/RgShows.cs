@@ -39,7 +39,7 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/main/tv/{imdb_id}/{s}/{e}";
 
-            string file = await magic(embed, init, proxy.proxy);
+            string file = await magic(embed, init, proxyManager, proxy.proxy);
             if (file == null)
                 return StatusCode(502);
 
@@ -53,7 +53,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region magic
-        async ValueTask<string> magic(string uri, OnlinesSettings init, WebProxy proxy)
+        async ValueTask<string> magic(string uri, OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return uri;
@@ -65,12 +65,16 @@ namespace Lampac.Controllers.LITE
                 {
                     var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 40, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("stream"))
+                    {
+                        proxyManager.Refresh();
                         return null;
+                    }
 
                     file = root["stream"].Value<string>("url");
                     if (string.IsNullOrEmpty(file))
                         return null;
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, file, cacheTime(20, init: init));
                 }
 
