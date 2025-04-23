@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -11,6 +12,7 @@ using Lampac.Engine.CORE;
 using Lampac.Models.Module;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Model.Base;
@@ -179,6 +181,21 @@ namespace SISI
                         url = $"{host}/{plugin ?? name.ToLower()}";
 
                     channels.Add(new ChannelItem(init.displayname ?? name, url));
+                }
+            }
+            #endregion
+
+            #region NextHUB
+            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+            {
+                foreach (string inFile in Directory.GetFiles("NextHUB", "*.json"))
+                {
+                    try
+                    {
+                        var init = JsonConvert.DeserializeObject<BaseSettings>($"{{{FileCache.ReadAllText(inFile)}}}");
+                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={Path.GetFileNameWithoutExtension(inFile)}", init.client_type);
+                    }
+                    catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
                 }
             }
             #endregion
