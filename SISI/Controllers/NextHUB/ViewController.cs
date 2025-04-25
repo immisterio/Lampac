@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
+using Microsoft.AspNetCore.Routing;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -21,10 +22,18 @@ namespace Lampac.Controllers.NextHUB
         [Route("nexthub/vidosik")]
         async public Task<ActionResult> Index(string uri, bool related)
         {
+            if (!AppInit.conf.sisi.NextHUB)
+                return OnError("disabled");
+
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
             var init = JsonConvert.DeserializeObject<NxtSettings>($"{{{FileCache.ReadAllText($"NextHUB/{plugin}.json")}}}");
+            if (string.IsNullOrEmpty(init.plugin))
+                init.plugin = init.displayname;
+
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
@@ -61,73 +70,166 @@ namespace Lampac.Controllers.NextHUB
 
             try
             {
-                string memKey = $"{init.plugin}:view18:goVideo:{url}";
+                string memKey = $"nexthub:view18:goVideo:{url}";
                 if (init.view.bindingToIP)
                     memKey += $":{proxyManager.CurrentProxyIp}";
 
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
-                    using (var browser = new PlaywrightBrowser())
+                    using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen);
                         if (page == null)
                             return default;
+
+                        string browser_host = "." + Regex.Replace(init.host, "^https?://", "");
+
+                        if (init.view.keepopen)
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = browser_host, Name = "cf_clearance" });
+
+                        if (init.cookies != null)
+                            await page.Context.AddCookiesAsync(init.cookies);
 
                         if (!string.IsNullOrEmpty(init.view.addInitScript))
                             await page.AddInitScriptAsync(init.view.addInitScript);
 
-                        await page.RouteAsync("**/*", async route =>
+                        if (!string.IsNullOrEmpty(init.view.evaluate))
                         {
-                            try
+                            #region response
+                            string html = null;
+                            IResponse response = default;
+
+                            if (init.view.NetworkIdle)
                             {
-                                if (browser.IsCompleted || (init.view.patternAbort != null && Regex.IsMatch(route.Request.Url, init.view.patternAbort, RegexOptions.IgnoreCase)))
+                                response = await page.GotoAsync(url);
+                                if (response != null)
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
+                                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                                    html = await page.ContentAsync();
+                                }
+                            }
+                            else
+                            {
+                                if (browser.firefox != null)
+                                {
+                                    response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                                }
+                                else
+                                {
+                                    response = await page.GotoAsync($"view-source:{url}");
                                 }
 
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: init.view.abortMedia, fullCacheJS: init.view.fullCacheJS))
-                                    return;
+                                if (response != null)
+                                    html = await response.TextAsync();
+                            }
 
-                                if (Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
+                            PlaywrightBase.WebLog(response.Request, response, html, proxy);
+                            #endregion
+
+                            #region evaluate
+                            if (!string.IsNullOrEmpty(html))
+                            {
+                                string evaluate = init.view.evaluate;
+                                if (evaluate.EndsWith(".js"))
+                                    evaluate = System.IO.File.ReadAllText($"NextHUB/{init.view.evaluate}");
+
+                                cache.file = await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { html, plugin, url });
+                                Console.WriteLine($"Playwright: SET {cache.file}");
+                            }
+                            #endregion
+                        }
+                        else
+                        {
+                            #region RouteAsync
+                            await page.RouteAsync("**/*", async route =>
+                            {
+                                try
                                 {
-                                    cache.headers = new List<HeadersModel>();
-                                    foreach (var item in route.Request.Headers)
+                                    if (browser.IsCompleted || (init.view.patternAbort != null && Regex.IsMatch(route.Request.Url, init.view.patternAbort, RegexOptions.IgnoreCase)))
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
-                                            continue;
-
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                        await route.AbortAsync();
+                                        return;
                                     }
 
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
-                                    browser.SetPageResult(route.Request.Url);
-                                    await route.AbortAsync();
-                                    return;
+                                    if (Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
+                                    {
+                                        cache.headers = new List<HeadersModel>();
+                                        foreach (var item in route.Request.Headers)
+                                        {
+                                            if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
+                                                continue;
+
+                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        }
+
+                                        Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                        browser.SetPageResult(route.Request.Url);
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    if (init.view.abortMedia || init.view.fullCacheJS)
+                                    {
+                                        if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: init.view.abortMedia, fullCacheJS: init.view.fullCacheJS))
+                                            return;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
+                                    }
+
+                                    await route.ContinueAsync();
+                                }
+                                catch { }
+                            });
+                            #endregion
+
+                            #region related
+                            if (init.view.related)
+                            {
+                                string content = null;
+
+                                if (init.view.NetworkIdle)
+                                {
+                                    PlaywrightBase.GotoAsync(page, url);
+                                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                                    content = await page.ContentAsync();
+                                }
+                                else
+                                {
+                                    var responce = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                                    if (responce != null)
+                                        content = await responce.TextAsync();
                                 }
 
-                                await route.ContinueAsync();
+                                if (!string.IsNullOrEmpty(content))
+                                    cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, content, plugin);
                             }
-                            catch { }
-                        });
+                            else
+                            {
+                                PlaywrightBase.GotoAsync(page, url);
+                            }
+                            #endregion
 
-                        PlaywrightBase.GotoAsync(page, url);
+                            #region playbtn
+                            if (!string.IsNullOrEmpty(init.view.playbtn))
+                            {
+                                try
+                                {
+                                    await page.WaitForSelectorAsync(init.view.playbtn, new PageWaitForSelectorOptions
+                                    {
+                                        Timeout = (float)TimeSpan.FromSeconds(init.view.playbtn_timeout).TotalSeconds
+                                    });
+                                }
+                                catch { }
 
-                        if (init.view.related)
-                        {
-                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                            string content = await page.ContentAsync();
-                            cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, content, plugin);
+                                await page.ClickAsync(init.view.playbtn);
+                            }
+                            #endregion
+
+                            cache.file = await browser.WaitPageResult();
                         }
-
-                        if (!string.IsNullOrEmpty(init.view.playbtn))
-                        {
-                            await page.WaitForSelectorAsync(init.view.playbtn);
-                            await page.ClickAsync(init.view.playbtn);
-                        }
-
-                        cache.file = await browser.WaitPageResult();
                     }
 
                     if (cache.file == null)

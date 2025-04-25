@@ -78,7 +78,7 @@ namespace SISI
 
             var channels = new List<ChannelItem>() 
             {
-                new ChannelItem("Закладки", $"{host}/sisi/bookmarks")
+                new ChannelItem("Закладки", $"{host}/sisi/bookmarks", 0)
             };
 
             #region modules
@@ -180,13 +180,17 @@ namespace SISI
                     if (string.IsNullOrEmpty(url))
                         url = $"{host}/{plugin ?? name.ToLower()}";
 
-                    channels.Add(new ChannelItem(init.displayname ?? name, url));
+                    int displayindex = init.displayindex;
+                    if (displayindex == 0)
+                        displayindex = 20 + channels.Count;
+
+                    channels.Add(new ChannelItem(init.displayname ?? name, url, displayindex));
                 }
             }
             #endregion
 
             #region NextHUB
-            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled && conf.sisi.NextHUB)
             {
                 foreach (string inFile in Directory.GetFiles("NextHUB", "*.json"))
                 {
@@ -219,6 +223,9 @@ namespace SISI
             if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
                 send("bongacams.com", conf.BongaCams, "bgs", "apk");
 
+            if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Runetki.overridehost))
+                send("runetki.com", conf.Runetki, "runetki", "apk");
+
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
 
@@ -239,7 +246,7 @@ namespace SISI
                         if (channels.FirstOrDefault(i => i.title == title) != null)
                             continue;
 
-                        channels.Add(new ChannelItem(title, playlist_url));
+                        channels.Add(new ChannelItem(title, playlist_url, 20 + channels.Count));
                     }
                 }
                 catch { }
@@ -248,7 +255,7 @@ namespace SISI
             return Json(new
             {
                 title = "sisi",
-                channels
+                channels = channels.OrderBy(i => i.displayindex)
             });
         }
     }

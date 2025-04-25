@@ -366,7 +366,7 @@ namespace Shared.Engine
 
         public static void GotoAsync(IPage page, string uri)
         {
-            _ = page.GotoAsync(uri).ConfigureAwait(false);
+            _ = page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
         }
     }
 }

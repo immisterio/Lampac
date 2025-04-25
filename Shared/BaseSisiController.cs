@@ -21,10 +21,10 @@ namespace SISI
 {
     public class BaseSisiController : BaseController
     {
-        public SisiSettings init { get; private set; }
+        public BaseSettings init { get; private set; }
 
         #region IsBadInitialization
-        async public ValueTask<bool> IsBadInitialization(SisiSettings init, bool? rch = null)
+        async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null)
         {
             if (AppInit.modules != null)
             {

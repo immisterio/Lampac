@@ -61,7 +61,6 @@ namespace Lampac.Controllers.LITE
                             return res.Fail("hash");
 
                         init.hash_apitv = hash;
-                        System.IO.File.WriteAllText("cache/filmixtv.hash", hash);
                     }
 
                     JObject root_auth = null;
@@ -80,14 +79,20 @@ namespace Lampac.Controllers.LITE
 
                     string accessToken = root_auth?.GetValue("accessToken")?.ToString();
                     if (string.IsNullOrEmpty(accessToken))
-                        return res.Fail("accessToken");
+                    {
+                        if (root_auth.ContainsKey("msg"))
+                            return res.Fail(root_auth.Value<string>("msg"));
 
+                        return res.Fail("accessToken");
+                    }
+
+                    System.IO.File.WriteAllText("cache/filmixtv.hash", init.hash_apitv);
                     System.IO.File.WriteAllText("cache/filmixtv.auth", root_auth.ToString());
                     return accessToken;
                 });
 
                 if (!auth.IsSuccess)
-                    return OnError(auth.ErrorMsg);
+                    return ShowError(auth.ErrorMsg);
 
                 init.token_apitv = auth.Value;
             }

@@ -8,7 +8,6 @@ using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.PlaywrightCore;
-using System;
 
 namespace Lampac.Controllers.LITE
 {

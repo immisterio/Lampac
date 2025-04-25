@@ -183,7 +183,7 @@ namespace Shared.Engine
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default)
+        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = false)
         {
             try
             {
@@ -193,26 +193,29 @@ namespace Shared.Engine
                 if (proxy != default)
                 {
                     #region proxy NewContext
-                    foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy != default))
+                    if (keepopen)
                     {
-                        if (pg.plugin == plugin)
+                        foreach (var pg in pages_keepopen.ToArray().Where(i => i.proxy != default))
                         {
-                            if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                            if (pg.plugin == plugin)
                             {
-                                _ = pg.page.CloseAsync();
-                                pages_keepopen.Remove(pg);
-                                continue;
+                                if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
+                                {
+                                    _ = pg.page.CloseAsync();
+                                    pages_keepopen.Remove(pg);
+                                    continue;
+                                }
                             }
-                        }
 
-                        if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
-                        {
-                            stats_keepopen++;
-                            pg.busy = true;
-                            keepopen_page = pg;
-                            page = pg.page;
-                            page.RequestFailed += Page_RequestFailed;
-                            return page;
+                            if (pg.proxy.ip == proxy.ip && pg.proxy.username == proxy.username && pg.proxy.password == proxy.password)
+                            {
+                                stats_keepopen++;
+                                pg.busy = true;
+                                keepopen_page = pg;
+                                page = pg.page;
+                                page.RequestFailed += Page_RequestFailed;
+                                return page;
+                            }
                         }
                     }
 
@@ -235,16 +238,19 @@ namespace Shared.Engine
                 else
                 {
                     #region NewContext
-                    foreach (var pg in pages_keepopen.Where(i => i.proxy == default))
+                    if (keepopen)
                     {
-                        if (pg.busy == false && DateTime.Now > pg.lockTo)
+                        foreach (var pg in pages_keepopen.Where(i => i.proxy == default))
                         {
-                            stats_keepopen++;
-                            pg.busy = true;
-                            keepopen_page = pg;
-                            page = pg.page;
-                            page.RequestFailed += Page_RequestFailed;
-                            return page;
+                            if (pg.busy == false && DateTime.Now > pg.lockTo)
+                            {
+                                stats_keepopen++;
+                                pg.busy = true;
+                                keepopen_page = pg;
+                                page = pg.page;
+                                page.RequestFailed += Page_RequestFailed;
+                                return page;
+                            }
                         }
                     }
 
@@ -259,7 +265,7 @@ namespace Shared.Engine
                 page.Popup += Page_Popup;
                 page.Download += Page_Download;
 
-                if (!AppInit.conf.firefox.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.firefox.context.min, AppInit.conf.firefox.context.max))
+                if (!keepopen || !AppInit.conf.firefox.context.keepopen || pages_keepopen.Count >= Math.Max(AppInit.conf.firefox.context.min, AppInit.conf.firefox.context.max))
                 {
                     page.RequestFailed += Page_RequestFailed;
                     return page;

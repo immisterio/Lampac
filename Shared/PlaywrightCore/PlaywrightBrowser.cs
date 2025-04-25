@@ -35,6 +35,17 @@ namespace Shared.PlaywrightCore
             }
         }
 
+        public TaskCompletionSource<string> completionSource
+        {
+            get
+            {
+                if (chromium != null)
+                    return chromium.completionSource;
+
+                return firefox.completionSource;
+            }
+        }
+
 
         public Chromium chromium = null;
 
@@ -103,7 +114,7 @@ namespace Shared.PlaywrightCore
                 if (chromium != null)
                     return chromium.NewPageAsync(plugin, headers, proxy, keepopen: keepopen, imitationHuman: imitationHuman);
 
-                return firefox.NewPageAsync(plugin, headers, proxy);
+                return firefox.NewPageAsync(plugin, headers, proxy, keepopen: keepopen);
             }
             catch { return default; }
         }
@@ -149,7 +160,7 @@ namespace Shared.PlaywrightCore
 
 
 
-        async public static ValueTask<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, PlaywrightStatus minimalAPI = PlaywrightStatus.NoHeadless)
+        async public static ValueTask<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, PlaywrightStatus minimalAPI = PlaywrightStatus.NoHeadless, List<Cookie> cookies = null)
         {
             try
             {
@@ -159,7 +170,20 @@ namespace Shared.PlaywrightCore
                     if (page == null)
                         return null;
 
-                    var response = await page.GotoAsync($"view-source:{url}");
+                    if (cookies != null)
+                        await page.Context.AddCookiesAsync(cookies);
+
+                    IResponse response = default;
+
+                    if (browser.firefox != null)
+                    {
+                        response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                    }
+                    else
+                    {
+                        response = await page.GotoAsync($"view-source:{url}");
+                    }
+
                     if (response != null)
                     {
                         string result = await response.TextAsync();
