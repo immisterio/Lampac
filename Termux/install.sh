@@ -92,6 +92,9 @@ cat <<EOF > init.conf
   "BongaCams": {
     "rhub": true
   },
+  "Runetki": {
+    "rhub": true
+  },
   "VDBmovies": {
     "rhub": true
   },
