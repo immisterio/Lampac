@@ -37,20 +37,32 @@ namespace Lampac.Controllers.Ebalovo
                 stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", ehost, uri,
                     url => 
                     {
-                        return rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        var headers = httpHeaders(init, HeadersModel.Init(
+                            ("sec-fetch-dest", "document"),
+                            ("sec-fetch-mode", "navigate"),
+                            ("sec-fetch-site", "same-origin"),
+                            ("sec-fetch-user", "?1"),
+                            ("upgrade-insecure-requests", "1")
+                        ));
+
+                        return rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: headers);
                     },
                     async location =>
                     {
+                        var headers = httpHeaders(init, HeadersModel.Init(
+                            ("referer", $"{ehost}/"),
+                            ("sec-fetch-dest", "video"),
+                            ("sec-fetch-mode", "no-cors"),
+                            ("sec-fetch-site", "same-origin")
+                        ));
+
                         if (rch.enable)
                         {
-                            var res = await rch.Headers(init.cors(location), null, httpHeaders(init, HeadersModel.Init(
-                                ("referer", $"{ehost}/")
-                            )));
-
+                            var res = await rch.Headers(init.cors(location), null, headers);
                             return res.currentUrl;
                         }
 
-                        return await HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, referer: $"{ehost}/", headers: httpHeaders(init));
+                        return await HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     }
                 );
 

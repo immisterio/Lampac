@@ -6,13 +6,13 @@ using Lampac.Models.SISI;
 using Shared.Model.Online;
 using Shared.Engine;
 using Shared.Model.SISI.NextHUB;
-using Newtonsoft.Json;
 using Shared.PlaywrightCore;
 using System.Collections.Generic;
 using System;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.AspNetCore.Routing;
+using HtmlAgilityPack;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -28,9 +28,9 @@ namespace Lampac.Controllers.NextHUB
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
-            var init = JsonConvert.DeserializeObject<NxtSettings>($"{{{FileCache.ReadAllText($"NextHUB/{plugin}.json")}}}");
-            if (string.IsNullOrEmpty(init.plugin))
-                init.plugin = init.displayname;
+            var init = RootController.goInit(plugin);
+            if (init == null)
+                return OnError("init not found");
 
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
@@ -152,7 +152,7 @@ namespace Lampac.Controllers.NextHUB
                                         return;
                                     }
 
-                                    if (Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
+                                    if (init.view.patternFile != null && Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
                                     {
                                         cache.headers = new List<HeadersModel>();
                                         foreach (var item in route.Request.Headers)
@@ -185,58 +185,97 @@ namespace Lampac.Controllers.NextHUB
                             });
                             #endregion
 
-                            #region related
-                            if (init.view.related)
-                            {
-                                string content = null;
-
-                                if (init.view.NetworkIdle)
-                                {
-                                    PlaywrightBase.GotoAsync(page, url);
-                                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                                    content = await page.ContentAsync();
-                                }
-                                else
-                                {
-                                    var responce = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
-                                    if (responce != null)
-                                        content = await responce.TextAsync();
-                                }
-
-                                if (!string.IsNullOrEmpty(content))
-                                    cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, content, plugin);
-                            }
-                            else
-                            {
-                                PlaywrightBase.GotoAsync(page, url);
-                            }
+                            #region GotoAsync
+                            string html = null;
+                            var responce = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                            if (responce != null)
+                                html = await responce.TextAsync();
                             #endregion
 
-                            #region playbtn
-                            if (!string.IsNullOrEmpty(init.view.playbtn))
+                            #region WaitForSelector
+                            if (!string.IsNullOrEmpty(init.view.waitForSelector) || !string.IsNullOrEmpty(init.view.playbtn))
                             {
                                 try
                                 {
-                                    await page.WaitForSelectorAsync(init.view.playbtn, new PageWaitForSelectorOptions
+                                    await page.WaitForSelectorAsync(init.view.waitForSelector ?? init.view.playbtn, new PageWaitForSelectorOptions
                                     {
-                                        Timeout = (float)TimeSpan.FromSeconds(init.view.playbtn_timeout).TotalSeconds
+                                        Timeout = init.view.waitForSelector_timeout
                                     });
                                 }
                                 catch { }
-
-                                await page.ClickAsync(init.view.playbtn);
                             }
                             #endregion
 
-                            cache.file = await browser.WaitPageResult();
+                            if (!string.IsNullOrEmpty(init.view.playbtn))
+                                await page.ClickAsync(init.view.playbtn);
+
+                            if (init.view.nodeFile != null)
+                            {
+                                #region nodeFile
+                                string goFile(string _content)
+                                {
+                                    if (!string.IsNullOrEmpty(_content))
+                                    {
+                                        var doc = new HtmlDocument();
+                                        doc.LoadHtml(_content);
+                                        var videoNode = doc.DocumentNode.SelectSingleNode(init.view.nodeFile.node);
+                                        if (videoNode != null)
+                                            return (!string.IsNullOrEmpty(init.view.nodeFile.attribute) ? videoNode.GetAttributeValue(init.view.nodeFile.attribute, null) : videoNode.InnerText)?.Trim();
+                                    }
+
+                                    return null;
+                                }
+
+                                if (init.view.NetworkIdle)
+                                {
+                                    for (int i = 0; i < 10; i++)
+                                    {
+                                        cache.file = goFile(await page.ContentAsync());
+                                        if (!string.IsNullOrEmpty(cache.file))
+                                            break;
+
+                                        Console.WriteLine("ContentAsync: " + (i+1));
+                                        await Task.Delay(800);
+                                    }
+                                }
+                                else
+                                {
+                                    cache.file = goFile(html);
+                                }
+                                #endregion
+                            }
+                            else
+                            {
+                                cache.file = await browser.WaitPageResult();
+                            }
+
+                            #region related
+                            if (!string.IsNullOrEmpty(cache.file))
+                            {
+                                if (init.view.related)
+                                {
+                                    if (init.view.NetworkIdle)
+                                    {
+                                        string contetnt = await page.ContentAsync();
+                                        cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, contetnt, plugin);
+                                    }
+                                    else
+                                    {
+                                        cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, html, plugin);
+                                    }
+                                }
+                            }
+                            #endregion
                         }
                     }
 
-                    if (cache.file == null)
+                    if (string.IsNullOrEmpty(cache.file))
                     {
                         proxyManager.Refresh();
                         return default;
                     }
+
+                    cache.file = cache.file.Replace("\\", "").Replace("&amp;", "&");
 
                     proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time, init: init));

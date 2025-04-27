@@ -196,8 +196,15 @@ namespace SISI
                 {
                     try
                     {
-                        var init = JsonConvert.DeserializeObject<BaseSettings>($"{{{FileCache.ReadAllText(inFile)}}}");
-                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={Path.GetFileNameWithoutExtension(inFile)}", init.client_type);
+                        string plugin = Path.GetFileNameWithoutExtension(inFile);
+                        var init = Lampac.Controllers.NextHUB.RootController.goInit(plugin);
+                        if (init == null)
+                            continue;
+
+                        if (init.debug)
+                            Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
+
+                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", init.client_type);
                     }
                     catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
                 }

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Lampac.Models.SISI;
 using Shared.Engine.CORE;
 using SISI;
-using Newtonsoft.Json;
 using Shared.Model.SISI.NextHUB;
 using Shared.PlaywrightCore;
 using Shared.Model.SISI;
@@ -29,9 +28,9 @@ namespace Lampac.Controllers.NextHUB
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
 
-            var init = JsonConvert.DeserializeObject<NxtSettings>($"{{{FileCache.ReadAllText($"NextHUB/{plugin}.json")}}}");
-            if (string.IsNullOrEmpty(init.plugin))
-                init.plugin = init.displayname;
+            var init = RootController.goInit(plugin);
+            if (init == null)
+                return OnError("init not found");
 
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
@@ -43,10 +42,12 @@ namespace Lampac.Controllers.NextHUB
                 var proxy = proxyManager.BaseGet();
 
                 #region html
-                string url = $"{init.host}/{init.list.uri}";
+                string url = $"{init.host}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
                 if (!string.IsNullOrEmpty(search))
-                    url = $"{init.host}/{init.search.uri}".Replace("{search}", HttpUtility.UrlEncode(search));
-
+                {
+                    string uri = pg == 1 && init.search.firstpage != null ? init.search.firstpage : init.search.uri;
+                    url = $"{init.host}/{uri}".Replace("{search}", HttpUtility.UrlEncode(search));
+                }
                 else if (!string.IsNullOrEmpty(sort))
                     url = $"{init.host}/{sort}";
 
@@ -144,7 +145,7 @@ namespace Lampac.Controllers.NextHUB
         #region goPlaylist
         public static List<PlaylistItem> goPlaylist(string host, ContentParseSettings parse, NxtSettings init, string html, string plugin)
         {
-            if (parse == null || string.IsNullOrEmpty(parse.nodes))
+            if (parse == null || string.IsNullOrEmpty(parse.nodes) || string.IsNullOrEmpty(html))
                 return null;
 
             if (init.debug)
@@ -275,9 +276,27 @@ namespace Lampac.Controllers.NextHUB
                         catch { }
                     });
 
+                    string content = null;
                     PlaywrightBase.GotoAsync(page, url);
-                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                    string content = await page.ContentAsync();
+
+                    if (!string.IsNullOrEmpty(conf.waitForSelector))
+                    {
+                        try
+                        {
+                            await page.WaitForSelectorAsync(conf.waitForSelector, new PageWaitForSelectorOptions
+                            {
+                                Timeout = conf.waitForSelector_timeout
+                            });
+                        }
+                        catch { }
+
+                        content = await page.ContentAsync();
+                    }
+                    else
+                    {
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        content = await page.ContentAsync();
+                    }
 
                     PlaywrightBase.WebLog("GET", url, content, proxy);
                     return content;

@@ -309,7 +309,6 @@ namespace Shared.Engine
             catch { return null; }
         }
 
-
         void Page_RequestFailed(object sender, IRequest e)
         {
             try

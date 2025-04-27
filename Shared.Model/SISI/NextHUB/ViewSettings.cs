@@ -8,9 +8,13 @@
 
         public string? playbtn { get; set; }
 
-        public int playbtn_timeout { get; set; } = 4;
+        public string waitForSelector { get; set; }
+
+        public float waitForSelector_timeout { get; set; } = 5000;
 
         public string patternFile { get; set; }
+
+        public SingleNodeSettings nodeFile { get; set; }
 
         public bool bindingToIP { get; set; }
 

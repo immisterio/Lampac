@@ -6,6 +6,7 @@ using Lampac.Models.SISI;
 using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.Ebalovo
 {
@@ -34,8 +35,16 @@ namespace Lampac.Controllers.Ebalovo
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
+                var headers = httpHeaders(init, HeadersModel.Init(
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("sec-fetch-user", "?1"),
+                    ("upgrade-insecure-requests", "1")
+                ));
+
                 string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
                 );
 
                 playlists = EbalovoTo.Playlist($"{host}/elo/vidosik", html);
