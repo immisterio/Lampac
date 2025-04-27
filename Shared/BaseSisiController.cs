@@ -185,7 +185,7 @@ namespace SISI
                     picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers),
                     json = pl.json
                 }),
-                headers_stream = headers_stream?.ToDictionary()
+                headers_stream = headers_stream?.ToDictionary() ?? init.headers_stream
             });
         }
         #endregion
