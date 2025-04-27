@@ -4,7 +4,7 @@
     {
         public string? addInitScript { get; set; }
 
-        public string? evaluate { get; set; }
+        public string? eval { get; set; }
 
         public string? playbtn { get; set; }
 

@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System;
 using Lampac.Engine.CORE;
+using Z.Expressions;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -159,6 +160,7 @@ namespace Lampac.Controllers.NextHUB
                 return null;
 
             var playlists = new List<PlaylistItem>() { Capacity = nodes.Count };
+            string eval = string.IsNullOrEmpty(parse.eval) ? null : FileCache.ReadAllText($"NextHUB/{parse.eval}");
 
             foreach (var row in nodes)
             {
@@ -188,9 +190,10 @@ namespace Lampac.Controllers.NextHUB
                 string img = nodeValue(parse.img);
                 string duration = nodeValue(parse.duration);
                 string quality = nodeValue(parse.quality);
+                string myarg = nodeValue(parse.myarg);
 
                 if (init.debug)
-                    Console.WriteLine($"\n\nname: {name}\nhref: {href}\nimg: {img}\nduration: {duration}\nquality: {quality}\n\n{row.OuterHtml}");
+                    Console.WriteLine($"\n\nname: {name}\nhref: {href}\nimg: {img}\nduration: {duration}\nquality: {quality}\nmyarg: {myarg}\n\n{row.OuterHtml}");
 
                 if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(href))
                 {
@@ -216,8 +219,10 @@ namespace Lampac.Controllers.NextHUB
                         video = $"{host}/nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}",
                         picture = img,
                         time = duration,
+                        quality = quality,
+                        myarg = myarg,
                         json = true,
-                        related = init.view.related,
+                        related = init.view != null ? init.view.related : false,
                         bookmark = new Bookmark()
                         {
                             site = "nexthub",
@@ -226,7 +231,11 @@ namespace Lampac.Controllers.NextHUB
                         }
                     };
 
-                    playlists.Add(pl);
+                    if (eval != null)
+                        pl = Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
+
+                    if (pl != null)
+                        playlists.Add(pl);
                 }
             }
 

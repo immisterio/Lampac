@@ -13,5 +13,9 @@
         public SingleNodeSettings? duration { get; set; }
 
         public SingleNodeSettings? quality { get; set; }
+
+        public SingleNodeSettings? myarg { get; set; }
+
+        public string eval { get; set; }
     }
 }
