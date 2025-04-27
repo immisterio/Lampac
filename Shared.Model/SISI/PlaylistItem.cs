@@ -16,6 +16,8 @@ namespace Lampac.Models.SISI
 
         public string? time { get; set; }
 
+        public string? myarg { get; set; }
+
         public bool json { get; set; }
 
         public bool hide { get; set; }

@@ -26,8 +26,15 @@ namespace Lampac.Controllers.Ebalovo
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return OnError(rch_error);
 
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.enable && 484 > rch.InfoConnected().apkVersion)
+            {
                 rch.Disabled(); // на версиях ниже java.lang.OutOfMemoryError
+                if (!init.rhub_fallback)
+                    return OnError("apkVersion", false);
+            }
 
             string memKey = rch.ipkey($"ebalovo:view:{uri}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))

@@ -107,7 +107,7 @@ namespace SISI
         public JsonResult OnResult(List<PlaylistItem> playlists, BaseSettings conf, List<MenuItem> menu, WebProxy proxy = null, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
-                return OnError("playlists");
+                return OnError("playlists", false);
 
             return new JsonResult(new OnListResult()
             {
@@ -133,7 +133,7 @@ namespace SISI
         public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
         {
             if (playlists == null || playlists.Count == 0)
-                return OnError("playlists");
+                return OnError("playlists", false);
 
             return new JsonResult(new OnListResult()
             {
@@ -185,7 +185,7 @@ namespace SISI
                     picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers),
                     json = pl.json
                 }),
-                headers_stream = headers_stream?.ToDictionary() ?? init.headers_stream
+                headers_stream = init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream)
             });
         }
         #endregion
