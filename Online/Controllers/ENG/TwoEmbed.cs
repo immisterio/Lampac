@@ -48,7 +48,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: httpHeaders(init.host, init.headers_stream)));
+            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)));
         }
         #endregion
 

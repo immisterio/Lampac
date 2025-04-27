@@ -54,7 +54,7 @@ namespace Shared.Model
 
         public SisiSettings Chaturbate { get; set; } = new SisiSettings("Chaturbate", "kwwsv=22fkdwxuedwh1frp");
 
-        public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur", streamproxy: true) 
+        public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur") 
         {
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -459,7 +459,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
         /// </summary>
-        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur");
+        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
 
         /// <summary>
         /// aHR0cHM6Ly92aWRzcmMueHl6

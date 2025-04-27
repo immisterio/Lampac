@@ -85,11 +85,15 @@ namespace Lampac.Controllers.LITE
                     }
                     catch { }
 
-                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders);
+                    var lastHeaders_headers = httpHeaders(init.host, init.headers_stream);
+                    if (lastHeaders_headers.Count == 0)
+                        lastHeaders_headers = lastHeaders;
+
+                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders_headers);
                     if (play)
                         return Redirect(file);
 
-                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders));
+                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders_headers));
                 }
             }
             #endregion
@@ -98,12 +102,16 @@ namespace Lampac.Controllers.LITE
             if (cache.m3u8 == null)
                 return StatusCode(502);
 
-            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
+            if (headers_stream.Count == 0)
+                headers_stream = cache.headers;
+
+            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
 
             if (play)
                 return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: cache.headers));
+            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }
         #endregion
 

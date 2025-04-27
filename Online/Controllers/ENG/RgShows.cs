@@ -7,6 +7,7 @@ using Lampac.Engine.CORE;
 using System.Net;
 using Shared.Model.Templates;
 using System;
+using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {
@@ -48,7 +49,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(file);
 
-            return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)));
         }
         #endregion
 
