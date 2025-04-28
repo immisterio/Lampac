@@ -161,7 +161,7 @@ namespace SISI
             return OnResult(new StreamItem() { qualitys = stream_links }, init, proxy, headers_stream: headers_stream);
         }
 
-        public JsonResult OnResult(StreamItem stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers = null, List<HeadersModel> headers_stream = null)
+        public JsonResult OnResult(StreamItem stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_img = null, List<HeadersModel> headers_stream = null)
         {
             Dictionary<string, string> qualitys_proxy = null;
 
@@ -170,19 +170,19 @@ namespace SISI
                 if (init.qualitys_proxy)
                 {
                     var bsc = new BaseSettings() { streamproxy = true, useproxystream = init.useproxystream, apn = init.apn, apnstream = init.apnstream };
-                    qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(bsc, v.Value, proxy: proxy));
+                    qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(bsc, v.Value, proxy: proxy, headers: headers_stream));
                 }
             }
 
             return new JsonResult(new OnStreamResult()
             {
-                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy)),
+                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream)),
                 qualitys_proxy = qualitys_proxy,
                 recomends = stream_links?.recomends?.Select(pl => new PlaylistItem
                 {
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers),
+                    picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers_img),
                     json = pl.json
                 }),
                 headers_stream = init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream)

@@ -14,6 +14,7 @@ using Microsoft.Playwright;
 using Microsoft.AspNetCore.Routing;
 using HtmlAgilityPack;
 using Z.Expressions;
+using Newtonsoft.Json;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -59,7 +60,7 @@ namespace Lampac.Controllers.NextHUB
             if (init.headers_stream != null)
                 headers = httpHeaders(init.host, init.headers_stream);
 
-            return OnResult(stream_links, init, proxy.proxy, headers: headers);
+            return OnResult(stream_links, init, proxy.proxy, headers_stream: headers);
         }
 
 
@@ -117,7 +118,7 @@ namespace Lampac.Controllers.NextHUB
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                     }
 
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    Console.WriteLine($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
                                     browser.SetPageResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
