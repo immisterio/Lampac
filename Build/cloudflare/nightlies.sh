@@ -30,7 +30,7 @@ cp Tracks/bin/Release/net6.0/publish/Tracks.dll lpc/module/
 cd lpc/
 rm -f Lampac.runtimeconfig.json
 
-curl -L -k -o cloudflare.zip https://lampac.sh/update/cloudflare.zip
+curl -L -k -o cloudflare.zip "https://lampac.sh/update/cloudflare.zip?v=$(date +%s)"
 unzip -o cloudflare.zip
 rm -f cloudflare.zip
 

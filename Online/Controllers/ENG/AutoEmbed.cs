@@ -4,7 +4,6 @@ using Shared.Engine.CORE;
 using Shared.Engine;
 using Lampac.Models.LITE;
 using System;
-using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
@@ -66,7 +65,10 @@ namespace Lampac.Controllers.LITE
                     ));
 
                     if (root == null && !root.ContainsKey("encryptedData"))
+                    {
+                        proxyManager.Refresh();
                         return OnError();
+                    }
 
                     string encryptedData = root.Value<string>("encryptedData");
                     if (string.IsNullOrEmpty(encryptedData))
@@ -90,6 +92,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     data = videoSource;
+                    proxyManager.Success();
                     hybridCache.Set(uri, data, cacheTime(20));
                 }
 
@@ -105,11 +108,11 @@ namespace Lampac.Controllers.LITE
                 if (play)
                     return Redirect(file);
 
-                return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast));
+                return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: httpHeaders(init.host, init.headers_stream)));
             }
             else
             {
-                string file = await black_magic(embed, init, proxy.data);
+                string file = await black_magic(embed, init, proxyManager, proxy.data);
                 if (file == null)
                     return StatusCode(502);
 
@@ -118,13 +121,13 @@ namespace Lampac.Controllers.LITE
                 if (play)
                     return Redirect(file);
 
-                return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast));
+                return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: httpHeaders(init.host, init.headers_stream)));
             }
         }
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return uri;
@@ -168,13 +171,17 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = page.GotoAsync(uri).ConfigureAwait(false);
+                        PlaywrightBase.GotoAsync(page, uri);
                         mp4 = await browser.WaitPageResult();
                     }
 
                     if (mp4 == null)
+                    {
+                        proxyManager.Refresh();
                         return null;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, mp4, cacheTime(20, init: init));
                 }
 

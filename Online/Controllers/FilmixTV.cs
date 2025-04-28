@@ -10,6 +10,7 @@ using Shared.Model.Online.Filmix;
 using Shared.Model.Online;
 using System.Text;
 using Shared.Model.Online.FilmixTV;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -44,32 +45,71 @@ namespace Lampac.Controllers.LITE
             #region accessToken
             if (string.IsNullOrEmpty(init.token_apitv))
             {
-                var auth = await InvokeCache<string>($"filmixtv:accessToken:{init.user_apitv}:{init.passwd_apitv}", TimeSpan.FromHours(8), proxyManager, async res =>
+                if (System.IO.File.Exists("cache/filmixtv.hash"))
+                    init.hash_apitv = System.IO.File.ReadAllText("cache/filmixtv.hash");
+
+                var auth = await InvokeCache<string>($"filmixtv:accessToken:{init.user_apitv}:{init.passwd_apitv}", TimeSpan.FromHours(2), proxyManager, async res =>
                 {
-                    string url_api = $"{init.corsHost()}/api-fx/auth";
-                    string data = $"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\"}}";
+                    if (init.hash_apitv == null)
+                    {
+                        var rtk = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/request-token", timeoutSeconds: 8);
+                        if (rtk == null || !rtk.ContainsKey("token"))
+                            return res.Fail("rtk");
 
-                    var jobject = await HttpClient.Post<JObject>(url_api, new System.Net.Http.StringContent(data, Encoding.UTF8, "application/json"), timeoutSeconds: 8);
+                        string hash = rtk.Value<string>("token");
+                        if (string.IsNullOrEmpty(hash))
+                            return res.Fail("hash");
 
-                    return jobject?.GetValue("accessToken")?.ToString();
+                        init.hash_apitv = hash;
+                    }
+
+                    JObject root_auth = null;
+
+                    if (System.IO.File.Exists("cache/filmixtv.auth"))
+                    {
+                        string authFile = System.IO.File.ReadAllText("cache/filmixtv.auth");
+                        string refreshToken = Regex.Match(authFile, "\"refreshToken\": ?\"([^\"]+)\"").Groups[1].Value;
+                        root_auth = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={refreshToken}", timeoutSeconds: 8, headers: HeadersModel.Init("hash", init.hash_apitv));
+                    }
+                    else
+                    {
+                        var data = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\",\"session\":true}}", Encoding.UTF8, "application/json");
+                        root_auth = await HttpClient.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, timeoutSeconds: 8, headers: HeadersModel.Init("hash", init.hash_apitv));
+                    }
+
+                    string accessToken = root_auth?.GetValue("accessToken")?.ToString();
+                    if (string.IsNullOrEmpty(accessToken))
+                    {
+                        if (root_auth.ContainsKey("msg"))
+                            return res.Fail(root_auth.Value<string>("msg"));
+
+                        return res.Fail("accessToken");
+                    }
+
+                    System.IO.File.WriteAllText("cache/filmixtv.hash", init.hash_apitv);
+                    System.IO.File.WriteAllText("cache/filmixtv.auth", root_auth.ToString());
+                    return accessToken;
                 });
 
                 if (!auth.IsSuccess)
-                    return OnError(auth.ErrorMsg);
-
-                if (string.IsNullOrEmpty(auth.Value))
-                    return OnError();
+                    return ShowError(auth.ErrorMsg);
 
                 init.token_apitv = auth.Value;
             }
             #endregion
 
+            var headers = httpHeaders(init, HeadersModel.Init
+            (
+                ("Authorization", $"Bearer {init.token_apitv}"),
+                ("hash", init.hash_apitv)
+            ));
+
             var oninvk = new FilmixTVInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data, head) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: httpHeaders(init, head)),
+               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
+               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: headers),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => proxyManager.Refresh(),
                rjson: rjson
@@ -93,7 +133,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<RootObject>($"filmixtv:post:{postid}:{init.token_apitv}", cacheTime(20, init: init), proxyManager, onget: async res =>
             {
-                string json = await HttpClient.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", timeoutSeconds: 8, headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
+                string json = await HttpClient.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", timeoutSeconds: 8, headers: headers);
 
                 return oninvk.Post(json);
             });

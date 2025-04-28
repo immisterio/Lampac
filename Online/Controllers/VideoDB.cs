@@ -142,7 +142,7 @@ namespace Lampac.Controllers.LITE
                                 catch { }
                             });
 
-                            _ = await page.GotoAsync(PlaywrightBase.IframeUrl(link));
+                            PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(link));
 
                             location = await browser.WaitPageResult();
                         }
@@ -242,7 +242,8 @@ namespace Lampac.Controllers.LITE
                         catch { }
                     });
 
-                    _ = await page.GotoAsync(init.host);
+                    PlaywrightBase.GotoAsync(page, init.host);
+
                     return await browser.WaitPageResult();
                 }
             }

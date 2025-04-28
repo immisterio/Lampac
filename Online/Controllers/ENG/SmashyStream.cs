@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/tv/{id}?s={s}&e={e}";
 
-            var cache = await black_magic(embed, init, proxy.data);
+            var cache = await black_magic(embed, init, proxyManager, proxy.data);
             if (cache.m3u8 == null)
                 return StatusCode(502);
 
@@ -52,7 +52,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -105,7 +105,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
@@ -125,8 +125,12 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (cache.m3u8 == null)
+                    {
+                        proxyManager.Refresh();
                         return default;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 

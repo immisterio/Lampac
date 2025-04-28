@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                ztfhost,
-               MaybeInHls(init.hls, init),
+               init.hls,
                (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy.proxy)
                //AppInit.log
@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                         var responce = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();

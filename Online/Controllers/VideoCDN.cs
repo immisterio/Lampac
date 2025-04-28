@@ -252,7 +252,11 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(url))
                     return OnError(null, gbcache: false);
 
-                hls = $"{init.scheme}:{url}";
+                if (url.StartsWith("/"))
+                    hls = $"{init.scheme}:{url}";
+                else
+                    hls = url;
+
                 hybridCache.Set(memkey, hls, DateTime.Now.AddMinutes(10));
             }
 

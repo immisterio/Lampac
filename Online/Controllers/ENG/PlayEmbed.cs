@@ -7,6 +7,7 @@ using System;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using Shared.Model.Online;
+using Shared.Model.Templates;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,14 +17,15 @@ namespace Lampac.Controllers.LITE
         [Route("lite/playembed")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Playembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson);
+            return ViewTmdb(AppInit.conf.Playembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
 
 
         #region Video
         [HttpGet]
+        [Route("lite/playembed/video")]
         [Route("lite/playembed/video.m3u8")]
-        async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1)
+        async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.Playembed);
             if (await IsBadInitialization(init, rch: false))
@@ -42,16 +44,25 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/tv/{imdb_id}/{s}/{e}";
 
-            var cache = await black_magic(embed, init, proxy.data);
+            var cache = await black_magic(embed, init, proxyManager, proxy.data);
             if (cache.m3u8 == null)
                 return StatusCode(502);
 
-            return Redirect(HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers));
+            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
+
+            if (play)
+                return Redirect(hls);
+
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
+            if (headers_stream.Count == 0)
+                headers_stream = cache.headers;
+
+            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -103,13 +114,17 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         cache.m3u8 = await browser.WaitPageResult();
                     }
 
                     if (cache.m3u8 == null)
+                    {
+                        proxyManager.Refresh();
                         return default;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 

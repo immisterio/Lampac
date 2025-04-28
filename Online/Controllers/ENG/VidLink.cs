@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
             if (s > 0)
                 embed = $"{init.host}/tv/{id}/{s}/{e}";
 
-            var cache = await black_magic(embed, init, proxy.data);
+            var cache = await black_magic(embed, init, proxyManager, proxy.data);
             if (cache.m3u8 == null)
                 return StatusCode(502);
 
@@ -51,12 +51,16 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(file);
 
-            return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: cache.headers));
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
+            if (headers_stream.Count == 0)
+                headers_stream = cache.headers;
+
+            return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -116,13 +120,17 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         cache.m3u8 = await browser.WaitPageResult();
                     }
 
                     if (cache.m3u8 == null)
+                    {
+                        proxyManager.Refresh();
                         return default;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 

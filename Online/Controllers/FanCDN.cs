@@ -95,11 +95,9 @@ namespace Lampac.Controllers.LITE
 
                            await page.Context.AddCookiesAsync(cookies);
 
-                           var response = await page.GotoAsync($"view-source:{ongettourl}");
+                           var response = await page.GotoAsync(ongettourl, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
                            if (response == null)
                                return null;
-
-                           //await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
                            string result = await response.TextAsync();
                            PlaywrightBase.WebLog("GET", ongettourl, result, proxy.data, response: response);
@@ -187,7 +185,7 @@ namespace Lampac.Controllers.LITE
                             }
                             else
                             {
-                                if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8") || route.Request.Url.Contains("/cdn-cgi/challenge-platform/"))
+                                if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8"))
                                 {
                                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
@@ -204,7 +202,7 @@ namespace Lampac.Controllers.LITE
                         catch { }
                     });
 
-                    _ = page.GotoAsync(init.host);
+                    PlaywrightBase.GotoAsync(page, init.host);
                     return await browser.WaitPageResult();
                 }
             }

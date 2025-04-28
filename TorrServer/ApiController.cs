@@ -36,7 +36,7 @@ namespace Lampac.Controllers
 
         #region Main
         [Route("ts")]
-        [Route("ts/static/js/main.{suffix}.chunk.js")]
+        [Route("ts/static/js/{suffix}")]
         async public Task<ActionResult> Main()
         {
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
@@ -56,6 +56,7 @@ namespace Lampac.Controllers
             else
             {
                 html = html.Replace("href=\"/", "href=\"/ts/").Replace("src=\"/", "src=\"/ts/");
+                html = html.Replace("src=\"./", "src=\"/ts/");
                 return Content(html, "text/html; charset=utf-8");
             }
         }

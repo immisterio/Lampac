@@ -6,6 +6,8 @@ namespace Lampac.Models.AppConf
     {
         public bool xdb { get; set; }
 
+        public bool NextHUB { get; set; }
+
         public bool rsize { get; set; }
 
         public string? rsize_host { get; set; }

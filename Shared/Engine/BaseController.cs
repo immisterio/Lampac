@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "140";
 
-        public static string minorversion => "5";
+        public static string minorversion => "11";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -79,6 +79,11 @@ namespace Lampac.Engine
                 return headers;
 
             return httpHeaders(init.host, HeadersModel.Join(HeadersModel.Init(init.headers), headers));
+        }
+
+        public List<HeadersModel> httpHeaders(string site, Dictionary<string, string> headers)
+        {
+            return httpHeaders(site, HeadersModel.Init(headers));
         }
 
         public List<HeadersModel> httpHeaders(string site, List<HeadersModel> _headers)
@@ -513,6 +518,9 @@ namespace Lampac.Engine
             }
 
             update<bool>("enable", v => init.enable = v);
+            if (conf.ContainsKey("enable") && init.enable)
+                init.geo_hide = null;
+
             update<string>("displayname", v => init.displayname = v);
             update<int>("displayindex", v => init.displayindex = v);
 
@@ -551,7 +559,7 @@ namespace Lampac.Engine
             if (init.useproxy)
             {
                 init.rhub = false;
-                init.rhub_fallback = false;
+                init.rhub_fallback = true;
             }
             else if (AppInit.conf.kit.rhub_fallback || init.rhub_fallback)
             {

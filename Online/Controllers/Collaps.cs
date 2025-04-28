@@ -71,7 +71,7 @@ namespace Lampac.Controllers.LITE
 
             return OnResult(cache, () => 
             {
-                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, HeadersModel.Init(init.headers_stream)));
+                string html = oninvk.Html(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, init.headers_stream));
                 if (module == "dash")
                     html = html.Replace("lite/collaps", "lite/collaps-dash");
 

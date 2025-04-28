@@ -46,6 +46,12 @@ namespace Lampac.Controllers
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
             file = file.Replace("{localhost}", host);
 
+            if (!AppInit.conf.online.spider)
+            {
+                file = file.Replace("addSourceSearch('Spider', 'spider');", "");
+                file = file.Replace("addSourceSearch('Anime', 'spider/anime');", "");
+            }
+
             if (init.component != "lampac")
             {
                 file = file.Replace("component: 'lampac'", $"component: '{init.component}'");
@@ -59,15 +65,15 @@ namespace Lampac.Controllers
                 file = file.Replace("manifst.name, \" v\"", "manifst.name, \" \"");
             }
 
-            file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
+            if (init.name != "Lampac")
+            {
+                file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
+                file = file.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.name}'");
+                file = file.Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.name} - Anime'");
+            }
+
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
-
-            if (!AppInit.conf.online.spider)
-            {
-                file = file.Replace("addSourceSearch('Spider', 'spider');", "");
-                file = file.Replace("addSourceSearch('Anime', 'spider/anime');", "");
-            }
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -1022,6 +1028,7 @@ namespace Lampac.Controllers
                             case "movpi":
                             case "videasy":
                             case "vidlink":
+                            case "autoembed":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
@@ -1035,7 +1042,6 @@ namespace Lampac.Controllers
                             case "kinokrad":
                             case "kinoprofi":
                             case "seasonvar":
-                            case "autoembed":
                                 quality = " - 480p";
                                 break;
                             case "cdnmovies":

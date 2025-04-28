@@ -1,4 +1,5 @@
-﻿using Shared.Model.Base;
+﻿using Newtonsoft.Json;
+using Shared.Model.Base;
 
 namespace Lampac.Models.LITE
 {
@@ -20,7 +21,11 @@ namespace Lampac.Models.LITE
 
         public bool livehash { get; set; }
 
+        [JsonIgnore]
         public string? token_apitv { get; set; }
+
+        [JsonIgnore]
+        public string? hash_apitv { get; set; }
 
         public string? user_apitv { get; set; }
 

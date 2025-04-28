@@ -69,6 +69,9 @@ cat <<EOF > $DEST/init.conf
   "BongaCams": {
     "rhub": true
   },
+  "Runetki": {
+    "rhub": true
+  },
   "VDBmovies": {
     "rhub": true
   },

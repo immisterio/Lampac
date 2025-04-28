@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                                catch { }
                            });
 
-                           _ = await page.GotoAsync(ongettourl);
+                           PlaywrightBase.GotoAsync(page, ongettourl);
                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                            string content = await page.ContentAsync();
 

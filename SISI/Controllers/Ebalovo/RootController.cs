@@ -18,26 +18,20 @@ namespace Lampac.Controllers.Ebalovo
 
             string memkey = $"ebalovo:gohost:{host}";
             if (hybridCache.TryGetValue(memkey, out string _host))
-            {
-                if (string.IsNullOrEmpty(_host))
-                    return backhost;
-
                 return _host;
-            }
 
             _host = await HttpClient.GetLocation(host, timeoutSeconds: 5, allowAutoRedirect: true);
-            if (_host != null)
+            if (_host != null && !Regex.IsMatch(_host, "^https?://www\\."))
             {
                 _host = Regex.Replace(_host, "/$", "");
-                hybridCache.Set(memkey, _host, DateTime.Now.AddMinutes(20));
+                hybridCache.Set(memkey, _host, DateTime.Now.AddHours(1));
                 return _host;
             }
             else
             {
-                hybridCache.Set(memkey, string.Empty, DateTime.Now.AddMinutes(1));
+                hybridCache.Set(memkey, backhost, DateTime.Now.AddMinutes(20));
+                return backhost;
             }
-
-            return backhost;
         }
     }
 }

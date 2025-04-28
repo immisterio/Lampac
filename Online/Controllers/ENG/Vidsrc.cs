@@ -85,30 +85,38 @@ namespace Lampac.Controllers.LITE
                     }
                     catch { }
 
-                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders);
+                    var lastHeaders_headers = httpHeaders(init.host, init.headers_stream);
+                    if (lastHeaders_headers.Count == 0)
+                        lastHeaders_headers = lastHeaders;
+
+                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders_headers);
                     if (play)
                         return Redirect(file);
 
-                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast));
+                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders_headers));
                 }
             }
             #endregion
 
-            var cache = await black_magic(id, embed, init, proxy.data);
+            var cache = await black_magic(id, embed, init, proxyManager, proxy.data);
             if (cache.m3u8 == null)
                 return StatusCode(502);
 
-            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
+            if (headers_stream.Count == 0)
+                headers_stream = cache.headers;
+
+            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
 
             if (play)
                 return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: cache.headers));
+            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -170,13 +178,17 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        _ = await page.GotoAsync(uri);
+                        PlaywrightBase.GotoAsync(page, uri);
                         cache.m3u8 = await browser.WaitPageResult();
                     }
 
                     if (cache.m3u8 == null)
+                    {
+                        proxyManager.Refresh();
                         return default;
+                    }
 
+                    proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
