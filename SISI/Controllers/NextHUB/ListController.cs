@@ -197,18 +197,30 @@ namespace Lampac.Controllers.NextHUB
 
                 if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(href))
                 {
-                    if (href.StartsWith("//"))
+                    #region href
+                    if (href.StartsWith("../"))
+                        href = $"{init.host}/{href.Replace("../", "")}";
+                    else if (href.StartsWith("//"))
                         href = $"https:{href}";
                     else if (href.StartsWith("/"))
                         href = init.host + href;
+                    else if (!href.StartsWith("http"))
+                        href = $"{init.host}/{href}";
+                    #endregion
 
+                    #region img
                     if (img != null)
                     {
-                        if (img.StartsWith("//"))
+                        if (img.StartsWith("../"))
+                            img = $"{init.host}/{img.Replace("../", "")}";
+                        else if (img.StartsWith("//"))
                             img = $"https:{img}";
                         else if (img.StartsWith("/"))
                             img = init.host + img;
+                        else if (!img.StartsWith("http"))
+                            img = $"{init.host}/{img}";
                     }
+                    #endregion
 
                     if (!init.ignore_no_picture && string.IsNullOrEmpty(img))
                         continue;

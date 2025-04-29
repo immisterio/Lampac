@@ -42,9 +42,18 @@ namespace Lampac.Controllers
             var init = AppInit.conf.online;
 
             string file = FileCache.ReadAllText("plugins/online.js");
-            file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
-            file = file.Replace("{localhost}", host);
+
+            if (init.appReplace != null)
+            {
+                foreach (var r in init.appReplace)
+                {
+                    string val = r.Value;
+                    if (val.StartsWith("file:"))
+                        val = IO.File.ReadAllText(val.Remove(0, 5));
+
+                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
+                }
+            }
 
             if (!AppInit.conf.online.spider)
             {
@@ -74,6 +83,10 @@ namespace Lampac.Controllers
 
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
+
+            file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
+            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            file = file.Replace("{localhost}", host);
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
