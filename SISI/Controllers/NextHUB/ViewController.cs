@@ -112,7 +112,7 @@ namespace Lampac.Controllers.NextHUB
                                     cache.headers = new List<HeadersModel>();
                                     foreach (var item in route.Request.Headers)
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
                                             continue;
 
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
@@ -142,7 +142,7 @@ namespace Lampac.Controllers.NextHUB
 
                         #region GotoAsync
                         string html = null;
-                        var responce = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
                         if (responce != null)
                             html = await responce.TextAsync();
                         #endregion
@@ -211,7 +211,7 @@ namespace Lampac.Controllers.NextHUB
                                     string infile = $"NextHUB/{init.view.eval}";
                                     if (!System.IO.File.Exists(infile))
                                     {
-                                        return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {init.view.eval} }}", new { _content, plugin, url });
+                                        return Eval.Execute<string>(init.view.eval, new { html = _content, plugin, url });
                                     }
                                     else
                                     {
@@ -220,7 +220,7 @@ namespace Lampac.Controllers.NextHUB
                                         if (init.view.eval.EndsWith(".js"))
                                             return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url });
 
-                                        return Eval.Execute<string>(evaluate, new { _content, plugin, url });
+                                        return Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
                                     }
                                 }
 

@@ -31,6 +31,8 @@
         public int cache_time { get; set; } = 15;
 
 
+        public bool viewsource { get; set; }
+
         public string? priorityBrowser { get; set; }
 
         public bool keepopen { get; set; } = true;

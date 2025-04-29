@@ -93,9 +93,9 @@ namespace Shared.Engine.CORE
             return memoryCache.TryGetValue(key, out value);
         }
 
-        public bool TryGetValue<TItem>(string key, out TItem value, bool inmemory = false)
+        public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
         {
-            if (!inmemory && !AppInit.conf.mikrotik)
+            if (inmemory != true && !AppInit.conf.mikrotik)
             {
                 if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
                 {
@@ -159,11 +159,11 @@ namespace Shared.Engine.CORE
 
 
         #region Set
-        public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool inmemory = false)
+        public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool? inmemory = null)
         {
-            if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
+            if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
             {
-                if (AppInit.conf.typecache == "hybrid")
+                if (AppInit.conf.typecache == "hybrid" && inmemory == null)
                     memoryCache.Set(key, value, DateTime.Now.AddSeconds(extend));
 
                 return value;
@@ -172,9 +172,9 @@ namespace Shared.Engine.CORE
             return memoryCache.Set(key, value, absoluteExpiration);
         }
 
-        public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool inmemory = false)
+        public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool? inmemory = null)
         {
-            if (!inmemory && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
+            if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
             {
                 if (AppInit.conf.typecache == "hybrid")
                     memoryCache.Set(key, value, DateTime.Now.AddSeconds(extend));

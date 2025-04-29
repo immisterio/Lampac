@@ -83,7 +83,7 @@ namespace Lampac.Controllers.LITE
                                 content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
                                 foreach (var item in route.Request.Headers)
                                 {
-                                    if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection")
+                                    if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection" || item.Key == "range")
                                         continue;
 
                                     content_headers.Add(new HeadersModel(item.Key, item.Value));

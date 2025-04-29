@@ -31,7 +31,7 @@ namespace Lampac.Controllers.NextHUB
 
             var init = RootController.goInit(plugin);
             if (init == null)
-                return OnError("init not found");
+                return OnError("init not found", rcache: false);
 
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.NextHUB
                                                      await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, !string.IsNullOrEmpty(search));
 
                 if (string.IsNullOrEmpty(html))
-                    return OnError("html");
+                    return OnError("html", rcache: !init.debug);
                 #endregion
 
                 var contentParse = init.list.contentParse ?? init.contentParse;
@@ -70,7 +70,7 @@ namespace Lampac.Controllers.NextHUB
                 playlists = goPlaylist(host, contentParse, init, html, plugin);
 
                 if (playlists == null || playlists.Count == 0)
-                    return OnError("playlists", proxyManager);
+                    return OnError("playlists", proxyManager, rcache: !init.debug);
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init));
@@ -213,13 +213,22 @@ namespace Lampac.Controllers.NextHUB
                     if (!init.ignore_no_picture && string.IsNullOrEmpty(img))
                         continue;
 
+                    string clearText(string text)
+                    {
+                        if (string.IsNullOrEmpty(text))
+                            return text;
+
+                        text = text.Replace("&nbsp;", "");
+                        return Regex.Replace(text, "<[^>]+>", "");
+                    }
+
                     var pl = new PlaylistItem()
                     {
-                        name = name,
+                        name = clearText(name),
                         video = $"{host}/nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}",
                         picture = img,
-                        time = duration,
-                        quality = quality,
+                        time = clearText(duration),
+                        quality = clearText(quality),
                         myarg = myarg,
                         json = true,
                         related = init.view != null ? init.view.related : false,

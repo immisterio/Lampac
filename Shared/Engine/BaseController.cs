@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "140";
 
-        public static string minorversion => "11";
+        public static string minorversion => "12";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -288,7 +288,7 @@ namespace Lampac.Engine
         #region cache
         public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, Func<CacheResult<T>, ValueTask<dynamic>> onget) => InvokeCache(key, time, null, onget);
 
-        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool inmemory = false)
+        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
             if (hybridCache.TryGetValue(key, out T _val))
             {
@@ -313,13 +313,13 @@ namespace Lampac.Engine
                 return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
 
             proxyManager?.Success();
-            hybridCache.Set(key, val, time, inmemory);
+            hybridCache.Set(key, val, time, memory);
             return new CacheResult<T>() { IsSuccess = true, Value = val };
         }
 
-        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool inmemory = false)
+        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
         {
-            if (hybridCache.TryGetValue(key, out T val, inmemory))
+            if (hybridCache.TryGetValue(key, out T val, memory))
                 return val;
 
             val = await onget.Invoke();
@@ -327,7 +327,7 @@ namespace Lampac.Engine
                 return default;
 
             proxyManager?.Success();
-            hybridCache.Set(key, val, time, inmemory);
+            hybridCache.Set(key, val, time, memory);
             return val;
         }
 
