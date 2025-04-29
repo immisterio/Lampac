@@ -14,6 +14,8 @@
 
         public string patternFile { get; set; }
 
+        public bool waitLocationFile { get; set; }
+
         public SingleNodeSettings nodeFile { get; set; }
 
         public bool bindingToIP { get; set; }

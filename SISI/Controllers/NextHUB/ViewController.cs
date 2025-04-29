@@ -107,22 +107,51 @@ namespace Lampac.Controllers.NextHUB
                                     return;
                                 }
 
+                                #region patternFile
                                 if (init.view.patternFile != null && Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
                                 {
-                                    cache.headers = new List<HeadersModel>();
-                                    foreach (var item in route.Request.Headers)
+                                    void setHeaders(Dictionary<string, string> _headers)
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                            continue;
+                                        if (_headers != null && _headers.Count > 0)
+                                        {
+                                            cache.headers = new List<HeadersModel>(_headers.Count);
+                                            foreach (var item in _headers)
+                                            {
+                                                if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                    continue;
 
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                                cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                            }
+                                        }
                                     }
 
-                                    Console.WriteLine($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
-                                    browser.SetPageResult(route.Request.Url);
-                                    await route.AbortAsync();
+                                    setHeaders(route.Request.Headers);
+
+                                    if (init.view.waitLocationFile)
+                                    {
+                                        await route.ContinueAsync();
+                                        string setUri = route.Request.Url;
+
+                                        var response = await page.WaitForResponseAsync(route.Request.Url);
+                                        if (response != null && response.Headers.ContainsKey("location"))
+                                        {
+                                            setHeaders(response.Request.Headers);
+                                            setUri = response.Headers["location"];
+                                        }
+
+                                        Console.WriteLine($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                        browser.SetPageResult(setUri);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                        browser.SetPageResult(route.Request.Url);
+                                        await route.AbortAsync();
+                                    }
+
                                     return;
                                 }
+                                #endregion
 
                                 if (init.view.abortMedia || init.view.fullCacheJS)
                                 {
