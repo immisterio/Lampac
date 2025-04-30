@@ -6,6 +6,8 @@
 
         public string? eval { get; set; }
 
+        public string fileEval { get; set; }
+
         public string? playbtn { get; set; }
 
         public string waitForSelector { get; set; }

@@ -308,6 +308,22 @@ namespace Lampac.Controllers.NextHUB
 
                     cache.file = cache.file.Replace("\\", "").Replace("&amp;", "&");
 
+                    #region fileEval
+                    if (init.view.fileEval != null)
+                    {
+                        string infile = $"NextHUB/{init.view.fileEval}";
+                        if (!System.IO.File.Exists(infile))
+                        {
+                            cache.file = Eval.Execute<string>(init.view.fileEval, new { cache.file, cache.headers });
+                        }
+                        else
+                        {
+                            string evaluate = FileCache.ReadAllText($"NextHUB/{init.view.fileEval}");
+                            cache.file = Eval.Execute<string>(evaluate, new { cache.file, cache.headers });
+                        }
+                    }
+                    #endregion
+
                     proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time, init: init));
                 }

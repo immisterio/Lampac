@@ -57,7 +57,7 @@ namespace Lampac.Controllers.NextHUB
 
                 string html = init.priorityBrowser == "http" ? await HttpClient.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: 8) :
                               init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
-                                                     await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, !string.IsNullOrEmpty(search));
+                                                     await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, pg);
 
                 if (string.IsNullOrEmpty(html))
                     return OnError("html", rcache: !init.debug);
@@ -265,11 +265,11 @@ namespace Lampac.Controllers.NextHUB
         #endregion
 
         #region ContentAsync
-        async ValueTask<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, bool isSearch = false)
+        async ValueTask<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
         {
             try
             {
-                var conf = isSearch ? init.search : init.list;
+                var conf = string.IsNullOrEmpty(search) ? init.list : init.search;
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
@@ -280,10 +280,32 @@ namespace Lampac.Controllers.NextHUB
                     if (init.cookies != null)
                         await page.Context.AddCookiesAsync(init.cookies);
 
+                    string routeEval = null;
+                    if (conf.routeEval != null)
+                        routeEval = FileCache.ReadAllText($"NextHUB/{conf.routeEval}");
+
                     await page.RouteAsync("**/*", async route =>
                     {
                         try
                         {
+                            #region routeEval
+                            if (routeEval != null)
+                            {
+                                var e = Eval.Execute<RouteEval>(routeEval, new { requestUrl = route.Request.Url, search, sort, cat, pg });
+                                if (e != null)
+                                {
+                                    switch (e.type)
+                                    {
+                                        case "redirect":
+                                            {
+                                                await route.ContinueAsync(new RouteContinueOptions { Url = e.data });
+                                                return;
+                                            }
+                                    }
+                                }
+                            }
+                            #endregion
+
                             if (conf.patternAbort != null && Regex.IsMatch(route.Request.Url, conf.patternAbort, RegexOptions.IgnoreCase))
                             {
                                 Console.WriteLine($"Playwright: Abort {route.Request.Url}");
