@@ -164,24 +164,12 @@ namespace Shared.Engine
                     keepopen_context = await browser.NewContextAsync();
                     await keepopen_context.NewPageAsync();
                 }
-
-                browser.Disconnected += Browser_Disconnected;
             }
             catch (Exception ex) 
             {
                 Status = PlaywrightStatus.disabled;
                 Console.WriteLine($"Chromium: {ex.Message}"); 
             }
-        }
-
-        async private static void Browser_Disconnected(object sender, IBrowser e)
-        {
-            browser = null;
-            pages_keepopen = new();
-            Status = PlaywrightStatus.disabled;
-            Console.WriteLine("Chromium: Browser_Disconnected");
-            await Task.Delay(TimeSpan.FromSeconds(10));
-            await CreateAsync();
         }
         #endregion
 
@@ -400,6 +388,7 @@ namespace Shared.Engine
         }
 
 
+        #region CloseLifetimeContext
         async public static Task CloseLifetimeContext()
         {
             while (true)
@@ -454,5 +443,62 @@ namespace Shared.Engine
                 catch { }
             }
         }
+        #endregion
+
+        #region Browser_Disconnected
+        async public static Task Browser_Disconnected()
+        {
+            await Task.Delay(TimeSpan.FromMinutes(2));
+
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+
+                if (keepopen_context != null && Status != PlaywrightStatus.disabled)
+                {
+                    try
+                    {
+                        bool isOk = false;
+
+                        try
+                        {
+                            var p = await keepopen_context.NewPageAsync();
+                            if (p != null)
+                            {
+                                var r = await p.GotoAsync($"view-source:http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping");
+                                if (r != null && r.Status == 200)
+                                {
+                                    await p.CloseAsync();
+                                    isOk = true;
+                                }
+                            }
+                        }
+                        catch { }
+
+                        if (!isOk)
+                        {
+                            Status = PlaywrightStatus.disabled;
+                            Console.WriteLine("\nChromium: Browser_Disconnected");
+
+                            try
+                            {
+                                if (browser != null)
+                                {
+                                    await browser.CloseAsync();
+                                    await browser.DisposeAsync();
+                                }
+                            }
+                            catch { }
+
+                            browser = null;
+                            pages_keepopen = new();
+                            await CreateAsync();
+                        }
+                    }
+                    catch (Exception ex) { Console.WriteLine(ex.Message); }
+                }
+            }
+        }
+        #endregion
     }
 }

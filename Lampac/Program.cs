@@ -76,7 +76,12 @@ namespace Lampac
                     }
                 });
 
-                ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
+                if (AppInit.conf.chromium.enable)
+                {
+                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
+                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.Browser_Disconnected());
+                }
+
                 ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
             }
             #endregion
