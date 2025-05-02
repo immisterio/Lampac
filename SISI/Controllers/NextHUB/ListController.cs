@@ -274,7 +274,7 @@ namespace Lampac.Controllers.NextHUB
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
                     var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy: proxy, keepopen: init.keepopen);
-                    if (page == null)
+                    if (page == default)
                         return null;
 
                     if (init.cookies != null)

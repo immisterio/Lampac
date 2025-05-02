@@ -62,7 +62,8 @@ namespace Lampac
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
-                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=128");
+                if (!AppInit.conf.multiaccess)
+                    Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=128");
 
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
@@ -82,7 +83,8 @@ namespace Lampac
                     ThreadPool.QueueUserWorkItem(async _ => await Chromium.Browser_Disconnected());
                 }
 
-                ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
+                if (AppInit.conf.firefox.enable)
+                    ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
             }
             #endregion
 

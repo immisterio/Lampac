@@ -81,7 +81,7 @@ namespace Lampac.Controllers.NextHUB
                     using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen);
-                        if (page == null)
+                        if (page == default)
                             return default;
 
                         string browser_host = "." + Regex.Replace(init.host, "^https?://", "");

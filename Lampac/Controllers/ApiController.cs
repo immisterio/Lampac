@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using Shared.Engine.CORE;
 using System.Diagnostics;
+using Z.Expressions;
 
 namespace Lampac.Controllers
 {
@@ -194,6 +195,9 @@ namespace Lampac.Controllers
                 string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
                 file = file.Replace("Player.play(element);", playerinner);
             }
+
+            if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
+                file = Eval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new { file, host, type, requestInfo });
 
             return Content(file, "application/javascript; charset=utf-8");
         }

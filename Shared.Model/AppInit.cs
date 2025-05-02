@@ -502,7 +502,7 @@ namespace Shared.Model
             ).ToDictionary()
         };
 
-        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw");
+        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
 
         /// <summary>
         /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6

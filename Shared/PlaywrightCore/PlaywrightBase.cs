@@ -301,7 +301,7 @@ namespace Shared.Engine
                     return true;
                 }
 
-                if (abortMedia && Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico)$"))
+                if (abortMedia && Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico|ts|m4s)$"))
                 {
                     Console.WriteLine($"Playwright: Abort {route.Request.Url}");
                     await route.AbortAsync();

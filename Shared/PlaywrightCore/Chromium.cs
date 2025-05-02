@@ -173,6 +173,119 @@ namespace Shared.Engine
         }
         #endregion
 
+        #region CloseLifetimeContext
+        async public static Task CloseLifetimeContext()
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1));
+
+                try
+                {
+                    var init = AppInit.conf.chromium;
+                    if (0 >= init.context.keepalive)
+                        continue;
+
+                    if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
+                    {
+                        create_keepopen_context = DateTime.Now;
+                        var kpc = await browser.NewContextAsync();
+                        await kpc.NewPageAsync();
+
+                        try
+                        {
+                            await keepopen_context.CloseAsync();
+                        }
+                        catch { }
+
+                        keepopen_context = kpc;
+                    }
+
+                    foreach (var k in pages_keepopen.ToArray())
+                    {
+                        if (init.context.min >= pages_keepopen.Count)
+                            break;
+
+                        if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
+                        {
+                            try
+                            {
+                                if (pages_keepopen.Remove(k))
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(20));
+
+                                    try
+                                    {
+                                        await k.context.CloseAsync();
+                                    }
+                                    catch { pages_keepopen.Add(k); }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+        #endregion
+
+        #region Browser_Disconnected
+        async public static Task Browser_Disconnected()
+        {
+            await Task.Delay(TimeSpan.FromMinutes(2));
+
+            while (!shutdown)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20));
+
+                if (keepopen_context != null && Status != PlaywrightStatus.disabled)
+                {
+                    try
+                    {
+                        bool isOk = false;
+
+                        try
+                        {
+                            var p = await keepopen_context.NewPageAsync();
+                            if (p != null)
+                            {
+                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping");
+                                if (r != null && r.Status == 200)
+                                {
+                                    await p.CloseAsync();
+                                    isOk = true;
+                                }
+                            }
+                        }
+                        catch { }
+
+                        if (!isOk)
+                        {
+                            Status = PlaywrightStatus.disabled;
+                            Console.WriteLine("\nChromium: Browser_Disconnected");
+
+                            try
+                            {
+                                if (browser != null)
+                                {
+                                    await browser.CloseAsync();
+                                    await browser.DisposeAsync();
+                                }
+                            }
+                            catch { }
+
+                            browser = null;
+                            pages_keepopen = new();
+                            await CreateAsync();
+                        }
+                    }
+                    catch (Exception ex) { Console.WriteLine(ex.Message); }
+                }
+            }
+        }
+        #endregion
+
 
         public bool IsCompleted { get; set; }
 
@@ -386,119 +499,5 @@ namespace Shared.Engine
             }
             catch { }
         }
-
-
-        #region CloseLifetimeContext
-        async public static Task CloseLifetimeContext()
-        {
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromMinutes(1));
-
-                try
-                {
-                    var init = AppInit.conf.chromium;
-                    if (0 >= init.context.keepalive)
-                        continue;
-
-                    if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
-                    {
-                        create_keepopen_context = DateTime.Now;
-                        var kpc = await browser.NewContextAsync();
-                        await kpc.NewPageAsync();
-
-                        try
-                        {
-                            await keepopen_context.CloseAsync();
-                        }
-                        catch { }
-
-                        keepopen_context = kpc;
-                    }
-
-                    foreach (var k in pages_keepopen.ToArray())
-                    {
-                        if (init.context.min >= pages_keepopen.Count)
-                            break;
-
-                        if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
-                        {
-                            try
-                            {
-                                if (pages_keepopen.Remove(k))
-                                {
-                                    await Task.Delay(TimeSpan.FromSeconds(20));
-
-                                    try
-                                    {
-                                        await k.context.CloseAsync();
-                                    }
-                                    catch { pages_keepopen.Add(k); }
-                                }
-                            }
-                            catch { }
-                        }
-                    }
-                }
-                catch { }
-            }
-        }
-        #endregion
-
-        #region Browser_Disconnected
-        async public static Task Browser_Disconnected()
-        {
-            await Task.Delay(TimeSpan.FromMinutes(2));
-
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(10));
-
-                if (keepopen_context != null && Status != PlaywrightStatus.disabled)
-                {
-                    try
-                    {
-                        bool isOk = false;
-
-                        try
-                        {
-                            var p = await keepopen_context.NewPageAsync();
-                            if (p != null)
-                            {
-                                var r = await p.GotoAsync($"view-source:http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping");
-                                if (r != null && r.Status == 200)
-                                {
-                                    await p.CloseAsync();
-                                    isOk = true;
-                                }
-                            }
-                        }
-                        catch { }
-
-                        if (!isOk)
-                        {
-                            Status = PlaywrightStatus.disabled;
-                            Console.WriteLine("\nChromium: Browser_Disconnected");
-
-                            try
-                            {
-                                if (browser != null)
-                                {
-                                    await browser.CloseAsync();
-                                    await browser.DisposeAsync();
-                                }
-                            }
-                            catch { }
-
-                            browser = null;
-                            pages_keepopen = new();
-                            await CreateAsync();
-                        }
-                    }
-                    catch (Exception ex) { Console.WriteLine(ex.Message); }
-                }
-            }
-        }
-        #endregion
     }
 }

@@ -23,6 +23,7 @@ using Shared.Models.Module;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
 using Shared.PlaywrightCore;
+using Z.Expressions;
 
 namespace Lampac.Controllers
 {
@@ -87,6 +88,9 @@ namespace Lampac.Controllers
             file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
             file = file.Replace("{localhost}", host);
+
+            if (!string.IsNullOrEmpty(init.eval))
+                file = Eval.Execute<string>(FileCache.ReadAllText(init.eval), new { file, host, token, requestInfo });
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }

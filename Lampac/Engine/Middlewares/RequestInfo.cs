@@ -109,6 +109,8 @@ namespace Lampac.Engine.Middlewares
             {
                 IsLocalRequest = IsLocalRequest,
                 IP = clientIp,
+                Path = httpContext.Request.Path.Value,
+                Query = httpContext.Request.QueryString.Value,
                 UserAgent = httpContext.Request.Headers.UserAgent
             };
 
