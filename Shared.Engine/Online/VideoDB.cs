@@ -181,7 +181,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}{args}", season);
+                        tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
                     }
 
                     return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -214,7 +214,7 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                string link = host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}{args}";
+                                string link = host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
 
                                 vtpl.Append(perevod, t == perevod, link);
                             }

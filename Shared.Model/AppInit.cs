@@ -227,7 +227,7 @@ namespace Shared.Model
             headers = HeadersModel.Init("referer", "{host}/").ToDictionary()
         };
 
-        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("iRemux", "kwwsv=22phjdreodnr1frp") { corseu = true, geostreamproxy = new string[] { "UA" } };
+        public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("iRemux", "kwwsv=22phjdreodnr1frp", streamproxy: true) { corseu = true };
 
         public PidTorSettings PidTor { get; set; } = new PidTorSettings() { enable = true, redapi = "http://redapi.cfhttp.top", min_sid = 15 };
 
@@ -408,7 +408,39 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
         /// </summary>
-        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", enable: false, streamproxy: true);
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", enable: false, streamproxy: true)
+        {
+            priorityBrowser = "http",
+            headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-storage-access", "active"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+            ).ToDictionary(),
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("referer", "encrypt:kwwsv=22wy040nlqrvhuldo1qhw2"),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "video"),
+                ("sec-fetch-mode", "no-cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+            ).ToDictionary()
+        };
 
         /// <summary>
         /// kwwsv=22dsl1vuyns1frp

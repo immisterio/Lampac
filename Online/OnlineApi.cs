@@ -774,7 +774,9 @@ namespace Lampac.Controllers
                 }
             }
 
-            send(conf.Videoseed);
+            if (conf.Videoseed.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+                send(conf.Videoseed);
+
             send(conf.Vibix, rch_access: "apk,cors");
 
             if (serial == -1 || serial == 0)

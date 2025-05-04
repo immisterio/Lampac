@@ -7,7 +7,6 @@ using Online;
 using Shared.Model.Templates;
 using System.Web;
 using Newtonsoft.Json.Linq;
-using Microsoft.Playwright;
 using Shared.Engine;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +28,7 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled && init.priorityBrowser != "http")
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -124,58 +123,76 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(iframe))
                 return OnError();
 
-            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
-                return OnError();
-
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
             string memKey = $"videoseed:video:{iframe}:{proxyManager.CurrentProxyIp}";
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
+                var headers = httpHeaders(init);
+
                 try
                 {
-                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
+                    if (init.priorityBrowser == "http")
                     {
-                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
-                        if (page == null)
-                            return null;
-
-                        await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');");
-
-                        await page.RouteAsync("**/*", async route =>
-                        {
-                            try
-                            {
-                                if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
-                                {
-                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                        return;
-
-                                    await route.ContinueAsync();
-                                    return;
-                                }
-
-                                await route.AbortAsync();
-                            }
-                            catch { }
-                        });
-
-                        PlaywrightBase.GotoAsync(page, iframe);
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                        string html = await page.ContentAsync();
-
-                        PlaywrightBase.WebLog("GET", iframe, html, proxy.data);
-
-                        string video = Regex.Match(html ?? "", "<vide[^>]+ src=\"([^\"]+)").Groups[1].Value.Trim();
-                        if (string.IsNullOrEmpty(video))
+                        string html = await HttpClient.Get(iframe, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+                        if (html == null)
                         {
                             proxyManager.Refresh();
                             return OnError();
                         }
 
-                        location = video;
-                        proxyManager.Success();
+                        foreach (string q in new string[] { "1080p", "720p", "480p" })
+                        {
+                            location = Regex.Match(html, $"\\[{q}](https?://[^,]+\\.mp4/),").Groups[1].Value.Trim();
+                            if (!string.IsNullOrEmpty(location))
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        #region PlaywrightBrowser
+                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
+                        {
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers?.ToDictionary());
+                            if (page == null)
+                                return null;
+
+                            await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');");
+
+                            await page.RouteAsync("**/*", async route =>
+                            {
+                                try
+                                {
+                                    if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                                    {
+                                        if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                            return;
+
+                                        await route.ContinueAsync();
+                                        return;
+                                    }
+
+                                    await route.AbortAsync();
+                                }
+                                catch { }
+                            });
+
+                            PlaywrightBase.GotoAsync(page, iframe);
+                            await page.WaitForSelectorAsync(".pjscssed");
+                            string html = await page.ContentAsync();
+
+                            PlaywrightBase.WebLog("GET", iframe, html, proxy.data);
+
+                            location = Regex.Match(html ?? "", "<vide[^>]+ src=\"([^\"]+)").Groups[1].Value.Trim();
+
+                            if (string.IsNullOrEmpty(location))
+                            {
+                                proxyManager.Refresh();
+                                return OnError();
+                            }
+                        }
+                        #endregion
                     }
                 }
                 catch
@@ -183,6 +200,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
                 }
 
+                proxyManager.Success();
                 hybridCache.Set(memKey, location, cacheTime(20));
             }
 
