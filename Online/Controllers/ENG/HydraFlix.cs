@@ -8,6 +8,7 @@ using Shared.PlaywrightCore;
 using Shared.Model.Online;
 using System.Collections.Generic;
 using Shared.Model.Templates;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -17,13 +18,14 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hydraflix")]
         public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true, method: "call");
+            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true, method: "call", extension: "mpd");
         }
 
 
         #region Video
         [HttpGet]
         [Route("lite/hydraflix/video")]
+        [Route("lite/hydraflix/video.mpd")]
         [Route("lite/hydraflix/video.m3u8")]
         async public Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
@@ -92,7 +94,7 @@ namespace Lampac.Controllers.LITE
                                     return;
                                 }
 
-                                if (route.Request.Url.Contains(".m3u8"))
+                                if (Regex.IsMatch(route.Request.Url, "\\.(mpd|m3u|mp4)"))
                                 {
                                     cache.headers = new List<HeadersModel>();
                                     foreach (var item in route.Request.Headers)

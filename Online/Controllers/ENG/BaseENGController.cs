@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public Task<ActionResult> ViewTmdb(OnlinesSettings _init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false, int? hls_manifest_timeout = null)
+        async public Task<ActionResult> ViewTmdb(OnlinesSettings _init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false, int? hls_manifest_timeout = null, string extension = "m3u8")
         {
             if (checksearch)
                 return Content("data-json=");
@@ -86,9 +86,9 @@ namespace Lampac.Controllers.LITE
 
                         for (int i = 1; i <= season.Value<int>("episode_count"); i++)
                         {
-                            string path = (mp4 || method == "call") ? "video" : "video.m3u8";
+                            string path = (mp4 || method == "call") ? "video" : $"video.{extension}";
                             string uri = $"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}&s={s}&e={i}";
-                            string stream = method == "call" ? accsArgs($"{host}/lite/{init.plugin.ToLower()}/{(mp4 ? "video" : "video.m3u8")}?id={id}&imdb_id={imdb_id}&s={s}&e={i}&play=true") : null;
+                            string stream = method == "call" ? accsArgs($"{host}/lite/{init.plugin.ToLower()}/{(mp4 ? "video" : $"video.{extension}")}?id={id}&imdb_id={imdb_id}&s={s}&e={i}&play=true") : null;
 
                             if (method == "play")
                                 uri = accsArgs(uri);
@@ -107,9 +107,9 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                string path = (mp4 || method == "call") ? "video" : "video.m3u8";
+                string path = (mp4 || method == "call") ? "video" : $"video.{extension}";
                 string uri = $"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}";
-                string stream = method == "call" ? accsArgs($"{host}/lite/{init.plugin.ToLower()}/{(mp4 ? "video" : "video.m3u8")}?id={id}&imdb_id={imdb_id}&play=true") : null;
+                string stream = method == "call" ? accsArgs($"{host}/lite/{init.plugin.ToLower()}/{(mp4 ? "video" : $"video.{extension}")}?id={id}&imdb_id={imdb_id}&play=true") : null;
 
                 if (method == "play")
                     uri = accsArgs(uri);

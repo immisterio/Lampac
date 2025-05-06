@@ -35,9 +35,9 @@ namespace Lampac.Engine.CORE
             }
         }
 
-        public static string Encrypt(string uri, ProxyLinkModel p) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin);
+        public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, forceMd5: forceMd5);
 
-        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default)
+        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
@@ -46,7 +46,7 @@ namespace Lampac.Engine.CORE
             bool IsMd5 = false;
             string uri_clear = uri.Split("#")[0].Trim();
 
-            if (AppInit.conf.serverproxy.encrypt_aes && headers == null && proxy == null)
+            if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && headers == null && proxy == null)
             {
                 if (verifyip && AppInit.conf.serverproxy.verifyip)
                 {

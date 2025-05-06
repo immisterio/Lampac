@@ -6,7 +6,7 @@
         
         public string? hls { get; set; }
 
-        public string? dash { get; set; }
+        public string? dasha { get; set; }
 
         public List<Cc>? cc { get; set; }
 

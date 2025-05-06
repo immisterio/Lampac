@@ -161,6 +161,7 @@ namespace Shared.Model
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1ox{hpeg1zv", streamproxy: true, two: false) 
         {
+            two = true,
             apihost = "https://api.bhcesh.me",
             token = "eedefb541aeba871dcfc756e6b31c02e",
             headers = HeadersModel.Init(
