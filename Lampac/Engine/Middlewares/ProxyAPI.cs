@@ -207,7 +207,7 @@ namespace Lampac.Engine.Middlewares
                     }
 
                     response.Content.Headers.TryGetValues("Content-Type", out var contentType);
-                    if (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain"))
+                    if (!ists && (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")))
                     {
                         #region m3u8/txt
                         using (HttpContent content = response.Content)
