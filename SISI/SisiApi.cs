@@ -214,7 +214,7 @@ namespace SISI
                     try
                     {
                         string plugin = Path.GetFileNameWithoutExtension(inFile);
-                        var init = Lampac.Controllers.NextHUB.RootController.goInit(plugin);
+                        var init = Lampac.Controllers.NextHUB.Root.goInit(plugin);
                         if (init == null)
                             continue;
 

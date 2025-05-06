@@ -184,11 +184,15 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, similar);
+                var content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, similar);
+                if (content != null && content.IsEmpty && content.content != null)
+                    return res.Fail(content.content);
+
+                return content;
             });
 
-            if (cache.IsSuccess && cache.Value.IsEmpty && cache.Value.content != null)
-                return ShowError(cache.Value.content);
+            if (cache.Value?.IsEmpty == true)
+                return ShowError(cache.Value.content ?? "поиск не дал результатов");
 
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg ?? "content = null", proxyManager, weblog: oninvk.requestlog, refresh_proxy: !rch.enable);
@@ -200,7 +204,7 @@ namespace Lampac.Controllers.LITE
         #region Serial
         [HttpGet]
         [Route("lite/rhsprem/serial")]
-        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.RezkaPrem);
             if (await IsBadInitialization(init, rch: true))
@@ -229,12 +233,16 @@ namespace Lampac.Controllers.LITE
             if (!cache_root.IsSuccess)
                 return OnError(cache_root.ErrorMsg ?? "root = null", weblog: oninvk.requestlog);
 
-            var cache_content = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache_content = await InvokeCache<EmbedModel>($"rhsprem:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}:{similar}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, false);
+                var content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, false);
+                if (content != null && content.IsEmpty && content.content != null)
+                    return res.Fail(content.content ?? "content");
+
+                return content;
             });
 
             if (!cache_content.IsSuccess)

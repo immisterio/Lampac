@@ -16,7 +16,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System;
 using Lampac.Engine.CORE;
-using Z.Expressions;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -29,7 +28,7 @@ namespace Lampac.Controllers.NextHUB
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
 
-            var init = RootController.goInit(plugin);
+            var init = Root.goInit(plugin);
             if (init == null)
                 return OnError("init not found", rcache: false);
 
@@ -253,7 +252,7 @@ namespace Lampac.Controllers.NextHUB
                     };
 
                     if (eval != null)
-                        pl = Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
+                        pl = Root.Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
 
                     if (pl != null)
                         playlists.Add(pl);
@@ -291,16 +290,14 @@ namespace Lampac.Controllers.NextHUB
                             #region routeEval
                             if (routeEval != null)
                             {
-                                var e = Eval.Execute<RouteEval>(routeEval, new { requestUrl = route.Request.Url, search, sort, cat, pg });
+                                var e = Root.Eval.Execute<object>(routeEval, new { route.Request, search, sort, cat, pg });
                                 if (e != null)
                                 {
-                                    switch (e.type)
+                                    if (e is RouteContinue)
                                     {
-                                        case "redirect":
-                                            {
-                                                await route.ContinueAsync(new RouteContinueOptions { Url = e.data });
-                                                return;
-                                            }
+                                        var r = (RouteContinue)e;
+                                        await route.ContinueAsync(new RouteContinueOptions { Url = r.url, PostData = r.postData, Headers = r.headers });
+                                        return;
                                     }
                                 }
                             }
@@ -325,7 +322,7 @@ namespace Lampac.Controllers.NextHUB
 
                             await route.ContinueAsync();
                         }
-                        catch { }
+                        catch (Exception ex) { Console.WriteLine(ex.Message); }
                     });
 
                     string content = null;

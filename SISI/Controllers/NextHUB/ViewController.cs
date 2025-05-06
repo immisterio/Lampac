@@ -13,7 +13,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.AspNetCore.Routing;
 using HtmlAgilityPack;
-using Z.Expressions;
 using Newtonsoft.Json;
 
 namespace Lampac.Controllers.NextHUB
@@ -30,7 +29,7 @@ namespace Lampac.Controllers.NextHUB
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
-            var init = RootController.goInit(plugin);
+            var init = Root.goInit(plugin);
             if (init == null)
                 return OnError("init not found");
 
@@ -240,7 +239,7 @@ namespace Lampac.Controllers.NextHUB
                                     string infile = $"NextHUB/{init.view.eval}";
                                     if (!System.IO.File.Exists(infile))
                                     {
-                                        return Eval.Execute<string>(init.view.eval, new { html = _content, plugin, url });
+                                        return Root.Eval.Execute<string>(init.view.eval, new { html = _content, plugin, url });
                                     }
                                     else
                                     {
@@ -249,7 +248,7 @@ namespace Lampac.Controllers.NextHUB
                                         if (init.view.eval.EndsWith(".js"))
                                             return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url });
 
-                                        return Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
+                                        return Root.Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
                                     }
                                 }
 
@@ -314,12 +313,12 @@ namespace Lampac.Controllers.NextHUB
                         string infile = $"NextHUB/{init.view.fileEval}";
                         if (!System.IO.File.Exists(infile))
                         {
-                            cache.file = Eval.Execute<string>(init.view.fileEval, new { cache.file, cache.headers });
+                            cache.file = Root.Eval.Execute<string>(init.view.fileEval, new { cache.file, cache.headers });
                         }
                         else
                         {
                             string evaluate = FileCache.ReadAllText($"NextHUB/{init.view.fileEval}");
-                            cache.file = Eval.Execute<string>(evaluate, new { cache.file, cache.headers });
+                            cache.file = Root.Eval.Execute<string>(evaluate, new { cache.file, cache.headers });
                         }
                     }
                     #endregion

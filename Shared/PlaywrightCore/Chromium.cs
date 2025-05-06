@@ -239,7 +239,7 @@ namespace Shared.Engine
             {
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
-                if (keepopen_context != null && Status != PlaywrightStatus.disabled)
+                if (AppInit.conf.multiaccess && keepopen_context != null && Status != PlaywrightStatus.disabled)
                 {
                     try
                     {
