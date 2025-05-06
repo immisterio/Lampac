@@ -155,6 +155,11 @@ namespace Shared.Model
         #endregion
 
         #region Online
+        /// <summary>
+        /// https://iptv.online/ru/dealers/api
+        /// </summary>
+        public OnlinesSettings IptvOnline { get; set; } = new OnlinesSettings("IptvOnline", "https://iptv.online", enable: false);
+
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, scheme = "http" };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
@@ -404,12 +409,12 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
         /// </summary>
-        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, streamproxy: true);
+        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", token: "2281|zjwU6jDRmNwgdoRYkQ2ySJoyu1rXiwj8qJBMN9M36bc52415", streamproxy: true);
 
         /// <summary>
         /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
         /// </summary>
-        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", enable: false, streamproxy: true)
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", token: "3iee:4<8fg8ih;i<7g84egdedhg6<794", streamproxy: true)
         {
             priorityBrowser = "http",
             headers = HeadersModel.Init(

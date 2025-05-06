@@ -703,9 +703,10 @@ namespace Lampac.Controllers
             send(conf.FilmixPartner, "fxapi", "Filmix", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
             #endregion
 
-            #region KinoPub
             send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
+            send(conf.IptvOnline, "iptvonline", "iptv.online");
 
+            #region Alloha
             {
                 var myinit = loadKit(conf.Alloha, kitconf , (j, i, c) => 
                 { 
@@ -774,6 +775,35 @@ namespace Lampac.Controllers
                 }
             }
 
+            if (kinopoisk_id > 0)
+                send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
+
+            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
+
+            if (!isanime)
+                send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
+
+            #region Collaps
+            {
+                var myinit = loadKit(conf.Collaps, kitconf, (j, i, c) =>
+                {
+                    if (j.ContainsKey("dash"))
+                        i.dash = c.dash;
+                    if (j.ContainsKey("two"))
+                        i.two = c.two;
+                    return i;
+                });
+
+                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
+
+                if (myinit.two && !myinit.dash)
+                    send(myinit, "collaps-dash", "Collaps (dash)", rch_access: "apk");
+            }
+            #endregion
+
+            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
+                send(conf.Hydraflix, "hydraflix", "HydraFlix (dash)");
+
             if (conf.Videoseed.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled)
                 send(conf.Videoseed);
 
@@ -803,32 +833,6 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            if (kinopoisk_id > 0)
-                send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
-
-            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
-
-            if (!isanime)
-                send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
-
-            #region Collaps
-            {
-                var myinit = loadKit(conf.Collaps, kitconf, (j, i, c) => 
-                {
-                    if (j.ContainsKey("dash"))
-                        i.dash = c.dash;
-                    if (j.ContainsKey("two"))
-                        i.two = c.two;
-                    return i; 
-                });
-
-                if (myinit.two && !myinit.dash)
-                    send(myinit, "collaps-dash", "Collaps (dash)", rch_access: "apk");
-
-                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
-            }
-            #endregion
-
             if (serial == -1 || serial == 0)
                 send(conf.Redheadsound, rch_access: "apk");
 
@@ -849,9 +853,6 @@ namespace Lampac.Controllers
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
-                    send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
-
                 if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost))
                     send(conf.Videasy, "videasy", "Videasy (ENG)");
 
@@ -1014,6 +1015,7 @@ namespace Lampac.Controllers
                             case "animelib":
                             case "mirage":
                             case "videodb":
+                            case "iptvonline":
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":

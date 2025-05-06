@@ -40,19 +40,19 @@ __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 * Raspberry arm64 (Debian 11)
 
 # Плагины для Lampa
-1. Все плагины сразу - "http://IP:9118/on.js"
-2. онлайн   - "http://IP:9118/online.js"
-3. xxx      - "http://IP:9118/sisi.js"
-4. DLNA     - "http://IP:9118/dlna.js"
-5. Tracks   - "http://IP:9118/tracks.js"
-6. Backup   - "http://IP:9118/backup.js"
-7. Синхронизация   - "http://IP:9118/sync.js"
-8. TorrServer      - "http://IP:9118/ts.js"
-9. Парсер Jackett  - "IP:9118"
+1. Все плагины сразу - http://IP:9118/on.js
+2. онлайн   - http://IP:9118/online.js
+3. xxx      - http://IP:9118/sisi.js
+4. DLNA     - http://IP:9118/dlna.js
+5. Tracks   - http://IP:9118/tracks.js
+6. Backup   - http://IP:9118/backup.js
+7. Синхронизация   - http://IP:9118/sync.js
+8. TorrServer      - http://IP:9118/ts.js
+9. Парсер Jackett  - IP:9118
 
 # Плагины для Lampa Lite
-1. онлайн/jackett  - "http://IP:9118/lite.js" 
-2. xxx     - "http://IP:9118/sisi.js"
+1. онлайн/jackett  - http://IP:9118/lite.js
+2. xxx     - http://IP:9118/sisi.js
 
 # Общие настройки
 1. Отключить TorrServer/DNLA/Jackett/etc можно в module/manifest.json
@@ -60,17 +60,21 @@ __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 3. Основные настройки в init.conf (пример example.conf)
 
 # Источники 
-* Filmix, KinoPub, Alloha, Rezka, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
+* Filmix, KinoPub, Alloha, Rezka, iptv.online, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
 * Kinozal, Nnmclub, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
 * PornHub, PornHubPremium, Bongacams, Chaturbate, Cam4, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos, Lenporno, Porno365, Vtrahe, RUSporno, ProstoPorno, PornOne, Brazzrus, FilmAdult, Sosushka, Youjizz, NoodleMagazine, Veporn, XXXperevod, Huyamba, Pornk, PornoAkt, Porn4days, Beeg, Porndig
 
 Для работы Lumex и ENG балансеров, нужно включить Firefox в init.conf
 
+# Источники с API для порталов
+* Filmix, Alloha, Lumex (VideoCDN), Kodik
+
 # Привязка PRO аккаунтов
-* Filmix - "http://IP:9118/lite/filmixpro" 
-* KinoPub - "http://IP:9118/lite/kinopubpro" 
-* VoKino - "http://IP:9118/lite/vokinotk" 
-* HDRezka - "http://IP:9118/lite/rhs/bind" 
+* Filmix - http://IP:9118/lite/filmixpro
+* KinoPub - http://IP:9118/lite/kinopubpro
+* VoKino - http://IP:9118/lite/vokinotk
+* HDRezka - http://IP:9118/lite/rhs/bind
+* iptv.online - http://IP:9118/lite/iptvonline/bind
 
 # Плагин DLNA.js
 * Просмотр медиа файлов с папки dlna
@@ -128,7 +132,7 @@ __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 * streamproxy - Перенаправляет видео через "http://IP:9118/proxy/{uri}" 
 * localip - Заменить на "false" если скрипт установлен за пределами внутренней сети
 * findkp - Каталог для поиск kinopoisk_id (alloha|tabus|vsdn)
-* corseu - Использовать прокси cors.bwa.workers.dev
+* corseu - Использовать прокси cloudflare
 
 # Пример init.conf
 * Список всех параметров, а так же значения по умолчанию смотреть в current.conf и example.conf 

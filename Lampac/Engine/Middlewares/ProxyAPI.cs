@@ -41,13 +41,13 @@ namespace Lampac.Engine.Middlewares
 
         async public Task InvokeAsync(HttpContext httpContext)
         {
-            var init = AppInit.conf.serverproxy;
-            var requestInfo = httpContext.Features.Get<RequestModel>();
-            string reqip = requestInfo.IP;
-            string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "") + httpContext.Request.QueryString.Value;
-
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/") || httpContext.Request.Path.Value.StartsWith("/proxy/"))
             {
+                var init = AppInit.conf.serverproxy;
+                var requestInfo = httpContext.Features.Get<RequestModel>();
+                string reqip = requestInfo.IP;
+                string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "") + httpContext.Request.QueryString.Value;
+
                 #region tmdb proxy
                 if (servUri.Contains(".themoviedb.org"))
                 {
@@ -64,7 +64,7 @@ namespace Lampac.Engine.Middlewares
                 #region decryptLink
                 var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
 
-                if (init.encrypt || decryptLink?.uri != null)
+                if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
                 {
                     servUri = decryptLink?.uri;
                 }
