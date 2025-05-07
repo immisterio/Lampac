@@ -752,11 +752,6 @@ namespace Lampac.Controllers
                     send(conf.Kinobase);
             }
 
-            send(conf.VideoCDN);
-
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
-                send(conf.Lumex);
-
             if (kinopoisk_id > 0)
             {
                 if (conf.VideoDB.rhub || conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
@@ -774,6 +769,11 @@ namespace Lampac.Controllers
                         send(conf.FanCDN, rch_access: "apk");
                 }
             }
+
+            send(conf.VideoCDN);
+
+            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost))
+                send(conf.Lumex);
 
             if (kinopoisk_id > 0)
                 send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
@@ -808,6 +808,7 @@ namespace Lampac.Controllers
                 send(conf.Videoseed);
 
             send(conf.Vibix, rch_access: "apk,cors");
+            send(conf.VeoVeo);
 
             if (serial == -1 || serial == 0)
                 send(conf.iRemux, "remux");
@@ -1050,6 +1051,7 @@ namespace Lampac.Controllers
                             case "videasy":
                             case "vidlink":
                             case "autoembed":
+                            case "veoveo":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":

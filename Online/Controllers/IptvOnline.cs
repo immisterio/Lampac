@@ -47,7 +47,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            var proxyManager = new ProxyManager(AppInit.conf.IptvOnline);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             #region AUTH
@@ -116,11 +116,11 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     #region Сериал
-                    string enc_title = HttpUtility.UrlEncode(title);
-                    string enc_original_title = HttpUtility.UrlEncode(original_title);
-
                     if (s == -1)
                     {
+                        string enc_title = HttpUtility.UrlEncode(title);
+                        string enc_original_title = HttpUtility.UrlEncode(original_title);
+
                         string quality = cache.Value.Value<string>("quality");
                         if (quality != null)
                             quality += "p";
@@ -145,11 +145,11 @@ namespace Lampac.Controllers.LITE
                             string name = episode.Value<string>("title");
                             string file = episode.Value<string>("url") + "#.m3u8";
 
-                            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(file))
+                            if (string.IsNullOrEmpty(file))
                                 continue;
 
                             string stream = HostStreamProxy(init, file, proxy: proxy);
-                            etpl.Append(name, title ?? original_title, s.ToString(), episode.Value<int>("episode").ToString(), stream, vast: init.vast);
+                            etpl.Append(name ?? $"{episode.Value<int>("episode")} серия", title ?? original_title, s.ToString(), episode.Value<int>("episode").ToString(), stream, vast: init.vast);
                         }
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();

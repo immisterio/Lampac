@@ -160,6 +160,11 @@ namespace Shared.Model
         /// </summary>
         public OnlinesSettings IptvOnline { get; set; } = new OnlinesSettings("IptvOnline", "https://iptv.online", enable: false);
 
+        /// <summary>
+        /// aHR0cHM6Ly92ZW92ZW8uaW8=
+        /// </summary>
+        public OnlinesSettings VeoVeo { get; set; } = new OnlinesSettings("VeoVeo", "kwwsv=22dsl1uvwsujdslsw1frp");
+
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, scheme = "http" };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
