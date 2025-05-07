@@ -78,7 +78,7 @@ namespace Shared.Engine.Online
 
                 if (dash)
                 {
-                    string _dash = Regex.Match(md.content, "dasha: +\"(https?://[^\"]+\\.mp[^\"]+)\"").Groups[1].Value;
+                    string _dash = Regex.Match(md.content, "dasha?: +\"(https?://[^\"]+\\.mp[^\"]+)\"").Groups[1].Value;
                     if (!string.IsNullOrEmpty(_dash))
                         stream = _dash;
                 }
@@ -144,9 +144,9 @@ namespace Shared.Engine.Online
 
                         foreach (var episode in episodes)
                         {
-                            string? stream = episode?.hls ?? episode?.dasha;
-                            if (dash && episode?.dasha != null)
-                                stream = episode.dasha;
+                            string? stream = episode?.hls ?? episode?.dasha ?? episode?.dash;
+                            if (dash && (episode?.dasha ?? episode?.dash) != null)
+                                stream = episode?.dasha ?? episode?.dash;
 
                             if (string.IsNullOrEmpty(stream) || string.IsNullOrEmpty(episode?.episode))
                                 continue;

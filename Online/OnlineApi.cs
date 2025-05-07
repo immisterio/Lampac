@@ -746,11 +746,8 @@ namespace Lampac.Controllers
 
             send(conf.Mirage);
 
-            if (serial == -1 || serial == 0)
-            {
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
-                    send(conf.Kinobase);
-            }
+            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
+                send(conf.Kinobase);
 
             if (kinopoisk_id > 0)
             {

@@ -111,7 +111,7 @@ namespace Lampac.Controllers.LITE
         JObject search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
             if (database == null)
-                database = JsonConvert.DeserializeObject<List<JObject>>(System.IO.File.ReadAllText("cache/veoveo.json"));
+                database = JsonConvert.DeserializeObject<List<JObject>>(System.IO.File.ReadAllText("data/veoveo.json"));
 
             JObject goSearch(bool searchToId)
             {

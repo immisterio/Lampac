@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.Kinobase
+﻿namespace Lampac.Models.LITE.Kinobase
 {
     public class Season
     {
@@ -14,8 +12,6 @@ namespace Lampac.Models.LITE.Kinobase
 
         public string subtitle { get; set; }
 
-        public List<Playlist> playlist { get; set; }
-
-        public List<Playlist> folder { get; set; }
+        public List<Season> folder { get; set; }
     }
 }
