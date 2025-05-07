@@ -89,14 +89,8 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}/{id}/";
                 var root = await HttpClient.Get<JObject>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
 
-                if (root == null)
-                {
-                    proxyManager.Refresh();
-                    return null;
-                }
-
-                if (!root.ContainsKey("data"))
-                    return null;
+                if (root == null || !root.ContainsKey("data"))
+                    return res.Fail("data");
 
                 return root["data"];
             });
