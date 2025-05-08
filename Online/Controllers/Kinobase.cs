@@ -10,6 +10,7 @@ using Shared.Engine;
 using Shared.PlaywrightCore;
 using Lampac.Models.LITE;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -79,7 +80,7 @@ namespace Lampac.Controllers.LITE
                         {
                             Name = "player_settings",
                             Value = "old|hls|0",
-                            Domain = "kinobase.org",
+                            Domain = Regex.Match(init.host, "^https?://([^/]+)").Groups[1].Value,
                             Path = "/",
                             Expires = 2220002226
                         }
