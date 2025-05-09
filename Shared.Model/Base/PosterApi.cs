@@ -15,7 +15,7 @@ namespace Shared.Model.Base
             iproxy = _iproxy;
         }
 
-        public static string? Find(long kpid, string? imdb)
+        public static string? Find(long? kpid, string? imdb)
         {
             string? imdb_img = null, kp_img = null;
 

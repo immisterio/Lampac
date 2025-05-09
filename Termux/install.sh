@@ -96,13 +96,17 @@ cat <<EOF > init.conf
     "rhub": true
   },
   "VDBmovies": {
-    "rhub": true
+    "rhub": true,
+    "spider": false
   },
   "VideoDB": {
     "rhub": true
   },
   "FanCDN": {
     "rhub": true
+  },
+  "Lumex": {
+    "spider": false
   }
 }
 EOF
@@ -149,6 +153,7 @@ EOF
 # clear
 rm -f GeoLite2-Country.mmdb
 rm -rf merchant torrserver wwwroot/bwa
+rm -f data/*.json
 rm -rf runtimes/wi*
 rm -rf runtimes/os*
 rm -rf runtimes/linux-m*

@@ -160,8 +160,8 @@ namespace Lampac.Controllers
                     string mkey = $"externalids:KP_:{_kp}";
                     if (!hybridCache.TryGetValue(mkey, out string _imdbid))
                     {
-                        string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&kinopoisk_id=" + id.Replace("KP_", ""), timeoutSeconds: 5);
-                        _imdbid = Regex.Match(json ?? "", "\"imdb_id\":\"(tt[^\"]+)\"").Groups[1].Value;
+                        string json = await HttpClient.Get($"https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&kp=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                        _imdbid = Regex.Match(json ?? "", "\"id_imdb\":\"(tt[^\"]+)\"").Groups[1].Value;
                         hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
 
@@ -174,7 +174,6 @@ namespace Lampac.Controllers
             async Task<string> getAlloha(string imdb)
             {
                 var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
-                // e4740218af5a5ca67c6210f7fe3842
                 string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
@@ -424,6 +423,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
                 send(AppInit.conf.Lumex);
 
+            send(AppInit.conf.VDBmovies);
             send(AppInit.conf.HDVB, "hdvb-search");
 
             if (rhub)
@@ -749,22 +749,22 @@ namespace Lampac.Controllers
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost))
                 send(conf.Kinobase);
 
+            if (conf.VDBmovies.rhub || conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
+                send(conf.VDBmovies, rch_access: "apk");
+
             if (kinopoisk_id > 0)
             {
                 if (conf.VideoDB.rhub || conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost))
                     send(conf.VideoDB, rch_access: "apk");
 
-                if (conf.VDBmovies.rhub || conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost))
-                    send(conf.VDBmovies, rch_access: "apk");
-
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost))
                     send(conf.Zetflix);
+            }
 
-                if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
-                {
-                    if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless)
-                        send(conf.FanCDN, rch_access: "apk");
-                }
+            if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost))
+            {
+                if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless)
+                    send(conf.FanCDN, rch_access: "apk");
             }
 
             send(conf.VideoCDN);
@@ -834,9 +834,7 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
                 send(conf.Redheadsound, rch_access: "apk");
 
-            if (kinopoisk_id > 0)
-                send(conf.HDVB);
-
+            send(conf.HDVB);
             send(conf.Kinotochka, rch_access: "apk,cors");
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)

@@ -19,13 +19,13 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/videoseed")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, int serial = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, int serial = -1)
         {
             var init = await loadKit(AppInit.conf.Videoseed);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
+            if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled && init.priorityBrowser != "http")
@@ -38,23 +38,39 @@ namespace Lampac.Controllers.LITE
             string memKey = $"videoseed:view:{kinopoisk_id}";
             if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, JObject> seasons, string iframe) cache))
             {
-                string uri = $"{init.host}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}&kp={kinopoisk_id}";
-                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                #region goSearch
+                async ValueTask<JToken> goSearch(bool isOk, string arg)
+                {
+                    if (!isOk)
+                        return null;
 
-                if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
+                    string uri = $"{init.host}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg;
+                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+
+                    if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
+                    {
+                        proxyManager.Refresh();
+                        return null;
+                    }
+
+                    return root["data"]?.First;
+                }
+                #endregion
+
+                var data = await goSearch(kinopoisk_id > 0, $"&kp={kinopoisk_id}") ?? 
+                           await goSearch(!string.IsNullOrEmpty(imdb_id), $"&tmdb={imdb_id}") ??
+                           await goSearch(!string.IsNullOrEmpty(original_title), $"&q={HttpUtility.UrlEncode(original_title)}&release_year_from={year-1}&release_year_to={year+1}");
+
+                if (data == null)
                 {
                     proxyManager.Refresh();
                     return OnError();
                 }
 
-                var data = root["data"]?.First;
-
                 if (serial == 1)
                     cache.seasons = data?["seasons"]?.ToObject<Dictionary<string, JObject>>();
                 else
-                {
                     cache.iframe = data?.Value<string>("iframe");
-                }
 
                 if (cache.seasons == null && string.IsNullOrEmpty(cache.iframe))
                 {
@@ -71,7 +87,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
-                mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(cache.iframe)}"), vast: init.vast);
+                mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -101,7 +117,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var video in cache.seasons.First(i => i.Key == s.ToString()).Value["videos"].ToObject<Dictionary<string, JObject>>())
                     {
                         string iframe = video.Value.Value<string>("iframe");
-                        etpl.Append($"{video.Key} серия", title ?? original_title, s.ToString(), video.Key, accsArgs($"{host}/lite/videoseed/video?iframe={HttpUtility.UrlEncode(iframe)}"), vast: init.vast);
+                        etpl.Append($"{video.Key} серия", title ?? original_title, s.ToString(), video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -113,13 +129,14 @@ namespace Lampac.Controllers.LITE
 
         #region Video
         [HttpGet]
-        [Route("lite/videoseed/video")]
+        [Route("lite/videoseed/video/{*iframe}")]
         async public Task<ActionResult> Video(string iframe)
         {
             var init = await loadKit(AppInit.conf.Videoseed);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            iframe = AesTo.Decrypt(iframe);
             if (string.IsNullOrEmpty(iframe))
                 return OnError();
 
@@ -144,7 +161,7 @@ namespace Lampac.Controllers.LITE
 
                         foreach (string q in new string[] { "1080p", "720p", "480p" })
                         {
-                            location = Regex.Match(html, $"\\[{q}](https?://[^,]+\\.mp4/),").Groups[1].Value.Trim();
+                            location = Regex.Match(html, $"\\[{q}]({{[^}}]+}} )?(https?://[^,;\t\n\r ]+\\.mp4/)").Groups[2].Value.Trim();
                             if (!string.IsNullOrEmpty(location))
                                 break;
                         }
@@ -185,14 +202,14 @@ namespace Lampac.Controllers.LITE
                             PlaywrightBase.WebLog("GET", iframe, html, proxy.data);
 
                             location = Regex.Match(html ?? "", "<vide[^>]+ src=\"([^\"]+)").Groups[1].Value.Trim();
-
-                            if (string.IsNullOrEmpty(location))
-                            {
-                                proxyManager.Refresh();
-                                return OnError();
-                            }
                         }
                         #endregion
+                    }
+
+                    if (string.IsNullOrEmpty(location))
+                    {
+                        proxyManager.Refresh();
+                        return OnError();
                     }
                 }
                 catch

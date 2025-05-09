@@ -73,13 +73,17 @@ cat <<EOF > $DEST/init.conf
     "rhub": true
   },
   "VDBmovies": {
-    "rhub": true
+    "rhub": true,
+    "spider": false
   },
   "VideoDB": {
     "rhub": true
   },
   "FanCDN": {
     "rhub": true
+  },
+  "Lumex": {
+    "spider": false
   }
 }
 EOF
@@ -126,7 +130,7 @@ cat <<EOF > $DEST/Lampac.runtimeconfig.json
       "System.GC.Server": false,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 200000000
+      "System.GC.HeapHardLimit": 300000000
     }
   }
 }
@@ -161,6 +165,7 @@ echo -n "1" > $DEST/vers-minor.txt
 
 # clear
 cd $DEST
+rm -f data/*.json
 rm -rf merchant wwwroot/bwa
 rm -rf runtimes/wi*
 rm -rf runtimes/os*

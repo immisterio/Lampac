@@ -9,8 +9,10 @@ using System.Web;
 using Lampac.Models.LITE;
 using System.Net;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using System.Linq;
+using Shared.Engine;
+using Shared.Model.Online.VeoVeo;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -32,10 +34,9 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             #region media
-            long movie_id = movie.Value<long>("id");
-            var cache = await InvokeCache<JArray>($"{init.plugin}:{movie_id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<JArray>($"{init.plugin}:{movie.id}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movie_id}";
+                string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movie.id}";
                 var root = await HttpClient.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || root.Count == 0)
@@ -106,14 +107,16 @@ namespace Lampac.Controllers.LITE
 
 
         #region search
-        public static List<JObject> database = null;
+        public static List<Movie> database = null;
 
-        JObject search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
+        Movie search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
             if (database == null)
-                database = JsonConvert.DeserializeObject<List<JObject>>(System.IO.File.ReadAllText("data/veoveo.json"));
+                database = JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
 
-            JObject goSearch(bool searchToId)
+            string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
+
+            Movie goSearch(bool searchToId)
             {
                 foreach (var item in database)
                 {
@@ -121,13 +124,13 @@ namespace Lampac.Controllers.LITE
                     {
                         if (kinopoisk_id > 0)
                         {
-                            if (item.Value<long?>("kinopoiskId") == kinopoisk_id)
+                            if (item.kinopoiskId == kinopoisk_id)
                                 return item;
                         }
 
                         if (!string.IsNullOrEmpty(imdb_id))
                         {
-                            if (item.Value<string>("imdbId") == imdb_id)
+                            if (item.imdbId == imdb_id)
                                 return item;
                         }
                     }
@@ -135,13 +138,13 @@ namespace Lampac.Controllers.LITE
                     {
                         if (!string.IsNullOrEmpty(original_title))
                         {
-                            if (item.Value<string>("originalTitle")?.ToLower() == original_title.ToLower())
+                            if (NormalizeString(item.originalTitle) == NormalizeString(original_title))
                                 return item;
                         }
 
                         if (!string.IsNullOrEmpty(title))
                         {
-                            if (item.Value<string>("title")?.ToLower() == title.ToLower())
+                            if (NormalizeString(item.title) == NormalizeString(title))
                                 return item;
                         }
                     }

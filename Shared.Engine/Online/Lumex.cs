@@ -43,73 +43,136 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial, int clarification)
+        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial, int clarification, List<DatumDB>? database = null)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
-            if (string.IsNullOrWhiteSpace(token))
-                return null;
-
-            string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
-
-            string? json = await onget.Invoke(uri, apihost);
-            if (json == null)
-            {
-                requesterror?.Invoke();
-                return null;
-            }
-
-            SearchRoot? root = null;
-
-            try
-            {
-                root = JsonSerializer.Deserialize<SearchRoot>(json);
-                if (root?.data == null || root.data.Count == 0)
-                    return null;
-            }
-            catch { return null; }
-
-            var stpl = new SimilarTpl(root.data.Count);
-
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            foreach (var item in root.data)
+            if (!string.IsNullOrEmpty(token))
             {
-                if (item.kp_id == 0 && string.IsNullOrEmpty(item.imdb_id))
-                    continue;
+                #region api/short
+                string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-                if (serial != -1)
+                string? json = await onget.Invoke(uri, apihost);
+                if (json == null)
                 {
-                    if ((serial == 0 && item.content_type != "movie") || (serial == 1 && item.content_type == "movie"))
-                        continue;
+                    requesterror?.Invoke();
+                    return null;
                 }
 
-                if (clarification != 1)
+                SearchRoot? root = null;
+
+                try
                 {
-                    bool isok = title != null && title.Length > 3 && item.title != null && item.title.ToLower().Contains(title.ToLower());
-                    isok = isok ? true : original_title != null && original_title.Length > 3 && item.orig_title != null && item.orig_title.ToLower().Contains(original_title.ToLower());
+                    root = JsonSerializer.Deserialize<SearchRoot>(json);
+                    if (root?.data == null || root.data.Count == 0)
+                        return null;
+                }
+                catch { return null; }
+
+                var stpl = new SimilarTpl(root.data.Count);
+
+                foreach (var item in root.data)
+                {
+                    if (serial != -1)
+                    {
+                        if ((serial == 0 && item.content_type != "movie") || (serial == 1 && item.content_type == "movie"))
+                            continue;
+                    }
+
+                    if (clarification != 1)
+                    {
+                        bool isok = title != null && title.Length > 3 && item.title != null && item.title.ToLower().Contains(title.ToLower());
+                        isok = isok ? true : original_title != null && original_title.Length > 3 && item.orig_title != null && item.orig_title.ToLower().Contains(original_title.ToLower());
+
+                        if (!isok)
+                            continue;
+                    }
+
+                    string year = item.add?.Split("-")?[0] ?? string.Empty;
+                    string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
+
+                    string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
+
+                    string? img = PosterApi.Find(item.kp_id, item.imdb_id);
+                    stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&content_type={item.content_type}&content_id={item.id}&clarification={clarification}", img);
+                }
+
+                return stpl;
+                #endregion
+            }
+            else if (database != null)
+            {
+                #region database
+                if (database == null)
+                    return null;
+
+                string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
+
+                var stpl = new SimilarTpl();
+
+                foreach (var item in database)
+                {
+                    if (stpl.data.Count >= 100)
+                        break;
+
+                    if (item.kinopoisk_id == 0 && string.IsNullOrEmpty(item.imdb_id))
+                        continue;
+
+                    if (serial != -1)
+                    {
+                        if ((serial == 0 && item.content_type != "movie") || (serial == 1 && item.content_type == "movie"))
+                            continue;
+                    }
+
+                    bool isok = false;
+
+                    if (!string.IsNullOrEmpty(original_title))
+                    {
+                        if (NormalizeString(item.orig_title) == NormalizeString(original_title))
+                            isok = true;
+                    }
+
+                    if (!isok && !string.IsNullOrEmpty(title))
+                    {
+                        if (!string.IsNullOrEmpty(item.ru_title))
+                        {
+                            if (NormalizeString(item.ru_title).Contains(NormalizeString(title)))
+                                isok = true;
+                        }
+
+                        if (!isok && !string.IsNullOrEmpty(item.orig_title))
+                        {
+                            if (NormalizeString(item.orig_title).Contains(NormalizeString(title)))
+                                isok = true;
+                        }
+                    }
 
                     if (!isok)
                         continue;
+
+                    string year = item.year?.Split("-")?[0] ?? string.Empty;
+                    string? name = !string.IsNullOrEmpty(item.ru_title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.ru_title} / {item.orig_title}" : (item.ru_title ?? item.orig_title);
+
+                    string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kinopoisk_id}";
+
+                    string? img = PosterApi.Find(item.kinopoisk_id, item.imdb_id);
+                    stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&content_type={item.content_type}&content_id={item.id}&clarification={clarification}", img);
                 }
 
-                string year = item.add?.Split("-")?[0] ?? string.Empty;
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
-
-                string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
-
-                string? img = PosterApi.Find(item.kp_id, item.imdb_id);
-                stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}", img);
+                return stpl;
+                #endregion
             }
 
-            return stpl;
+            return null;
         }
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false, bool bwa = false)
+        public string Html(EmbedModel? result, string args, long content_id, string content_type, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
         {
             if (result?.media == null || result.media.Count == 0)
                 return string.Empty;
@@ -163,7 +226,7 @@ namespace Shared.Engine.Online
 
                         foreach (var media in result.media.OrderBy(s => s.season_id))
                         {
-                            string link = host + $"lite/lumex?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={media.season_id}{args}";    
+                            string link = host + $"lite/lumex?content_id={content_id}&content_type={content_type}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&s={media.season_id}{args}";    
 
                             tpl.Append($"{media.season_id} сезон", link, media.season_id);
                         }
@@ -193,7 +256,7 @@ namespace Shared.Engine.Online
                                     if (string.IsNullOrEmpty(t))
                                         t = voice.translation_id.ToString();
 
-                                    vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), host + $"lite/lumex?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.translation_id}");
+                                    vtpl.Append(voice.translation_name, t == voice.translation_id.ToString(), host + $"lite/lumex?content_id={content_id}&content_type={content_type}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&s={s}&t={voice.translation_id}");
                                 }
                             }
                         }
