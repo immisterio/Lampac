@@ -76,10 +76,12 @@ namespace Lampac.Controllers
             }
 
             if (init.name != "Lampac")
-            {
                 file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
-                file = file.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.name}'");
-                file = file.Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.name} - Anime'");
+
+            if (init.spiderName != "Spider")
+            {
+                file = file.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'");
+                file = file.Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
             }
 
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
@@ -652,6 +654,7 @@ namespace Lampac.Controllers
             }
 
             #region VoKino
+            if (kinopoisk_id > 0)
             {
                 var myinit = loadKit(conf.VoKino, kitconf , (j, i, c) => 
                 {
@@ -661,27 +664,47 @@ namespace Lampac.Controllers
                     return i;
                 });
 
-                if (kinopoisk_id > 0 && myinit.enable)
+                if (myinit.enable && !string.IsNullOrEmpty(myinit.token))
                 {
+                    async ValueTask vkino()
+                    {
+                        if (myinit.rhub || !conf.online.checkOnlineSearch)
+                        {
+                            VoKinoInvoke.SendOnline(myinit, online, null);
+                        }
+                        else
+                        {
+                            if (!hybridCache.TryGetValue($"vokino:view:{kinopoisk_id}", out JObject view))
+                            {
+                                view = await HttpClient.Get<JObject>($"{myinit.corsHost()}/v2/view/{kinopoisk_id}?token={myinit.token}", timeoutSeconds: 4);
+                                if (view != null)
+                                    hybridCache.Set($"vokino:view:{kinopoisk_id}", view, cacheTime(20));
+                            }
+
+                            if (view != null && view.ContainsKey("online"))
+                                VoKinoInvoke.SendOnline(myinit, online, view.Value<JObject>("online"));
+                        }
+                    }
+
                     if (AppInit.conf.accsdb.enable)
                     {
                         if (user != null)
                         {
                             if (myinit.group > user.group && myinit.group_hide) { }
                             else
-                                VoKinoInvoke.SendOnline(myinit, online);
+                                await vkino();
                         }
                         else
                         {
                             if (!string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
-                                VoKinoInvoke.SendOnline(myinit, online);
+                                await vkino();
                         }
                     }
                     else
                     {
                         if (myinit.group > 0 && myinit.group_hide && (user == null || myinit.group > user.group)) { }
                         else
-                            VoKinoInvoke.SendOnline(myinit, online);
+                            await vkino();
                     }
                 }
             }

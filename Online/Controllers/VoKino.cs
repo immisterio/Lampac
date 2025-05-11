@@ -64,10 +64,10 @@ namespace Lampac.Controllers.LITE
             if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (balancer is "filmix" or "ashdi" or "vibix")
+            if (balancer is "filmix" or "ashdi" or "vibix" or "monframe" or "remux")
                 init.streamproxy = false;
 
-            if (checksearch && balancer != "vokino")
+            if (checksearch)
                 return Content("data-json="); // заглушка от 429
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);

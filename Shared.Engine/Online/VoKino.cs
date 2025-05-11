@@ -1,4 +1,5 @@
 ﻿using Lampac.Models.LITE;
+using Newtonsoft.Json.Linq;
 using Shared.Model.Base;
 using Shared.Model.Online.VoKino;
 using Shared.Model.Templates;
@@ -31,16 +32,13 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        public static void SendOnline(VokinoSettings init, List<(dynamic init, string name, string url, string plugin, int index)> online, bool bwa = false)
+        public static void SendOnline(VokinoSettings init, List<(dynamic init, string name, string url, string plugin, int index)> online, JObject view)
         {
             var on = init.online;
 
             void send(string name, int x)
             {
-                string url = "lite/vokino?balancer=" + name.ToLower();
-                if (!bwa)
-                    url = "{localhost}/" + url;
-
+                string url = "{localhost}/lite/vokino?balancer=" + name.ToLower();
                 string displayname = $"{init.displayname ?? "VoKino"}";
                 if (name != "VoKino")
                     displayname = $"{name} ({init.displayname ?? "VoKino"})";
@@ -48,26 +46,29 @@ namespace Shared.Engine.Online
                 online.Add((init, displayname, url, (name == "VoKino" ? "vokino" : $"vokino-{name.ToLower()}"), init.displayindex > 0 ? (init.displayindex + x) : online.Count));
             }
 
-            if (on.vokino)
+            if (on.vokino && (view == null || view.ContainsKey("Vokino")))
                 send("VoKino", 1);
 
-            if (on.filmix)
+            if (on.filmix && (view == null || view.ContainsKey("Filmix")))
                 send("Filmix", 2);
 
-            if (on.alloha)
+            if (on.alloha && (view == null || view.ContainsKey("Alloha")))
                 send("Alloha", 3);
 
-            if (on.vibix)
+            if (on.vibix && (view == null || view.ContainsKey("Vibix")))
                 send("Vibix", 4);
 
-            if (on.videocdn)
-                send("VideoCDN", 5);
+            if (on.monframe && (view == null || view.ContainsKey("MonFrame")))
+                send("MonFrame", 5);
 
-            if (on.ashdi)
-                send("Ashdi", 6);
+            if (on.remux && (view == null || view.ContainsKey("Remux")))
+                send("Remux", 6);
 
-            if (on.hdvb)
-                send("HDVB", 7);
+            if (on.ashdi && (view == null || view.ContainsKey("Ashdi")))
+                send("Ashdi", 7);
+
+            if (on.hdvb && (view == null || view.ContainsKey("Hdvb")))
+                send("HDVB", 8);
         }
 
         #region Embed

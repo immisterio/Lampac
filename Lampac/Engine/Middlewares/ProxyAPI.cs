@@ -123,7 +123,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             httpContext.Response.Headers.Add("PX-Cache", "HIT");
                             httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
-                            httpContext.Response.ContentLength = fileStream.Length;
+                            //httpContext.Response.ContentLength = fileStream.Length;
                             await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
                         }
 
@@ -227,7 +227,7 @@ namespace Lampac.Engine.Middlewares
 
                                     httpContext.Response.StatusCode = (int)response.StatusCode;
                                     httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
-                                    httpContext.Response.ContentLength = hls.Length;
+                                    //httpContext.Response.ContentLength = hls.Length;
                                     await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                                 }
                                 else
@@ -270,7 +270,7 @@ namespace Lampac.Engine.Middlewares
                                     }
 
                                     httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
-                                    httpContext.Response.ContentLength = mpd.Length;
+                                    //httpContext.Response.ContentLength = mpd.Length;
                                     await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
                                 }
                                 else
@@ -301,7 +301,7 @@ namespace Lampac.Engine.Middlewares
                                     httpContext.Response.StatusCode = (int)response.StatusCode;
                                     httpContext.Response.Headers.Add("PX-Cache", "MISS");
                                     httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
-                                    httpContext.Response.ContentLength = buffer.Length;
+                                    //httpContext.Response.ContentLength = buffer.Length;
                                     await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
 
                                     try
