@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videocdn")]
-        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
+        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -57,8 +57,8 @@ namespace Lampac.Controllers.LITE
 
             if (content_id == 0)
             {
-                var search = await InvokeCache($"videocdn:search:{imdb_id}:{kinopoisk_id}:{title ?? original_title}:{clarification}", TimeSpan.FromHours(1),
-                    () => Search(init, imdb_id, kinopoisk_id, title, original_title, serial, clarification)
+                var search = await InvokeCache($"videocdn:search:{imdb_id}:{kinopoisk_id}:{title ?? original_title}:{clarification}:{similar}", TimeSpan.FromHours(1),
+                    () => Search(init, imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar)
                 );
 
                 if (search.content_type == null && search.similar == null)
@@ -403,7 +403,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region Search
-        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(LumexSettings init, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification)
+        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(LumexSettings init, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
         {
             async ValueTask<JToken> searchId(string imdb_id, long kinopoisk_id)
             {
@@ -425,17 +425,14 @@ namespace Lampac.Controllers.LITE
                 return result;
             }
 
-            var movie = clarification == 1 ? null : (await searchId(imdb_id, 0) ?? await searchId(null, kinopoisk_id));
+            var movie = similar ? null : (await searchId(imdb_id, 0) ?? await searchId(null, kinopoisk_id));
             if (movie != null)
             {
                 return (movie.Value<long>("id"), movie.Value<string>("content_type"), null);
             }
             else
             {
-                if (string.IsNullOrEmpty(title ?? original_title))
-                    return default;
-
-                if (string.IsNullOrEmpty(init.token))
+                if (string.IsNullOrEmpty(title ?? original_title) || string.IsNullOrEmpty(init.token))
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";

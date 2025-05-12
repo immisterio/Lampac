@@ -13,7 +13,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.AspNetCore.Routing;
 using HtmlAgilityPack;
-using Z.Expressions;
 using Newtonsoft.Json;
 
 namespace Lampac.Controllers.NextHUB
@@ -30,7 +29,7 @@ namespace Lampac.Controllers.NextHUB
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
-            var init = RootController.goInit(plugin);
+            var init = Root.goInit(plugin);
             if (init == null)
                 return OnError("init not found");
 
@@ -81,7 +80,7 @@ namespace Lampac.Controllers.NextHUB
                     using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen);
-                        if (page == null)
+                        if (page == default)
                             return default;
 
                         string browser_host = "." + Regex.Replace(init.host, "^https?://", "");
@@ -107,22 +106,51 @@ namespace Lampac.Controllers.NextHUB
                                     return;
                                 }
 
+                                #region patternFile
                                 if (init.view.patternFile != null && Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
                                 {
-                                    cache.headers = new List<HeadersModel>();
-                                    foreach (var item in route.Request.Headers)
+                                    void setHeaders(Dictionary<string, string> _headers)
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
-                                            continue;
+                                        if (_headers != null && _headers.Count > 0)
+                                        {
+                                            cache.headers = new List<HeadersModel>(_headers.Count);
+                                            foreach (var item in _headers)
+                                            {
+                                                if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                    continue;
 
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                                cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                            }
+                                        }
                                     }
 
-                                    Console.WriteLine($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
-                                    browser.SetPageResult(route.Request.Url);
-                                    await route.AbortAsync();
+                                    setHeaders(route.Request.Headers);
+
+                                    if (init.view.waitLocationFile)
+                                    {
+                                        await route.ContinueAsync();
+                                        string setUri = route.Request.Url;
+
+                                        var response = await page.WaitForResponseAsync(route.Request.Url);
+                                        if (response != null && response.Headers.ContainsKey("location"))
+                                        {
+                                            setHeaders(response.Request.Headers);
+                                            setUri = response.Headers["location"];
+                                        }
+
+                                        Console.WriteLine($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                        browser.SetPageResult(setUri);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                        browser.SetPageResult(route.Request.Url);
+                                        await route.AbortAsync();
+                                    }
+
                                     return;
                                 }
+                                #endregion
 
                                 if (init.view.abortMedia || init.view.fullCacheJS)
                                 {
@@ -142,7 +170,7 @@ namespace Lampac.Controllers.NextHUB
 
                         #region GotoAsync
                         string html = null;
-                        var responce = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
                         if (responce != null)
                             html = await responce.TextAsync();
                         #endregion
@@ -211,7 +239,7 @@ namespace Lampac.Controllers.NextHUB
                                     string infile = $"NextHUB/{init.view.eval}";
                                     if (!System.IO.File.Exists(infile))
                                     {
-                                        return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {init.view.eval} }}", new { _content, plugin, url });
+                                        return Root.Eval.Execute<string>(init.view.eval, new { html = _content, plugin, url });
                                     }
                                     else
                                     {
@@ -220,7 +248,7 @@ namespace Lampac.Controllers.NextHUB
                                         if (init.view.eval.EndsWith(".js"))
                                             return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url });
 
-                                        return Eval.Execute<string>(evaluate, new { _content, plugin, url });
+                                        return Root.Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
                                     }
                                 }
 
@@ -278,6 +306,22 @@ namespace Lampac.Controllers.NextHUB
                     }
 
                     cache.file = cache.file.Replace("\\", "").Replace("&amp;", "&");
+
+                    #region fileEval
+                    if (init.view.fileEval != null)
+                    {
+                        string infile = $"NextHUB/{init.view.fileEval}";
+                        if (!System.IO.File.Exists(infile))
+                        {
+                            cache.file = Root.Eval.Execute<string>(init.view.fileEval, new { cache.file, cache.headers });
+                        }
+                        else
+                        {
+                            string evaluate = FileCache.ReadAllText($"NextHUB/{init.view.fileEval}");
+                            cache.file = Root.Eval.Execute<string>(evaluate, new { cache.file, cache.headers });
+                        }
+                    }
+                    #endregion
 
                     proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time, init: init));

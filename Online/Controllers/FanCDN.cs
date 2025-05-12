@@ -29,7 +29,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if ((string.IsNullOrEmpty(init.token) && string.IsNullOrEmpty(init.cookie)) || kinopoisk_id == 0)
+            if (string.IsNullOrEmpty(init.token) && string.IsNullOrEmpty(init.cookie))
                 return OnError();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -47,6 +47,9 @@ namespace Lampac.Controllers.LITE
                {
                    if (ongettourl.Contains("fancdn."))
                        return await black_magic(init, rch, init.cors(ongettourl), proxy);
+
+                   if (string.IsNullOrEmpty(init.cookie))
+                       return null;
 
                    var headers = httpHeaders(init, HeadersModel.Init(
                        ("sec-fetch-dest", "document"),
@@ -118,7 +121,7 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                var result = string.IsNullOrEmpty(init.token) ? await oninvk.EmbedSearch(title, original_title, year, serial) : await oninvk.EmbedToken(kinopoisk_id, init.token);
+                var result = !string.IsNullOrEmpty(init.token) && kinopoisk_id > 0 ? await oninvk.EmbedToken(kinopoisk_id, init.token) : await oninvk.EmbedSearch(title, original_title, year, serial);
                 if (result == null)
                     return res.Fail("result");
 

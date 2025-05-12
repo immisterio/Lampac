@@ -8,6 +8,9 @@ using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.PlaywrightCore;
+using Lampac.Models.LITE;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Lampac.Controllers.LITE
 {
@@ -21,7 +24,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(title) || year == 0 || serial == 1)
+            if (string.IsNullOrEmpty(title) || year == 0)
                 return OnError();
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
@@ -34,51 +37,12 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               async ongettourl => 
+               ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
-                       return await HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
+                       return HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
 
-                   try
-                   {
-                       using (var browser = new PlaywrightBrowser())
-                       {
-                           var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
-                           if (page == null)
-                               return null;
-
-                           await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');");
-
-                           await page.RouteAsync("**/*", async route =>
-                           {
-                               try
-                               {
-                                   if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments"))
-                                   {
-                                       await route.AbortAsync();
-                                       return;
-                                   }
-
-                                   if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                       return;
-
-                                   await route.ContinueAsync();
-                               }
-                               catch { }
-                           });
-
-                           PlaywrightBase.GotoAsync(page, ongettourl);
-                           await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                           string content = await page.ContentAsync();
-
-                           PlaywrightBase.WebLog("GET", ongettourl, content, proxy.data);
-                           return content;
-                       }
-                   }
-                   catch
-                   {
-                       return null;
-                   }
+                   return black_magic(ongettourl, init, proxy.data);
                },
                (url, data) => HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy),
@@ -87,10 +51,79 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<EmbedModel>($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                return await oninvk.Embed(title, year);
+                var content = await oninvk.Embed(title, year);
+                if (content == null)
+                    return res.Fail("embed");
+
+                return content;
             });
 
             return OnResult(cache, () => oninvk.Html(cache.Value, title, year, s, rjson));
         }
+
+
+
+        #region black_magic
+        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        {
+            try
+            {
+                using (var browser = new PlaywrightBrowser())
+                {
+                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy, headers: init.headers);
+                    if (page == null)
+                        return null;
+
+                    await page.Context.AddCookiesAsync(new List<Cookie>()
+                    {
+                        new Cookie()
+                        {
+                            Name = "player_settings",
+                            Value = "old|hls|0",
+                            Domain = Regex.Match(init.host, "^https?://([^/]+)").Groups[1].Value,
+                            Path = "/",
+                            Expires = 2220002226
+                        }
+                    });
+
+                    await page.RouteAsync("**/*", async route =>
+                    {
+                        try
+                        {
+                            if (route.Request.Url.Contains("/uppod.js"))
+                            {
+                                await route.FulfillAsync(new RouteFulfillOptions
+                                {
+                                    Body = System.IO.File.ReadAllText("data/kinobase_uppod.js")
+                                });
+
+                                return;
+                            }
+
+                            if (!route.Request.Url.Contains(init.host) || route.Request.Url.Contains("/comments"))
+                            {
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                return;
+
+                            await route.ContinueAsync();
+                        }
+                        catch { }
+                    });
+
+                    PlaywrightBase.GotoAsync(page, uri);
+                    await page.WaitForSelectorAsync(".uppod-media");
+                    string content = await page.ContentAsync();
+
+                    PlaywrightBase.WebLog("GET", uri, content, proxy);
+                    return content;
+                }
+            }
+            catch { return null; }
+        }
+        #endregion
     }
 }

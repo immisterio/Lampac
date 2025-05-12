@@ -19,9 +19,11 @@ namespace Lampac.Controllers.LITE
 {
     public class Lumex : BaseOnlineController
     {
+        static List<DatumDB> database = null;
+
         [HttpGet]
         [Route("lite/lumex")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Lumex);
             if (await IsBadInitialization(init, rch: false))
@@ -42,20 +44,20 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            if (clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
+            if (similar || (content_id == 0 && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
-                if (string.IsNullOrEmpty(init.token))
-                    return OnError();
-
                 var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
                 {
-                    return await oninvk.Search(title, original_title, serial, clarification);
+                    if (string.IsNullOrEmpty(init.token) && database == null && init.spider)
+                        database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
+
+                    return await oninvk.Search(title, original_title, serial, clarification, database);
                 });
 
                 return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
             }
 
-            var cache = await InvokeCache<EmbedModel>($"videocdn:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(10, init: init), proxyManager,  async res =>
+            var cache = await InvokeCache<EmbedModel>($"videocdn:{content_id}:{content_type}:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(10, init: init), proxyManager,  async res =>
             {
                 string content_uri = null;
                 var content_headers = new List<HeadersModel>();
@@ -83,7 +85,7 @@ namespace Lampac.Controllers.LITE
                                 content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
                                 foreach (var item in route.Request.Headers)
                                 {
-                                    if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection")
+                                    if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection" || item.Key == "range")
                                         continue;
 
                                     content_headers.Add(new HeadersModel(item.Key, item.Value));
@@ -102,11 +104,17 @@ namespace Lampac.Controllers.LITE
                         });
 
                         string uri = $"https://p.{init.iframehost}/{init.clientId}";
-
-                        if (kinopoisk_id > 0)
-                            uri += $"?kp_id={kinopoisk_id}";
-                        if (!string.IsNullOrEmpty(imdb_id))
-                            uri += (uri.Contains("?") ? "?" : "&") + $"imdb_id={imdb_id}";
+                        if (content_id > 0)
+                        {
+                            uri += $"/{content_type}/{content_id}";
+                        }
+                        else
+                        {
+                            if (kinopoisk_id > 0)
+                                uri += $"?kp_id={kinopoisk_id}";
+                            if (!string.IsNullOrEmpty(imdb_id))
+                                uri += (uri.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
+                        }
 
                         PlaywrightBase.GotoAsync(page, uri);
                         await browser.WaitPageResult();
@@ -152,7 +160,7 @@ namespace Lampac.Controllers.LITE
                 return md;
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson), origsource: origsource);
         }
 
 

@@ -487,7 +487,7 @@ namespace Lampac.Controllers
                 {
                     await manager.WaitForMetadataAsync(s_cts.Token);
                     var files = manager.Files.Select(i => (ITorrentFile)i);
-                    await removeClientEngine(hash);
+                    //await removeClientEngine(hash);
                     return Json(files.Select(i => new { i.Path }));
                 }
 
@@ -606,7 +606,7 @@ namespace Lampac.Controllers
                     #region AddTrackerAsync
                     if (IO.File.Exists("cache/trackers.txt") && AppInit.conf.dlna.addTrackersToMagnet)
                     {
-                        foreach (string line in IO.File.ReadLines("cache/trackers.txt"))
+                        foreach (string line in IO.File.ReadLines("cache/trackers.txt").OrderBy(x => Random.Shared.Next()))
                         {
                             if (string.IsNullOrWhiteSpace(line))
                                 continue;
@@ -725,7 +725,10 @@ namespace Lampac.Controllers
                 {
                     try
                     {
-                        var array = await HttpClient.Download(thumb);
+                        var array = await HttpClient.Download(thumb, timeoutSeconds: 8);
+                        if (array == null)
+                            array = await HttpClient.Download(Regex.Replace(thumb, "^https?://[^/]+", $"https://imagetmdb.{AppInit.conf.cub.mirror}"));
+
                         if (array != null)
                         {
                             Directory.CreateDirectory($"{dlna_path}/thumbs");

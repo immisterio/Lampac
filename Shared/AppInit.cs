@@ -330,12 +330,13 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "c75cf78a697830466abc1222e58211d30038d64f"
+            tree = "7cb738a82e787deb8ea3d6deb5ddc8a47bdd1068"
         };
 
         public OnlineConf online = new OnlineConf()
         {
-            findkp = "all", checkOnlineSearch = true, spider = true,
+            findkp = "all", checkOnlineSearch = true, 
+            spider = true, spiderName = "Spider",
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов",
             version = true, btn_priority_forced = true, showquality = true
         };

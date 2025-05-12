@@ -1,4 +1,6 @@
-﻿namespace Lampac.Models.AppConf
+﻿using System.Collections.Generic;
+
+namespace Lampac.Models.AppConf
 {
     public class OnlineConf
     {
@@ -13,6 +15,8 @@
 
         public string name { get; set; }
 
+        public string spiderName { get; set; }
+
         public string description { get; set; }
 
         public bool version { get; set; }
@@ -23,5 +27,9 @@
 
 
         public string apn { get; set; }
+
+        public Dictionary<string, string> appReplace { get; set; } = new Dictionary<string, string>();
+
+        public string eval { get; set; }
     }
 }

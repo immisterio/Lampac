@@ -16,7 +16,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System;
 using Lampac.Engine.CORE;
-using Z.Expressions;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -29,9 +28,9 @@ namespace Lampac.Controllers.NextHUB
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
 
-            var init = RootController.goInit(plugin);
+            var init = Root.goInit(plugin);
             if (init == null)
-                return OnError("init not found");
+                return OnError("init not found", rcache: false);
 
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
@@ -57,10 +56,10 @@ namespace Lampac.Controllers.NextHUB
 
                 string html = init.priorityBrowser == "http" ? await HttpClient.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: 8) :
                               init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
-                                                     await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, !string.IsNullOrEmpty(search));
+                                                     await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, pg);
 
                 if (string.IsNullOrEmpty(html))
-                    return OnError("html");
+                    return OnError("html", rcache: !init.debug);
                 #endregion
 
                 var contentParse = init.list.contentParse ?? init.contentParse;
@@ -70,7 +69,7 @@ namespace Lampac.Controllers.NextHUB
                 playlists = goPlaylist(host, contentParse, init, html, plugin);
 
                 if (playlists == null || playlists.Count == 0)
-                    return OnError("playlists", proxyManager);
+                    return OnError("playlists", proxyManager, rcache: !init.debug);
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init));
@@ -197,29 +196,50 @@ namespace Lampac.Controllers.NextHUB
 
                 if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(href))
                 {
-                    if (href.StartsWith("//"))
+                    #region href
+                    if (href.StartsWith("../"))
+                        href = $"{init.host}/{href.Replace("../", "")}";
+                    else if (href.StartsWith("//"))
                         href = $"https:{href}";
                     else if (href.StartsWith("/"))
                         href = init.host + href;
+                    else if (!href.StartsWith("http"))
+                        href = $"{init.host}/{href}";
+                    #endregion
 
+                    #region img
                     if (img != null)
                     {
-                        if (img.StartsWith("//"))
+                        if (img.StartsWith("../"))
+                            img = $"{init.host}/{img.Replace("../", "")}";
+                        else if (img.StartsWith("//"))
                             img = $"https:{img}";
                         else if (img.StartsWith("/"))
                             img = init.host + img;
+                        else if (!img.StartsWith("http"))
+                            img = $"{init.host}/{img}";
                     }
+                    #endregion
 
                     if (!init.ignore_no_picture && string.IsNullOrEmpty(img))
                         continue;
 
+                    string clearText(string text)
+                    {
+                        if (string.IsNullOrEmpty(text))
+                            return text;
+
+                        text = text.Replace("&nbsp;", "");
+                        return Regex.Replace(text, "<[^>]+>", "");
+                    }
+
                     var pl = new PlaylistItem()
                     {
-                        name = name,
+                        name = clearText(name),
                         video = $"{host}/nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}",
                         picture = img,
-                        time = duration,
-                        quality = quality,
+                        time = clearText(duration),
+                        quality = clearText(quality),
                         myarg = myarg,
                         json = true,
                         related = init.view != null ? init.view.related : false,
@@ -232,7 +252,7 @@ namespace Lampac.Controllers.NextHUB
                     };
 
                     if (eval != null)
-                        pl = Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
+                        pl = Root.Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
 
                     if (pl != null)
                         playlists.Add(pl);
@@ -244,25 +264,45 @@ namespace Lampac.Controllers.NextHUB
         #endregion
 
         #region ContentAsync
-        async ValueTask<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, bool isSearch = false)
+        async ValueTask<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
         {
             try
             {
-                var conf = isSearch ? init.search : init.list;
+                var conf = string.IsNullOrEmpty(search) ? init.list : init.search;
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
                     var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy: proxy, keepopen: init.keepopen);
-                    if (page == null)
+                    if (page == default)
                         return null;
 
                     if (init.cookies != null)
                         await page.Context.AddCookiesAsync(init.cookies);
 
+                    string routeEval = null;
+                    if (conf.routeEval != null)
+                        routeEval = FileCache.ReadAllText($"NextHUB/{conf.routeEval}");
+
                     await page.RouteAsync("**/*", async route =>
                     {
                         try
                         {
+                            #region routeEval
+                            if (routeEval != null)
+                            {
+                                var e = Root.Eval.Execute<object>(routeEval, new { route.Request, search, sort, cat, pg });
+                                if (e != null)
+                                {
+                                    if (e is RouteContinue)
+                                    {
+                                        var r = (RouteContinue)e;
+                                        await route.ContinueAsync(new RouteContinueOptions { Url = r.url, PostData = r.postData, Headers = r.headers });
+                                        return;
+                                    }
+                                }
+                            }
+                            #endregion
+
                             if (conf.patternAbort != null && Regex.IsMatch(route.Request.Url, conf.patternAbort, RegexOptions.IgnoreCase))
                             {
                                 Console.WriteLine($"Playwright: Abort {route.Request.Url}");
@@ -282,7 +322,7 @@ namespace Lampac.Controllers.NextHUB
 
                             await route.ContinueAsync();
                         }
-                        catch { }
+                        catch (Exception ex) { Console.WriteLine(ex.Message); }
                     });
 
                     string content = null;

@@ -13,6 +13,9 @@ using Shared.Engine;
 using Lampac.Engine;
 using Microsoft.AspNetCore.SignalR;
 using System.Linq;
+using System.Threading.Tasks;
+using Shared.Model.Base;
+using System.Collections.Concurrent;
 
 namespace Lampac
 {
@@ -62,7 +65,8 @@ namespace Lampac
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
-                Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=128");
+                if (!AppInit.conf.multiaccess)
+                    Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=128");
 
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
@@ -76,8 +80,14 @@ namespace Lampac
                     }
                 });
 
-                ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
-                ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
+                if (AppInit.conf.chromium.enable)
+                {
+                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
+                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.Browser_Disconnected());
+                }
+
+                if (AppInit.conf.firefox.enable)
+                    ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
             }
             #endregion
 
@@ -97,6 +107,33 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run());
+
+            #region users.json
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                DateTime lastWriteTime = default;
+                await Task.Delay(TimeSpan.FromSeconds(20));
+
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+
+                    try
+                    {
+                        if (File.Exists("users.json"))
+                        {
+                            var ltwrite = new FileInfo("users.json").LastWriteTime;
+                            if (ltwrite != lastWriteTime)
+                            {
+                                lastWriteTime = ltwrite;
+                                AppInit.conf.accsdb.users = JsonConvert.DeserializeObject<ConcurrentBag<AccsUser>>(File.ReadAllText("users.json"));
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            });
+            #endregion
 
             #region fix update.sh
             if (File.Exists("update.sh"))

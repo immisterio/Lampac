@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
                                     cache.headers = new List<HeadersModel>();
                                     foreach (var item in route.Request.Headers)
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection")
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
                                             continue;
 
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));

@@ -81,12 +81,12 @@ namespace SISI
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true)
+        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
         {
             if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();
 
-            return OnError(msg);
+            return OnError(msg, rcache: rcache);
         }
 
         public JsonResult OnError(string msg, bool rcache = true)

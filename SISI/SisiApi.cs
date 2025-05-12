@@ -18,6 +18,7 @@ using Shared.Engine;
 using Shared.Model.Base;
 using Shared.Models.Module;
 using Shared.PlaywrightCore;
+using Z.Expressions;
 
 namespace SISI
 {
@@ -33,7 +34,7 @@ namespace SISI
                 return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
 
             var init = AppInit.conf.sisi;
-            string file = FileCache.ReadAllText("plugins/sisi.js").Replace("{localhost}", host);
+            string file = FileCache.ReadAllText("plugins/sisi.js");
 
             if (init.component != "sisi")
                 file = file.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
@@ -44,11 +45,27 @@ namespace SISI
                 file = file.Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
             }
 
+            if (init.appReplace != null)
+            {
+                foreach (var r in init.appReplace)
+                {
+                    string val = r.Value;
+                    if (val.StartsWith("file:"))
+                        val = System.IO.File.ReadAllText(val.Remove(0, 5));
+
+                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
+                }
+            }
+
+            file = file.Replace("{localhost}", host);
             file = file.Replace("{push_all}", init.push_all.ToString().ToLower());
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
 
             if (init.forced_checkRchtype)
                 file = file.Replace("window.rchtype", "Defined.rchtype");
+
+            if (!string.IsNullOrEmpty(init.eval))
+                file = Eval.Execute<string>(FileCache.ReadAllText(init.eval), new { file, host, token, requestInfo });
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -196,8 +213,11 @@ namespace SISI
                 {
                     try
                     {
+                        if (inFile.Contains(".my."))
+                            continue;
+
                         string plugin = Path.GetFileNameWithoutExtension(inFile);
-                        var init = Lampac.Controllers.NextHUB.RootController.goInit(plugin);
+                        var init = Lampac.Controllers.NextHUB.Root.goInit(plugin);
                         if (init == null)
                             continue;
 

@@ -133,7 +133,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, VastConf? vast = null, bool rjson = false)
+        public string Html(EmbedModel? root, string orid, string imdb_id, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, VastConf? vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -195,7 +195,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(season))
                             continue;
 
-                        tpl.Append($"{season} сезон", host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
+                        tpl.Append($"{season} сезон", host + $"lite/vdbmovies?orid={orid}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
                     }
 
                     return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -222,7 +222,7 @@ namespace Shared.Engine.Online
                             if (!hashvoices.Contains(perevod))
                             {
                                 hashvoices.Add(perevod);
-                                vtpl.Append(perevod, t == perevod, host + $"lite/vdbmovies?kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}");
+                                vtpl.Append(perevod, t == perevod, host + $"lite/vdbmovies?orid={orid}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}");
                             }
 
                             if (perevod != t)

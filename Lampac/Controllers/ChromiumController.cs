@@ -5,6 +5,10 @@ namespace Lampac.Controllers
 {
     public class ChromiumController : BaseController
     {
+        [Route("/api/chromium/ping")]
+        public string Ping() => "pong";
+
+
         [Route("/api/chromium/iframe")]
         public ActionResult RenderIframe(string src)
         {

@@ -14,6 +14,8 @@
 
         public string patternAbort { get; set; }
 
+        public string routeEval { get; set; }
+
         public ContentParseSettings contentParse { get; set; }
     }
 }
