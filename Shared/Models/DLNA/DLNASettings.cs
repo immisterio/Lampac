@@ -21,5 +21,16 @@
         public int maximumDiskReadRate { get; set; }
 
         public int maximumDiskWriteRate { get; set; }
+
+        
+        public bool genCover { get; set; }
+
+        public string coverComand { get; set; }
+
+        public string coverExtension { get; set; }
+
+        public bool genPreview { get; set; }
+
+        public string previewComand { get; set; }
     }
 }

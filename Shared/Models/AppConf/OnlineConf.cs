@@ -10,12 +10,12 @@ namespace Lampac.Models.AppConf
 
         public bool spider { get; set; }
 
+        public string spiderName { get; set; }
+
 
         public string component { get; set; }
 
         public string name { get; set; }
-
-        public string spiderName { get; set; }
 
         public string description { get; set; }
 

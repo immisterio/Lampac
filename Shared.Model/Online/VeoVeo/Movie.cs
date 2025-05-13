@@ -4,6 +4,8 @@
     {
         public long id { get; set; }
 
+        public int year { get; set; }
+
         public long? kinopoiskId { get; set; }
 
         public string? imdbId { get; set; }

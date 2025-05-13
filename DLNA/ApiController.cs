@@ -20,6 +20,7 @@ using Shared.Engine;
 using MongoDB.Driver;
 using Shared.Model.Online;
 using Newtonsoft.Json.Linq;
+using NetVips;
 
 namespace Lampac.Controllers
 {
@@ -34,13 +35,27 @@ namespace Lampac.Controllers
 
         static ClientEngine torrentEngine;
 
-        static DLNAController()
+        public static void Initialization()
         {
             Directory.CreateDirectory($"{dlna_path}/");
             Directory.CreateDirectory($"{dlna_path}/thumbs/");
             Directory.CreateDirectory($"{dlna_path}/tmdb/");
 
-            ThreadPool.QueueUserWorkItem(async _ => 
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                string trackers_best_ip = await HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20);
+                if (trackers_best_ip != null)
+                {
+                    foreach (string line in trackers_best_ip.Split("\n"))
+                    {
+                        string tr = line.Replace("\n", "").Replace("\r", "").Trim();
+                        if (!string.IsNullOrWhiteSpace(tr))
+                            defTrackers += $"&tr={tr}";
+                    }
+                }
+            });
+
+            ThreadPool.QueueUserWorkItem(async _ =>
             {
                 while (true)
                 {
@@ -56,17 +71,7 @@ namespace Lampac.Controllers
             if (!Directory.Exists("cache/metadata"))
                 return;
 
-            string trackers_best_ip = HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 5).Result;
-            if (trackers_best_ip != null)
-            {
-                foreach (string line in trackers_best_ip.Split("\n"))
-                {
-                    string tr = line.Replace("\n", "").Replace("\r", "").Trim();
-                    if (!string.IsNullOrWhiteSpace(tr))
-                        defTrackers += $"&tr={tr}";
-                }
-            }
-
+            #region Resume download
             bullderClientEngine();
 
             foreach (string path in Directory.GetFiles("cache/metadata", "*.torrent"))
@@ -150,6 +155,7 @@ namespace Lampac.Controllers
 
             if (torrentEngine != null)
                 torrentEngine.StartAllAsync();
+            #endregion
         }
         #endregion
 
@@ -406,6 +412,21 @@ namespace Lampac.Controllers
             }
             #endregion
 
+            #region getPreview
+            string getPreview(string name)
+            {
+                string pathimage = $"temp/{name}.mp4";
+                if (IO.File.Exists($"{dlna_path}/" + pathimage))
+                    return $"{host}/dlna/stream?path={HttpUtility.UrlEncode(pathimage)}";
+
+                pathimage = $"temp/{name}.webm";
+                if (IO.File.Exists($"{dlna_path}/" + pathimage))
+                    return $"{host}/dlna/stream?path={HttpUtility.UrlEncode(pathimage)}";
+
+                return null;
+            }
+            #endregion
+
             #region countFiles
             int countFiles(string _path)
             {
@@ -429,7 +450,7 @@ namespace Lampac.Controllers
             #region folders
             foreach (string folder in Directory.GetDirectories($"{dlna_path}/" + path))
             {
-                if (folder.Contains("thumbs") || folder.Contains("tmdb"))
+                if (folder.Contains("thumbs") || folder.Contains("tmdb") || folder.Contains("temp"))
                     continue;
 
                 int length = countFiles(folder);
@@ -441,6 +462,7 @@ namespace Lampac.Controllers
                         name = Path.GetFileName(folder),
                         uri = $"{host}/dlna?path={HttpUtility.UrlEncode(folder.Replace($"{dlna_path}/", ""))}",
                         img = getImage(CrypTo.md5(Path.GetFileName(folder))),
+                        preview = getPreview(CrypTo.md5(Path.GetFileName(folder))),
                         path = folder.Replace($"{dlna_path}/", ""),
                         length = countFiles(folder),
                         creationTime = Directory.GetCreationTime(folder),
@@ -482,12 +504,16 @@ namespace Lampac.Controllers
                     }
                 }
 
+                if (img == null)
+                    img = getImage(CrypTo.md5($"{path}/{name}"));
+
                 var dlnaModel = new DlnaModel()
                 {
                     type = "file",
                     name = name,
                     uri = $"{host}/dlna/stream?path={HttpUtility.UrlEncode(file.Replace($"{dlna_path}/", ""))}",
                     img = img,
+                    preview = getPreview(CrypTo.md5(name)),
                     subtitles = new List<Subtitle>(),
                     path = file.Replace($"{dlna_path}/", ""),
                     length = fileinfo.Length,
@@ -740,15 +766,43 @@ namespace Lampac.Controllers
                     try
                     {
                         #region Download thumb
-                        if (thumb != null && !IO.File.Exists($"{dlna_path}/thumbs/{magnetLink.InfoHashes.V1.ToHex()}.jpg"))
+                        if (thumb != null)
                         {
                             try
                             {
+                                #region IsValidImg
+                                bool IsValidImg(byte[] _img)
+                                {
+                                    if (_img == null)
+                                        return false;
+
+                                    using (var image = Image.NewFromBuffer(_img))
+                                    {
+                                        try
+                                        {
+                                            if (!path.Contains(".svg"))
+                                            {
+                                                // тестируем jpg/png на целостность
+                                                byte[] temp = image.JpegsaveBuffer();
+                                                if (temp == null || temp.Length == 0)
+                                                    return false;
+                                            }
+
+                                            return true;
+                                        }
+                                        catch
+                                        {
+                                            return false;
+                                        }
+                                    }
+                                }
+                                #endregion
+
                                 var array = await HttpClient.Download(thumb, timeoutSeconds: 8);
-                                if (array == null)
+                                if (array == null || !IsValidImg(array))
                                     array = await HttpClient.Download(Regex.Replace(thumb, "^https?://[^/]+", $"https://imagetmdb.{AppInit.conf.cub.mirror}"));
 
-                                if (array != null)
+                                if (array != null && IsValidImg(array))
                                 {
                                     Directory.CreateDirectory($"{dlna_path}/thumbs");
                                     IO.File.WriteAllBytes($"{dlna_path}/thumbs/{magnetLink.InfoHashes.V1.ToHex()}.jpg", array);
@@ -788,6 +842,17 @@ namespace Lampac.Controllers
 
                         await manager.StartAsync();
                         await manager.WaitForMetadataAsync();
+
+                        #region thumb
+                        if (IO.File.Exists($"{dlna_path}/thumbs/{magnetLink.InfoHashes.V1.ToHex()}.jpg"))
+                        {
+                            try
+                            {
+                                IO.File.Copy($"{dlna_path}/thumbs/{magnetLink.InfoHashes.V1.ToHex()}.jpg", $"{dlna_path}/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", true);
+                            }
+                            catch { }
+                        }
+                        #endregion
 
                         #region TorrentStateChanged
                         bool dispose = false;
@@ -885,22 +950,15 @@ namespace Lampac.Controllers
                         }
                         #endregion
 
-                        #region thumb
-                        if (IO.File.Exists($"{dlna_path}/thumbs/{magnetLink.InfoHashes.V1.ToHex()}.jpg"))
-                        {
-                            try
-                            {
-                                IO.File.Copy($"{dlna_path}/thumbs/{magnetLink.InfoHashes.V1.ToHex()}.jpg", $"{dlna_path}/thumbs/{CrypTo.md5(manager.Torrent.Name)}.jpg", true);
-                            }
-                            catch { }
-                        }
-                        #endregion
-
                         #region tmdb
                         string cat = serial ? "tv" : "movie";
                         var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
-                        string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", headers: header);
-                        if (!string.IsNullOrWhiteSpace(json))
+                        string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
+;
+                        if (string.IsNullOrEmpty(json))
+                            json = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
+
+                        if (!string.IsNullOrEmpty(json))
                         {
                             IO.File.WriteAllText($"{dlna_path}/tmdb/{CrypTo.md5(manager.Torrent.Name)}.json", json);
 
@@ -912,8 +970,12 @@ namespace Lampac.Controllers
                                     {
                                         if (!IO.File.Exists($"{dlna_path}/tmdb/{id}_season-{s}.json"))
                                         {
-                                            json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", headers: header);
-                                            if (!string.IsNullOrEmpty(json))
+                                            string seasons = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
+
+                                            if (string.IsNullOrEmpty(seasons))
+                                                seasons = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
+
+                                            if (!string.IsNullOrEmpty(seasons))
                                                 IO.File.WriteAllText($"{dlna_path}/tmdb/{id}_season-{s}.json", json);
                                         }
                                     }

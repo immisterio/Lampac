@@ -256,14 +256,17 @@ namespace Lampac
                 {
                     try
                     {
+                        if (mod.dll == "DLNA.dll")
+                            mod.initspace = "DLNA.ModInit";
+
                         if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                         {
                             if (mod.version >= 2)
                             {
                                 m.Invoke(null, new object[] { new InitspaceModel()
-                            {
-                                path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
-                            }});
+                                {
+                                    path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
+                                }});
                             }
                             else
                                 m.Invoke(null, new object[] { });

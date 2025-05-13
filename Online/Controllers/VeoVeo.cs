@@ -13,6 +13,7 @@ using System.Linq;
 using Shared.Engine;
 using Shared.Model.Online.VeoVeo;
 using System.Text.RegularExpressions;
+using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
 {
@@ -20,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/veoveo")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false)
+        async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.VeoVeo);
             if (await IsBadInitialization(init, rch: false))
@@ -29,14 +30,22 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            var movie = search(init, proxyManager, proxy, imdb_id, kinopoisk_id, title, original_title);
-            if (movie == null)
-                return OnError();
+            if (movieid == 0)
+            {
+                if (similar)
+                    return Spider(title);
+
+                var movie = search(init, proxyManager, proxy, imdb_id, kinopoisk_id, title, original_title);
+                if (movie == null)
+                    return OnError();
+
+                movieid = movie.id;
+            }
 
             #region media
-            var cache = await InvokeCache<JArray>($"{init.plugin}:{movie.id}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<JArray>($"{init.plugin}:view:{movieid}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movie.id}";
+                string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movieid}";
                 var root = await HttpClient.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || root.Count == 0)
@@ -55,7 +64,7 @@ namespace Lampac.Controllers.LITE
 
                     string stream = HostStreamProxy(init, cache.Value.First.Value<string>("m3u8MasterFilePath"), proxy: proxy);
 
-                    mtpl.Append(title ?? original_title, stream, vast: init.vast);
+                    mtpl.Append("1080p", stream, vast: init.vast);
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                     #endregion
@@ -105,19 +114,45 @@ namespace Lampac.Controllers.LITE
             }, origsource: origsource);
         }
 
+        #region Spider
+        [HttpGet]
+        [Route("lite/veoveo-spider")]
+        public ActionResult Spider(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return OnError();
+
+            var stpl = new SimilarTpl();
+            string _t = NormalizeString(title);
+
+            foreach (var m in database)
+            {
+                if (stpl.data.Count >= 100)
+                    break;
+
+                if (NormalizeString(m.title).Contains(_t) || NormalizeString(m.originalTitle).Contains(_t))
+                {
+                    string uri = $"{host}/lite/veoveo?movieid={m.id}";
+                    stpl.Append(m.title ?? m.originalTitle, m.year.ToString(), string.Empty, uri, PosterApi.Find(m.kinopoiskId, m.imdbId));
+                }
+            }
+
+            return ContentTo(stpl.ToJson());
+        }
+        #endregion
 
         #region search
-        public static List<Movie> database = null;
+        static string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
+
+        public static List<Movie> database = JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
 
         Movie search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            if (database == null)
-                database = JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
-
-            string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
-
             Movie goSearch(bool searchToId)
             {
+                if (searchToId && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                    return null;
+
                 foreach (var item in database)
                 {
                     if (searchToId)

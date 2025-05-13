@@ -18,14 +18,11 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinobase")]
-        async public Task<ActionResult> Index(string title, int year, int s = -1, int serial = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Kinobase);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            if (string.IsNullOrEmpty(title) || year == 0)
-                return OnError();
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -49,16 +46,38 @@ namespace Lampac.Controllers.LITE
                requesterror: () => proxyManager.Refresh()
             );
 
-            var cache = await InvokeCache<EmbedModel>($"kinobase:view:{title}:{year}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            #region search
+            if (string.IsNullOrEmpty(href))
             {
-                var content = await oninvk.Embed(title, year);
+                var search = await InvokeCache<SearchModel>($"kinobase:search:{title}:{year}", cacheTime(40, init: init), proxyManager, async res =>
+                {
+                    var content = await oninvk.Search(title, year);
+                    if (content == null)
+                        return res.Fail("search");
+
+                    return content;
+                });
+
+                if (similar || string.IsNullOrEmpty(search.Value?.link))
+                    return OnResult(search, () => rjson ? search.Value.similar.ToJson() : search.Value.similar.ToHtml());
+
+                if (string.IsNullOrEmpty(search.Value?.link))
+                    return OnError();
+
+                href = search.Value?.link;
+            }
+            #endregion
+
+            var cache = await InvokeCache<EmbedModel>($"kinobase:view:{href}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            {
+                var content = await oninvk.Embed(href);
                 if (content == null)
                     return res.Fail("embed");
 
                 return content;
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, year, s, rjson));
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, href, s, rjson));
         }
 
 

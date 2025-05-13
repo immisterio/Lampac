@@ -323,6 +323,10 @@ namespace Lampac
             enable = true, path = "dlna",
             uploadSpeed = 125000 * 10,
             autoupdatetrackers = true, intervalUpdateTrackers = 90, addTrackersToMagnet = true, 
+            genCover = true, genPreview = true,
+            coverExtension = "(mp4|mkv|avi|mpg|mpe|mpv)",
+            coverComand = "-n -ss 3:00 -i \"{file}\" -vf \"thumbnail=150\" -frames:v 1 \"{thumb}\"",
+            previewComand = "-n -ss 3:00 -i \"{file}\" -vf \"scale=-2:240\" -t 20 -c:v libx264 -preset fast -crf 23 \"{preview}\""
         };
 
         public WebConf LampaWeb = new WebConf()

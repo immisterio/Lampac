@@ -12,6 +12,8 @@ namespace Lampac.Models.DLNA
 
         public string img { get; set; }
 
+        public string preview { get; set; }
+
         public List<Subtitle> subtitles { get; set; }
 
         public string path { get; set; }

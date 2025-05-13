@@ -9,6 +9,7 @@ using System.Web;
 using Lampac.Engine.CORE;
 using System.IO;
 using Shared.Engine;
+using Tracks;
 
 namespace Lampac.Controllers
 {
@@ -19,7 +20,7 @@ namespace Lampac.Controllers
         [Route("tracks/js/{token}")]
         public ActionResult Tracks(string token)
         {
-            if (!AppInit.conf.ffprobe.enable)
+            if (!AppInit.conf.ffprobe.enable || !ModInit.Initialization)
                 return Content(string.Empty);
 
             string file = FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host);
@@ -32,7 +33,7 @@ namespace Lampac.Controllers
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media)
         {
-            if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
+            if (!AppInit.conf.ffprobe.enable || !ModInit.Initialization || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
                 return Content(string.Empty);
 
             if (media.Contains("/dlna/stream"))
@@ -88,7 +89,7 @@ namespace Lampac.Controllers
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                    process.StartInfo.FileName = AppInit.Win32NT ? "cache/ffprobe.exe" : "ffprobe";
+                    process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : "ffprobe";
                     process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams \"{media}\"";
                     process.Start();
 

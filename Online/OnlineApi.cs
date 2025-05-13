@@ -415,9 +415,11 @@ namespace Lampac.Controllers
             send(AppInit.conf.RezkaPrem, "rhsprem");
 
             send(AppInit.conf.KinoPub);
+            send(AppInit.conf.Kinobase);
             send(AppInit.conf.Alloha, "alloha-search");
             send(AppInit.conf.Mirage, "mirage-search");
             send(AppInit.conf.Collaps, "collaps-search");
+            send(AppInit.conf.VeoVeo, "veoveo-spider");
 
             if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
                 send(AppInit.conf.VideoCDN);
