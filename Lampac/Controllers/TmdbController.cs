@@ -18,6 +18,7 @@ using IO = System.IO;
 using NetVips;
 using System.IO;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lampac.Controllers
 {
@@ -95,14 +96,16 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(tmdb_ip) && !string.IsNullOrEmpty(init.DNS))
             {
                 string dnskey = $"tmdb/api:dns:{init.DNS}";
-                if (!hybridCache.TryGetValue(dnskey, out string dns_ip))
+                if (!memoryCache.TryGetValue(dnskey, out string dns_ip))
                 {
                     var lookup = new LookupClient(IPAddress.Parse(init.DNS));
                     var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
                     dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
                     if (!string.IsNullOrEmpty(dns_ip))
-                        hybridCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                        memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                    else
+                        memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                 }
 
                 if (!string.IsNullOrEmpty(dns_ip))
@@ -118,6 +121,26 @@ namespace Lampac.Controllers
                 headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
+
+            #region use to mirror
+            {
+                string mirrorkey = "tmdb/mirror:test:api";
+                if (!memoryCache.TryGetValue(mirrorkey, out bool usetoMirror))
+                {
+                    string utest = !string.IsNullOrEmpty(tmdb_ip) ? $"https://{tmdb_ip}" : "https://api.themoviedb.org";
+                    var test = await HttpClient.Get<JObject>($"{utest}/3/movie/950396?api_key={init.api_key}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
+
+                    usetoMirror = test == null || !test.ContainsKey("id");
+                    memoryCache.Set(mirrorkey, usetoMirror, DateTime.Now.AddMinutes(5));
+                }
+
+                if (usetoMirror)
+                {
+                    headers = new List<HeadersModel>();
+                    uri = Regex.Replace(uri, $"(api.themoviedb.org|{tmdb_ip})", $"apitmdb.{AppInit.conf.cub.mirror}");
+                }
+            }
+            #endregion
 
             var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false);
             if (result.content == null)
@@ -181,14 +204,16 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(tmdb_ip) && !string.IsNullOrEmpty(init.DNS))
             {
                 string dnskey = $"tmdb/img:dns:{init.DNS}";
-                if (!hybridCache.TryGetValue(dnskey, out string dns_ip))
+                if (!memoryCache.TryGetValue(dnskey, out string dns_ip))
                 {
                     var lookup = new LookupClient(IPAddress.Parse(init.DNS));
                     var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
                     dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
                     if (!string.IsNullOrEmpty(dns_ip))
-                        hybridCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                        memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                    else
+                        memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                 }
 
                 if (!string.IsNullOrEmpty(dns_ip))
@@ -204,6 +229,26 @@ namespace Lampac.Controllers
                 headers.Add(new HeadersModel("Host", "image.tmdb.org"));
                 uri = uri.Replace("image.tmdb.org", tmdb_ip);
             }
+
+            #region use to mirror
+            {
+                string mirrorkey = "tmdb/mirror:test:img";
+                if (!memoryCache.TryGetValue(mirrorkey, out bool usetoMirror))
+                {
+                    string utest = !string.IsNullOrEmpty(tmdb_ip) ? $"https://{tmdb_ip}" : "https://image.tmdb.org";
+                    var test = await HttpClient.ResponseHeaders($"{utest}/t/p/w300/zmcXyVExW9vVIKOgzeDpPTWJySF.jpg", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
+
+                    usetoMirror = test == null || test.StatusCode != HttpStatusCode.OK;
+                    memoryCache.Set(mirrorkey, usetoMirror, DateTime.Now.AddMinutes(5));
+                }
+
+                if (usetoMirror)
+                {
+                    headers = new List<HeadersModel>();
+                    uri = Regex.Replace(uri, $"(image.tmdb.org|{tmdb_ip})", $"imagetmdb.{AppInit.conf.cub.mirror}");
+                }
+            }
+            #endregion
 
             if (init.cache_img > 0)
             {
@@ -264,24 +309,28 @@ namespace Lampac.Controllers
             else
             {
                 #region bypass
-                var handler = HttpClient.Handler(uri, proxyManager.Get());
-                handler.AllowAutoRedirect = true;
-
-                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : HttpClient.httpClientFactory.CreateClient("base"))
+                try
                 {
-                    HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+                    var handler = HttpClient.Handler(uri, proxyManager.Get());
+                    handler.AllowAutoRedirect = true;
 
-                    if (!handler.UseProxy)
-                        client.DefaultRequestHeaders.ConnectionClose = false;
-
-                    using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                    using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : HttpClient.httpClientFactory.CreateClient("base"))
                     {
-                        HttpContext.Response.StatusCode = (int)response.StatusCode;
-                        HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+                        HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
 
-                        proxyManager.Success();
-                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+                        using (var response = await client.GetAsync(uri))
+                        {
+                            HttpContext.Response.StatusCode = (int)response.StatusCode;
+                            HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+
+                            proxyManager.Success();
+                            await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+                        }
                     }
+                }
+                catch 
+                {
+                    HttpContext.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
                 }
                 #endregion
             }

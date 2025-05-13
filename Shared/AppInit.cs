@@ -315,7 +315,7 @@ namespace Lampac
         public FileCacheConf fileCacheInactive = new FileCacheConf() 
         { 
             maxcachesize = 10_000, // 10GB на папку
-            img = 10, hls = 90, html = 5, torrent = 50 // minute
+            img = 20, hls = 90, html = 5, torrent = 2880 // minute
         };
 
         public DLNASettings dlna = new DLNASettings() 
