@@ -221,7 +221,7 @@ namespace Lampac.Controllers
             if (init.cache_img > 0)
             {
                 #region cache
-                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers).ConfigureAwait(false);
+                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
                 if (array == null || array.Length == 0)
                 {
                     proxyManager.Refresh();

@@ -1,5 +1,4 @@
 ﻿using Lampac.Models.LITE;
-using Lampac.Models.LITE.KinoPub;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Rezka;
@@ -61,11 +60,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Embed
-        async public ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, bool similar)
+        #region Search
+        async public ValueTask<SearchModel?> Search(string title, string original_title, int clarification, int year)
         {
-            var result = new EmbedModel();
-            string? link = href, reservedlink = null;
+            var result = new SearchModel();
+            string? reservedlink = null;
 
             var base_headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -83,98 +82,112 @@ namespace Shared.Engine.Online
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
             );
 
-            string search_uri = $"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
+            result.search_uri = $"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-            if (string.IsNullOrWhiteSpace(link))
+            string? search = await onget(result.search_uri, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", $"{apihost}/"))));
+            if (search == null)
             {
-                //if (kinopoisk_id > 0 || !string.IsNullOrEmpty(imdb_id))
-                //{
-                //    var res = await EmbedID(kinopoisk_id, imdb_id);
-                //    if (res != null)
-                //        return res;
-                //}
+                log("search error");
+                requesterror?.Invoke();
+                return null;
+            }
 
-                string? search = await onget(search_uri, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", $"{apihost}/"))));
-                if (search == null)
+            if (search.Contains("Ошибка доступа (105)"))
+                return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
+
+            if (search.Contains("Ошибка доступа (101)"))
+                return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
+
+            var accessError = Regex.Match(search, "Ошибка доступа \\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
+            if (!string.IsNullOrEmpty(accessError[1].Value))
+                return new SearchModel() { IsEmpty = true, content = $"Ошибка доступа ({accessError[1].Value})" };
+
+            log("search OK");
+
+            foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
+            {
+                var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
+
+                if (string.IsNullOrEmpty(g[1].Value))
+                    continue;
+
+                string name = g[2].Value.ToLower().Trim();
+                if (result.similar == null)
+                    result.similar = new List<SimilarModel>();
+
+                string? img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
+
+                if ((title != null && (name.Contains(" / ") && name.Contains(title.ToLower()) || name == title.ToLower())) || 
+                    (original_title != null && (name.Contains(" / ") && name.Contains(original_title.ToLower()) || name == original_title.ToLower())))
                 {
-                    log("search error");
-                    requesterror?.Invoke();
-                    return null;
-                }
+                    reservedlink = g[1].Value;
 
-                if (search.Contains("Ошибка доступа (105)"))
-                    return new EmbedModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
-
-                if (search.Contains("Ошибка доступа (101)"))
-                    return new EmbedModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
-
-                var accessError = Regex.Match(search, "Ошибка доступа \\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
-                if (!string.IsNullOrEmpty(accessError[1].Value))
-                    return new EmbedModel() { IsEmpty = true, content = $"Ошибка доступа ({accessError[1].Value})" };
-
-                log("search OK");
-
-                foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
-                {
-                    var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
-
-                    if (string.IsNullOrEmpty(g[1].Value))
-                        continue;
-
-                    string name = g[2].Value.ToLower().Trim();
-                    if (result.similar == null)
-                        result.similar = new List<SimilarModel>();
-
-                    string? img = PosterApi.Size(Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value);
-                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
-                    if (similar)
-                        continue;
-
-                    if (title != null && (name.Contains(" / ") && name.Contains(title.ToLower()) || name == title.ToLower()))
-                    {
-                        reservedlink = g[1].Value;
-
-                        if (g[3].Value == year.ToString())
-                        {
-                            link = reservedlink;
-                            break;
-                        }
-                    }
-                }
-
-                if (string.IsNullOrEmpty(link))
-                {
-                    if (string.IsNullOrEmpty(reservedlink))
-                    {
-                        if (result?.similar != null && result.similar.Count > 0)
-                            return result;
-
-                        if (search.Contains("Результаты поиска"))
-                            return new EmbedModel() { IsEmpty = true };
-
-                        log("link null");
-                        return null;
-                    }
-
-                    link = reservedlink;
+                    if (string.IsNullOrEmpty(result.href) && year > 0 && g[3].Value == year.ToString())
+                        result.href = reservedlink;
                 }
             }
 
-            result.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
-            if (long.TryParse(result.id, out long id) && id > 0)
-                basereferer.TryAdd(id, link);
+            if (string.IsNullOrEmpty(result.href))
+            {
+                if (string.IsNullOrEmpty(reservedlink))
+                {
+                    if (result?.similar != null && result.similar.Count > 0)
+                        return result;
 
-            result.content = await onget(link, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", search_uri))));
+                    if (search.Contains("Результаты поиска"))
+                        return new SearchModel() { IsEmpty = true };
+
+                    log("link null");
+                    return null;
+                }
+
+                result.href = reservedlink;
+            }
+
+            return result;
+        }
+        #endregion
+
+        #region Embed
+        async public ValueTask<EmbedModel?> Embed(string href, string search_uri)
+        {
+            var result = new EmbedModel();
+
+            var base_headers = HeadersModel.Init(
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "same-origin"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+            );
+
+            result.id = Regex.Match(href, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
+            if (long.TryParse(result.id, out long id) && id > 0)
+                basereferer.TryAdd(id, href);
+
+            if (!string.IsNullOrEmpty(search_uri))
+                base_headers.Add(new HeadersModel("referer", search_uri));
+
+            result.content = await onget(href, base_headers);
             if (result.content == null || string.IsNullOrEmpty(result.id))
             {
                 if (result.content == null)
                     requesterror?.Invoke();
 
-                log($"content {link}\nNullOrEmpty");
+                log($"content {href}\nNullOrEmpty");
                 return null;
             }
 
-            log($"content {link}\nOK");
+            log($"content {href}\nOK");
             return result;
         }
         #endregion
@@ -234,9 +247,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, int s, string? href, bool showstream, bool rjson = false)
+        public string Html(EmbedModel? result, string args, string? title, string? original_title, int s, string? href, bool showstream, bool rjson = false)
         {
-            if (result == null || result.IsEmpty)
+            if (result == null || result.IsEmpty || result.content == null)
                 return string.Empty;
 
             if (!string.IsNullOrEmpty(args))
@@ -245,27 +258,6 @@ namespace Shared.Engine.Online
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
             string? enc_href = HttpUtility.UrlEncode(href);
-
-            #region similar html
-            if (result.content == null)
-            {
-                if (string.IsNullOrWhiteSpace(href) && result.similar != null && result.similar.Count > 0)
-                {
-                    var stpl = new SimilarTpl(result.similar.Count);
-
-                    foreach (var similar in result.similar)
-                    {
-                        string link = host + $"lite/rezka?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
-
-                        stpl.Append(similar.title, similar.year, string.Empty, link, similar.img);
-                    }
-
-                    return rjson ? stpl.ToJson() : stpl.ToHtml();
-                }
-
-                return string.Empty;
-            }
-            #endregion
 
             if (!result.content.Contains("data-season_id="))
             {
@@ -352,7 +344,7 @@ namespace Shared.Engine.Online
                         }
 
                         string name = match.Groups["name"].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups["imgname"].Value) ? "" : $" ({match.Groups["imgname"].Value})");
-                        string link = host + $"lite/rezka/serial?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={result.id}&t={match.Groups["translator"].Value}";
+                        string link = host + $"lite/rezka/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={result.id}&t={match.Groups["translator"].Value}";
 
                         vtpl.Append(name, match.Groups["translator"].Value == trs, link);
 
@@ -375,7 +367,7 @@ namespace Shared.Engine.Online
                         if (!string.IsNullOrEmpty(m.Groups["season"].Value) && !eshash.Contains(sname))
                         {
                             eshash.Add(sname);
-                            string link = host + $"lite/rezka?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&t={trs}&s={m.Groups["season"].Value}";
+                            string link = host + $"lite/rezka?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&t={trs}&s={m.Groups["season"].Value}";
 
                             tpl.Append(sname, link, m.Groups["season"].Value);
                         }
@@ -476,7 +468,7 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, string args, long kinopoisk_id, string? imdb_id, string? title, string? original_title, int clarification, int year, string? href, long id, int t, int s, bool showstream, bool rjson = false)
+        public string Serial(Episodes? root, EmbedModel? result, string args, string? title, string? original_title, string? href, long id, int t, int s, bool showstream, bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
@@ -492,7 +484,7 @@ namespace Shared.Engine.Online
             var vtpl = new VoiceTpl();
 
             {
-                if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
+                if (string.IsNullOrWhiteSpace(href))
                     return string.Empty;
 
                 if (result?.content != null)
@@ -509,7 +501,7 @@ namespace Shared.Engine.Online
                             }
 
                             string name = match.Groups["name"].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups["imgname"].Value) ? "" : $" ({match.Groups["imgname"].Value})");
-                            string link = host + $"lite/rezka/serial?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={match.Groups["translator"].Value}";
+                            string link = host + $"lite/rezka/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={id}&t={match.Groups["translator"].Value}";
 
                             vtpl.Append(name, match.Groups["translator"].Value == t.ToString(), link);
 
@@ -528,7 +520,7 @@ namespace Shared.Engine.Online
                 var match = new Regex("data-tab_id=\"(?<season>[0-9]+)\"([^>]+)?>(?<name>[^<]+)</[a-z]+>").Match(root.seasons);
                 while (match.Success)
                 {
-                    string link = host + $"lite/rezka/serial?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&year={year}&href={enc_href}&id={id}&t={t}&s={match.Groups["season"].Value}";
+                    string link = host + $"lite/rezka/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={id}&t={t}&s={match.Groups["season"].Value}";
 
                     tpl.Append($"{match.Groups["season"].Value} сезон", link, match.Groups["season"].Value);
 

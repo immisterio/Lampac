@@ -954,7 +954,7 @@ namespace Lampac.Controllers
                         string cat = serial ? "tv" : "movie";
                         var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
                         string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
-;
+
                         if (string.IsNullOrEmpty(json))
                             json = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
 

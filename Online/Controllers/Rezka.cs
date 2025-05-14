@@ -12,6 +12,9 @@ using Lampac.Models.LITE;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using System.Net;
+using Shared.Model.Base;
+using Shared.Model.Templates;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -77,7 +80,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -111,34 +114,63 @@ namespace Lampac.Controllers.LITE
             var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
 
-            string memKey = $"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}:{similar}";
-            if (!hybridCache.TryGetValue(memKey, out EmbedModel content))
+            #region search
+            string search_uri = null;
+
+            if (string.IsNullOrEmpty(href))
             {
-                content = await oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, similar);
-                if (content == null)
-                    return OnError(null, gbcache: !rch.enable);
+                var search = await InvokeCache<SearchModel>($"rezka:search:{(clarification == 1 ? title : $"{original_title ?? title}:{year}")}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                {
+                    return await oninvk.Search(title, original_title, clarification, year);
+                });
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, content, cacheTime(20, init: init));
+                if (similar || string.IsNullOrEmpty(search.Value?.href))
+                {
+                    if (search.Value?.IsEmpty == true)
+                        return ShowError(search.Value.content ?? "поиск не дал результатов");
+
+                    return OnResult(search, () =>
+                    {
+                        if (search.Value.similar == null)
+                            return string.Empty;
+
+                        var stpl = new SimilarTpl(search.Value.similar.Count);
+
+                        foreach (var similar in search.Value.similar)
+                        {
+                            string link = $"{host}/lite/rezka?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&href={HttpUtility.UrlEncode(similar.href)}";
+
+                            stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
+                        }
+
+                        return rjson ? stpl.ToJson() : stpl.ToHtml();
+                    });
+                }
+
+                href = search.Value.href;
+                search_uri = search.Value.search_uri;
             }
+            #endregion
 
-            if (content.IsEmpty && content.content != null)
-                return ShowError(content.content);
+            var cache = await InvokeCache<EmbedModel>($"rezka:{href}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
+            {
+                return await oninvk.Embed(href, search_uri);
+            });
 
-            return ContentTo(oninvk.Html(content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, s, href, true, rjson));
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson), gbcache: !rch.enable);
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(long kinopoisk_id, string imdb_id, string title, string original_title, int clarification,int year, string href, long id, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(title) || year == 0))
+            if (string.IsNullOrWhiteSpace(href))
                 return OnError();
 
             var oninvk = await InitRezkaInvoke(init);
@@ -152,11 +184,11 @@ namespace Lampac.Controllers.LITE
             if (root == null)
                 return OnError(null, gbcache: !rch.enable);
 
-            var content = await InvokeCache($"rezka:{kinopoisk_id}:{imdb_id}:{title}:{original_title}:{year}:{clarification}:{href}", cacheTime(20, init: init), () => oninvk.Embed(kinopoisk_id, imdb_id, title, original_title, clarification, year, href, false));
+            var content = await InvokeCache($"rezka:{href}", cacheTime(20, init: init), () => oninvk.Embed(href, null));
             if (content == null)
                 return OnError(null, gbcache: !rch.enable);
 
-            return ContentTo(oninvk.Serial(root, content, accsArgs(string.Empty), kinopoisk_id, imdb_id, title, original_title, clarification, year, href, id, t, s, true, rjson));
+            return ContentTo(oninvk.Serial(root, content, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
         }
         #endregion
 

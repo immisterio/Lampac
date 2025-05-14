@@ -1,5 +1,6 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -52,7 +53,7 @@ namespace Shared.Engine
         #endregion
 
         #region RunAsync
-        async public static ValueTask<(string outputData, string errorData)> RunAsync(string comand, string workingDirectory = null)
+        async public static ValueTask<(string outputData, string errorData)> RunAsync(string comand, string workingDirectory = null, ProcessPriorityClass? priorityClass = null)
         {
             try
             {
@@ -63,6 +64,19 @@ namespace Shared.Engine
                 process.StartInfo.FileName = AppInit.Win32NT ? "data/ffmpeg.exe" : "ffmpeg";
                 process.StartInfo.Arguments = comand;
                 process.StartInfo.WorkingDirectory = workingDirectory;
+
+                if (priorityClass != null)
+                {
+                    try
+                    {
+                        process.PriorityClass = (ProcessPriorityClass)priorityClass;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Процесс завершился до установки приоритета
+                    }
+                }
+
                 process.Start();
 
                 string outputData = string.Empty, errorData = string.Empty;
