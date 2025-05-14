@@ -1,0 +1,10 @@
+services:
+  lampac:
+    image: immisterio/lampac:latest
+    container_name: lampac
+	restart: unless-stopped
+    ports:
+      - 9118:9118
+    volumes:
+      - /Media:/home/dlna
+      - ./config:/home/config
