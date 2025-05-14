@@ -73,10 +73,10 @@ namespace Lampac.Controllers.LITE
 
                     if (!IsOkID)
                     {
-                        if (!string.IsNullOrEmpty(original_title) && NormalizeString(j.orig_title) == NormalizeString(original_title))
+                        if (!string.IsNullOrEmpty(NormalizeString(original_title)) && NormalizeString(j.orig_title) == NormalizeString(original_title))
                             IsOkTitle = true;
 
-                        if (!IsOkTitle && !string.IsNullOrEmpty(title))
+                        if (!IsOkTitle && !string.IsNullOrEmpty(NormalizeString(title)))
                         {
                             if (!string.IsNullOrEmpty(j.ru_title))
                             {

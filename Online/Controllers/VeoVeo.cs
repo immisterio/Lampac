@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/veoveo")]
-        async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
+        async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.VeoVeo);
             if (await IsBadInitialization(init, rch: false))
@@ -37,7 +37,7 @@ namespace Lampac.Controllers.LITE
 
                 var movie = search(init, proxyManager, proxy, imdb_id, kinopoisk_id, title, original_title);
                 if (movie == null)
-                    return OnError();
+                    return Spider(clarification == 1 ? title : (original_title ?? title));
 
                 movieid = movie.id;
             }
@@ -124,6 +124,8 @@ namespace Lampac.Controllers.LITE
 
             var stpl = new SimilarTpl();
             string _t = NormalizeString(title);
+            if (string.IsNullOrEmpty(_t))
+                return OnError();
 
             foreach (var m in database)
             {
@@ -171,13 +173,13 @@ namespace Lampac.Controllers.LITE
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(original_title))
+                        if (!string.IsNullOrEmpty(NormalizeString(original_title)))
                         {
                             if (NormalizeString(item.originalTitle) == NormalizeString(original_title))
                                 return item;
                         }
 
-                        if (!string.IsNullOrEmpty(title))
+                        if (!string.IsNullOrEmpty(NormalizeString(title)))
                         {
                             if (NormalizeString(item.title) == NormalizeString(title))
                                 return item;

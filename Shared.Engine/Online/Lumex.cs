@@ -110,7 +110,7 @@ namespace Shared.Engine.Online
                 if (database == null)
                     return null;
 
-                string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
+                string NormalizeString(string? str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
 
                 var stpl = new SimilarTpl();
 
@@ -130,13 +130,13 @@ namespace Shared.Engine.Online
 
                     bool isok = false;
 
-                    if (!string.IsNullOrEmpty(original_title))
+                    if (!string.IsNullOrEmpty(NormalizeString(original_title)))
                     {
                         if (NormalizeString(item.orig_title) == NormalizeString(original_title))
                             isok = true;
                     }
 
-                    if (!isok && !string.IsNullOrEmpty(title))
+                    if (!isok && !string.IsNullOrEmpty(NormalizeString(title)))
                     {
                         if (!string.IsNullOrEmpty(item.ru_title))
                         {

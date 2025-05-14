@@ -119,7 +119,7 @@ namespace Lampac.Controllers.LITE
 
             if (string.IsNullOrEmpty(href))
             {
-                var search = await InvokeCache<SearchModel>($"rezka:search:{(clarification == 1 ? title : $"{original_title ?? title}:{year}")}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var search = await InvokeCache<SearchModel>($"rezka:search:{title}:{original_title}:{clarification}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     return await oninvk.Search(title, original_title, clarification, year);
                 });

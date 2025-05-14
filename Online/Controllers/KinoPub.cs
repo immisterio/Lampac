@@ -91,19 +91,24 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{clarification}:{imdb_id}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{year}:{clarification}:{imdb_id}:{kinopoisk_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id, similar);
+                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id);
                 });
 
                 if (!search.IsSuccess)
                     return OnError(search.ErrorMsg);
 
-                if (search.Value.similars != null)
+                if (similar || search.Value.id == 0)
+                {
+                    if (search.Value.similars == null)
+                        return OnError();
+
                     return ContentTo(rjson ? search.Value.similars.ToJson() : search.Value.similars.ToHtml());
+                }
 
                 postid = search.Value.id;
             }

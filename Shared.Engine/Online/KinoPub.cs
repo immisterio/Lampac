@@ -31,16 +31,16 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        /// <returns>
-        /// 0 - Данные не получены
-        /// 1 - Нет нужного контента 
-        /// </returns>
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id, bool similar)
+        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
         {
-            if (string.IsNullOrEmpty(title))
+            if (string.IsNullOrEmpty(title ?? original_title))
                 return null;
 
-            async ValueTask<SearchResult?> goSearch(string q, bool sendrequesterror)
+            string? enc_title = HttpUtility.UrlEncode(title);
+            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            #region goSearch
+            async ValueTask<SearchResult?> goSearch(string? q)
             {
                 if (string.IsNullOrEmpty(q))
                     return null;
@@ -48,8 +48,7 @@ namespace Shared.Engine.Online
                 string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(q)}&access_token={token}&field=title&perpage=200");
                 if (json == null)
                 {
-                    if (sendrequesterror)
-                        requesterror?.Invoke();
+                    requesterror?.Invoke();
                     return null;
                 }
 
@@ -58,66 +57,50 @@ namespace Shared.Engine.Online
                     var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
                     if (items != null)
                     {
-                        if (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                        string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
+
+                        var ids = new List<int>();
+                        var result = new SearchResult() { similars = new SimilarTpl(items.Count) };
+
+                        foreach (var item in items)
                         {
-                            var ids = new List<int>();
-                            var stpl = new SimilarTpl(items.Count);
+                            string? img = PosterApi.Size(item?.posters?.Skip(1).First().Value);
+                            result.similars.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
 
-                            string? enc_title = HttpUtility.UrlEncode(title);
-                            string? enc_original_title = HttpUtility.UrlEncode(original_title);
-
-                            foreach (var item in items)
+                            if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id || $"tt{item.imdb}" == imdb_id)
+                                result.id = item.id;
+                            else
                             {
-                                string? img = PosterApi.Size(item?.posters?.Skip(1).First().Value);
-                                stpl.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
-
                                 if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                                 {
-                                    string _t = item.title.ToLower();
-                                    string _s = q.ToLower();
+                                    string _t = NormalizeString(item.title);
+                                    string _q = NormalizeString(q);
 
-                                    if (item.year == year && (_t.StartsWith(_s) || _t.EndsWith(_s)))
-                                        ids.Add(item.id);
+                                    if (!string.IsNullOrEmpty(_t) && !string.IsNullOrEmpty(_q))
+                                    {
+                                        if (_t.StartsWith(_q) || _t.EndsWith(_q))
+                                            ids.Add(item.id);
+                                    }
                                 }
                             }
-
-                            if (ids.Count == 1 && !similar)
-                                return new SearchResult() { id = ids[0] };
-
-                            return new SearchResult() { similars = stpl };
                         }
-                        else
-                        {
-                            foreach (var item in items)
-                            {
-                                if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id)
-                                    return new SearchResult() { id = item.id };
 
-                                if ($"tt{item.imdb}" == imdb_id)
-                                    return new SearchResult() { id = item.id };
-                            }
+                        if (ids.Count == 1 && result.id == 0)
+                            result.id = ids[0];
 
-                            return null;
-                        }
+                        return result;
                     }
                 }
                 catch { }
 
                 return null;
             }
+            #endregion
 
             if (clarification == 1)
-            {
-                if (string.IsNullOrEmpty(title))
-                    return null;
+                return await goSearch(title);
 
-                return await goSearch(title, true);
-            }
-
-            if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(original_title))
-                return await goSearch(original_title ?? title, true);
-
-            return (await goSearch(original_title, false)) ?? (await goSearch(title, true));
+            return (await goSearch(original_title)) ?? (await goSearch(title));
         }
         #endregion
 

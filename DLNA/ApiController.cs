@@ -454,7 +454,7 @@ namespace Lampac.Controllers
                     continue;
 
                 int length = countFiles(folder);
-                if (length > 0)
+                if (length > 0 || Directory.GetDirectories(folder).Length > 0)
                 {
                     playlist.Add(new DlnaModel()
                     {

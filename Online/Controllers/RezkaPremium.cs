@@ -187,7 +187,7 @@ namespace Lampac.Controllers.LITE
 
             if (string.IsNullOrEmpty(href))
             {
-                var search = await InvokeCache<SearchModel>($"rhsprem:search:{(clarification == 1 ? title : $"{original_title ?? title}:{year}")}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var search = await InvokeCache<SearchModel>($"rhsprem:search:{title}:{original_title}:{clarification}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);

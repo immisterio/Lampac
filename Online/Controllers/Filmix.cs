@@ -102,7 +102,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{clarification}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{year}:{clarification}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
