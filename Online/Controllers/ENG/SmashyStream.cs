@@ -74,7 +74,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 if (browser.IsCompleted || route.Request.Url.Contains(".m3u") || Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -93,7 +93,7 @@ namespace Lampac.Controllers.LITE
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                     }
 
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     cache.m3u8 = route.Request.Url;
                                     await route.AbortAsync();

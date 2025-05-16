@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Engine;
 using Lampac.Models.LITE;
-using System;
 using System.Text.RegularExpressions;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
@@ -152,14 +151,14 @@ namespace Lampac.Controllers.LITE
 
                                 if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
 
                                 if (/*route.Request.Url.Contains("hakunaymatata.") &&*/ route.Request.Url.Contains(".mp4"))
                                 {
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();

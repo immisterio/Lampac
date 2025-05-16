@@ -6,6 +6,8 @@ namespace Lampac.Models.DLNA
     {
         public bool enable { get; set; }
 
+        public bool consoleLog { get; set; }
+
         public bool preview { get; set; }
 
         public int timeout { get; set; }

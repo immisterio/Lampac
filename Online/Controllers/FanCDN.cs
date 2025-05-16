@@ -190,7 +190,7 @@ namespace Lampac.Controllers.LITE
                             {
                                 if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8"))
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                 }
                                 else

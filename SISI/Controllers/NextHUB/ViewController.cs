@@ -8,7 +8,6 @@ using Shared.Engine;
 using Shared.Model.SISI.NextHUB;
 using Shared.PlaywrightCore;
 using System.Collections.Generic;
-using System;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.AspNetCore.Routing;
@@ -101,7 +100,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 if (browser.IsCompleted || (init.view.patternAbort != null && Regex.IsMatch(route.Request.Url, init.view.patternAbort, RegexOptions.IgnoreCase)))
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -138,12 +137,12 @@ namespace Lampac.Controllers.NextHUB
                                             setUri = response.Headers["location"];
                                         }
 
-                                        Console.WriteLine($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                        PlaywrightBase.ConsoleLog($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
                                         browser.SetPageResult(setUri);
                                     }
                                     else
                                     {
-                                        Console.WriteLine($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                        PlaywrightBase.ConsoleLog($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
                                         browser.SetPageResult(route.Request.Url);
                                         await route.AbortAsync();
                                     }
@@ -159,7 +158,7 @@ namespace Lampac.Controllers.NextHUB
                                 }
                                 else
                                 {
-                                    Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: {route.Request.Method} {route.Request.Url}");
                                 }
 
                                 await route.ContinueAsync();
@@ -217,7 +216,7 @@ namespace Lampac.Controllers.NextHUB
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
-                                    Console.WriteLine("ContentAsync: " + (i + 1));
+                                    PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
                                     await Task.Delay(800);
                                 }
                             }
@@ -226,7 +225,7 @@ namespace Lampac.Controllers.NextHUB
                                 cache.file = goFile(html);
                             }
 
-                            Console.WriteLine($"Playwright: SET {cache.file}");
+                            PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
                             #endregion
                         }
                         else if (!string.IsNullOrEmpty(init.view.eval))
@@ -263,7 +262,7 @@ namespace Lampac.Controllers.NextHUB
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
-                                    Console.WriteLine("ContentAsync: " + (i + 1));
+                                    PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
                                     await Task.Delay(800);
                                 }
                             }
@@ -272,7 +271,7 @@ namespace Lampac.Controllers.NextHUB
                                 cache.file = await goFile(html);
                             }
 
-                            Console.WriteLine($"Playwright: SET {cache.file}");
+                            PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
                             #endregion
                         }
                         else

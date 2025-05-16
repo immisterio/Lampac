@@ -56,24 +56,44 @@ namespace DLNA
 
                             var time = fileinfo.CreationTime > fileinfo.LastWriteTime ? fileinfo.CreationTime : fileinfo.LastWriteTime;
                             if (time.AddMinutes(cover.skipModificationTime) > DateTime.Now)
+                            {
+                                log("skip time: " + file);
                                 continue;
+                            }
 
                             string thumb = Path.Combine(init.path, "thumbs", $"{CrypTo.md5(name)}.jpg");
                             if (File.Exists(thumb))
+                            {
+                                log("thumb ok: " + file);
                                 continue;
+                            }
 
                             string lockfile = Path.Combine(init.path, "temp", $"{CrypTo.md5(name)}-ffmpeg.lock");
                             if (File.Exists(lockfile))
+                            {
+                                log("lock: " + file);
                                 continue;
+                            }
 
                             File.Create(lockfile);
 
-                            await FFmpeg.RunAsync(cover.coverComand.Replace("{file}", file).Replace("{thumb}", thumb), priorityClass: cover.priorityClass);
+                            string coverComand = cover.coverComand.Replace("{file}", file).Replace("{thumb}", thumb);
+                            log("\ncoverComand: " + coverComand);
+                            var ffmpegLog = await FFmpeg.RunAsync(coverComand, priorityClass: cover.priorityClass);
+
+                            log(ffmpegLog.outputData);
+                            log(ffmpegLog.errorData);
 
                             if (cover.preview)
                             {
                                 string preview = Path.Combine(init.path, "temp", $"{CrypTo.md5(name)}.mp4");
-                                await FFmpeg.RunAsync(cover.previewComand.Replace("{file}", file).Replace("{preview}", preview), priorityClass: cover.priorityClass);
+                                string previewComand = cover.previewComand.Replace("{file}", file).Replace("{preview}", preview);
+
+                                log("\npreviewComand: " + previewComand);
+                                ffmpegLog = await FFmpeg.RunAsync(previewComand, priorityClass: cover.priorityClass);
+
+                                log(ffmpegLog.outputData);
+                                log(ffmpegLog.errorData);
                             }
                         }
                         #endregion
@@ -87,7 +107,10 @@ namespace DLNA
                             string folder_name = Path.GetFileName(folder);
                             string folder_thumb = Path.Combine(init.path, "thumbs", $"{CrypTo.md5(folder_name)}.jpg");
                             if (File.Exists(folder_thumb))
+                            {
+                                log("thumb ok: " + folder);
                                 continue;
+                            }
 
                             var files = Directory.GetFiles(folder);
                             if (files.Length == 0)
@@ -96,22 +119,39 @@ namespace DLNA
                             var folderinfo = new DirectoryInfo(folder);
                             var time = folderinfo.CreationTime > folderinfo.LastWriteTime ? folderinfo.CreationTime : folderinfo.LastWriteTime;
                             if (time.AddMinutes(cover.skipModificationTime) > DateTime.Now)
+                            {
+                                log("skip time: " + folder);
                                 continue;
+                            }
 
                             string lockfile = Path.Combine(init.path, "temp", $"{CrypTo.md5(folder_name)}-ffmpeg.lock");
                             if (File.Exists(lockfile))
+                            {
+                                log("lock: " + folder);
                                 continue;
+                            }
 
                             File.Create(lockfile);
 
                             #region постер с превью на папку
                             {
-                                await FFmpeg.RunAsync(cover.coverComand.Replace("{file}", files[0]).Replace("{thumb}", folder_thumb), priorityClass: cover.priorityClass);
+                                string coverComand = cover.coverComand.Replace("{file}", files[0]).Replace("{thumb}", folder_thumb);
+                                log("\ncoverComand: " + coverComand);
+                                var ffmpegLog = await FFmpeg.RunAsync(coverComand, priorityClass: cover.priorityClass);
+
+                                log(ffmpegLog.outputData);
+                                log(ffmpegLog.errorData);
 
                                 if (cover.preview)
                                 {
                                     string preview = Path.Combine(init.path, "temp", $"{CrypTo.md5(folder_name)}.mp4");
-                                    await FFmpeg.RunAsync(cover.previewComand.Replace("{file}", files[0]).Replace("{preview}", preview), priorityClass: cover.priorityClass);
+                                    string previewComand = cover.previewComand.Replace("{file}", files[0]).Replace("{preview}", preview);
+
+                                    log("\npreviewComand: " + previewComand);
+                                    ffmpegLog = await FFmpeg.RunAsync(previewComand, priorityClass: cover.priorityClass);
+
+                                    log(ffmpegLog.outputData);
+                                    log(ffmpegLog.errorData);
                                 }
                             }
                             #endregion
@@ -121,7 +161,13 @@ namespace DLNA
                             {
                                 string name = $"{Path.GetFileName(folder)}/{Path.GetFileName(file)}";
                                 string thumb = Path.Combine(init.path, "thumbs", $"{CrypTo.md5(name)}.jpg");
-                                await FFmpeg.RunAsync(cover.coverComand.Replace("{file}", file).Replace("{thumb}", thumb), priorityClass: cover.priorityClass);
+
+                                string coverComand = cover.coverComand.Replace("{file}", file).Replace("{thumb}", thumb);
+                                log("\ncoverComand: " + coverComand);
+                                var ffmpegLog = await FFmpeg.RunAsync(coverComand, priorityClass: cover.priorityClass);
+
+                                log(ffmpegLog.outputData);
+                                log(ffmpegLog.errorData);
                             }
                             #endregion
                         }
@@ -131,6 +177,13 @@ namespace DLNA
                 }
 
             });
+        }
+
+
+        public static void log(string value)
+        {
+            if (AppInit.conf.dlna.cover.consoleLog && !string.IsNullOrEmpty(value))
+                Console.WriteLine("\nFFmpeg: " + value);
         }
     }
 }

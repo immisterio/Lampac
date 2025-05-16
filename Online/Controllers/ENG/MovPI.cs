@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
 
                                 if (browser.IsCompleted)
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -119,7 +119,7 @@ namespace Lampac.Controllers.LITE
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                     }
 
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();

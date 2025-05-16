@@ -12,6 +12,8 @@ namespace Shared.Models.AppConf
 
         public bool DEV { get; set; }
 
+        public bool consoleLog { get; set; }
+
         public bool Devtools { get; set; }
 
         public string executablePath { get; set; }

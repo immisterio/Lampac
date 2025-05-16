@@ -1,10 +1,9 @@
-﻿using Lampac;
-using Lampac.Engine.CORE;
+﻿using Lampac.Engine.CORE;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace Shared.Engine
@@ -14,41 +13,81 @@ namespace Shared.Engine
         #region InitializationAsync
         async public static ValueTask<bool> InitializationAsync()
         {
-            if (AppInit.Win32NT)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                #region Windows
                 if (File.Exists("data/ffmpeg.exe"))
-                    return true;
-
-                string version = await HttpClient.Get("https://ffbinaries.com/api/v1/version/latest");
-                version = Regex.Match(version ?? "", "\"version\":\"([^\"]+)\"").Groups[1].Value;
-
-                if (!string.IsNullOrEmpty(version))
                 {
-                    if (await HttpClient.DownloadFile($"https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v{version}/ffmpeg-{version}-win-64.zip", "data/ffmpeg.zip"))
-                    {
-                        ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
-                        File.Delete("data/ffmpeg.zip");
-                        return true;
-                    }
-
-                    File.Delete("data/ffmpeg.zip");
+                    Console.WriteLine("FFmpeg: Initialization");
+                    return true;
                 }
 
+                if (RuntimeInformation.ProcessArchitecture != Architecture.X64 && RuntimeInformation.ProcessArchitecture != Architecture.Arm64)
+                {
+                    Console.WriteLine("FFmpeg: Architecture unknown");
+                    return false;
+                }
+
+                string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
+
+                if (await HttpClient.DownloadFile($"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win{arh}-gpl.zip", "data/ffmpeg.zip"))
+                {
+                    ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
+
+                    File.Delete("data/ffmpeg.zip");
+                    File.Move($"data/ffmpeg-master-latest-win{arh}-gpl/bin/ffmpeg.exe", "data/ffmpeg.exe", true);
+                    Directory.Delete($"data/ffmpeg-master-latest-win{arh}-gpl", true);
+
+                    Console.WriteLine("FFmpeg: Initialization");
+                    return true;
+                }
+
+                if (File.Exists("data/ffmpeg.zip"))
+                    File.Delete("data/ffmpeg.zip");
+
+                Console.WriteLine($"FFmpeg: error download ffmpeg-win{arh}-gpl.zip");
                 return false;
+                #endregion
             }
-            else
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
+                #region Linux
+                if (File.Exists("data/ffmpeg"))
+                {
+                    Console.WriteLine("FFmpeg: Initialization");
+                    return true;
+                }
+
                 string version = await Bash.Run("ffmpeg -version");
                 if (version == null || !version.Contains("FFmpeg developers"))
                 {
                     await Bash.Run("apt update && apt install -y ffmpeg");
                     version = await Bash.Run("ffmpeg -version");
                     if (version == null || !version.Contains("FFmpeg developers"))
+                    {
+                        if (RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                        {
+                            string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
+                            if (await HttpClient.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg/ffmpeg-linux"+arh, "data/ffmpeg"))
+                            {
+                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
+                                Console.WriteLine("FFmpeg: Initialization");
+                                return true;
+                            }
+                        }
+
+                        Console.WriteLine("FFmpeg: error install ffmpeg");
                         return false;
+                    }
                 }
 
+                Console.WriteLine("FFmpeg: Initialization");
                 return true;
+                #endregion
             }
+
+            Console.WriteLine("FFmpeg: OS unknown");
+            return false;
         }
         #endregion
 
@@ -61,9 +100,10 @@ namespace Shared.Engine
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.FileName = AppInit.Win32NT ? "data/ffmpeg.exe" : "ffmpeg";
+                process.StartInfo.FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "data/ffmpeg.exe" : File.Exists("data/ffmpeg") ? "data/ffmpeg" : "ffmpeg";
                 process.StartInfo.Arguments = comand;
                 process.StartInfo.WorkingDirectory = workingDirectory;
+                process.Start();
 
                 if (priorityClass != null)
                 {
@@ -75,22 +115,24 @@ namespace Shared.Engine
                     {
                         // Процесс завершился до установки приоритета
                     }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine("FFmpeg: " + ex.Message);
+                    }
                 }
-
-                process.Start();
 
                 string outputData = string.Empty, errorData = string.Empty;
 
                 process.OutputDataReceived += (sender, args) =>
                 {
                     if (!string.IsNullOrEmpty(args.Data))
-                        outputData += args.Data;
+                        outputData += args.Data + "\n";
                 };
 
                 process.ErrorDataReceived += (sender, args) =>
                 {
                     if (!string.IsNullOrEmpty(args.Data))
-                        errorData += args.Data;
+                        errorData += args.Data + "\n";
                 };
 
                 process.BeginOutputReadLine();

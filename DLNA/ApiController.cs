@@ -968,16 +968,13 @@ namespace Lampac.Controllers
                                 {
                                     async ValueTask write(int s)
                                     {
-                                        if (!IO.File.Exists($"{dlna_path}/tmdb/{id}_season-{s}.json"))
-                                        {
-                                            string seasons = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
+                                        string seasons = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
 
-                                            if (string.IsNullOrEmpty(seasons))
-                                                seasons = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
+                                        if (string.IsNullOrEmpty(seasons))
+                                            seasons = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
 
-                                            if (!string.IsNullOrEmpty(seasons))
-                                                IO.File.WriteAllText($"{dlna_path}/tmdb/{id}_season-{s}.json", json);
-                                        }
+                                        if (!string.IsNullOrEmpty(seasons))
+                                            IO.File.WriteAllText($"{dlna_path}/tmdb/{id}_season-{s}.json", json);
                                     }
 
                                     if (number_of_seasons == 1)
