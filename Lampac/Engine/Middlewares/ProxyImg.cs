@@ -188,11 +188,11 @@ namespace Lampac.Engine.Middlewares
                     {
                         if (width > 0 || height > 0)
                         {
-                            using (var image = Image.NewFromBuffer(array))
+                            try
                             {
-                                if (image.Width > width || image.Height > height)
+                                using (var image = Image.NewFromBuffer(array))
                                 {
-                                    try
+                                    if (image.Width > width || image.Height > height)
                                     {
                                         using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
                                         {
@@ -201,9 +201,9 @@ namespace Lampac.Engine.Middlewares
                                                 array = buffer;
                                         }
                                     }
-                                    catch { }
                                 }
                             }
+                            catch { }
                         }
                     }
 

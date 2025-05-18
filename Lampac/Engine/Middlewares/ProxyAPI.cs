@@ -62,7 +62,7 @@ namespace Lampac.Engine.Middlewares
                 #endregion
 
                 #region decryptLink
-                var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
+                var decryptLink = CORE.ProxyLink.Decrypt(servUri.Contains("aes:") ? servUri : Regex.Replace(servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
 
                 if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
                 {

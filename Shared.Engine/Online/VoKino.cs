@@ -39,9 +39,13 @@ namespace Shared.Engine.Online
             void send(string name, int x)
             {
                 string url = "{localhost}/lite/vokino?balancer=" + name.ToLower();
+
                 string displayname = $"{init.displayname ?? "VoKino"}";
                 if (name != "VoKino")
                     displayname = $"{name} ({init.displayname ?? "VoKino"})";
+
+                if (init.onlyBalancerName)
+                    displayname = name;
 
                 online.Add((init, displayname, url, (name == "VoKino" ? "vokino" : $"vokino-{name.ToLower()}"), init.displayindex > 0 ? (init.displayindex + x) : online.Count));
             }

@@ -1029,6 +1029,8 @@ namespace Lampac.Controllers
                             case "filmixtv":
                             case "kinopub":
                             case "vokino":
+                            case "vokino-alloha":
+                            case "vokino-filmix":
                             case "alloha":
                             case "remux":
                             case "pidtor":
@@ -1072,6 +1074,11 @@ namespace Lampac.Controllers
                             case "vidlink":
                             case "autoembed":
                             case "veoveo":
+                            case "vokino-vibix":
+                            case "vokino-monframe":
+                            case "vokino-remux":
+                            case "vokino-ashdi":
+                            case "vokino-hdvb":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
