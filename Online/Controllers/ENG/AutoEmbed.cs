@@ -51,7 +51,7 @@ namespace Lampac.Controllers.LITE
 
                 if (!hybridCache.TryGetValue(uri, out JObject data))
                 {
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: HeadersModel.Init(
+                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
                         ("Accept-Language", "en-US,en;q=0.5"),
                         ("Alt-Used", "nono.autoembed.cc"),
                         ("Priority", "u=4"),
@@ -74,7 +74,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     var postdata = new System.Net.Http.StringContent("{\"encryptedData\":\"" + encryptedData + "\"}", Encoding.UTF8, "application/json");
-                    var videoSource = await HttpClient.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, headers: HeadersModel.Init(
+                    var videoSource = await HttpClient.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
                         ("Accept-Language", "en-US,en;q=0.5"),
                         ("Alt-Used", "nono.autoembed.cc"),
                         ("Origin", apihost),
