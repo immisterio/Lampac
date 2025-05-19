@@ -104,9 +104,6 @@ cat <<EOF > init.conf
   },
   "FanCDN": {
     "rhub": true
-  },
-  "Lumex": {
-    "spider": false
   }
 }
 EOF
