@@ -431,8 +431,8 @@ namespace JacRed.Engine
         }
         #endregion
 
-        #region WebApi
-        public static IEnumerable<TorrentDetails> WebApi(string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
+        #region Api
+        public static IEnumerable<TorrentDetails> Api(string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
         {
             var torrents = new Dictionary<string, TorrentDetails>();
 

@@ -31,8 +31,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JinEnergy", "JinEnergy\JinE
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Engine", "Shared.Engine\Shared.Engine.csproj", "{48DAE903-F3CF-4FF1-A86F-C54A9CD0A756}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Jackett", "Shared.Jackett\Shared.Jackett.csproj", "{CCBBCEC9-B017-4080-85EA-48A5D6E8DFA5}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,10 +85,6 @@ Global
 		{48DAE903-F3CF-4FF1-A86F-C54A9CD0A756}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48DAE903-F3CF-4FF1-A86F-C54A9CD0A756}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48DAE903-F3CF-4FF1-A86F-C54A9CD0A756}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CCBBCEC9-B017-4080-85EA-48A5D6E8DFA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CCBBCEC9-B017-4080-85EA-48A5D6E8DFA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CCBBCEC9-B017-4080-85EA-48A5D6E8DFA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CCBBCEC9-B017-4080-85EA-48A5D6E8DFA5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -106,7 +100,6 @@ Global
 		{A9FB8118-B1A4-436B-8C9C-1EACD4154F37} = {1F4A0DC9-498D-49A9-91E4-F8007335BFD0}
 		{50C00E83-0432-4812-9E05-74D543DD1A5F} = {B3961D9F-716B-40D2-B5DB-55B208C33B5A}
 		{48DAE903-F3CF-4FF1-A86F-C54A9CD0A756} = {B3961D9F-716B-40D2-B5DB-55B208C33B5A}
-		{CCBBCEC9-B017-4080-85EA-48A5D6E8DFA5} = {B3961D9F-716B-40D2-B5DB-55B208C33B5A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F05D572A-75BC-4642-98F8-F65F5CCF6A0B}

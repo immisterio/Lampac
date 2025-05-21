@@ -34,6 +34,9 @@ namespace JacRed.Controllers
         [Route("/api/v2.0/indexers/{status}/results")]
         async public Task<ActionResult> Indexers(string apikey, string query, string title, string title_original, int year, Dictionary<string, string> category, int is_serial = -1)
         {
+            if (string.IsNullOrEmpty(ModInit.conf.typesearch))
+                return Content("typesearch == null");
+
             #region Запрос с NUM
             bool rqnum = !HttpContext.Request.QueryString.Value.Contains("&is_serial=") && HttpContext.Request.Headers.UserAgent.ToString() == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36";
 
@@ -71,10 +74,14 @@ namespace JacRed.Controllers
             }
             #endregion
 
+            if (!HttpContext.Request.QueryString.Value.ToLower().Contains("&category[]="))
+                category = null;
+
             IEnumerable<TorrentDetails> torrents = null;
 
             if (ModInit.conf.typesearch == "red")
             {
+                #region red
                 string memoryKey = $"{ModInit.conf.typesearch}:{query}:{rqnum}:{title}:{title_original}:{year}:{is_serial}";
                 if (!memoryCache.TryGetValue(memoryKey, out torrents))
                 {
@@ -83,25 +90,45 @@ namespace JacRed.Controllers
                     torrents = res.torrents;
 
                     if (res.setcache && !red.evercache.enable)
-                        memoryCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(10));
+                        memoryCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(5));
                 }
+
+                if (ModInit.conf.merge == "jackett")
+                {
+                    torrents = mergeTorrents
+                    (
+                        torrents,
+                        await JackettApi.Indexers(host, query, title, title_original, year, is_serial, category)
+                    );
+                }
+                #endregion
+            }
+            else if (ModInit.conf.typesearch == "webapi")
+            {
+                #region webapi
+                if (ModInit.conf.merge == "jackett")
+                {
+                    var t1 = WebApi.Indexers(query, title, title_original, year, is_serial, category);
+                    var t2 = JackettApi.Indexers(host, query, title, title_original, year, is_serial, category);
+
+                    await Task.WhenAll(t1, t2);
+
+                    torrents = mergeTorrents(t1.Result, t2.Result);
+                }
+                else
+                {
+                    torrents = await WebApi.Indexers(query, title, title_original, year, is_serial, category);
+                }
+                #endregion
             }
             else if (ModInit.conf.typesearch == "jackett")
             {
                 torrents = await JackettApi.Indexers(host, query, title, title_original, year, is_serial, category);
             }
-            else
-            {
-                torrents = mergeTorrents
-                (
-                    RedApi.Indexers(rqnum, apikey, query, title, title_original, year, is_serial, category).torrents, 
-                    await JackettApi.Indexers(host, query, title, title_original, year, is_serial, category)
-                );
-            }
 
             return Content(JsonConvert.SerializeObject(new
             {
-                Results = torrents.Where(i => i.sid > 0).OrderByDescending(i => i.createTime).Take(2_000).Select(i => new
+                Results = torrents.OrderByDescending(i => i.createTime).Take(2_000).Select(i => new
                 {
                     Tracker = i.trackerName,
                     Details = i.url != null && i.url.StartsWith("http") ? i.url : null,
@@ -114,7 +141,7 @@ namespace JacRed.Controllers
                     Peers = i.pir,
                     MagnetUri = i.magnet,
                     Link = i.parselink != null ? $"{i.parselink}&apikey={apikey}" : null,
-                    Info = rqnum ? null : new
+                    Info = ModInit.conf.typesearch != "red" || rqnum ? null : new
                     {
                         i.name,
                         i.originalname,
@@ -135,10 +162,13 @@ namespace JacRed.Controllers
         }
         #endregion
 
-        #region WebApi
+        #region Api
         [Route("/api/v1.0/torrents")]
-        async public Task<ActionResult> WebApi(string apikey, string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
+        async public Task<ActionResult> Api(string apikey, string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
         {
+            if (string.IsNullOrEmpty(ModInit.conf.typesearch))
+                return Content("typesearch == null");
+
             #region search kp/imdb
             if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
             {
@@ -173,19 +203,40 @@ namespace JacRed.Controllers
 
             if (ModInit.conf.typesearch == "red")
             {
-                torrents = RedApi.WebApi(search, altname, exact, type, sort, tracker, voice, videotype, relased, quality, season);
+                #region red
+                torrents = RedApi.Api(search, altname, exact, type, sort, tracker, voice, videotype, relased, quality, season);
+
+                if (ModInit.conf.merge == "jackett")
+                {
+                    torrents = mergeTorrents
+                    (
+                        torrents,
+                        await JackettApi.Api(host, search)
+                    );
+                }
+                #endregion
+            }
+            else if (ModInit.conf.typesearch == "webapi")
+            {
+                #region webapi
+                if (ModInit.conf.merge == "jackett")
+                {
+                    var t1 = WebApi.Api(search);
+                    var t2 = JackettApi.Api(host, search);
+
+                    await Task.WhenAll(t1, t2);
+
+                    torrents = mergeTorrents(t1.Result, t2.Result);
+                }
+                else
+                {
+                    torrents = await WebApi.Api(search);
+                }
+                #endregion
             }
             else if (ModInit.conf.typesearch == "jackett")
             {
-                torrents = await JackettApi.WebApi(host, search);
-            }
-            else
-            {
-                torrents = mergeTorrents
-                (
-                    RedApi.WebApi(search, altname, exact, type, sort, tracker, voice, videotype, relased, quality, season),
-                    await JackettApi.WebApi(host, search)
-                );
+                torrents = await JackettApi.Api(host, search);
             }
 
             return Content(JsonConvert.SerializeObject(torrents.Take(2_000).Select(i => new
@@ -248,6 +299,9 @@ namespace JacRed.Controllers
         {
             categoryDesc = null;
             HashSet<int> categoryIds = new HashSet<int>();
+
+            if (t.types == null)
+                return categoryIds;
 
             foreach (string type in t.types)
             {

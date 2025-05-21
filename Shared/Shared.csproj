@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shared.Engine\Shared.Engine.csproj" />
-    <ProjectReference Include="..\Shared.Jackett\Shared.Jackett.csproj" />
   </ItemGroup>
 
 </Project>

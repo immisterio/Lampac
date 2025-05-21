@@ -1,33 +1,163 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using JacRed.Engine;
+﻿using JacRed.Engine;
 using JacRed.Models;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
+using Shared.Engine.CORE;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("animelayer/[action]")]
     public class AnimeLayerController : JacBaseController
     {
-        #region Cookie / TakeLogin
-        static string Cookie { get; set; }
-
-        async static Task<bool> TakeLogin()
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            string authKey = "animelayer:TakeLogin()";
-            if (Startup.memoryCache.TryGetValue(authKey, out _))
-                return false;
+            if (!jackett.Animelayer.enable || string.IsNullOrEmpty(jackett.Animelayer.cookie ?? jackett.Animelayer.login.u))
+                return Task.FromResult(false);
 
-            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
+            return Joinparse(torrents, () => parsePage(host, query));
+        }
+        #endregion
+
+
+        #region parseMagnet
+        async public Task<ActionResult> parseMagnet(string url)
+        {
+            if (!jackett.Animelayer.enable)
+                return Content("disable");
+
+            string cookie = await getCookie();
+            if (string.IsNullOrEmpty(cookie))
+                return Content("cookie == null");
+
+            var proxyManager = new ProxyManager("animelayer", jackett.Animelayer);
+
+            byte[] _t = await HttpClient.Download($"{url}download/", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Animelayer.host);
+            if (_t != null && BencodeTo.Magnet(_t) != null)
+                return File(_t, "application/x-bittorrent");
+
+            return Content("error");
+        }
+        #endregion
+
+        #region parsePage
+        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query)
+        {
+            #region Авторизация
+            string cookie = await getCookie();
+            if (string.IsNullOrEmpty(cookie))
+                return null;
+            #endregion
+
+            var torrents = new List<TorrentDetails>();
+            var proxyManager = new ProxyManager("animelayer", jackett.Animelayer);
+
+            #region html
+            string html = await HttpClient.Get($"{jackett.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
+
+            if (html != null && html.Contains("id=\"wrapper\""))
+            {
+                if (!html.Contains($">{jackett.Animelayer.login.u}<"))
+                    return null;
+            }
+
+            if (html == null)
+                return null;
+            #endregion
+
+            foreach (string row in html.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))
+            {
+                if (string.IsNullOrWhiteSpace(row))
+                    continue;
+
+                #region Локальный метод - Match
+                string Match(string pattern, int index = 1)
+                {
+                    string res = new Regex(pattern, RegexOptions.IgnoreCase).Match(row).Groups[index].Value.Trim();
+                    res = Regex.Replace(res, "[\n\r\t ]+", " ");
+                    return res.Trim();
+                }
+                #endregion
+
+                #region Дата создания
+                DateTime createTime = default;
+
+                if (Regex.IsMatch(row, "(Добавл|Обновл)[^<]+</span>(&nbsp;)?[0-9]+ [^ ]+ [0-9]{4}"))
+                {
+                    createTime = tParse.ParseCreateTime(Match(">(Добавл|Обновл)[^<]+</span>(&nbsp;)?([0-9]+ [^ ]+ [0-9]{4})", 3), "dd.MM.yyyy");
+                }
+                else
+                {
+                    string date = Match("(Добавл|Обновл)[^<]+</span>([^\n]+) в", 2);
+                    if (!string.IsNullOrWhiteSpace(date))
+                        createTime = tParse.ParseCreateTime($"{date} {DateTime.Today.Year}", "dd.MM.yyyy");
+                }
+                #endregion
+
+                #region Данные раздачи
+                var gurl = Regex.Match(row, "<a href=\"/(torrent/[a-z0-9]+)/?\">([^<]+)</a>").Groups;
+
+                string url = gurl[1].Value;
+                string title = gurl[2].Value;
+
+                string _sid = Match("class=\"icon s-icons-upload\"></i>(&nbsp;)?([0-9]+)", 2);
+                string _pir = Match("class=\"icon s-icons-download\"></i>(&nbsp;)?([0-9]+)", 2);
+                string sizeName = Match("<i class=\"icon s-icons-download\"></i>[^<]+<span class=\"gray\">[^<]+</span>[\n\r\t ]+([^\n\r<]+)").Trim();
+
+                if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(title))
+                    continue;
+
+                if (Regex.IsMatch(row, "Разрешение: ?</strong>1920x1080"))
+                    title += " [1080p]";
+                else if (Regex.IsMatch(row, "Разрешение: ?</strong>1280x720"))
+                    title += " [720p]";
+                #endregion
+
+                int.TryParse(_sid, out int sid);
+                int.TryParse(_pir, out int pir);
+
+                torrents.Add(new TorrentDetails()
+                {
+                    types = new string[] { "anime" },
+                    url = $"{jackett.Animelayer.host}/{url}/",
+                    title = title,
+                    sid = sid,
+                    pir = pir,
+                    sizeName = sizeName,
+                    createTime = createTime,
+                    parselink = $"{host}/animelayer/parsemagnet?url={HttpUtility.UrlEncode(url)}"
+                });
+            }
+
+            return torrents;
+        }
+        #endregion
+
+
+        #region getCookie
+        async static ValueTask<string> getCookie()
+        {
+            if (!string.IsNullOrEmpty(jackett.Animelayer.cookie))
+                return jackett.Animelayer.cookie;
+
+            string authKey = "Animelayer:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out string _cookie))
+                return _cookie;
+
+            if (Startup.memoryCache.TryGetValue($"{authKey}:error", out _))
+                return null;
+
+            Startup.memoryCache.Set($"{authKey}:error", 0, TimeSpan.FromSeconds(20));
 
             try
             {
@@ -73,8 +203,9 @@ namespace Lampac.Controllers.JAC
 
                                 if (!string.IsNullOrWhiteSpace(layer_id) && !string.IsNullOrWhiteSpace(layer_hash) && !string.IsNullOrWhiteSpace(PHPSESSID))
                                 {
-                                    Cookie = $"layer_id={layer_id}; layer_hash={layer_hash}; PHPSESSID={PHPSESSID};";
-                                    return true;
+                                    string cookie = $"layer_id={layer_id}; layer_hash={layer_hash}; PHPSESSID={PHPSESSID};";
+                                    Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
+                                    return cookie;
                                 }
                             }
                         }
@@ -83,201 +214,7 @@ namespace Lampac.Controllers.JAC
             }
             catch { }
 
-            return false;
-        }
-        #endregion
-
-        #region parseMagnet
-        async public Task<ActionResult> parseMagnet(string url)
-        {
-            if (!jackett.Animelayer.enable)
-                return Content("disable");
-
-            string key = $"animelayer:parseMagnet:{url}";
-            if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
-                return File(_m, "application/x-bittorrent");
-
-            if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
-            {
-                if (TorrentCache.Read(key) is var tc && tc.cache)
-                    return File(tc.torrent, "application/x-bittorrent");
-
-                return Content("error");
-            }
-
-            byte[] _t = await HttpClient.Download($"{url}download/", cookie: Cookie, referer: jackett.Animelayer.host, timeoutSeconds: 10);
-            if (_t != null && BencodeTo.Magnet(_t) != null)
-            {
-                if (jackett.cache)
-                {
-                    TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
-                }
-
-                return File(_t, "application/x-bittorrent");
-            }
-            else if (jackett.emptycache && jackett.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
-
-            if (TorrentCache.Read(key) is var tcache && tcache.cache)
-                return File(tcache.torrent, "application/x-bittorrent");
-
-            return Content("error");
-        }
-        #endregion
-
-
-        #region search
-        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
-        {
-            if (!jackett.Animelayer.enable)
-                return Task.FromResult(false);
-
-            return JackettCache.Invoke($"animelayer:{query}", torrents, () => parsePage(host, query));
-        }
-        #endregion
-
-        #region parsePage
-        async static ValueTask<List<TorrentDetails>> parsePage(string host, string query)
-        {
-            var torrents = new List<TorrentDetails>();
-
-            #region Авторизация
-            if (Cookie == null)
-            {
-                if (await TakeLogin() == false)
-                    return null;
-            }
-            #endregion
-
-            #region html
-            bool firstrehtml = true;
-            rehtml: string html = await HttpClient.Get($"{jackett.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", cookie: Cookie, timeoutSeconds: jackett.timeoutSeconds);
-
-            if (html != null && html.Contains("id=\"wrapper\""))
-            {
-                if (!html.Contains($">{jackett.Animelayer.login.u}<"))
-                {
-                    if (!firstrehtml || await TakeLogin() == false)
-                        return null;
-
-                    firstrehtml = false;
-                    goto rehtml;
-                }
-            }
-
-            if (html == null)
-                return null;
-            #endregion
-
-            foreach (string row in html.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))
-            {
-                #region Локальный метод - Match
-                string Match(string pattern, int index = 1)
-                {
-                    string res = new Regex(pattern, RegexOptions.IgnoreCase).Match(row).Groups[index].Value.Trim();
-                    res = Regex.Replace(res, "[\n\r\t ]+", " ");
-                    return res.Trim();
-                }
-                #endregion
-
-                if (string.IsNullOrWhiteSpace(row))
-                    continue;
-
-                #region Дата создания
-                DateTime createTime = default;
-
-                if (Regex.IsMatch(row, "(Добавл|Обновл)[^<]+</span>[0-9]+ [^ ]+ [0-9]{4}"))
-                {
-                    createTime = tParse.ParseCreateTime(Match(">(Добавл|Обновл)[^<]+</span>([0-9]+ [^ ]+ [0-9]{4})", 2), "dd.MM.yyyy");
-                }
-                else
-                {
-                    string date = Match("(Добавл|Обновл)[^<]+</span>([^\n]+) в", 2);
-                    if (string.IsNullOrWhiteSpace(date))
-                        continue;
-
-                    createTime = tParse.ParseCreateTime($"{date} {DateTime.Today.Year}", "dd.MM.yyyy");
-                }
-
-                //if (createTime == default)
-                //    continue;
-                #endregion
-
-                #region Данные раздачи
-                var gurl = Regex.Match(row, "<a href=\"/(torrent/[a-z0-9]+)/?\">([^<]+)</a>").Groups;
-
-                string url = gurl[1].Value;
-                string title = gurl[2].Value;
-
-                string _sid = Match("class=\"icon s-icons-upload\"></i>([0-9]+)");
-                string _pir = Match("class=\"icon s-icons-download\"></i>([0-9]+)");
-                string sizeName = Match("<i class=\"icon s-icons-download\"></i>[^<]+<span class=\"gray\">[^<]+</span>[\n\r\t ]+([^\n\r<]+)").Trim();
-
-                if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(title))
-                    continue;
-
-                if (Regex.IsMatch(row, "Разрешение: ?</strong>1920x1080"))
-                    title += " [1080p]";
-                else if (Regex.IsMatch(row, "Разрешение: ?</strong>1280x720"))
-                    title += " [720p]";
-
-                url = $"{jackett.Animelayer.host}/{url}/";
-                #endregion
-
-                #region name / originalname
-                string name = null, originalname = null;
-
-                // Shaman king (2021) / Король-шаман [ТВ] (1-7)
-                var g = Regex.Match(title, "([^/\\[\\(]+)\\([0-9]{4}\\)[^/]+/([^/\\[\\(]+)").Groups;
-                if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
-                {
-                    name = g[2].Value.Trim();
-                    originalname = g[1].Value.Trim();
-                }
-                else
-                {
-                    // Shadows House / Дом теней (1—6)
-                    g = Regex.Match(title, "^([^/\\[\\(]+)/([^/\\[\\(]+)").Groups;
-                    if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
-                    {
-                        name = g[2].Value.Trim();
-                        originalname = g[1].Value.Trim();
-                    }
-                }
-                #endregion
-
-                // Год выхода
-                if (!int.TryParse(Match("Год выхода: ?</strong>([0-9]{4})"), out int relased) || relased == 0)
-                    continue;
-
-                if (string.IsNullOrWhiteSpace(name))
-                    name = Regex.Split(title, "(\\[|\\/|\\(|\\|)", RegexOptions.IgnoreCase)[0].Trim();
-
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    int.TryParse(_sid, out int sid);
-                    int.TryParse(_pir, out int pir);
-
-                    torrents.Add(new TorrentDetails()
-                    {
-                        trackerName = "animelayer",
-                        types = new string[] { "anime" },
-                        url = url,
-                        title = title,
-                        sid = sid,
-                        pir = pir,
-                        sizeName = sizeName,
-                        createTime = createTime,
-                        parselink = $"{host}/animelayer/parsemagnet?url={HttpUtility.UrlEncode(url)}",
-                        name = name,
-                        originalname = originalname,
-                        relased = relased
-                    });
-                }
-            }
-
-            return torrents;
+            return null;
         }
         #endregion
     }
