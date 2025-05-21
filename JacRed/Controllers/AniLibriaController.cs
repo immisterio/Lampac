@@ -44,6 +44,7 @@ namespace Lampac.Controllers.JAC
             var roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get(), IgnoreDeserializeObject: true);
             if (roots == null || roots.Count == 0)
             {
+                consoleErrorLog("anilibria");
                 proxyManager.Refresh();
                 return false;
             }

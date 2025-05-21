@@ -60,6 +60,7 @@ namespace Lampac.Controllers.JAC
 
             if (html == null || !html.Contains("id=\"find\""))
             {
+                consoleErrorLog("torrentby");
                 proxyManager.Refresh();
                 return null;
             }

@@ -74,7 +74,10 @@ namespace Lampac.Controllers.JAC
             #region Авторизация
             string cookie = await getCookie();
             if (string.IsNullOrEmpty(cookie))
+            {
+                consoleErrorLog("rutracker");
                 return null;
+            }
             #endregion
 
             #region Кеш html
@@ -83,7 +86,10 @@ namespace Lampac.Controllers.JAC
             if (html != null)
             {
                 if (!html.Contains("id=\"logged-in-username\""))
+                {
+                    consoleErrorLog("rutracker");
                     return null;
+                }
             }
             #endregion
 

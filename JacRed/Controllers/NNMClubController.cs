@@ -90,6 +90,7 @@ namespace Lampac.Controllers.JAC
             }
             else if (html == null)
             {
+                consoleErrorLog("nnmclub");
                 proxyManager.Refresh();
                 return null;
             }

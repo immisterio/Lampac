@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.SignalR;
 using System.Linq;
 using System.Threading.Tasks;
 using Shared.Model.Base;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Lampac
 {
@@ -111,8 +111,7 @@ namespace Lampac
             #region users.json
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                DateTime lastWriteTime = default;
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                 while (true)
                 {
@@ -122,14 +121,29 @@ namespace Lampac
                     {
                         if (File.Exists("users.json"))
                         {
-                            var ltwrite = new FileInfo("users.json").LastWriteTime;
-                            if (ltwrite != lastWriteTime)
+                            foreach (var user in JsonConvert.DeserializeObject<List<AccsUser>>(File.ReadAllText("users.json")))
                             {
-                                lastWriteTime = ltwrite;
-                                var u = JsonConvert.DeserializeObject<ConcurrentBag<AccsUser>>(File.ReadAllText("users.json"));
-
-                                if (u != null)
-                                    AppInit.conf.accsdb.users = u;
+                                try
+                                {
+                                    var find = AppInit.conf.accsdb.findUser(user.id ?? user.ids.First());
+                                    if (find != null)
+                                    {
+                                        find.id = user.id;
+                                        find.ids = user.ids;
+                                        find.group = user.group;
+                                        find.IsPasswd = user.IsPasswd;
+                                        find.expires = user.expires;
+                                        find.ban = user.ban;
+                                        find.ban_msg = user.ban_msg;
+                                        find.comment = user.comment;
+                                        find.@params = user.@params;
+                                    }
+                                    else
+                                    {
+                                        AppInit.conf.accsdb.users.Add(user);
+                                    }
+                                }
+                                catch { }
                             }
                         }
                     }

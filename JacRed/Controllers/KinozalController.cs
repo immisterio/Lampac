@@ -75,6 +75,7 @@ namespace Lampac.Controllers.JAC
             }
             else if (html == null)
             {
+                consoleErrorLog("kinozal");
                 proxyManager.Refresh();
                 return null;
             }

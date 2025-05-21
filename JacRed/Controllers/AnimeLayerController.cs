@@ -56,7 +56,10 @@ namespace Lampac.Controllers.JAC
             #region Авторизация
             string cookie = await getCookie();
             if (string.IsNullOrEmpty(cookie))
+            {
+                consoleErrorLog("animelayer");
                 return null;
+            }
             #endregion
 
             var torrents = new List<TorrentDetails>();
@@ -68,11 +71,16 @@ namespace Lampac.Controllers.JAC
             if (html != null && html.Contains("id=\"wrapper\""))
             {
                 if (!html.Contains($">{jackett.Animelayer.login.u}<"))
+                {
+                    consoleErrorLog("animelayer");
                     return null;
+                }
             }
-
-            if (html == null)
+            else if (html == null)
+            {
+                consoleErrorLog("animelayer");
                 return null;
+            }
             #endregion
 
             foreach (string row in html.Split("class=\"torrent-item torrent-item-medium panel\"").Skip(1))

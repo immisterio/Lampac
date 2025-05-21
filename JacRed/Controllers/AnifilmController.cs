@@ -72,6 +72,7 @@ namespace Lampac.Controllers.JAC
 
             if (html == null || !html.Contains("id=\"ui-components\""))
             {
+                consoleErrorLog("anifilm");
                 proxyManager.Refresh();
                 return null;
             }

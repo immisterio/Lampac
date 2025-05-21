@@ -74,7 +74,10 @@ namespace Lampac.Controllers.JAC
             #region Авторизация
             string cookie = await getCookie();
             if (string.IsNullOrEmpty(cookie))
+            {
+                consoleErrorLog("selezen");
                 return null;
+            }
             #endregion
 
             #region html
@@ -85,7 +88,10 @@ namespace Lampac.Controllers.JAC
             if (html != null && html.Contains("dle_root"))
             {
                 if (!html.Contains($">{jackett.Selezen.login.u}<"))
+                {
+                    consoleErrorLog("selezen");
                     return null;
+                }
             }
             #endregion
 

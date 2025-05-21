@@ -50,6 +50,7 @@ namespace Jackett
         {
             Directory.CreateDirectory("cache/jacred");
             Directory.CreateDirectory("cache/jackett");
+            File.WriteAllText("module/JacRed.current.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
 
             ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await FileDB.Cron());
@@ -64,11 +65,6 @@ namespace Jackett
         /// </summary>
         public string typesearch = "webapi";
 
-        /// <summary>
-        /// red
-        /// jackett
-        /// webapi
-        /// </summary>
         public string merge = "jackett";
 
         public string webApiHost = "http://redapi.cfhttp.top";

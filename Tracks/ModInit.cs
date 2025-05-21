@@ -1,4 +1,5 @@
 ﻿using Shared.Engine;
+using System.IO;
 using System.Threading;
 
 namespace Tracks
@@ -9,6 +10,8 @@ namespace Tracks
 
         public static void loaded()
         {
+            Directory.CreateDirectory("cache/tracks");
+
             ThreadPool.QueueUserWorkItem(async _ =>
             {
                 Initialization = await FFprobe.InitializationAsync();

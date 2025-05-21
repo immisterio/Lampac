@@ -265,6 +265,7 @@ namespace Shared.Engine.Online
                     {
                         #region Перевод
                         var vtpl = new VoiceTpl();
+                        var hash = new HashSet<string>();
 
                         foreach (var a in root.item.seasons.First(i => i.number == s).episodes[0].audios)
                         {
@@ -276,11 +277,16 @@ namespace Shared.Engine.Online
 
                             if (idt == null)
                             {
-                                if (a.lang != "eng")
-                                    continue;
-
-                                idt = 6;
-                                voice = "Оригинал";
+                                if (a.lang == "eng")
+                                {
+                                    idt = 6;
+                                    voice = "Оригинал";
+                                }
+                                else
+                                {
+                                    idt = 1;
+                                    voice = "По умолчанию";
+                                }
                             }
 
                             if (string.IsNullOrEmpty(voice))
@@ -292,12 +298,17 @@ namespace Shared.Engine.Online
                                 codec = a.codec;
                             }
 
-                            string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={idt}&codec={a.codec}";
-                            bool active = t == idt && (codec == null || codec == a.codec);
+                            if (!hash.Contains($"{voice}:{a.codec}"))
+                            {
+                                hash.Add($"{voice}:{a.codec}");
 
-                            vtpl.Append($"{voice} ({a.codec})", active, link);
-                        }
-                        #endregion
+                                string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={idt}&codec={a.codec}";
+                                bool active = t == idt && (codec == null || codec == a.codec);
+
+                                vtpl.Append($"{voice} ({a.codec})", active, link);
+                            }
+                            }
+                            #endregion
 
                         #region Серии
                         var etpl = new EpisodeTpl();
@@ -305,22 +316,29 @@ namespace Shared.Engine.Online
                         foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
                         {
                             int voice_index = -1;
-                            foreach (var a in episode.audios)
+                            if (t == 1)
                             {
-                                int? idt = a?.author?.id;
-                                if (idt == null)
-                                    idt = a?.type?.id;
-
-                                if ((idt != null && t == (int)idt && (codec == null || codec == a.codec)) ||
-                                    (t == 6 && a.lang == "eng"))
-                                {
-                                    voice_index = a!.index;
-                                    break;
-                                }
+                                voice_index = t;
                             }
+                            else
+                            {
+                                foreach (var a in episode.audios)
+                                {
+                                    int? idt = a?.author?.id;
+                                    if (idt == null)
+                                        idt = a?.type?.id;
 
-                            if (voice_index == -1)
-                                break;
+                                    if ((idt != null && t == (int)idt && (codec == null || codec == a.codec)) ||
+                                        (t == 6 && a.lang == "eng"))
+                                    {
+                                        voice_index = a!.index;
+                                        break;
+                                    }
+                                }
+
+                                if (voice_index == -1)
+                                    break;
+                            }
 
                             var streams = new List<(string link, string quality)>(4);
 

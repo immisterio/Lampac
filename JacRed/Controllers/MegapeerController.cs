@@ -65,6 +65,7 @@ namespace Lampac.Controllers.JAC
 
             if (html == null || !html.Contains("id=\"logo\""))
             {
+                consoleErrorLog("megapeer");
                 proxyManager.Refresh();
                 return null;
             }

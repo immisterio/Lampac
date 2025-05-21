@@ -56,7 +56,10 @@ namespace Lampac.Controllers.JAC
             #region Авторизация
             string cookie = await getCookie();
             if (string.IsNullOrEmpty(cookie))
+            {
+                consoleErrorLog("toloka");
                 return null;
+            }
             #endregion
 
             #region html
@@ -67,7 +70,10 @@ namespace Lampac.Controllers.JAC
             if (html != null && html.Contains("<html lang=\"uk\""))
             {
                 if (!html.Contains(">Вихід"))
+                {
+                    consoleErrorLog("toloka");
                     return null;
+                }
             }
             #endregion
 

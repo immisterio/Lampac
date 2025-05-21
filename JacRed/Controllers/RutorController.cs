@@ -60,6 +60,7 @@ namespace Lampac.Controllers.JAC
 
             if (html == null || !html.Contains("id=\"logo\""))
             {
+                consoleErrorLog("rutor");
                 proxyManager.Refresh();
                 return null;
             }

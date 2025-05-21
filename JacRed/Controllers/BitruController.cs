@@ -55,6 +55,7 @@ namespace Lampac.Controllers.JAC
 
             if (html == null || !html.Contains("id=\"logo\""))
             {
+                consoleErrorLog("bitru");
                 proxyManager.Refresh();
                 return null;
             }

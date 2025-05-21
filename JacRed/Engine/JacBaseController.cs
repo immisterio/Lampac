@@ -31,5 +31,10 @@ namespace JacRed.Engine
 
             return false;
         }
+
+        public static void consoleErrorLog(string plugin)
+        {
+            Console.WriteLine($"JacRed: InternalServerError - {plugin}");
+        }
     }
 }

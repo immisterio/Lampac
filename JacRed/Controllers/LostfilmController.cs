@@ -65,7 +65,10 @@ namespace Lampac.Controllers.JAC
             }
 
             if (!validrq)
+            {
+                consoleErrorLog("lostfilm");
                 return null;
+            }
             #endregion
 
             var torrents = new List<TorrentDetails>();

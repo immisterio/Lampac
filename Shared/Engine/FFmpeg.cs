@@ -11,12 +11,14 @@ namespace Shared.Engine
     public static class FFmpeg
     {
         #region InitializationAsync
+        static bool disableInstall = false;
+
         async public static ValueTask<bool> InitializationAsync()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 #region Windows
-                if (File.Exists("data/ffmpeg.exe"))
+                if (File.Exists("data/ffmpeg.exe") && File.Exists("data/ffprobe.exe"))
                 {
                     Console.WriteLine("FFmpeg: Initialization");
                     return true;
@@ -28,14 +30,20 @@ namespace Shared.Engine
                     return false;
                 }
 
+                if (disableInstall)
+                    return true;
+
+                disableInstall = true;
                 string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
 
                 if (await HttpClient.DownloadFile($"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win{arh}-gpl.zip", "data/ffmpeg.zip"))
                 {
                     ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
 
-                    File.Delete("data/ffmpeg.zip");
                     File.Move($"data/ffmpeg-master-latest-win{arh}-gpl/bin/ffmpeg.exe", "data/ffmpeg.exe", true);
+                    File.Move($"data/ffmpeg-master-latest-win{arh}-gpl/bin/ffprobe.exe", "data/ffprobe.exe", true);
+
+                    File.Delete("data/ffmpeg.zip");
                     Directory.Delete($"data/ffmpeg-master-latest-win{arh}-gpl", true);
 
                     Console.WriteLine("FFmpeg: Initialization");
@@ -61,6 +69,11 @@ namespace Shared.Engine
                 string version = await Bash.Run("ffmpeg -version");
                 if (version == null || !version.Contains("FFmpeg developers"))
                 {
+                    if (disableInstall)
+                        return true;
+
+                    disableInstall = true;
+
                     await Bash.Run("apt update && apt install -y ffmpeg");
                     version = await Bash.Run("ffmpeg -version");
                     if (version == null || !version.Contains("FFmpeg developers"))
