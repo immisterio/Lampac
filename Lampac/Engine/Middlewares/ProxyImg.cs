@@ -190,9 +190,16 @@ namespace Lampac.Engine.Middlewares
                         if (width > 0 || height > 0)
                         {
                             if (AppInit.conf.imagelibrary == "NetVips")
+                            {
                                 array = NetVipsImage(href, array, width, height);
-                            else if (AppInit.conf.imagelibrary == "ImageMagick")
+                            }
+                            else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                            {
+                                if (cacheimg)
+                                    Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+
                                 array = ImageMagick(array, width, height, cacheimg ? outFile : null);
+                            }
                         }
                     }
 
@@ -295,9 +302,6 @@ namespace Lampac.Engine.Middlewares
         /// </summary>
         private byte[] ImageMagick(byte[] array, int width, int height, string myoutputFilePath)
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                return array;
-
             string inputFilePath = null;
             string outputFilePath = null;
 
