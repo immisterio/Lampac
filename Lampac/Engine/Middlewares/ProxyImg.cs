@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -191,7 +192,7 @@ namespace Lampac.Engine.Middlewares
                             if (AppInit.conf.imagelibrary == "NetVips")
                                 array = NetVipsImage(href, array, width, height);
                             else if (AppInit.conf.imagelibrary == "ImageMagick")
-                                array = ImageMagick(array, width, height);
+                                array = ImageMagick(array, width, height, cacheimg ? outFile : null);
                         }
                     }
 
@@ -290,10 +291,22 @@ namespace Lampac.Engine.Middlewares
         /// <summary>
         /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
         /// </summary>
-        private byte[] ImageMagick(byte[] array, int width, int height)
+        private byte[] ImageMagick(byte[] array, int width, int height, string myoutputFilePath)
         {
-            string inputFilePath = Path.GetTempFileName();
-            string outputFilePath = Path.GetTempFileName();
+            string inputFilePath = null;
+            string outputFilePath = null;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Directory.Exists("/dev/shm"))
+            {
+                inputFilePath = $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.in";
+                outputFilePath = myoutputFilePath ?? $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.out";
+            }
+
+            if (inputFilePath == null)
+                inputFilePath = Path.GetTempFileName();
+
+            if (outputFilePath == null) 
+                outputFilePath = myoutputFilePath ?? Path.GetTempFileName();
 
             try
             {
@@ -325,7 +338,8 @@ namespace Lampac.Engine.Middlewares
                 {
                     if (File.Exists(inputFilePath))
                         File.Delete(inputFilePath);
-                    if (File.Exists(outputFilePath))
+
+                    if (File.Exists(outputFilePath) && myoutputFilePath != outputFilePath)
                         File.Delete(outputFilePath);
                 }
                 catch { }
