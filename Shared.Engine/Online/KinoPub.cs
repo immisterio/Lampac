@@ -1,4 +1,5 @@
-﻿using Lampac.Models.LITE.KinoPub;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE.KinoPub;
 using Shared.Model.Base;
 using Shared.Model.Online.KinoPub;
 using Shared.Model.Templates;
@@ -57,8 +58,6 @@ namespace Shared.Engine.Online
                     var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
                     if (items != null)
                     {
-                        string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
-
                         var ids = new List<int>();
                         var result = new SearchResult() { similars = new SimilarTpl(items.Count) };
 
@@ -73,8 +72,8 @@ namespace Shared.Engine.Online
                             {
                                 if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                                 {
-                                    string _t = NormalizeString(item.title);
-                                    string _q = NormalizeString(q);
+                                    string? _t = StringConvert.SearchName(item.title);
+                                    string? _q = StringConvert.SearchName(q);
 
                                     if (!string.IsNullOrEmpty(_t) && !string.IsNullOrEmpty(_q))
                                     {

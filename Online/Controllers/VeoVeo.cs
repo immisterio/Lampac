@@ -123,7 +123,7 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             var stpl = new SimilarTpl();
-            string _t = NormalizeString(title);
+            string _t = StringConvert.SearchName(title);
             if (string.IsNullOrEmpty(_t))
                 return OnError();
 
@@ -132,7 +132,7 @@ namespace Lampac.Controllers.LITE
                 if (stpl.data.Count >= 100)
                     break;
 
-                if (NormalizeString(m.title).Contains(_t) || NormalizeString(m.originalTitle).Contains(_t))
+                if (StringConvert.SearchName(m.title, string.Empty).Contains(_t) || StringConvert.SearchName(m.originalTitle, string.Empty).Contains(_t))
                 {
                     string uri = $"{host}/lite/veoveo?movieid={m.id}";
                     stpl.Append(m.title ?? m.originalTitle, m.year.ToString(), string.Empty, uri, PosterApi.Find(m.kinopoiskId, m.imdbId));
@@ -144,8 +144,6 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region search
-        static string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
-
         public static List<Movie> database = JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
 
         Movie search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
@@ -173,15 +171,15 @@ namespace Lampac.Controllers.LITE
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(NormalizeString(original_title)))
+                        if (StringConvert.SearchName(original_title) != null)
                         {
-                            if (NormalizeString(item.originalTitle) == NormalizeString(original_title))
+                            if (StringConvert.SearchName(item.originalTitle) == StringConvert.SearchName(original_title))
                                 return item;
                         }
 
-                        if (!string.IsNullOrEmpty(NormalizeString(title)))
+                        if (StringConvert.SearchName(title) != null)
                         {
-                            if (NormalizeString(item.title) == NormalizeString(title))
+                            if (StringConvert.SearchName(item.title) == StringConvert.SearchName(title))
                                 return item;
                         }
                     }

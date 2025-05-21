@@ -54,8 +54,6 @@ namespace Lampac.Controllers.LITE
                 if (database == null)
                     database = JsonHelper.ListReader<MovieDB>("data/cdnmovies.json", 105000);
 
-                string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
-
                 var stpl = new SimilarTpl();
 
                 foreach (var j in database)
@@ -73,20 +71,20 @@ namespace Lampac.Controllers.LITE
 
                     if (!IsOkID)
                     {
-                        if (!string.IsNullOrEmpty(NormalizeString(original_title)) && NormalizeString(j.orig_title) == NormalizeString(original_title))
+                        if (StringConvert.SearchName(original_title) != null && StringConvert.SearchName(j.orig_title) == StringConvert.SearchName(original_title))
                             IsOkTitle = true;
 
-                        if (!IsOkTitle && !string.IsNullOrEmpty(NormalizeString(title)))
+                        if (!IsOkTitle && StringConvert.SearchName(title) != null)
                         {
-                            if (!string.IsNullOrEmpty(j.ru_title))
+                            if (StringConvert.SearchName(j.ru_title) != null)
                             {
-                                if (NormalizeString(j.ru_title).Contains(NormalizeString(title)))
+                                if (StringConvert.SearchName(j.ru_title).Contains(StringConvert.SearchName(title)))
                                     IsOkTitle = true;
                             }
 
-                            if (!IsOkTitle && !string.IsNullOrEmpty(j.orig_title))
+                            if (!IsOkTitle && StringConvert.SearchName(j.orig_title) != null)
                             {
-                                if (NormalizeString(j.orig_title).Contains(NormalizeString(title)))
+                                if (StringConvert.SearchName(j.orig_title).Contains(StringConvert.SearchName(title)))
                                     IsOkTitle = true;
                             }
                         }

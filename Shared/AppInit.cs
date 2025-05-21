@@ -328,7 +328,7 @@ namespace Lampac
             cover = new CoverSettings() 
             {
                 enable = true, preview = true, 
-                timeout = 20, skipModificationTime = 60 * 5,
+                timeout = 20, skipModificationTime = 60,
                 priorityClass = System.Diagnostics.ProcessPriorityClass.Idle,
                 extension = "(mp4|mkv|avi|mpg|mpe|mpv)",
                 coverComand = "-n -ss 3:00 -i \"{file}\" -vf \"thumbnail=150,scale=400:-2\" -frames:v 1 \"{thumb}\"",

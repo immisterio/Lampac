@@ -126,7 +126,10 @@ namespace Lampac
                             if (ltwrite != lastWriteTime)
                             {
                                 lastWriteTime = ltwrite;
-                                AppInit.conf.accsdb.users = JsonConvert.DeserializeObject<ConcurrentBag<AccsUser>>(File.ReadAllText("users.json"));
+                                var u = JsonConvert.DeserializeObject<ConcurrentBag<AccsUser>>(File.ReadAllText("users.json"));
+
+                                if (u != null)
+                                    AppInit.conf.accsdb.users = u;
                             }
                         }
                     }

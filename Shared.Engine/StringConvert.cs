@@ -68,14 +68,14 @@ namespace Lampac.Engine.CORE
 
 
         #region SearchName
-        public static string? SearchName(string val)
+        public static string? SearchName(string? val, string? empty = null)
         {
             if (string.IsNullOrWhiteSpace(val))
-                return null;
+                return empty;
 
             val = Regex.Replace(val.ToLower(), "[^a-zA-Zа-яА-Я0-9Ёё]+", "").Replace("ё", "е").Replace("щ", "ш");
             if (string.IsNullOrWhiteSpace(val))
-                return null;
+                return empty;
 
             return val;
         }

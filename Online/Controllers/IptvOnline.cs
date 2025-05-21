@@ -167,8 +167,6 @@ namespace Lampac.Controllers.LITE
         #region search
         async ValueTask<JToken> search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string codeauth, int serial, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            static string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
-
             string memKey = $"iptvonline:view:{kinopoisk_id}:{imdb_id}:{title}:{original_title}";
 
             if (!hybridCache.TryGetValue(memKey, out JToken data))
@@ -214,15 +212,15 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var item in video["data"])
                     {
-                        if (!string.IsNullOrEmpty(NormalizeString(original_title)))
+                        if (StringConvert.SearchName(original_title) != null)
                         {
-                            if (NormalizeString(item.Value<string>("orig_title")) == NormalizeString(original_title))
+                            if (StringConvert.SearchName(item.Value<string>("orig_title")) == StringConvert.SearchName(original_title))
                                 return item;
                         }
 
-                        if (!string.IsNullOrEmpty(NormalizeString(title)))
+                        if (StringConvert.SearchName(title) != null)
                         {
-                            if (NormalizeString(item.Value<string>("ru_title")) == NormalizeString(title))
+                            if (StringConvert.SearchName(item.Value<string>("ru_title")) == StringConvert.SearchName(title))
                                 return item;
                         }
                     }

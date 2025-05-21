@@ -37,6 +37,7 @@ namespace Lampac.Controllers
 
         public static void Initialization()
         {
+            Directory.CreateDirectory("cache/torrent");
             Directory.CreateDirectory($"{dlna_path}/");
             Directory.CreateDirectory($"{dlna_path}/thumbs/");
             Directory.CreateDirectory($"{dlna_path}/tmdb/");
@@ -725,7 +726,6 @@ namespace Lampac.Controllers
                     return Json(new { error = "DownloadMetadata" });
 
                 var array = data.Span.ToArray();
-                Directory.CreateDirectory("cache/torrent");
                 IO.File.WriteAllBytes($"cache/torrent/{hash}", array);
 
                 return Json(Torrent.Load(array).Files.Select(i => new { i.Path }));
@@ -773,34 +773,18 @@ namespace Lampac.Controllers
                                 #region IsValidImg
                                 bool IsValidImg(byte[] _img)
                                 {
-                                    if (_img == null)
-                                        return false;
+                                    if (AppInit.conf.imagelibrary == "NetVips")
+                                        return IsValidImgage(_img, path);
 
-                                    using (var image = Image.NewFromBuffer(_img))
-                                    {
-                                        try
-                                        {
-                                            if (!path.Contains(".svg"))
-                                            {
-                                                // тестируем jpg/png на целостность
-                                                byte[] temp = image.JpegsaveBuffer();
-                                                if (temp == null || temp.Length == 0)
-                                                    return false;
-                                            }
-
-                                            return true;
-                                        }
-                                        catch
-                                        {
-                                            return false;
-                                        }
-                                    }
+                                    return true;
                                 }
                                 #endregion
 
-                                var array = await HttpClient.Download(thumb, timeoutSeconds: 8);
+                                string uri = Regex.Replace(thumb, "^https?://[^/]+/", "");
+
+                                var array = await HttpClient.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8);
                                 if (array == null || !IsValidImg(array))
-                                    array = await HttpClient.Download(Regex.Replace(thumb, "^https?://[^/]+", $"https://imagetmdb.{AppInit.conf.cub.mirror}"));
+                                    array = await HttpClient.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}");
 
                                 if (array != null && IsValidImg(array))
                                 {
@@ -1114,6 +1098,36 @@ namespace Lampac.Controllers
             }
 
             return Json(new { status = true });
+        }
+        #endregion
+
+
+
+        #region IsValidImgage
+        static bool IsValidImgage(byte[] _img, string path)
+        {
+            if (_img == null)
+                return false;
+
+            using (var image = Image.NewFromBuffer(_img))
+            {
+                try
+                {
+                    if (!path.Contains(".svg"))
+                    {
+                        // тестируем jpg/png на целостность
+                        byte[] temp = image.JpegsaveBuffer();
+                        if (temp == null || temp.Length == 0)
+                            return false;
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
         }
         #endregion
     }
