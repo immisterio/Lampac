@@ -230,6 +230,8 @@ namespace Lampac
 
         public string typecache = "hybrid"; // mem|file|hybrid
 
+        public string imagelibrary = "NetVips"; // NetVips|ImageMagick|none
+
         public bool pirate_store = true;
 
         public string apikey = null;
@@ -315,7 +317,7 @@ namespace Lampac
         public FileCacheConf fileCacheInactive = new FileCacheConf() 
         { 
             maxcachesize = 10_000, // 10GB на папку
-            img = 10, hls = 90, html = 5, torrent = 50 // minute
+            img = 20, hls = 90, html = 5, torrent = 2880 // minute
         };
 
         public DLNASettings dlna = new DLNASettings() 
@@ -323,6 +325,17 @@ namespace Lampac
             enable = true, path = "dlna",
             uploadSpeed = 125000 * 10,
             autoupdatetrackers = true, intervalUpdateTrackers = 90, addTrackersToMagnet = true, 
+            cover = new CoverSettings() 
+            {
+                enable = true, preview = true, 
+                timeout = 20, skipModificationTime = 60,
+                priorityClass = System.Diagnostics.ProcessPriorityClass.Idle,
+                extension = "(mp4|mkv|avi|mpg|mpe|mpv)",
+                coverComand = "-n -ss 3:00 -i \"{file}\" -vf \"thumbnail=150,scale=400:-2\" -frames:v 1 \"{thumb}\"",
+                // фрэмрэйт -r   : больше - больше файл , плавнее движения
+                // качество -crf : больше - меньше файл , появляются артефакты
+                previewComand = "-n -ss 00:03:00 -to 00:03:07 -i \"{file}\" -ss 00:04:37 -to 00:04:44 -i \"{file}\" -ss 00:06:41 -to 00:06:48 -i \"{file}\" -ss 00:09:20 -to 00:09:27 -i \"{file}\" -ss 00:12:45 -to 00:12:52 -i \"{file}\" -ss 00:17:09 -to 00:17:16 -i \"{file}\" -ss 00:22:50 -to 00:22:57 -i \"{file}\" -ss 00:29:51 -to 00:29:58 -i \"{file}\" -ss 00:39:23 -to 00:39:30 -i \"{file}\" -ss 00:51:44 -to 00:51:51 -i \"{file}\" -ss 01:07:45 -to 01:07:52 -i \"{file}\" -ss 01:20:33 -to 01:20:40 -i \"{file}\" -filter_complex \"[0:v]setpts=0.5*PTS,scale=-2:240[v0];[1:v]setpts=0.5*PTS,scale=-2:240[v1];[2:v]setpts=0.5*PTS,scale=-2:240[v2];[3:v]setpts=0.5*PTS,scale=-2:240[v3];[4:v]setpts=0.5*PTS,scale=-2:240[v4];[5:v]setpts=0.5*PTS,scale=-2:240[v5];[6:v]setpts=0.5*PTS,scale=-2:240[v6];[7:v]setpts=0.5*PTS,scale=-2:240[v7];[8:v]setpts=0.5*PTS,scale=-2:240[v8];[9:v]setpts=0.5*PTS,scale=-2:240[v9];[10:v]setpts=0.5*PTS,scale=-2:240[v10];[11:v]setpts=0.5*PTS,scale=-2:240[v11];[v0][v1][v2][v3][v4][v5][v6][v7][v8][v9][v10][v11]concat=n=12:v=1:a=0\" -an -r 20 -c:v libx264 -crf 28 -preset veryslow \"{preview}\""
+            }
         };
 
         public WebConf LampaWeb = new WebConf()
@@ -330,7 +343,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "7cb738a82e787deb8ea3d6deb5ddc8a47bdd1068"
+            tree = "5cea48fdcb8aab7bd14d2925e2a15cb714500e99"
         };
 
         public OnlineConf online = new OnlineConf()

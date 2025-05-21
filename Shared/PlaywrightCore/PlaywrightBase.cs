@@ -22,6 +22,7 @@ namespace Shared.Engine
 
     public class PlaywrightBase
     {
+        #region InitializationAsync
         async public static ValueTask<bool> InitializationAsync()
         {
             try
@@ -149,8 +150,9 @@ namespace Shared.Engine
                 return false;
             }
         }
-        
+        #endregion
 
+        #region DownloadFile
         async public static ValueTask<bool> DownloadFile(string uri, string outfile, string folder = null)
         {
             if (File.Exists($"{outfile}.ok"))
@@ -191,8 +193,9 @@ namespace Shared.Engine
                 return false;
             }
         }
-        
+        #endregion
 
+        #region WebLog
         public static void WebLog(IRequest request, IResponse response, string result, (string ip, string username, string password) proxy = default)
         {
             try
@@ -255,8 +258,9 @@ namespace Shared.Engine
             }
             catch { }
         }
+        #endregion
 
-
+        #region IframeUrl
         public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
 
         public static string IframeHtml(string link) => $@"<html lang=""ru"">
@@ -269,10 +273,11 @@ namespace Shared.Engine
                     <iframe width=""560"" height=""400"" src=""{link}"" frameborder=""0"" allow=""*"" allowfullscreen></iframe>
                 </body>
             </html>";
-
+        #endregion
 
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
+        #region WaitPageResult
         async public ValueTask<string> WaitPageResult(int seconds = 10)
         {
             try
@@ -289,8 +294,9 @@ namespace Shared.Engine
             }
             catch { return null; }
         }
+        #endregion
 
-
+        #region AbortOrCache
         async public static ValueTask<bool> AbortOrCache(IPage page, IRoute route, bool abortMedia = false, bool fullCacheJS = false, string patterCache = null)
         {
             try
@@ -303,7 +309,9 @@ namespace Shared.Engine
 
                 if (abortMedia && Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|svg|jpe?g|png|gif|webp|ico|ts|m4s)$"))
                 {
-                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                    if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                        Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+
                     await route.AbortAsync();
                     return true;
                 }
@@ -334,7 +342,9 @@ namespace Shared.Engine
                         var hybridCache = new HybridCache();
                         if (hybridCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache))
                         {
-                            Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
+                            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                                Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
+
                             await route.FulfillAsync(new RouteFulfillOptions
                             {
                                 BodyBytes = cache.content,
@@ -343,7 +353,9 @@ namespace Shared.Engine
                         }
                         else
                         {
-                            Console.WriteLine($"Playwright: MISS {route.Request.Url}");
+                            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                                Console.WriteLine($"Playwright: MISS {route.Request.Url}");
+
                             await route.ContinueAsync();
                             var response = await page.WaitForResponseAsync(route.Request.Url);
                             if (response != null)
@@ -358,15 +370,26 @@ namespace Shared.Engine
                     }
                 }
 
-                Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
+                if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                    Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
+
                 return false;
             }
             catch { return false; }
         }
+        #endregion
+
 
         public static void GotoAsync(IPage page, string uri)
         {
             _ = page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
+        }
+
+
+        public static void ConsoleLog(string value)
+        {
+            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                Console.WriteLine(value);
         }
     }
 }

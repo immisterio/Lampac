@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                         {
                             if (content_uri != null || browser.IsCompleted)
                             {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                 await route.AbortAsync();
                                 return;
                             }

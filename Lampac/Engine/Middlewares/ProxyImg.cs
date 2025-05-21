@@ -1,18 +1,19 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using System.IO;
-using Lampac.Engine.CORE;
-using NetVips;
-using System.Text.RegularExpressions;
-using Shared.Engine.CORE;
+﻿using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using System;
-using System.Net.Http;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
-using System.Collections.Generic;
-using System.Net;
 using Shared.Models;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -188,21 +189,16 @@ namespace Lampac.Engine.Middlewares
                     {
                         if (width > 0 || height > 0)
                         {
-                            using (var image = Image.NewFromBuffer(array))
+                            if (AppInit.conf.imagelibrary == "NetVips")
                             {
-                                if (image.Width > width || image.Height > height)
-                                {
-                                    try
-                                    {
-                                        using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: Enums.Interesting.None))
-                                        {
-                                            var buffer = href.Contains(".png") ? res.PngsaveBuffer() : res.JpegsaveBuffer();
-                                            if (buffer != null && buffer.Length > 1000)
-                                                array = buffer;
-                                        }
-                                    }
-                                    catch { }
-                                }
+                                array = NetVipsImage(href, array, width, height);
+                            }
+                            else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                            {
+                                if (cacheimg)
+                                    Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+
+                                array = ImageMagick(array, width, height, cacheimg ? outFile : null);
                             }
                         }
                     }
@@ -236,6 +232,7 @@ namespace Lampac.Engine.Middlewares
         }
 
 
+        #region Download
         async public ValueTask<byte[]> Download(string url, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             try
@@ -250,7 +247,7 @@ namespace Lampac.Engine.Middlewares
                     if (!handler.UseProxy)
                         client.DefaultRequestHeaders.ConnectionClose = false;
 
-                    using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
+                    using (HttpResponseMessage response = await client.GetAsync(url))
                     {
                         if (response.StatusCode != HttpStatusCode.OK)
                             return null;
@@ -271,5 +268,95 @@ namespace Lampac.Engine.Middlewares
                 return null;
             }
         }
+        #endregion
+
+        #region NetVipsImage
+        private byte[] NetVipsImage(string href, byte[] array, int width, int height)
+        {
+            try
+            {
+                using (var image = NetVips.Image.NewFromBuffer(array))
+                {
+                    if (image.Width > width || image.Height > height)
+                    {
+                        using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: NetVips.Enums.Interesting.None))
+                        {
+                            var buffer = href.Contains(".png") ? res.PngsaveBuffer() : res.JpegsaveBuffer();
+                            if (buffer != null && buffer.Length > 1000)
+                                return buffer;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return array;
+        }
+        #endregion
+
+        #region ImageMagick
+        static string imaGikPath = null;
+
+        /// <summary>
+        /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
+        /// </summary>
+        private byte[] ImageMagick(byte[] array, int width, int height, string myoutputFilePath)
+        {
+            string inputFilePath = null;
+            string outputFilePath = null;
+
+            if (Directory.Exists("/dev/shm"))
+            {
+                inputFilePath = $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.in";
+                outputFilePath = myoutputFilePath ?? $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.out";
+            }
+
+            if (inputFilePath == null)
+                inputFilePath = Path.GetTempFileName();
+
+            if (outputFilePath == null) 
+                outputFilePath = myoutputFilePath ?? Path.GetTempFileName();
+
+            if (imaGikPath == null)
+                imaGikPath = File.Exists("/usr/bin/magick") ? "magick" : "convert";
+
+            try
+            {
+                File.WriteAllBytes(inputFilePath, array);
+
+                string argsize = width > 0 && height > 0 ? $"{width}x{height}" : width > 0 ? $"{width}x" : $"x{height}";
+
+                using (Process process = new Process())
+                {
+                    process.StartInfo.FileName = imaGikPath;
+                    process.StartInfo.Arguments = $"\"{inputFilePath}\" -resize {argsize} \"{outputFilePath}\"";
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+
+                    process.Start();
+                    process.WaitForExit();
+
+                    if (process.ExitCode != 0)
+                        return array;
+                }
+
+                return File.ReadAllBytes(outputFilePath);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(inputFilePath))
+                        File.Delete(inputFilePath);
+
+                    if (File.Exists(outputFilePath) && myoutputFilePath != outputFilePath)
+                        File.Delete(outputFilePath);
+                }
+                catch { }
+            }
+        }
+        #endregion
     }
 }

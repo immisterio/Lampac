@@ -415,9 +415,11 @@ namespace Lampac.Controllers
             send(AppInit.conf.RezkaPrem, "rhsprem");
 
             send(AppInit.conf.KinoPub);
+            send(AppInit.conf.Kinobase);
             send(AppInit.conf.Alloha, "alloha-search");
             send(AppInit.conf.Mirage, "mirage-search");
             send(AppInit.conf.Collaps, "collaps-search");
+            send(AppInit.conf.VeoVeo, "veoveo-spider");
 
             if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
                 send(AppInit.conf.VideoCDN);
@@ -1027,6 +1029,8 @@ namespace Lampac.Controllers
                             case "filmixtv":
                             case "kinopub":
                             case "vokino":
+                            case "vokino-alloha":
+                            case "vokino-filmix":
                             case "alloha":
                             case "remux":
                             case "pidtor":
@@ -1070,6 +1074,11 @@ namespace Lampac.Controllers
                             case "vidlink":
                             case "autoembed":
                             case "veoveo":
+                            case "vokino-vibix":
+                            case "vokino-monframe":
+                            case "vokino-remux":
+                            case "vokino-ashdi":
+                            case "vokino-hdvb":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":

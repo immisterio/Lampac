@@ -55,6 +55,9 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            if (string.IsNullOrEmpty(init.username) || string.IsNullOrEmpty(init.password))
+                return OnError();
+
             if (content_id == 0)
             {
                 var search = await InvokeCache($"videocdn:search:{imdb_id}:{kinopoisk_id}:{title ?? original_title}:{clarification}:{similar}", TimeSpan.FromHours(1),

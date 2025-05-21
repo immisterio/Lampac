@@ -7,7 +7,6 @@ using Lampac.Engine.CORE;
 using System.Net;
 using Shared.Model.Templates;
 using System;
-using Shared.Model.Online;
 
 namespace Lampac.Controllers.LITE
 {

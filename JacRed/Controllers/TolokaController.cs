@@ -1,92 +1,34 @@
-﻿using System;
+﻿using JacRed.Engine;
+using JacRed.Models;
+using Lampac.Engine.CORE;
+using Lampac.Engine.Parse;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Shared;
+using Shared.Engine.CORE;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using System.Collections.Concurrent;
-using Shared;
-using JacRed.Engine;
-using JacRed.Models;
 
 namespace Lampac.Controllers.JAC
 {
     [Route("toloka/[action]")]
     public class TolokaController : JacBaseController
     {
-        #region Cookie / TakeLogin
-        static string Cookie;
-
-        async static Task<bool> TakeLogin()
+        #region search
+        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            string authKey = "toloka:TakeLogin()";
-            if (Startup.memoryCache.TryGetValue(authKey, out _))
-                return false;
+            if (!jackett.Toloka.enable || string.IsNullOrEmpty(jackett.Toloka.cookie ?? jackett.Toloka.login.u))
+                return Task.FromResult(false);
 
-            Startup.memoryCache.Set(authKey, 0, AppInit.conf.multiaccess ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(20));
-
-            try
-            {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
-                {
-                    AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
-                {
-                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
-
-                    var postParams = new Dictionary<string, string>
-                    {
-                        { "username", jackett.Toloka.login.u },
-                        { "password", jackett.Toloka.login.p },
-                        { "autologin", "on" },
-                        { "ssl", "on" },
-                        { "redirect", "index.php?" },
-                        { "login", "Вхід" }
-                    };
-
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{jackett.Toloka.host}/login.php", postContent))
-                        {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
-                            {
-                                string toloka_sid = null, toloka_data = null;
-                                foreach (string line in cook)
-                                {
-                                    if (string.IsNullOrWhiteSpace(line))
-                                        continue;
-
-                                    if (line.Contains("toloka_sid="))
-                                        toloka_sid = new Regex("toloka_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
-
-                                    if (line.Contains("toloka_data="))
-                                        toloka_data = new Regex("toloka_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
-                                }
-
-                                if (!string.IsNullOrWhiteSpace(toloka_sid) && !string.IsNullOrWhiteSpace(toloka_data))
-                                {
-                                    Cookie = $"toloka_sid={toloka_sid}; toloka_ssl=1; toloka_data={toloka_data};";
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-
-            return false;
+            return Joinparse(torrents, () => parsePage(host, query, cats));
         }
         #endregion
+
 
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string id)
@@ -94,94 +36,48 @@ namespace Lampac.Controllers.JAC
             if (!jackett.Toloka.enable)
                 return Content("disable");
 
-            string key = $"toloka:parseMagnet:{id}";
-            if (Startup.memoryCache.TryGetValue(key, out byte[] _m))
-                return File(_m, "application/x-bittorrent");
+            string cookie = await getCookie();
+            if (string.IsNullOrEmpty(cookie))
+                return Content("cookie == null");
 
-            #region emptycache
-            if (Startup.memoryCache.TryGetValue($"{key}:error", out _))
-            {
-                if (TorrentCache.Read(key) is var tc && tc.cache)
-                    return File(tc.torrent, "application/x-bittorrent");
+            var proxyManager = new ProxyManager("toloka", jackett.Toloka);
 
-                return Content("error");
-            }
-            #endregion
-
-            #region Авторизация
-            if (Cookie == null)
-            {
-                if (await TakeLogin() == false)
-                {
-                    if (TorrentCache.Read(key) is var tc && tc.cache)
-                        return File(tc.torrent, "application/x-bittorrent");
-
-                    return Content("TakeLogin == false");
-                }
-            }
-            #endregion
-
-            byte[] _t = await HttpClient.Download($"{jackett.Toloka.host}/download.php?id={id}", cookie: Cookie, referer: jackett.Toloka.host, timeoutSeconds: 10);
+            byte[] _t = await HttpClient.Download($"{jackett.Toloka.host}/download.php?id={id}", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Toloka.host);
             if (_t != null && BencodeTo.Magnet(_t) != null)
-            {
-                if (jackett.cache)
-                {
-                    TorrentCache.Write(key, _t);
-                    Startup.memoryCache.Set(key, _t, DateTime.Now.AddMinutes(Math.Max(1, jackett.torrentCacheToMinutes)));
-                }
-
                 return File(_t, "application/x-bittorrent");
-            }
-            else if (jackett.emptycache && jackett.cache)
-                Startup.memoryCache.Set($"{key}:error", 0, DateTime.Now.AddMinutes(1));
-
-            if (TorrentCache.Read(key) is var tcache && tcache.cache)
-                return File(tcache.torrent, "application/x-bittorrent");
 
             return Content("error");
-        }
-        #endregion
-
-
-        #region search
-        public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
-        {
-            if (!jackett.Toloka.enable)
-                return Task.FromResult(false);
-
-            return JackettCache.Invoke($"toloka:{string.Join(":", cats ?? new string[] { })}:{query}", torrents, () => parsePage(host, query, cats));
         }
         #endregion
 
         #region parsePage
         async static ValueTask<List<TorrentDetails>> parsePage(string host, string query, string[] cats)
         {
-            var torrents = new List<TorrentDetails>();
-
             #region Авторизация
-            if (Cookie == null)
+            string cookie = await getCookie();
+            if (string.IsNullOrEmpty(cookie))
             {
-                if (await TakeLogin() == false)
-                    return null;
+                consoleErrorLog("toloka");
+                return null;
             }
             #endregion
 
             #region html
-            bool firstrehtml = true;
-            rehtml: string html = await HttpClient.Get($"{jackett.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", cookie: Cookie, /*useproxy: AppInit.conf.useproxyToloka,*/ timeoutSeconds: jackett.timeoutSeconds);
+            var proxyManager = new ProxyManager("toloka", jackett.Toloka);
+
+            string html = await HttpClient.Get($"{jackett.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null && html.Contains("<html lang=\"uk\""))
             {
                 if (!html.Contains(">Вихід"))
                 {
-                    if (!firstrehtml || await TakeLogin() == false)
-                        return null;
-
-                    firstrehtml = false;
-                    goto rehtml;
+                    consoleErrorLog("toloka");
+                    return null;
                 }
             }
             #endregion
+
+            var torrents = new List<TorrentDetails>();
 
             foreach (string row in html.Split("</tr>"))
             {
@@ -200,9 +96,6 @@ namespace Lampac.Controllers.JAC
                 #region Дата создания
                 string _createTime = Match("class=\"gensmall\">([0-9]{4}-[0-9]{2}-[0-9]{2})").Replace("-", ".");
                 DateTime.TryParse(_createTime, out DateTime createTime);
-
-                //if (!DateTime.TryParse(_createTime, out DateTime createTime) || createTime == default)
-                //    continue;
                 #endregion
 
                 #region Данные раздачи
@@ -210,14 +103,12 @@ namespace Lampac.Controllers.JAC
                 string title = Match("class=\"topictitle genmed\"><a [^>]+><b>([^<]+)</b></a>");
                 string downloadid = Match("href=\"download.php\\?id=([0-9]+)\"");
                 string tracker = Match("class=\"gen\" href=\"tracker.php\\?f=([0-9]+)");
-                string _sid = Match("class=\"seedmed\"><b>([0-9]+)</b>");
-                string _pir = Match("class=\"leechmed\"><b>([0-9]+)</b>");
+                string _sid = Match("class=\"seedmed\"><b>([0-9]+)");
+                string _pir = Match("class=\"leechmed\"><b>([0-9]+)");
                 string sizeName = Match("class=\"gensmall\">([0-9\\.]+ (MB|GB))</td>");
 
                 if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(downloadid) || string.IsNullOrWhiteSpace(tracker) || sizeName == "0 B")
                     continue;
-
-                url = $"{jackett.Toloka.host}/{url}";
                 #endregion
 
                 #region Парсим раздачи
@@ -358,91 +249,160 @@ namespace Lampac.Controllers.JAC
                 }
                 #endregion
 
-                if (string.IsNullOrWhiteSpace(name))
-                    name = Regex.Split(title, "(\\[|\\/|\\(|\\|)", RegexOptions.IgnoreCase)[0].Trim();
-
-                if (!string.IsNullOrWhiteSpace(name) || cats == null)
+                #region types
+                string[] types = null;
+                switch (tracker)
                 {
-                    #region types
-                    string[] types = null;
-                    switch (tracker)
-                    {
-                        case "16":
-                        case "96":
-                        case "42":
-                            types = new string[] { "movie" };
-                            break;
-                        case "19":
-                        case "139":
-                        case "84":
-                            types = new string[] { "multfilm" };
-                            break;
-                        case "32":
-                        case "173":
-                        case "124":
-                            types = new string[] { "serial" };
-                            break;
-                        case "174":
-                        case "44":
-                        case "125":
-                            types = new string[] { "multserial" };
-                            break;
-                        case "226":
-                        case "227":
-                        case "228":
-                        case "229":
-                        case "230":
-                        case "12":
-                        case "131":
-                            types = new string[] { "docuserial", "documovie" };
-                            break;
-                        case "127":
-                            types = new string[] { "anime" };
-                            break;
-                        case "132":
-                            types = new string[] { "tvshow" };
-                            break;
-                    }
+                    case "16":
+                    case "96":
+                    case "42":
+                        types = new string[] { "movie" };
+                        break;
+                    case "19":
+                    case "139":
+                    case "84":
+                        types = new string[] { "multfilm" };
+                        break;
+                    case "32":
+                    case "173":
+                    case "124":
+                        types = new string[] { "serial" };
+                        break;
+                    case "174":
+                    case "44":
+                    case "125":
+                        types = new string[] { "multserial" };
+                        break;
+                    case "226":
+                    case "227":
+                    case "228":
+                    case "229":
+                    case "230":
+                    case "12":
+                    case "131":
+                        types = new string[] { "docuserial", "documovie" };
+                        break;
+                    case "127":
+                        types = new string[] { "anime" };
+                        break;
+                    case "132":
+                        types = new string[] { "tvshow" };
+                        break;
+                }
 
+                if (cats != null)
+                {
                     if (types == null)
                         continue;
 
-                    if (cats != null)
+                    bool isok = false;
+                    foreach (string cat in cats)
                     {
-                        bool isok = false;
-                        foreach (string cat in cats)
-                        {
-                            if (types.Contains(cat))
-                                isok = true;
-                        }
-
-                        if (!isok)
-                            continue;
+                        if (types.Contains(cat))
+                            isok = true;
                     }
-                    #endregion
 
-                    int.TryParse(_sid, out int sid);
-                    int.TryParse(_pir, out int pir);
-
-                    torrents.Add(new TorrentDetails()
-                    {
-                        trackerName = "toloka",
-                        types = types,
-                        url = url,
-                        title = title,
-                        sid = sid,
-                        pir = pir,
-                        sizeName = sizeName,
-                        createTime = createTime,
-                        parselink = $"{host}/toloka/parsemagnet?id={downloadid}",
-                        name = name,
-                        originalname = originalname,
-                        relased = relased
-                    });
+                    if (!isok)
+                        continue;
                 }
+                #endregion
+
+                int.TryParse(_sid, out int sid);
+                int.TryParse(_pir, out int pir);
+
+                torrents.Add(new TorrentDetails()
+                {
+                    types = types,
+                    url = $"{jackett.Toloka.host}/{url}",
+                    title = title,
+                    sid = sid,
+                    pir = pir,
+                    sizeName = sizeName,
+                    createTime = createTime,
+                    parselink = $"{host}/toloka/parsemagnet?id={downloadid}",
+                    name = name,
+                    originalname = originalname,
+                    relased = relased
+                });
             }
 
             return torrents;
+        }
+        #endregion
+
+
+        #region getCookie
+        async static ValueTask<string> getCookie()
+        {
+            if (!string.IsNullOrEmpty(jackett.Toloka.cookie))
+                return jackett.Toloka.cookie;
+
+            string authKey = "Toloka:TakeLogin()";
+            if (Startup.memoryCache.TryGetValue(authKey, out string _cookie))
+                return _cookie;
+
+            if (Startup.memoryCache.TryGetValue($"{authKey}:error", out _))
+                return null;
+
+            Startup.memoryCache.Set($"{authKey}:error", 0, TimeSpan.FromSeconds(20));
+
+            try
+            {
+                var clientHandler = new System.Net.Http.HttpClientHandler()
+                {
+                    AllowAutoRedirect = false
+                };
+
+                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
+                    client.MaxResponseContentBufferSize = 2000000; // 2MB
+                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
+
+                    var postParams = new Dictionary<string, string>
+                    {
+                        { "username", jackett.Toloka.login.u },
+                        { "password", jackett.Toloka.login.p },
+                        { "autologin", "on" },
+                        { "ssl", "on" },
+                        { "redirect", "index.php?" },
+                        { "login", "Вхід" }
+                    };
+
+                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                    {
+                        using (var response = await client.PostAsync($"{jackett.Toloka.host}/login.php", postContent))
+                        {
+                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            {
+                                string toloka_sid = null, toloka_data = null;
+                                foreach (string line in cook)
+                                {
+                                    if (string.IsNullOrWhiteSpace(line))
+                                        continue;
+
+                                    if (line.Contains("toloka_sid="))
+                                        toloka_sid = new Regex("toloka_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
+
+                                    if (line.Contains("toloka_data="))
+                                        toloka_data = new Regex("toloka_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(toloka_sid) && !string.IsNullOrWhiteSpace(toloka_data))
+                                {
+                                    string cookie = $"toloka_sid={toloka_sid}; toloka_ssl=1; toloka_data={toloka_data};";
+                                    Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
+                                    return cookie;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return null;
         }
         #endregion
     }

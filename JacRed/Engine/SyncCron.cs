@@ -26,7 +26,7 @@ namespace JacRed.Engine
                     if (File.Exists(@"C:\ProgramData\lampac\disablesync"))
                         break;
 
-                    if (!string.IsNullOrWhiteSpace(ModInit.conf.Red.syncapi) || ModInit.conf.typesearch == "jackett")
+                    if (ModInit.conf.typesearch == "red" && !string.IsNullOrWhiteSpace(ModInit.conf.Red.syncapi))
                     {
                         if (lastsync == -1 && File.Exists("cache/jacred/lastsync.txt"))
                             lastsync = long.Parse(File.ReadAllText("cache/jacred/lastsync.txt"));

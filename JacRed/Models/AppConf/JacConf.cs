@@ -4,47 +4,37 @@ namespace Lampac.Models.AppConf
 {
     public class JacConf
     {
-        public bool cache = false;
-
-        public bool emptycache = false;
-
-        public string cachetype = "file";
-
         public int cacheToMinutes = 5;
 
-        public int torrentCacheToMinutes = 20;
-
-        public string search_lang = "title_original";
+        public string search_lang = "query";
 
         public int timeoutSeconds = 8;
 
 
-        public TrackerSettings Rutor = new TrackerSettings("http://rutor.info", priority: "torrent");
+        public TrackerSettings Rutor = new TrackerSettings("https://rutor.info", priority: "torrent");
 
-        public TrackerSettings Megapeer = new TrackerSettings("http://megapeer.vip");
+        public TrackerSettings Megapeer = new TrackerSettings("https://megapeer.vip");
 
-        public TrackerSettings TorrentBy = new TrackerSettings("http://torrent.by", priority: "torrent");
+        public TrackerSettings TorrentBy = new TrackerSettings("https://torrent.by", priority: "torrent");
 
-        public TrackerSettings Kinozal = new TrackerSettings("http://kinozal.tv");
+        public TrackerSettings Kinozal = new TrackerSettings("https://kinozal.tv");
 
         public TrackerSettings NNMClub = new TrackerSettings("https://nnmclub.to");
 
         public TrackerSettings Bitru = new TrackerSettings("https://bitru.org");
 
-        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to", enable: false);
+        public TrackerSettings Toloka = new TrackerSettings("https://toloka.to");
 
-        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.net", enable: false, priority: "torrent");
+        public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.org", priority: "torrent");
 
-        public TrackerSettings Underverse = new TrackerSettings("https://underver.se", enable: false);
+        public TrackerSettings Selezen = new TrackerSettings("https://open.selezen.org", priority: "torrent");
 
-        public TrackerSettings Selezen = new TrackerSettings("https://open.selezen.org", enable: false, priority: "torrent");
-
-        public TrackerSettings Lostfilm = new TrackerSettings("https://www.lostfilm.tv", enable: false);
+        public TrackerSettings Lostfilm = new TrackerSettings("https://www.lostfilm.tv");
 
         public TrackerSettings Anilibria = new TrackerSettings("https://www.anilibria.tv");
 
-        public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru", enable: false);
+        public TrackerSettings Animelayer = new TrackerSettings("http://animelayer.ru");
 
-        public TrackerSettings Anifilm = new TrackerSettings("https://anifilm.net");
+        public TrackerSettings Anifilm = new TrackerSettings("https://anifilm.pro");
     }
 }

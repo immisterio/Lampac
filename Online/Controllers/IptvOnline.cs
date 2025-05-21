@@ -1,16 +1,19 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Online;
-using System.Web;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
-using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Online;
+using Shared.Engine.CORE;
+using Shared.Model.Online;
+using Shared.Model.Templates;
 using System;
+using System.Linq;
 using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -178,8 +181,10 @@ namespace Lampac.Controllers.LITE
                         ("X-API-ID", init.token.Split(":")[0])
                     ));
 
-                    string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}?search={search}";
-                    var video = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
+                    string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}";
+                    var data = new System.Net.Http.StringContent(JsonConvert.SerializeObject(new { search }), Encoding.UTF8, "application/json");
+
+                    var video = await HttpClient.Get<JObject>(uri, body: data, timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
 
                     if (video == null)
                     {
@@ -203,16 +208,19 @@ namespace Lampac.Controllers.LITE
                             if ($"tt{item.Value<long?>("imdb")}" == imdb_id)
                                 return item;
                         }
+                    }
 
-                        if (!string.IsNullOrEmpty(original_title))
+                    foreach (var item in video["data"])
+                    {
+                        if (StringConvert.SearchName(original_title) != null)
                         {
-                            if (item.Value<string>("orig_title") == original_title)
+                            if (StringConvert.SearchName(item.Value<string>("orig_title")) == StringConvert.SearchName(original_title))
                                 return item;
                         }
 
-                        if (!string.IsNullOrEmpty(title))
+                        if (StringConvert.SearchName(title) != null)
                         {
-                            if (item.Value<string>("ru_title") == title)
+                            if (StringConvert.SearchName(item.Value<string>("ru_title")) == StringConvert.SearchName(title))
                                 return item;
                         }
                     }
@@ -220,7 +228,7 @@ namespace Lampac.Controllers.LITE
                     return null;
                 }
 
-                data = await goSearch(HttpUtility.UrlEncode(original_title)) ?? await goSearch(HttpUtility.UrlEncode(title));
+                data = await goSearch(original_title) ?? await goSearch(title);
                 if (data == null)
                     return null;
 

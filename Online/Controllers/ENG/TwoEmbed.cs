@@ -78,14 +78,14 @@ namespace Lampac.Controllers.LITE
 
                                 if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(fonts.googleapis|pixel.embed|rtmark)\\."))
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
 
                                 if (route.Request.Url.Contains(".m3u8"))
                                 {
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();

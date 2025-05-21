@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Engine;
 using Lampac.Models.LITE;
-using System;
 using System.Text.RegularExpressions;
 using Shared.Model.Templates;
 using Newtonsoft.Json.Linq;
@@ -52,7 +51,7 @@ namespace Lampac.Controllers.LITE
 
                 if (!hybridCache.TryGetValue(uri, out JObject data))
                 {
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: HeadersModel.Init(
+                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
                         ("Accept-Language", "en-US,en;q=0.5"),
                         ("Alt-Used", "nono.autoembed.cc"),
                         ("Priority", "u=4"),
@@ -75,7 +74,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     var postdata = new System.Net.Http.StringContent("{\"encryptedData\":\"" + encryptedData + "\"}", Encoding.UTF8, "application/json");
-                    var videoSource = await HttpClient.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, headers: HeadersModel.Init(
+                    var videoSource = await HttpClient.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
                         ("Accept-Language", "en-US,en;q=0.5"),
                         ("Alt-Used", "nono.autoembed.cc"),
                         ("Origin", apihost),
@@ -152,14 +151,14 @@ namespace Lampac.Controllers.LITE
 
                                 if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
                                 {
-                                    Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
 
                                 if (/*route.Request.Url.Contains("hakunaymatata.") &&*/ route.Request.Url.Contains(".mp4"))
                                 {
-                                    Console.WriteLine($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();

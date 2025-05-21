@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
             var proxy = proxyManager.BaseGet();
 
             #region search
-            string memKey = $"videoseed:view:{kinopoisk_id}";
+            string memKey = $"videoseed:view:{kinopoisk_id}:{imdb_id}:{original_title}";
             if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, JObject> seasons, string iframe) cache))
             {
                 #region goSearch
@@ -104,7 +104,7 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var season in cache.seasons)
                     {
-                        string link = $"{host}/lite/videoseed?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
+                        string link = $"{host}/lite/videoseed?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
                         tpl.Append($"{season.Key} сезон", link, season.Key);
                     }
 

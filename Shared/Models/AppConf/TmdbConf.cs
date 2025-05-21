@@ -16,7 +16,12 @@ namespace Shared.Models.AppConf
 
         public string API_IP { get; set; }
 
+        public string API_Minor { get; set; }
+
+
         public string IMG_IP { get; set; }
+
+        public string IMG_Minor { get; set; }
 
 
         public int cache_api { get; set; }

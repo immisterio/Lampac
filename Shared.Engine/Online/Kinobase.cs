@@ -1,5 +1,6 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Kinobase;
+using Shared.Model.Base;
 using Shared.Model.Online.Kinobase;
 using Shared.Model.Templates;
 using System.Text.Json;
@@ -31,8 +32,8 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Embed
-        async public ValueTask<EmbedModel?> Embed(string? title, int year, Func<string, ValueTask<string?>>? oneval = null)
+        #region Search
+        async public ValueTask<SearchModel?> Search(string? title, int year)
         {
             if (string.IsNullOrEmpty(title))
                 return null;
@@ -44,27 +45,31 @@ namespace Shared.Engine.Online
                 return null;
             }
 
+            var similar = new SimilarTpl();
             string? link = null, reservedlink = null;
             foreach (string row in content.Split("<li class=\"item\">").Skip(1))
             {
                 if (row.Contains(">Трейлер</span>"))
                     continue;
 
-                var g = Regex.Match(row, "alt=\"([^\"]+) \\(([0-9]{4})\\)\"").Groups;
+                string name = Regex.Match(row, "<div class=\"title\"><[^>]+>([^<]+)").Groups[1].Value;
+                string _year = Regex.Match(row, "<span class=\"year\">([0-9]+)").Groups[1].Value;
+                string img = Regex.Match(row, "<img src=\"/([^\"]+)\"").Groups[1].Value;
+                if (!string.IsNullOrEmpty(img))
+                    img = $"{apihost}/{img}";
 
-                if (g[1].Value.ToLower().Trim() == title.ToLower())
+                string rlnk = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(rlnk) || string.IsNullOrEmpty(name))
+                    continue;
+
+                string uri = host + $"lite/kinobase?href={HttpUtility.UrlEncode(rlnk)}";
+                similar.Append(name, _year, string.Empty, uri, PosterApi.Size(img));
+
+                if (name.ToLower().Trim() == title.ToLower())
                 {
-                    string rlnk = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(rlnk))
-                        continue;
-
                     reservedlink = rlnk;
-
-                    if (g[2].Value == year.ToString())
-                    {
+                    if (string.IsNullOrEmpty(link) && _year == year.ToString())
                         link = reservedlink;
-                        break;
-                    }
                 }
             }
 
@@ -72,14 +77,29 @@ namespace Shared.Engine.Online
             {
                 if (string.IsNullOrEmpty(reservedlink))
                 {
-                    if (content.Contains(">По запросу"))
-                        return new EmbedModel() { IsEmpty = true };
-
-                    return null;
+                    if (!content.Contains(">По запросу") && similar.data.Count == 0)
+                    {
+                        requesterror?.Invoke();
+                        return null;
+                    }
                 }
 
                 link = reservedlink;
             }
+
+            return new SearchModel() 
+            {
+                link = link,
+                similar = similar
+            };
+        }
+        #endregion
+
+        #region Embed
+        async public ValueTask<EmbedModel?> Embed(string? link)
+        {
+            if (string.IsNullOrEmpty(link))
+                return null;
 
             string? news = await onget($"{apihost}/{link}");
             if (string.IsNullOrEmpty(news))
@@ -116,7 +136,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, string? title, int year, int s, bool rjson = false)
+        public string Html(EmbedModel? md, string? title, string href, int s, bool rjson = false)
         {
             if (md == null || md.IsEmpty)
                 return string.Empty;
@@ -140,7 +160,7 @@ namespace Shared.Engine.Online
                 if (streams.Count == 0)
                     return string.Empty;
 
-                mtpl.Append(title, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                mtpl.Append(streams[0].quality, streams[0].link, streamquality: new StreamQualityTpl(streams));
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
@@ -184,7 +204,7 @@ namespace Shared.Engine.Online
                     if (s == -1)
                     {
                         var tpl = new SeasonTpl(md.quality);
-                        string link = host + $"lite/kinobase?title={enc_title}&year={year}&s=1";
+                        string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s=1";
                         tpl.Append("1 сезон", link, 1);
 
                         return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -203,7 +223,7 @@ namespace Shared.Engine.Online
                         foreach (var item in md.serial)
                         {
                             string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
-                            string link = host + $"lite/kinobase?title={enc_title}&year={year}&s={season}";
+                            string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s={season}";
                             tpl.Append($"{season} сезон", link, season);
                         }
 

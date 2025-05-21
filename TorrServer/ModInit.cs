@@ -5,7 +5,6 @@ using Shared.Engine;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -84,45 +83,18 @@ namespace TorrServer
             if (string.IsNullOrWhiteSpace(homedir) || homedir == "/")
                 homedir = string.Empty;
 
-            homedir = Regex.Replace(homedir, "/$", "") + "/torrserver";
+            homedir = Path.Combine(homedir, "torrserver");
             Directory.CreateDirectory(homedir);
             #endregion
 
             #region tspath
-            tspath = $"{homedir}/TorrServer-linux";
+            tspath = Path.Combine(homedir, "TorrServer-linux");
 
             if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                tspath = $"{homedir}/TorrServer-windows-amd64.exe";
+                tspath = Path.Combine(homedir, "TorrServer-windows-amd64.exe");
             #endregion
 
-            #region update accs.db
-            File.WriteAllText($"{homedir}/accs.db", $"{{\"ts\":\"{tspass}\"}}");
-
-            //ThreadPool.QueueUserWorkItem(async _ =>
-            //{
-            //    while (true)
-            //    {
-            //        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-
-            //        try
-            //        {
-            //            if (AppInit.conf.accsdb.enable)
-            //            {
-            //                Dictionary<string, string> accs = new Dictionary<string, string>()
-            //                {
-            //                    ["ts"] = tspass
-            //                };
-
-            //                foreach (var user in AppInit.conf.accsdb.accounts)
-            //                    accs.TryAdd(user.Key, conf.defaultPasswd);
-
-            //                File.WriteAllText($"{homedir}/accs.db", JsonConvert.SerializeObject(accs));
-            //            }
-            //        }
-            //        catch { }
-            //    }
-            //});
-            #endregion
+            File.WriteAllText(Path.Combine(homedir, "accs.db"), $"{{\"ts\":\"{tspass}\"}}");
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
@@ -210,7 +182,7 @@ namespace TorrServer
                         goto reinstall;
                     }
                 }
-                #endregion
+            #endregion
 
                 reset: try
                 {
@@ -219,7 +191,7 @@ namespace TorrServer
                     tsprocess.StartInfo.RedirectStandardOutput = true;
                     tsprocess.StartInfo.RedirectStandardError = true;
                     tsprocess.StartInfo.FileName = tspath;
-                    tsprocess.StartInfo.Arguments = $"--httpauth -p {tsport} -d {homedir}";
+                    tsprocess.StartInfo.Arguments = $"--httpauth -p {tsport} -d \"{homedir}\"";
 
                     tsprocess.Start();
 

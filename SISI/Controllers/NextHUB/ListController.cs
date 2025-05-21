@@ -305,7 +305,7 @@ namespace Lampac.Controllers.NextHUB
 
                             if (conf.patternAbort != null && Regex.IsMatch(route.Request.Url, conf.patternAbort, RegexOptions.IgnoreCase))
                             {
-                                Console.WriteLine($"Playwright: Abort {route.Request.Url}");
+                                PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                 await route.AbortAsync();
                                 return;
                             }
@@ -317,12 +317,12 @@ namespace Lampac.Controllers.NextHUB
                             }
                             else
                             {
-                                Console.WriteLine($"Playwright: {route.Request.Method} {route.Request.Url}");
+                                PlaywrightBase.ConsoleLog($"Playwright: {route.Request.Method} {route.Request.Url}");
                             }
 
                             await route.ContinueAsync();
                         }
-                        catch (Exception ex) { Console.WriteLine(ex.Message); }
+                        catch (Exception ex) { PlaywrightBase.ConsoleLog(ex.Message); }
                     });
 
                     string content = null;

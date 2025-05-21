@@ -349,8 +349,13 @@ namespace Lampac.Controllers
                 if (sisi == "on")
                     modules.Add("{\"enable\":true,\"dll\":\"SISI.dll\"}");
 
-                if (jac == "on")
-                    modules.Add("{\"enable\":true,\"initspace\":\"Jackett.ModInit\",\"dll\":\"JacRed.dll\"}");
+				if (!string.IsNullOrEmpty(jac))
+				{
+					modules.Add("{\"enable\":true,\"initspace\":\"Jackett.ModInit\",\"dll\":\"JacRed.dll\"}");
+
+					if (jac == "fdb")
+                        IO.File.WriteAllText("module/JacRed.conf", "\"typesearch\": \"red\"");
+                }
 
                 if (dlna == "on")
                     modules.Add("{\"enable\":true,\"dll\":\"DLNA.dll\"}");
@@ -452,18 +457,21 @@ namespace Lampac.Controllers
 		<div class=""flex"">
 			<input name=""tracks"" type=""checkbox"" checked /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
 		</div>
-		<div class=""flex"">
+		<!--<div class=""flex"">
 			<input name=""jac"" type=""checkbox"" /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства из за частых операций с диском)
-		</div>
+		</div>-->
 		<div class=""flex"">
 			<input name=""merch"" type=""checkbox"" /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud
 		</div>
 
-		<!--<br><br>
-		<label>Начальная настройка init.conf</label>
+		<br><br>
+		<label>Поиск торрентов</label>
 		<div class=""flex"">
-			<input name=""localua"" type=""checkbox"" /> Я из Украины и lampac установлен локально
-		</div>-->
+			<input name=""jac"" type=""radio"" value=""webapi"" checked /> Быстрый поиск по внешним базам JacRed, Rutor, Kinozal, NNM-Club, Rutracker, etc
+		</div>
+		<div class=""flex"">
+			<input name=""jac"" type=""radio"" value=""fdb"" /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства) - 10GB HDD
+		</div>
 	</div>
 	
 	<button type=""submit"">Завершить настройку</button>

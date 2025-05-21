@@ -1,10 +1,11 @@
-﻿using System.Text.RegularExpressions;
-using System.Web;
-using System.Text.Json;
-using Shared.Model.Online.Lumex;
-using Shared.Model.Templates;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
 using Shared.Model.Base;
+using Shared.Model.Online.Lumex;
+using Shared.Model.Templates;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Engine.Online
 {
@@ -110,8 +111,6 @@ namespace Shared.Engine.Online
                 if (database == null)
                     return null;
 
-                string NormalizeString(string str) => Regex.Replace(str?.ToLower() ?? "", "[^a-zа-я0-9]", "");
-
                 var stpl = new SimilarTpl();
 
                 foreach (var item in database)
@@ -130,23 +129,23 @@ namespace Shared.Engine.Online
 
                     bool isok = false;
 
-                    if (!string.IsNullOrEmpty(original_title))
+                    if (StringConvert.SearchName(original_title) != null)
                     {
-                        if (NormalizeString(item.orig_title) == NormalizeString(original_title))
+                        if (StringConvert.SearchName(item.orig_title) == StringConvert.SearchName(original_title))
                             isok = true;
                     }
 
-                    if (!isok && !string.IsNullOrEmpty(title))
+                    if (!isok && StringConvert.SearchName(title) != null)
                     {
                         if (!string.IsNullOrEmpty(item.ru_title))
                         {
-                            if (NormalizeString(item.ru_title).Contains(NormalizeString(title)))
+                            if (StringConvert.SearchName(item.ru_title, string.Empty)!.Contains(StringConvert.SearchName(title)))
                                 isok = true;
                         }
 
-                        if (!isok && !string.IsNullOrEmpty(item.orig_title))
+                        if (!isok && StringConvert.SearchName(item.orig_title) != null && StringConvert.SearchName(title) != null)
                         {
-                            if (NormalizeString(item.orig_title).Contains(NormalizeString(title)))
+                            if (StringConvert.SearchName(item.orig_title)!.Contains(StringConvert.SearchName(title)))
                                 isok = true;
                         }
                     }

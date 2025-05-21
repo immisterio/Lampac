@@ -87,7 +87,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium/|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium/|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)"))
                 {
                     bool limitip = false;
 
@@ -258,7 +258,7 @@ namespace Lampac.Engine.Middlewares
 
         bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
         {
-            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|ts/|storage/|tmdb/|timecode)"))
+            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|ts/|dlna/|storage/|tmdb/|timecode)"))
             {
                 urls = new HashSet<string>();
                 islock = false;

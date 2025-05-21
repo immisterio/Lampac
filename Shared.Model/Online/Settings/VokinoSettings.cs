@@ -16,6 +16,8 @@ namespace Lampac.Models.LITE
         }
 
 
+        public bool onlyBalancerName { get; set; }
+
         public ViewOnline online { get; set; } = new ViewOnline();
 
 
