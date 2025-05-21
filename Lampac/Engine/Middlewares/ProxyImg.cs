@@ -288,15 +288,20 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region ImageMagick
+        static string imaGikPath = null;
+
         /// <summary>
         /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
         /// </summary>
         private byte[] ImageMagick(byte[] array, int width, int height, string myoutputFilePath)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                return array;
+
             string inputFilePath = null;
             string outputFilePath = null;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Directory.Exists("/dev/shm"))
+            if (Directory.Exists("/dev/shm"))
             {
                 inputFilePath = $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.in";
                 outputFilePath = myoutputFilePath ?? $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.out";
@@ -308,6 +313,9 @@ namespace Lampac.Engine.Middlewares
             if (outputFilePath == null) 
                 outputFilePath = myoutputFilePath ?? Path.GetTempFileName();
 
+            if (imaGikPath == null)
+                imaGikPath = File.Exists("/usr/bin/magick") ? "magick" : "convert";
+
             try
             {
                 File.WriteAllBytes(inputFilePath, array);
@@ -316,7 +324,7 @@ namespace Lampac.Engine.Middlewares
 
                 using (Process process = new Process())
                 {
-                    process.StartInfo.FileName = File.Exists("/usr/bin/magick") ? "magick" : "convert";
+                    process.StartInfo.FileName = imaGikPath;
                     process.StartInfo.Arguments = $"\"{inputFilePath}\" -resize {argsize} \"{outputFilePath}\"";
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
