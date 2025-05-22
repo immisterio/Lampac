@@ -149,6 +149,7 @@ namespace Lampac.Controllers.JAC
                     case "2339":
                     case "140":
                     case "252":
+                    case "2198":
                         types = new string[] { "movie" };
                         break;
                     case "2343":

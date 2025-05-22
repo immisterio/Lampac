@@ -116,7 +116,8 @@ namespace JacRed.Engine
                     TolokaController.search(host, torrents, search, new string[] { "movie", "multfilm", "documovie" }),
                     RutrackerController.search(host, torrents, search, new string[] { "movie", "multfilm", "documovie" }),
                     BitruController.search(host, torrents, search, new string[] { "movie" }),
-                    SelezenController.search(host, torrents, search)
+                    SelezenController.search(host, torrents, search),
+                    BigFanGroup.search(host, torrents, search, new string[] { "movie", "multfilm", "documovie" })
                 };
 
                 modpars(tasks, "movie");
@@ -152,7 +153,8 @@ namespace JacRed.Engine
                     TolokaController.search(host, torrents, search, new string[] { "serial", "multserial", "docuserial" }),
                     RutrackerController.search(host, torrents, search, new string[] { "serial", "multserial", "docuserial" }),
                     BitruController.search(host, torrents, search, new string[] { "serial" }),
-                    LostfilmController.search(host, torrents, search)
+                    LostfilmController.search(host, torrents, search),
+                    BigFanGroup.search(host, torrents, search, new string[] { "serial", "multserial", "docuserial", "tvshow" })
                 };
 
                 modpars(tasks, "serial");
@@ -172,7 +174,8 @@ namespace JacRed.Engine
                     KinozalController.search(host, torrents, search, new string[] { "tvshow" }),
                     NNMClubController.search(host, torrents, search, new string[] { "docuserial", "documovie" }),
                     TolokaController.search(host, torrents, search, new string[] { "docuserial", "documovie" }),
-                    RutrackerController.search(host, torrents, search, new string[] { "tvshow" })
+                    RutrackerController.search(host, torrents, search, new string[] { "tvshow" }),
+                    BigFanGroup.search(host, torrents, search, new string[] { "tvshow" })
                 };
 
                 modpars(tasks, "tvshow");
@@ -189,7 +192,8 @@ namespace JacRed.Engine
                     MegapeerController.search(host, torrents, search, "55"),
                     NNMClubController.search(host, torrents, search, new string[] { "docuserial", "documovie" }),
                     TolokaController.search(host, torrents, search, new string[] { "docuserial", "documovie" }),
-                    RutrackerController.search(host, torrents, search, new string[] { "docuserial", "documovie" })
+                    RutrackerController.search(host, torrents, search, new string[] { "docuserial", "documovie" }),
+                    BigFanGroup.search(host, torrents, search, new string[] { "docuserial", "documovie" })
                 };
 
                 modpars(tasks, "documental");
@@ -236,7 +240,8 @@ namespace JacRed.Engine
                     AnimeLayerController.search(host, torrents, search),
                     AnifilmController.search(host, torrents, search),
                     SelezenController.search(host, torrents, search),
-                    LostfilmController.search(host, torrents, search)
+                    LostfilmController.search(host, torrents, search),
+                    BigFanGroup.search(host, torrents, search, null)
                 };
 
                 modpars(tasks, "search");

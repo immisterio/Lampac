@@ -59,12 +59,16 @@ __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
 2. Настройки Jackett в module/JacRed.conf (пример JacRed.example.conf)
 3. Основные настройки в init.conf (пример example.conf)
 
-# Источники 
-* Filmix, KinoPub, Alloha, Rezka, iptv.online, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, VeoVeo, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
-* Kinozal, NNM-Club, Rutor, Megapeer, Torrentby, Bitru, Anilibria, Toloka (Украинский), Rutracker, Selezen, LostFilm, Animelayer, Anifilm
-* PornHub, PornHubPremium, Bongacams, Chaturbate, Cam4, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos, Lenporno, Porno365, Vtrahe, RUSporno, ProstoPorno, PornOne, Brazzrus, FilmAdult, Sosushka, Youjizz, NoodleMagazine, Veporn, XXXperevod, Huyamba, Pornk, PornoAkt, Porn4days, Beeg, Porndig
+# Источники онлайн
+Filmix, KinoPub, Alloha, Rezka, iptv.online, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, VeoVeo, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
 
 Для работы Lumex и ENG балансеров, нужно включить Firefox в init.conf
+
+# Источники 18+
+PornHub, PornHubPremium, Bongacams, Chaturbate, Cam4, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos, Lenporno, Porno365, Vtrahe, RUSporno, ProstoPorno, PornOne, Brazzrus, FilmAdult, Sosushka, Youjizz, NoodleMagazine, Veporn, XXXperevod, Huyamba, Pornk, PornoAkt, Porn4days, Beeg, Porndig
+
+# Торренты
+Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Украинский), BigFanGroup, Selezen, LostFilm, Anilibria, Animelayer, Anifilm
 
 # Источники с API для порталов
 * Filmix, Alloha, Lumex (VideoCDN), Kodik
