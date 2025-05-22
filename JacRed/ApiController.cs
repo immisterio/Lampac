@@ -2,7 +2,6 @@
 using JacRed.Engine;
 using Lampac;
 using Jackett;
-using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -83,14 +82,14 @@ namespace JacRed.Controllers
             {
                 #region red
                 string memoryKey = $"{ModInit.conf.typesearch}:{query}:{rqnum}:{title}:{title_original}:{year}:{is_serial}";
-                if (!memoryCache.TryGetValue(memoryKey, out torrents))
+                if (!hybridCache.TryGetValue(memoryKey, out torrents))
                 {
                     var res = RedApi.Indexers(rqnum, apikey, query, title, title_original, year, is_serial, category);
 
                     torrents = res.torrents;
 
                     if (res.setcache && !red.evercache.enable)
-                        memoryCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(5));
+                        hybridCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(5));
                 }
 
                 if (ModInit.conf.merge == "jackett")

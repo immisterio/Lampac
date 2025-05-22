@@ -246,13 +246,22 @@ namespace JacRed.Engine
             }
             #endregion
 
+            var hash = new HashSet<string>();
+            var finaly = new List<TorrentDetails>(torrents.Count);
+
             foreach (var t in torrents)
             {
                 if (t.trackerName == null)
                     t.trackerName = Regex.Match(t.url, "https?://([^/]+)").Groups[1].Value;
+
+                if (!hash.Contains(t.url))
+                {
+                    hash.Add(t.url);
+                    finaly.Add(t);
+                }
             }
 
-            var result = torrents.AsEnumerable();
+            var result = finaly.AsEnumerable();
 
             if (is_serial == 1 && year > 0)
                 result = result.Where(i => i.title.Contains(year.ToString()) || i.title.Contains($"{year+1}") || i.title.Contains($"{year-1}"));

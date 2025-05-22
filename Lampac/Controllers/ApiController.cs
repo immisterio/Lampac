@@ -149,7 +149,9 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:app.min.js", out string file))
+            bool usecubproxy = AppInit.conf.cub.enabled(requestInfo.Country);
+
+            if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:{usecubproxy}:app.min.js", out string file))
             {
                 file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
 
@@ -168,7 +170,7 @@ namespace Lampac.Controllers
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
 
-            if (AppInit.conf.cub.enable)
+            if (usecubproxy)
             {
                 file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
                 file = file.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");

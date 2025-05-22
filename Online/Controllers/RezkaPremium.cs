@@ -153,11 +153,27 @@ namespace Lampac.Controllers.LITE
         }
         #endregion
 
+        #region Initialization
+        ValueTask<RezkaSettings> Initialization()
+        {
+            return loadKit(AppInit.conf.RezkaPrem, (j, i, c) =>
+            {
+                if (j.ContainsKey("uacdn"))
+                    i.uacdn = c.uacdn;
+
+                if (j.ContainsKey("forceua"))
+                    i.forceua = c.forceua;
+
+                return i;
+            });
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/rhsprem")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.RezkaPrem);
+            var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
@@ -240,7 +256,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rhsprem/serial")]
         async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.RezkaPrem);
+            var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
@@ -282,7 +298,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rhsprem/movie.m3u8")]
         async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.RezkaPrem);
+            var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
@@ -401,7 +417,7 @@ namespace Lampac.Controllers.LITE
                     }
                 }
             }
-            catch (Exception ex) { loglines += $"\n\nException: {ex}"; }
+            catch (Exception ex) { loglines += $"\n\nHDRezka Exception: {ex}"; }
 
             return (authCookie, loglines);
         }

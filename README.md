@@ -194,3 +194,21 @@ __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
   ]
 }
 ```
+
+# Ошибка: Illegal instruction
+Процессор не поддерживает инструкции AVX
+
+1. Установите ImageMagick
+```
+apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
+```
+
+2. В init.conf добавьте
+```
+"imagelibrary": "ImageMagick"
+```
+
+3. Если проблема сохраняется, замените на
+```
+"imagelibrary": "none"
+```
