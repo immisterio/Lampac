@@ -199,6 +199,11 @@ namespace Lampac.Controllers
             return Json(new { success = true });
         }
 
+        [Route("admin/init/custom")]
+        public ActionResult InitCustom()
+        {
+            return Content(IO.File.Exists("init.conf") ? IO.File.ReadAllText("init.conf") : string.Empty);
+        }
 
         [Route("admin/init/current")]
         public ActionResult InitCurrent()
