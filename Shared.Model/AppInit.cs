@@ -419,7 +419,7 @@ namespace Shared.Model
         /// <summary>
         /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
         /// </summary>
-        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", token: "3iee:4<8fg8ih;i<7g84egdedhg6<794", streamproxy: true)
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", token: "i9i;<49537i;;539f<d7g37;93gd<5d9", streamproxy: true)
         {
             priorityBrowser = "http",
             headers = HeadersModel.Init(

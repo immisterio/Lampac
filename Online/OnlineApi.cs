@@ -87,7 +87,10 @@ namespace Lampac.Controllers
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-            file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
+            string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
+            playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+            file = file.Replace("{player-inner}", playerinner);
+
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
             file = file.Replace("{localhost}", host);
 
