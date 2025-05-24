@@ -82,6 +82,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/rezka")]
         async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
+            #region Initialization
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
@@ -110,6 +111,7 @@ namespace Lampac.Controllers.LITE
                         return ShowError("Укажите логин/пароль или cookie");
                 }
             }
+            #endregion
 
             var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
@@ -121,8 +123,15 @@ namespace Lampac.Controllers.LITE
             {
                 var search = await InvokeCache<SearchModel>($"rezka:search:{title}:{original_title}:{clarification}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    return await oninvk.Search(title, original_title, clarification, year);
+                    var content = await oninvk.Search(title, original_title, clarification, year);
+                    if (content == null || (content.IsEmpty && content.content != null))
+                        return res.Fail(content.content ?? "content");
+
+                    return content;
                 });
+
+                if (search.ErrorMsg != null && search.ErrorMsg.Contains("Ошибка доступа"))
+                    return ShowError(search.ErrorMsg);
 
                 if (similar || string.IsNullOrEmpty(search.Value?.href))
                 {

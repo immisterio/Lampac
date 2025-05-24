@@ -208,8 +208,15 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    return await oninvk.Search(title, original_title, clarification, year);
+                    var content = await oninvk.Search(title, original_title, clarification, year);
+                    if (content == null || (content.IsEmpty && content.content != null))
+                        return res.Fail(content.content ?? "content");
+
+                    return content;
                 });
+
+                if (search.ErrorMsg != null && search.ErrorMsg.Contains("Ошибка доступа"))
+                    return ShowError(search.ErrorMsg);
 
                 if (similar || string.IsNullOrEmpty(search.Value?.href))
                 {

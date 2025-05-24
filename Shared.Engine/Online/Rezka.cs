@@ -92,15 +92,17 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (search.Contains("Ошибка доступа (105)"))
-                return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
+            if (search.Contains("class=\"error-code\"") && search.ToLower().Contains("ошибка доступа"))
+            {
+                if (search.Contains("(105)") || search.Contains(">105<") || search.Contains("(403)") || search.Contains(">403<"))
+                    return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
 
-            if (search.Contains("Ошибка доступа (101)"))
-                return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
+                if (search.Contains("(101)") || search.Contains(">101<"))
+                    return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
 
-            var accessError = Regex.Match(search, "Ошибка доступа \\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
-            if (!string.IsNullOrEmpty(accessError[1].Value))
+                var accessError = Regex.Match(search, "Ошибка доступа[ \t]+\\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
                 return new SearchModel() { IsEmpty = true, content = $"Ошибка доступа ({accessError[1].Value})" };
+            }
 
             log("search OK");
 

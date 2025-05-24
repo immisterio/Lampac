@@ -302,10 +302,11 @@ namespace Lampac
                 app.UseResponseCompression();
 
             app.UseModHeaders();
+            app.UseOverrideResponse(first: true);
             app.UseStaticFiles();
             app.UseRequestInfo();
             app.UseAccsdb();
-            app.UseOverrideResponse();
+            app.UseOverrideResponse(first: false);
             app.UseProxyIMG();
             app.UseProxyAPI();
 

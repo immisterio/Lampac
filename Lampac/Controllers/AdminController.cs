@@ -71,7 +71,10 @@ namespace Lampac.Controllers
 	
 </form>
 
-<div style=""margin-top: 4em;"">cat /home/lampac/passwd<br><br>docker exec -it lampac cat passwd</div>
+<div style=""margin-top: 4em;""><b style=""color: cadetblue;"">Выполните одну из команд через ssh</b><br><br>
+	cat /home/lampac/passwd<br><br>
+	docker exec -it lampac cat passwd
+</div>
 
 </body>
 </html>

@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using Shared.Engine;
 
 namespace Lampac.Controllers.JAC
 {

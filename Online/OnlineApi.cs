@@ -337,6 +337,17 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        #region WithSearch
+        [Route("lite/withsearch")]
+        public ActionResult WithSearch()
+        {
+            if (AppInit.conf.online.with_search == null)
+                return ContentTo("[]");
+
+            return Json(AppInit.conf.online.with_search);
+        }
+        #endregion
+
         #region spider
         [Route("lite/spider")]
         [Route("lite/spider/anime")]

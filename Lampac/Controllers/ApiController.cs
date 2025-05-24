@@ -192,11 +192,9 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (!string.IsNullOrEmpty(AppInit.conf.playerInner))
-            {
-                string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
-                file = file.Replace("Player.play(element);", playerinner);
-            }
+            string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
+            playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+            file = file.Replace("Player.play(element);", playerinner);
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
                 file = Eval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new { file, host, type, requestInfo });

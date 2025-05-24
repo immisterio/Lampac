@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using JacRed.Engine;
+using Shared.Engine;
 using JacRed.Models;
 using Lampac.Engine.CORE;
 using Lampac.Engine.Parse;
