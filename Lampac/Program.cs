@@ -111,7 +111,7 @@ namespace Lampac
             #region users.json
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 while (true)
                 {
@@ -125,7 +125,7 @@ namespace Lampac
                             {
                                 try
                                 {
-                                    var find = AppInit.conf.accsdb.findUser(user.id ?? user.ids.First());
+                                    var find = AppInit.conf.accsdb.findUser(user.id ?? user.ids?.First());
                                     if (find != null)
                                     {
                                         find.id = user.id;

@@ -125,20 +125,24 @@ namespace Lampac.Controllers
         [Route("admin/init/custom")]
         public ActionResult InitCustom()
         {
-			var ob = IO.File.Exists("init.conf") ? JsonConvert.DeserializeObject<JObject>(IO.File.ReadAllText("init.conf")) : new JObject { };
+			string json = IO.File.Exists("init.conf") ? IO.File.ReadAllText("init.conf") : null;
+			if (json != null && !json.Trim().StartsWith("{"))
+				json = "{" + json + "}";
+
+            var ob = json != null ? JsonConvert.DeserializeObject<JObject>(json) : new JObject { };
             return ContentTo(JsonConvert.SerializeObject(ob));
         }
 
         [Route("admin/init/current")]
         public ActionResult InitCurrent()
         {
-            return Content(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented), contentType: "application/json; charset=utf-8");
+            return Content(JsonConvert.SerializeObject(AppInit.conf), contentType: "application/json; charset=utf-8");
         }
 
         [Route("admin/init/default")]
         public ActionResult InitDefault()
         {
-            return Content(JsonConvert.SerializeObject(new AppInit(), Formatting.Indented), contentType: "application/json; charset=utf-8");
+            return Content(JsonConvert.SerializeObject(new AppInit()), contentType: "application/json; charset=utf-8");
         }
 
         [Route("admin/init/example")]
@@ -271,9 +275,14 @@ namespace Lampac.Controllers
         [Route("admin/manifest/install")]
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
+			bool isEditManifest = false;
+
 			if (IO.File.Exists("module/manifest.json"))
 			{
-				if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd")) { }
+				if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd")) 
+				{
+                    isEditManifest = true;
+                }
 				else
                     return Redirect("/admin");
             }
@@ -329,11 +338,17 @@ namespace Lampac.Controllers
 						IO.File.WriteAllText("init.conf", "\"firefox\":{\"enable\":true}");
 					}
                 }
-                #endregion
+				#endregion
 
-                Program.Reload();
-
-                return Redirect("/admin/auth");
+				if (isEditManifest)
+				{
+                    return Content("Перезагрузите lampac для изменения настроек", contentType: "text/plain; charset=utf-8");
+				}
+				else
+				{
+                    Program.Reload();
+                    return Redirect("/admin/auth");
+                }
             }
 
             string html = @"
@@ -413,11 +428,7 @@ namespace Lampac.Controllers
 		</div>
 	</div>
 	
-	<button type=""submit"">" + (IO.File.Exists("module/manifest.json") ? "Изменить настройки" : "Завершить настройку")+@"</button>
-</form>
-</body>
-</html>
-";
+	<button type=""submit"">" + (isEditManifest ? "Изменить настройки" : "Завершить настройку")+@"</button></form></body></html>";
 
             return Content(html, contentType: "text/html; charset=utf-8");
         }
