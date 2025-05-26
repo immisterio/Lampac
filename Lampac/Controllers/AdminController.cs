@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
-using IO = System.IO;
+﻿using Lampac.Engine;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+using Shared.Engine;
 using System;
+using System.Collections.Generic;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -17,14 +20,17 @@ namespace Lampac.Controllers
 			if (IO.File.ReadAllText("passwd") == "termux")
 			{
                 HttpContext.Response.Cookies.Append("passwd", "termux");
-                return Redirect("/admin/init");
+                return Content(IO.File.ReadAllText("wwwroot/control/index.html"), contentType: "text/html; charset=utf-8");
             }
 
             if (!string.IsNullOrEmpty(parol) && IO.File.ReadAllText("passwd") == parol.Trim())
 			{
 				HttpContext.Response.Cookies.Append("passwd", parol.Trim());
-				return Redirect("/admin/init");
-			}
+                return Redirect("/admin");
+            }
+
+            if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd"))
+                return Content(IO.File.ReadAllText("wwwroot/control/index.html"), contentType: "text/html; charset=utf-8");
 
             string html = @"
 <!DOCTYPE html>
@@ -84,134 +90,55 @@ namespace Lampac.Controllers
         }
         #endregion
 
+
         #region init
-        [Route("admin/init")]
-        public ActionResult Inithtml()
-        {
-            string html = @"
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Редактор init.conf</title>
-</head>
-<body>
-
-<style type=""text/css"">
-	* {
-	    box-sizing: border-box;
-	    outline: none;
-	}
-	body{
-		padding: 40px;
-		font-family: sans-serif;
-	}
-	label{
-		display: block;
-		font-weight: 700;
-		margin-bottom: 8px;
-	}
-	input,
-	textarea,
-	select{
-		width: 100%;
-		padding: 10px;
-	}
-	button{
-		padding: 10px;
-	}
-	form > * + *{
-		margin-top: 30px;
-	}
-</style>
-
-<form method=""post"" action="""" id=""form"">
-	<div>
-		<label>Ваш init.conf - <a href=""/admin/init/current"" target=""_blank"" style=""text-decoration: inherit; color: cornflowerblue;"">системный</a></label>
-		<textarea id=""value"" name=""value"" rows=""30"">{conf}</textarea>
-	</div>
-	
-	<button type=""submit"">Сохранить</button>
-	
-</form>
-
-<script type=""text/javascript"">
-	document.getElementById('form').addEventListener(""submit"", (e) => {
-		let json = document.getElementById('value').value
-
-		e.preventDefault()
-
-		try{
-			let formData = new FormData()
-				formData.append('json', json)
-
-			fetch('/admin/init/save',{
-			    method: ""POST"",
-			    body: formData
-			})
-			.then((response)=>{
-				if (!response.ok) {
-					return response.json().then(err => {
-						throw new Error(err.ex || 'Не удалось сохранить настройки');
-					});
-				}
-				return response.json();
-			 })  
-			.then((data)=>{
-				if (data.success) {
-					alert('Сохранено');
-				} else if (data.error) {
-					throw new Error(data.ex); 
-				} else {
-					throw new Error('Не удалось сохранить настройки'); 
-				}
-			})
-			.catch((e)=>{
-				alert(e.message)
-			})
-		}
-		catch(e){
-			alert('Ошибка: ' + e.message)
-		}
-	})
-</script>
-
-</body>
-</html>
-";
-
-            string conf = IO.File.Exists("init.conf") ? IO.File.ReadAllText("init.conf") : string.Empty;
-            return Content(html.Replace("{conf}", conf), contentType: "text/html; charset=utf-8");
-        }
-
-
         [Route("admin/init/save")]
         public ActionResult InitSave([FromForm]string json)
         {
 			try
             {
-				string testjson = json.Trim();
-                if (!testjson.StartsWith("{"))
-                    testjson = "{" + testjson + "}";
-
-                JsonConvert.DeserializeObject<AppInit>(testjson);
-
+                JsonConvert.DeserializeObject<AppInit>(json);
             }
 			catch (Exception ex) { return Json(new { error = true, ex = ex.Message }); }
 
-            IO.File.WriteAllText("init.conf", json);
+            var jo = JsonConvert.DeserializeObject<JObject>(json);
+
+			JToken users = null;
+            var accsdbNode = jo["accsdb"] as JObject;
+            if (accsdbNode != null)
+            {
+                var usersNode = accsdbNode["users"];
+                if (usersNode != null)
+                {
+					users = usersNode.DeepClone();
+                    accsdbNode.Remove("users");
+
+                    IO.File.WriteAllText("users.json", JsonConvert.SerializeObject(users, Formatting.Indented));
+                }
+            }
+
+            IO.File.WriteAllText("init.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
+
             return Json(new { success = true });
         }
 
         [Route("admin/init/custom")]
         public ActionResult InitCustom()
         {
-            return Content(IO.File.Exists("init.conf") ? IO.File.ReadAllText("init.conf") : string.Empty);
+			var ob = IO.File.Exists("init.conf") ? JsonConvert.DeserializeObject<JObject>(IO.File.ReadAllText("init.conf")) : new JObject { };
+            return ContentTo(JsonConvert.SerializeObject(ob));
         }
 
         [Route("admin/init/current")]
         public ActionResult InitCurrent()
         {
             return Content(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented), contentType: "application/json; charset=utf-8");
+        }
+
+        [Route("admin/init/default")]
+        public ActionResult InitDefault()
+        {
+            return Content(JsonConvert.SerializeObject(new AppInit(), Formatting.Indented), contentType: "application/json; charset=utf-8");
         }
 
         [Route("admin/init/example")]
@@ -344,8 +271,12 @@ namespace Lampac.Controllers
         [Route("admin/manifest/install")]
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
-            if (IO.File.Exists("module/manifest.json"))
-				return Content("Изменить список установленных модулей можно в файле /home/lampac/module/manifest.json");
+			if (IO.File.Exists("module/manifest.json"))
+			{
+				if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd")) { }
+				else
+                    return Redirect("/admin");
+            }
 
 			if (HttpContext.Request.Method == "POST")
 			{
@@ -402,14 +333,14 @@ namespace Lampac.Controllers
 
                 Program.Reload();
 
-                return Redirect("/");
+                return Redirect("/admin/auth");
             }
 
             string html = @"
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Завершите настройку</title>
+	<title>Модули</title>
 </head>
 <body>
 
@@ -482,7 +413,7 @@ namespace Lampac.Controllers
 		</div>
 	</div>
 	
-	<button type=""submit"">Завершить настройку</button>
+	<button type=""submit"">" + (IO.File.Exists("module/manifest.json") ? "Изменить настройки" : "Завершить настройку")+@"</button>
 </form>
 </body>
 </html>

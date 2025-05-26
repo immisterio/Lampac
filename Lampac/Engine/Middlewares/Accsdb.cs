@@ -43,7 +43,7 @@ namespace Lampac.Engine.Middlewares
                 return Task.CompletedTask;
             }
 
-            if (httpContext.Request.Path.Value.StartsWith("/admin/"))
+            if (httpContext.Request.Path.Value.StartsWith("/admin/") || httpContext.Request.Path.Value == "/admin")
             {
                 if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))
                     return _next(httpContext);
