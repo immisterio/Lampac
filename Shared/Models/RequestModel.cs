@@ -1,4 +1,5 @@
 ﻿using Shared.Model.Base;
+using System;
 using System.Collections.Generic;
 
 namespace Shared.Models
@@ -15,7 +16,31 @@ namespace Shared.Models
 
         public string UserAgent { get; set; }
 
-        public string Country { get; set; }
+        #region Country
+        public Func<string> CountryGetter { get; set; }
+
+        private string _countryCode = null;
+        public string Country
+        {
+            get
+            {
+                if (_countryCode == string.Empty)
+                    return null;
+
+                if (_countryCode != null)
+                    return _countryCode;
+
+                _countryCode = CountryGetter?.Invoke();
+                if (_countryCode == null)
+                {
+                    _countryCode = string.Empty;
+                    return null;
+                }
+
+                return _countryCode;
+            }
+        }
+        #endregion
 
         public AccsUser user { get; set; }
 

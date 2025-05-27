@@ -9,7 +9,6 @@ using Microsoft.Playwright;
 using Lampac.Models.LITE;
 using Shared.Engine.CORE;
 using Shared.PlaywrightCore;
-using System;
 using Lampac.Engine.CORE;
 using System.Net;
 using Shared.Model.Online;
@@ -115,12 +114,14 @@ namespace Lampac.Controllers.LITE
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
+                string referer = CrypTo.DecodeBase64("aHR0cHM6Ly9tb3ZpZWJvb20uc3RvcmUv");
+
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
                 if (!string.IsNullOrEmpty(orid))
                     uri = $"{init.corsHost()}/content/{orid}/iframe";
 
-                string html = rch.enable ? await rch.Get(uri, httpHeaders(init)) : 
-                                           await black_magic(uri, init, proxy);
+                string html = rch.enable ? await rch.Get(uri, httpHeaders(init, HeadersModel.Init(("referer", referer)))) : 
+                                           await black_magic(uri, referer, init, proxy);
 
                 if (html == null)
                     return res.Fail("html");
@@ -140,17 +141,15 @@ namespace Lampac.Controllers.LITE
 
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async ValueTask<string> black_magic(string uri, string referer, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
-                string host = CrypTo.DecodeBase64("aHR0cHM6Ly9raW5vb25saW5lLWhkLmNvbQ==");
-
                 var headers = httpHeaders(init, HeadersModel.Init(
                     ("sec-fetch-dest", "iframe"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "cross-site"),
-                    ("referer", $"{host}/")
+                    ("referer", referer)
                 ));
 
                 if (init.priorityBrowser == "http")
@@ -163,13 +162,13 @@ namespace Lampac.Controllers.LITE
                         return null;
 
                     browser.failedUrl = uri;
-                    await page.SetExtraHTTPHeadersAsync(init.headers);
+                    await page.SetExtraHTTPHeadersAsync(headers.ToDictionary());
 
                     await page.RouteAsync("**/*", async route =>
                     {
                         try
                         {
-                            if (route.Request.Url.StartsWith(host))
+                            if (route.Request.Url.StartsWith(referer))
                             {
                                 await route.FulfillAsync(new RouteFulfillOptions
                                 {
@@ -208,7 +207,7 @@ namespace Lampac.Controllers.LITE
                         catch { }
                     });
 
-                    PlaywrightBase.GotoAsync(page, host);
+                    PlaywrightBase.GotoAsync(page, referer);
                     return await browser.WaitPageResult();
                 }
             }

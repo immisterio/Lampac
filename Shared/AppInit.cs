@@ -343,7 +343,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "5cea48fdcb8aab7bd14d2925e2a15cb714500e99"
+            tree = "661a5a050161071d272ffbfd5d8ab9b9eefc74af"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -351,7 +351,8 @@ namespace Lampac
             findkp = "all", checkOnlineSearch = true, 
             spider = true, spiderName = "Spider",
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов",
-            version = true, btn_priority_forced = true, showquality = true
+            version = true, btn_priority_forced = true, showquality = true,
+            with_search = new List<string>() { "kinotochka", "kinobase", "kinopub", "lumex", "filmix", "filmixtv", "fxapi", "redheadsound", "animevost", "animego", "animedia", "animebesst", "anilibria", "rezka", "rhsprem", "kodik", "remux", "animelib", "kinoukr", "rc/filmix", "rc/fxapi", "rc/rhs", "vcdn", "videocdn", "lumex", "collaps", "collaps-dash", "vdbmovies", "hdvb", "mirage", "alloha", "veoveo" }
         };
 
         public AccsConf accsdb = new AccsConf() 

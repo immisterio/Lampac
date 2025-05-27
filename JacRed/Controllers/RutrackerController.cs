@@ -22,7 +22,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!jackett.Rutracker.enable || string.IsNullOrEmpty(jackett.Rutracker.cookie ?? jackett.Rutracker.login.u))
+            if (!jackett.Rutracker.enable || string.IsNullOrEmpty(jackett.Rutracker.cookie ?? jackett.Rutracker.login.u) || jackett.Rutracker.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cats));
@@ -149,6 +149,7 @@ namespace Lampac.Controllers.JAC
                     case "2339":
                     case "140":
                     case "252":
+                    case "2198":
                         types = new string[] { "movie" };
                         break;
                     case "2343":

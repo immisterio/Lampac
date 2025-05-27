@@ -91,7 +91,7 @@ namespace Lampac.Controllers.LITE
                                 if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true))
                                     return;
 
-                                if (route.Request.Url.Contains(".m3u8"))
+                                if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains(".mp4"))
                                 {
                                     cache.headers = new List<HeadersModel>();
                                     foreach (var item in route.Request.Headers)
@@ -102,7 +102,7 @@ namespace Lampac.Controllers.LITE
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                     }
 
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
                                     browser.SetPageResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
@@ -114,13 +114,28 @@ namespace Lampac.Controllers.LITE
                         });
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        //await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                        string playbtn = "div.flex.flex-col.items-center.gap-y-3.title-year > button";
-                        await page.WaitForSelectorAsync(playbtn);
-                        await page.ClickAsync(playbtn);
+                        for (int i = 0; i < 10*5; i++) // 5 second
+                        {
+                            if (browser.IsCompleted)
+                                break;
 
-                        cache.m3u8 = await browser.WaitPageResult();
+                            foreach (string playBtnSelector in new string[] { "div.flex.flex-col.items-center.gap-y-3.title-year > button" })
+                            {
+                                try
+                                {
+                                    var playBtn = await page.QuerySelectorAsync(playBtnSelector);
+                                    if (playBtn != null)
+                                        await playBtn.ClickAsync();
+                                }
+                                catch { }
+                            }
+
+                            await Task.Delay(100);
+                        }
+
+                        // await browser.WaitPageResult()
+                        cache.m3u8 = await browser.completionSource.Task;
                     }
 
                     if (cache.m3u8 == null)

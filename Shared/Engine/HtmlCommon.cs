@@ -1,7 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 
-namespace JacRed.Engine
+namespace Shared.Engine
 {
     public class HtmlCommon
     {

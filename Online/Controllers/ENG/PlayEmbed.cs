@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
                                         cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                     }
 
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;

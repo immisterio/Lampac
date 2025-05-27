@@ -4,7 +4,7 @@ namespace Lampac.Models.LITE
 {
     public class OnlinesSettings : BaseSettings, ICloneable
     {
-        public OnlinesSettings(string plugin, string host, string? apihost = null, bool useproxy = false, string? token = null, bool enable = true, bool streamproxy = false, bool rip = false)
+        public OnlinesSettings(string plugin, string host, string? apihost = null, bool useproxy = false, string? token = null, bool enable = true, bool streamproxy = false, bool rip = false, bool forceEncryptToken = false)
         {
             this.enable = enable;
             this.plugin = plugin;
@@ -19,7 +19,7 @@ namespace Lampac.Models.LITE
                 this.apihost = apihost.StartsWith("http") ? apihost : Decrypt(apihost);
 
             if (token != null)
-                this.token = token.Contains(":") ? Decrypt(token) : token;
+                this.token = forceEncryptToken || token.Contains(":") || token.Contains("<") ? Decrypt(token) : token;
         }
 
         public bool imitationHuman { get; set; }

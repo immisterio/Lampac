@@ -20,7 +20,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query)
         {
-            if (!jackett.Anifilm.enable)
+            if (!jackett.Anifilm.enable || jackett.Anifilm.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query));

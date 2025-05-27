@@ -27,6 +27,8 @@ namespace Lampac.Models.AppConf
 
         public TrackerSettings Rutracker = new TrackerSettings("https://rutracker.org", priority: "torrent");
 
+        public TrackerSettings BigFanGroup = new TrackerSettings("https://bigfangroup.org");
+
         public TrackerSettings Selezen = new TrackerSettings("https://open.selezen.org", priority: "torrent");
 
         public TrackerSettings Lostfilm = new TrackerSettings("https://www.lostfilm.tv");

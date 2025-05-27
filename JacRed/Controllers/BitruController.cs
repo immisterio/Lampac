@@ -20,7 +20,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!jackett.Bitru.enable)
+            if (!jackett.Bitru.enable || jackett.Bitru.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cats));

@@ -19,7 +19,7 @@ namespace Lampac.Controllers.JAC
         #region parseMagnet
         async public Task<ActionResult> parseMagnet(string url, string code)
         {
-            if (!jackett.Anilibria.enable)
+            if (!jackett.Anilibria.enable || jackett.Anilibria.showdown)
                 return Content("disable");
 
             var proxyManager = new ProxyManager("anilibria", jackett.Anilibria);

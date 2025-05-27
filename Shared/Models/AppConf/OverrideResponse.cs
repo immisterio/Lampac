@@ -2,6 +2,8 @@
 {
     public class OverrideResponse
     {
+        public bool firstEndpoint { get; set; }
+
         public string pattern { get; set; }
 
         public string action { get; set; }

@@ -166,7 +166,7 @@ namespace Lampac.Controllers.LITE
 
                                     lastHeaders = cache.headers;
 
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
                                     browser.IsCompleted = true;
                                     browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();

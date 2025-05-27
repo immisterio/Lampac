@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using Shared.Engine;
 
 namespace Lampac.Controllers.JAC
 {
@@ -21,7 +22,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat)
         {
-            if (!jackett.Megapeer.enable)
+            if (!jackett.Megapeer.enable || jackett.Megapeer.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cat));
@@ -52,7 +53,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("megapeer", jackett.Megapeer);
 
-            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, headers: HeadersModel.Init(
+            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&cat={cat}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, headers: HeadersModel.Init(
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("referer", $"{jackett.Megapeer.host}"),

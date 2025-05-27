@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Shared.Engine;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -9,9 +10,11 @@ namespace Lampac.Engine.Middlewares
     public class OverrideResponse
     {
         private readonly RequestDelegate _next;
-        public OverrideResponse(RequestDelegate next)
+        private readonly bool first;
+        public OverrideResponse(RequestDelegate next, bool first)
         {
             _next = next;
+            this.first = first;
         }
 
         public Task Invoke(HttpContext httpContext)
@@ -20,7 +23,7 @@ namespace Lampac.Engine.Middlewares
             {
                 string url = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
 
-                foreach (var over in AppInit.conf.overrideResponse)
+                foreach (var over in AppInit.conf.overrideResponse.Where(i => i.firstEndpoint == first))
                 {
                     if (Regex.IsMatch(url, over.pattern, RegexOptions.IgnoreCase))
                     {

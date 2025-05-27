@@ -531,13 +531,13 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
                         continue;
 
-                    if (header.Key.ToLower().StartsWith("x-"))
+                    if (header.Key.ToLower().StartsWith("x-") || header.Key.ToLower().StartsWith("alt-"))
                         continue;
 
-                    if (header.Key.ToLower().Contains("access-control"))
+                    if (header.Key.ToLower().StartsWith("access-control"))
                         continue;
 
                     string value = string.Empty;

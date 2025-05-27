@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using Shared.Engine;
 
 namespace Lampac.Controllers.JAC
 {
@@ -19,7 +20,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat, bool isua = false, string parsecat = null)
         {
-            if (!jackett.Rutor.enable)
+            if (!jackett.Rutor.enable || jackett.Rutor.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cat, isua, parsecat));

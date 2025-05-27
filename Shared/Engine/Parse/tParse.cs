@@ -35,6 +35,19 @@ namespace Lampac.Engine.Parse
             line = Regex.Replace(line, " нояб?\\.? ", ".11.", RegexOptions.IgnoreCase);
             line = Regex.Replace(line, " дек\\.? ", ".12.", RegexOptions.IgnoreCase);
 
+            line = Regex.Replace(line, " янв(аря?)? ", ".01.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " фев(раля?)? ", ".02.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " марта? ", ".03.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " апр(еля?)? ", ".04.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " ма(й|я)? ", ".05.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " июн(ь|я)? ", ".06.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " июл(ь|я)? ", ".07.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " авг(устa?)? ", ".08.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " сент(ябр(я|ь)?)? ", ".09.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " окт(ябр(я|ь)?)? ", ".10.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " ноя(бр(я|ь)?)? ", ".11.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, " дек(абр(я|ь)?)? ", ".12.", RegexOptions.IgnoreCase);
+
             line = Regex.Replace(line, " январ(ь|я)?\\.? ", ".01.", RegexOptions.IgnoreCase);
             line = Regex.Replace(line, " феврал(ь|я)?\\.? ", ".02.", RegexOptions.IgnoreCase);
             line = Regex.Replace(line, " марта?\\.? ", ".03.", RegexOptions.IgnoreCase);

@@ -1,10 +1,14 @@
 ﻿using Shared.Model.Base;
+using System.Linq;
 
 namespace Shared.Models.AppConf
 {
     public class CubConf : Iproxy
     {
         public bool enable { get; set; }
+
+        public string[] geo { get; set; }
+
 
         public string domain { get; set; }
 
@@ -25,5 +29,15 @@ namespace Shared.Models.AppConf
         public string globalnameproxy { get; set; }
 
         public ProxySettings proxy { get; set; }
+
+
+        public bool enabled(string country)
+        {
+            bool cubproxy = enable;
+            if (cubproxy && geo != null)
+                cubproxy = geo.Contains(country);
+
+            return cubproxy;
+        }
     }
 }

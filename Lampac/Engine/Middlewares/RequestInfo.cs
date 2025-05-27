@@ -104,18 +104,20 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
             }
+            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP") && AppInit.conf.frontend != "off" && AppInit.conf.frontend != "cloudflare")
+            {
+                return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
+            }
 
             var req = new RequestModel()
             {
                 IsLocalRequest = IsLocalRequest,
                 IP = clientIp,
+                CountryGetter = () => GeoIP2.Country(clientIp),
                 Path = httpContext.Request.Path.Value,
                 Query = httpContext.Request.QueryString.Value,
                 UserAgent = httpContext.Request.Headers.UserAgent
             };
-
-            if (!Regex.IsMatch(httpContext.Request.Path.Value, "^/(proxy-dash/|proxy/|proxyimg|lifeevents|externalids|ts|ws|weblog|rch/result|merchant/payconfirm|tmdb/)"))
-                req.Country = GeoIP2.Country(req.IP);
 
             if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
             {
@@ -165,5 +167,33 @@ namespace Lampac.Engine.Middlewares
                 return _next(httpContext);
             }
         }
+
+
+        static string unknownFrontend = @"<!DOCTYPE html>
+<html lang='ru'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>CloudFlare</title>
+    <link href='https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class='container mt-5'>
+        <div class='card mt-4'>
+            <div class='card-body'>
+                <h5 class='card-title'>Укажите frontend для правильной обработки запроса</h5>
+				<br>
+                <p class='card-text'>Добавьте в init.conf следующий код:</p>
+                <pre style='background: #e9ecef;'><code>""frontend"": ""cloudflare""</code></pre>
+				<br>
+                <p class='card-text'>Либо отключите проверку CF-Connecting-IP:</p>
+                <pre style='background: #e9ecef;'><code>""frontend"": ""off""</code></pre>
+				<br>
+                <p class='card-text'>Так же параметр можно изменить в админке: Остальное, base, frontend</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>";
     }
 }

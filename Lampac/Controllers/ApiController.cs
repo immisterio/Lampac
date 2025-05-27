@@ -149,7 +149,9 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:app.min.js", out string file))
+            bool usecubproxy = AppInit.conf.cub.enabled(requestInfo.Country);
+
+            if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:{usecubproxy}:app.min.js", out string file))
             {
                 file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
 
@@ -168,7 +170,7 @@ namespace Lampac.Controllers
                 memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
             }
 
-            if (AppInit.conf.cub.enable)
+            if (usecubproxy)
             {
                 file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
                 file = file.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
@@ -190,11 +192,9 @@ namespace Lampac.Controllers
                 }
             }
 
-            if (!string.IsNullOrEmpty(AppInit.conf.playerInner))
-            {
-                string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
-                file = file.Replace("Player.play(element);", playerinner);
-            }
+            string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
+            playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+            file = file.Replace("Player.play(element);", playerinner);
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
                 file = Eval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new { file, host, type, requestInfo });

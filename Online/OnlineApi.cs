@@ -87,7 +87,10 @@ namespace Lampac.Controllers
             file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
             file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-            file = file.Replace("{player-inner}", FileCache.ReadAllText("plugins/player-inner.js"));
+            string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
+            playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+            file = file.Replace("{player-inner}", playerinner);
+
             file = file.Replace("{token}", HttpUtility.UrlEncode(token));
             file = file.Replace("{localhost}", host);
 
@@ -334,6 +337,17 @@ namespace Lampac.Controllers
             #endregion
 
             return Content($"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{(kpid != null ? kpid : kinopoisk_id)}\"}}", "application/json; charset=utf-8");
+        }
+        #endregion
+
+        #region WithSearch
+        [Route("lite/withsearch")]
+        public ActionResult WithSearch()
+        {
+            if (AppInit.conf.online.with_search == null)
+                return ContentTo("[]");
+
+            return Json(AppInit.conf.online.with_search);
         }
         #endregion
 
@@ -683,8 +697,8 @@ namespace Lampac.Controllers
                                     hybridCache.Set($"vokino:view:{kinopoisk_id}", view, cacheTime(20));
                             }
 
-                            if (view != null && view.ContainsKey("online"))
-                                VoKinoInvoke.SendOnline(myinit, online, view.Value<JObject>("online"));
+                            if (view != null && view.ContainsKey("online") && view["online"] is JObject onlineObj)
+                                VoKinoInvoke.SendOnline(myinit, online, onlineObj);
                         }
                     }
 

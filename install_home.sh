@@ -39,55 +39,51 @@ CRON_JOB="$(shuf -i 10-55 -n 1) * * * * /bin/bash $DEST/update.sh"
 # init.conf
 random_port=$(shuf -i 9000-12999 -n 1)
 cat <<EOF > $DEST/init.conf
-{
-  "listenport": $random_port,
-  "typecache": "mem",
-  "mikrotik": true,
-  "chromium": {
+"listenport": $random_port,
+"typecache": "mem",
+"mikrotik": true,
+"chromium": {
+  "enable": false
+},
+"firefox": {
+  "enable": false
+},
+"dlna": {
+  "cover": {
     "enable": false
-  },
-  "firefox": {
-    "enable": false
-  },
-  "dlna": {
-    "enable": false,
-    "autoupdatetrackers": false
-  },
-  "weblog": {
-    "enable": false
-  },
-  "serverproxy": {
-    "verifyip": false,
-    "image": {
-      "cache": false,
-      "cache_rsize": false
-    },
-    "buffering": {
-      "enable": false
-    }
-  },
-  "Spankbang": {
-    "rhub": true
-  },
-  "BongaCams": {
-    "rhub": true
-  },
-  "Runetki": {
-    "rhub": true
-  },
-  "VDBmovies": {
-    "rhub": true,
-    "spider": false
-  },
-  "VideoDB": {
-    "rhub": true
-  },
-  "FanCDN": {
-    "rhub": true
-  },
-  "Lumex": {
-    "spider": false
   }
+},
+"serverproxy": {
+  "verifyip": false,
+  "image": {
+    "cache": false,
+    "cache_rsize": false
+  },
+  "buffering": {
+    "enable": false
+  }
+},
+"Spankbang": {
+  "rhub": true
+},
+"BongaCams": {
+  "rhub": true
+},
+"Runetki": {
+  "rhub": true
+},
+"VDBmovies": {
+  "rhub": true,
+  "spider": false
+},
+"VideoDB": {
+  "rhub": true
+},
+"FanCDN": {
+  "rhub": true
+},
+"Lumex": {
+  "spider": false
 }
 EOF
 
@@ -105,6 +101,11 @@ cat <<EOF > $DEST/module/manifest.json
   {
     "enable": true,
     "dll": "DLNA.dll"
+  },
+  {
+    "enable": true,
+    "initspace": "Jackett.ModInit",
+    "dll": "JacRed.dll"
   },
   {
     "enable": false,
