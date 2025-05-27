@@ -697,8 +697,8 @@ namespace Lampac.Controllers
                                     hybridCache.Set($"vokino:view:{kinopoisk_id}", view, cacheTime(20));
                             }
 
-                            if (view != null && view.ContainsKey("online"))
-                                VoKinoInvoke.SendOnline(myinit, online, view.Value<JObject>("online"));
+                            if (view != null && view.ContainsKey("online") && view["online"] is JObject onlineObj)
+                                VoKinoInvoke.SendOnline(myinit, online, onlineObj);
                         }
                     }
 
