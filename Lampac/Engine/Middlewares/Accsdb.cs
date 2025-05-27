@@ -45,10 +45,28 @@ namespace Lampac.Engine.Middlewares
 
             if (httpContext.Request.Path.Value.StartsWith("/admin/") || httpContext.Request.Path.Value == "/admin")
             {
-                if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))
-                    return _next(httpContext);
+                if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd))
+                {
+                    if (passwd == FileCache.ReadAllText("passwd"))
+                    {
+                        if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))
+                            return _next(httpContext);
 
-                if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd"))
+                        return _next(httpContext);
+                    }
+
+                    string ipKey = $"Accsdb:auth:IP:{requestInfo.IP}";
+                    if (!memoryCache.TryGetValue(ipKey, out HashSet<string> passwds))
+                        passwds = new HashSet<string>();
+
+                    passwds.Add(passwd);
+                    memoryCache.Set(ipKey, passwds, DateTime.Today.AddDays(1));
+
+                    if (passwds.Count > 5)
+                        return httpContext.Response.WriteAsync("Too many attempts, try again tomorrow.", httpContext.RequestAborted);
+                }
+
+                if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))
                     return _next(httpContext);
 
                 httpContext.Response.Redirect("/admin/auth");
@@ -87,7 +105,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium/|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)"))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
                 {
                     bool limitip = false;
 

@@ -22,7 +22,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!jackett.Kinozal.enable)
+            if (!jackett.Kinozal.enable || jackett.Kinozal.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cats));

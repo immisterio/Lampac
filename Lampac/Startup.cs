@@ -105,7 +105,32 @@ namespace Lampac
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
             });
 
-            #region Compilation modules
+            #region module/references
+            string referencesPath = Path.Combine(Environment.CurrentDirectory, "module", "references");
+            if (Directory.Exists(referencesPath))
+            {
+                var current = AppDomain.CurrentDomain.GetAssemblies();
+                foreach (string dllFile in Directory.GetFiles(referencesPath, "*.dll", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        string loadedName = Path.GetFileNameWithoutExtension(dllFile);
+                        if (current.Any(a => string.Equals(a.GetName().Name, loadedName, StringComparison.OrdinalIgnoreCase)))
+                            continue;
+
+                        Assembly loadedAssembly = Assembly.LoadFrom(dllFile);
+                        mvcBuilder.AddApplicationPart(loadedAssembly);
+                        Console.WriteLine($"load reference: {Path.GetFileName(dllFile)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to load reference {dllFile}: {ex.Message}");
+                    }
+                }
+            }
+            #endregion
+
+            #region compilation modules
             if (AppInit.modules != null)
             {
                 // mod.dll
@@ -141,8 +166,26 @@ namespace Lampac
 
                 void CompilationMod(RootModule mod)
                 {
-                    if (!mod.enable || mod.dll.EndsWith(".dll") || AppInit.modules.FirstOrDefault(i => i.dll == mod.dll) != null)
+                    if (!mod.enable || AppInit.modules.FirstOrDefault(i => i.dll == mod.dll) != null)
                         return;
+
+                    if (mod.dll.EndsWith(".dll"))
+                    {
+                        try
+                        {
+                            mod.assembly = Assembly.LoadFrom(mod.dll);
+
+                            AppInit.modules.Add(mod);
+                            mvcBuilder.AddApplicationPart(mod.assembly);
+                            Console.WriteLine($"load module: {Path.GetFileName(mod.dll)}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to load reference {mod.dll}: {ex.Message}");
+                        }
+
+                        return;
+                    }
 
                     string path = Directory.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
                     if (Directory.Exists(path))
@@ -226,6 +269,8 @@ namespace Lampac
                     {
                         if (mod.dll == null)
                             mod.dll = folderMod.Split("/")[1];
+                        else if (mod.dll.EndsWith(".dll"))
+                            mod.dll = Path.Combine(folderMod, mod.dll);
 
                         CompilationMod(mod);
                     }

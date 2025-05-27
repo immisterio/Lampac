@@ -21,7 +21,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!jackett.BigFanGroup.enable)
+            if (!jackett.BigFanGroup.enable || jackett.BigFanGroup.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cats));

@@ -21,6 +21,10 @@ namespace Lampac.Models.JAC
 
         public bool enable { get; set; }
 
+        public bool showdown { get; set; }
+
+        public bool monitor_showdown { get; set; } = true;
+
         public string priority { get; set; }
 
         public LoginSettings login { get; set; } = new LoginSettings();

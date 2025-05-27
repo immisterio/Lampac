@@ -22,7 +22,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string[] cats)
         {
-            if (!jackett.Toloka.enable || string.IsNullOrEmpty(jackett.Toloka.cookie ?? jackett.Toloka.login.u))
+            if (!jackett.Toloka.enable || string.IsNullOrEmpty(jackett.Toloka.cookie ?? jackett.Toloka.login.u) || jackett.Toloka.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cats));

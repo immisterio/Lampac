@@ -1,11 +1,16 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
+using NetVips;
+using Newtonsoft.Json;
 using Shared.Engine.CORE;
+using Shared.Model.Online;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -386,10 +391,19 @@ namespace Shared.Engine
         }
 
 
-        public static void ConsoleLog(string value)
+        public static void ConsoleLog(string value, List<HeadersModel> headers = null)
         {
             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
-                Console.WriteLine(value);
+            {
+                if (headers != null)
+                {
+                    Console.WriteLine($"\n{value}\n{JsonConvert.SerializeObject(headers.ToDictionary(), Formatting.Indented)}\n");
+                }
+                else
+                {
+                    Console.WriteLine(value);
+                }
+            }
         }
     }
 }

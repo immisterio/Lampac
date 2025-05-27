@@ -22,7 +22,7 @@ namespace Lampac.Controllers.JAC
         #region search
         public static Task<bool> search(string host, ConcurrentBag<TorrentDetails> torrents, string query, string cat)
         {
-            if (!jackett.Megapeer.enable)
+            if (!jackett.Megapeer.enable || jackett.Megapeer.showdown)
                 return Task.FromResult(false);
 
             return Joinparse(torrents, () => parsePage(host, query, cat));
