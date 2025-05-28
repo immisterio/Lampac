@@ -1,5 +1,5 @@
-﻿using Shared.Model.Base;
-using System;
+﻿using Shared.Engine.CORE;
+using Shared.Model.Base;
 using System.Collections.Generic;
 
 namespace Shared.Models
@@ -17,10 +17,6 @@ namespace Shared.Models
         public string UserAgent { get; set; }
 
         #region Country
-        [System.Text.Json.Serialization.JsonIgnore]
-        [Newtonsoft.Json.JsonIgnore]
-        public Func<string> CountryGetter { get; set; }
-
         private string _countryCode = null;
         public string Country
         {
@@ -32,7 +28,7 @@ namespace Shared.Models
                 if (_countryCode != null)
                     return _countryCode;
 
-                _countryCode = CountryGetter?.Invoke();
+                _countryCode = GeoIP2.Country(IP);
                 if (_countryCode == null)
                 {
                     _countryCode = string.Empty;
