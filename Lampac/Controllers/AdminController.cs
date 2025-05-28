@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using IO = System.IO;
 
@@ -117,6 +118,13 @@ namespace Lampac.Controllers
 			catch (Exception ex) { return Json(new { error = true, ex = ex.Message }); }
 
             var jo = JsonConvert.DeserializeObject<JObject>(json);
+
+			try
+			{
+				Directory.CreateDirectory("cache/backup/init");
+                IO.File.WriteAllText($"cache/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
+            }
+			catch { }
 
 			JToken users = null;
             var accsdbNode = jo["accsdb"] as JObject;

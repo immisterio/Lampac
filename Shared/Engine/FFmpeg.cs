@@ -47,6 +47,7 @@ namespace Shared.Engine
                     Directory.Delete($"data/ffmpeg-master-latest-win{arh}-gpl", true);
 
                     Console.WriteLine("FFmpeg: Initialization");
+                    disableInstall = false;
                     return true;
                 }
 
@@ -54,13 +55,14 @@ namespace Shared.Engine
                     File.Delete("data/ffmpeg.zip");
 
                 Console.WriteLine($"FFmpeg: error download ffmpeg-win{arh}-gpl.zip");
+                disableInstall = false;
                 return false;
                 #endregion
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 #region Linux
-                if (File.Exists("data/ffmpeg"))
+                if (File.Exists("data/ffmpeg") || File.Exists("/bin/ffmpeg"))
                 {
                     Console.WriteLine("FFmpeg: Initialization");
                     return true;
@@ -85,11 +87,13 @@ namespace Shared.Engine
                             {
                                 await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
                                 Console.WriteLine("FFmpeg: Initialization");
+                                disableInstall = false;
                                 return true;
                             }
                         }
 
                         Console.WriteLine("FFmpeg: error install ffmpeg");
+                        disableInstall = false;
                         return false;
                     }
                 }
