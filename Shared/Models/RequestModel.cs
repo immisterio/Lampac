@@ -17,6 +17,8 @@ namespace Shared.Models
         public string UserAgent { get; set; }
 
         #region Country
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public Func<string> CountryGetter { get; set; }
 
         private string _countryCode = null;
