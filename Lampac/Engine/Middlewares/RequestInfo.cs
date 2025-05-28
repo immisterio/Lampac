@@ -82,9 +82,10 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
             }
-            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP") && AppInit.conf.frontend != "off" && AppInit.conf.frontend != "cloudflare")
+            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP"))
             {
-                return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
+                if (string.IsNullOrEmpty(AppInit.conf.frontend))
+                    return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
             }
 
             var req = new RequestModel()
