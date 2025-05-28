@@ -18,7 +18,7 @@ namespace Lampac.Controllers
         [Route("tracks/js/{token}")]
         public ActionResult Tracks(string token)
         {
-            if (!AppInit.conf.ffprobe.enable || !ModInit.Initialization)
+            if (!AppInit.conf.ffprobe.enable)
                 return Content(string.Empty);
 
             string file = FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host);
@@ -31,7 +31,7 @@ namespace Lampac.Controllers
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media)
         {
-            if (!AppInit.conf.ffprobe.enable || !ModInit.Initialization || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
+            if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
                 return Content(string.Empty);
 
             if (media.Contains("/dlna/stream"))

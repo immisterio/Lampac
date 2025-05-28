@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
-using Shared.Engine.CORE;
 using Shared.Models;
 using System;
 using System.Collections.Generic;
@@ -17,8 +16,6 @@ namespace Lampac.Engine.Middlewares
     public class RequestInfo
     {
         #region RequestInfo
-        static List<(IPAddress prefix, int prefixLength)> cloudflare_ips = null;
-
         private readonly RequestDelegate _next;
         IMemoryCache memoryCache;
 
@@ -58,45 +55,26 @@ namespace Lampac.Engine.Middlewares
             else if (AppInit.conf.real_ip_cf || AppInit.conf.frontend == "cloudflare")
             {
                 #region cloudflare
-                if (cloudflare_ips == null)
-                {
-                    string ips = HttpClient.Get("https://www.cloudflare.com/ips-v4").Result;
-                    if (ips != null)
-                    {
-                        string ips_v6 = HttpClient.Get("https://www.cloudflare.com/ips-v6").Result;
-                        if (ips_v6 != null)
-                        {
-                            foreach (string ip in (ips + "\n" + ips_v6).Split('\n'))
-                            {
-                                if (string.IsNullOrEmpty(ip) || !ip.Contains("/"))
-                                    continue;
-
-                                if (cloudflare_ips == null)
-                                    cloudflare_ips = new List<(IPAddress prefix, int prefixLength)>();
-
-                                string[] ln = ip.Split('/');
-                                cloudflare_ips.Add((IPAddress.Parse(ln[0].Trim()), int.Parse(ln[1].Trim())));
-                            }
-                        }
-                    }
-                }
-
-                if (cloudflare_ips != null)
+                if (Program.cloudflare_ips != null && Program.cloudflare_ips.Count > 0)
                 {
                     var clientIPAddress = IPAddress.Parse(clientIp);
-                    foreach (var cf in cloudflare_ips)
+                    foreach (var cf in Program.cloudflare_ips)
                     {
                         if (new IPNetwork(cf.prefix, cf.prefixLength).Contains(clientIPAddress))
                         {
                             if (httpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
                                 clientIp = xip;
 
-                            if (httpContext.Request.Headers.TryGetValue("CF-Visitor", out var cfVisitor))
+                            try
                             {
-                                var visitorInfo = JsonNode.Parse(cfVisitor);
-                                if (visitorInfo != null && visitorInfo["scheme"] != null)
-                                    httpContext.Request.Scheme = visitorInfo["scheme"].ToString();
+                                if (httpContext.Request.Headers.TryGetValue("CF-Visitor", out var cfVisitor))
+                                {
+                                    var visitorInfo = JsonNode.Parse(cfVisitor);
+                                    if (visitorInfo != null && visitorInfo["scheme"] != null)
+                                        httpContext.Request.Scheme = visitorInfo["scheme"].ToString();
+                                }
                             }
+                            catch { }
 
                             break;
                         }
@@ -104,16 +82,16 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
             }
-            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP") && AppInit.conf.frontend != "off" && AppInit.conf.frontend != "cloudflare")
+            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP"))
             {
-                return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
+                if (string.IsNullOrEmpty(AppInit.conf.frontend))
+                    return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
             }
 
             var req = new RequestModel()
             {
                 IsLocalRequest = IsLocalRequest,
                 IP = clientIp,
-                CountryGetter = () => GeoIP2.Country(clientIp),
                 Path = httpContext.Request.Path.Value,
                 Query = httpContext.Request.QueryString.Value,
                 UserAgent = httpContext.Request.Headers.UserAgent

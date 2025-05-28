@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Lampac.Engine.CORE;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +13,15 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 using IO = System.IO;
 
 namespace Lampac.Engine
@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "142";
 
-        public static string minorversion => "8";
+        public static string minorversion => "10";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -225,10 +225,13 @@ namespace Lampac.Engine
 
             if (streamproxy)
             {
+                if (conf.headers_stream != null && conf.headers_stream.Count > 0)
+                    headers = HeadersModel.Init(conf.headers_stream);
+
                 #region apnstream
                 string apnlink(ApnConf apn)
                 {
-                    string link = uri.Split(" ")[0].Trim();
+                    string link = uri.Split(" ")[0].Split("#")[0].Trim();
 
                     if (apn.secure == "nginx")
                     {
@@ -248,6 +251,22 @@ namespace Lampac.Engine
                             return Convert.ToBase64String(sha1.ComputeHash(data));
                         }
                     }
+                    else if (apn.secure == "lampac")
+                    {
+                        string aes = "aes:" + AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new 
+                        {
+                            u = link,
+                            i = requestInfo.IP,
+                            v = true,
+                            e = DateTime.Now.AddHours(36),
+                            h = headers?.ToDictionary() 
+                        }));
+
+                        if (uri.Contains(".m3u"))
+                            aes += ".m3u8";
+
+                        return $"{apn.host}/proxy/{aes}";
+                    }
 
                     return $"{apn.host}/{link}";
                 }
@@ -255,12 +274,14 @@ namespace Lampac.Engine
                 if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
                     return apnlink(conf.apn);
 
-                if ((AppInit.conf.serverproxy.forced_apn || conf.apnstream) && !string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
-                    return apnlink(AppInit.conf.apn);
-                #endregion
+                if (AppInit.conf.serverproxy.forced_apn || conf.apnstream)
+                {
+                    if (!string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
+                        return apnlink(AppInit.conf.apn);
 
-                if (conf.headers_stream != null && conf.headers_stream.Count > 0)
-                    headers = HeadersModel.Init(conf.headers_stream);
+                    return uri;
+                }  
+                #endregion
 
                 uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 

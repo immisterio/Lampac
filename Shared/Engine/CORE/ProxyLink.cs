@@ -131,7 +131,8 @@ namespace Lampac.Engine.CORE
                         return null;
                 }
 
-                return new ProxyLinkModel(reqip, null, null, root["u"].GetValue<string>());
+                var headers = HeadersModel.Init(root["h"]?.Deserialize<Dictionary<string, string>>());
+                return new ProxyLinkModel(reqip, headers, null, root["u"].GetValue<string>());
             }
 
             if (links.TryGetValue(hash, out ProxyLinkModel val))

@@ -25,6 +25,9 @@ namespace Lampac
 
         static IHost _host;
 
+        public static List<(IPAddress prefix, int prefixLength)> cloudflare_ips = new List<(IPAddress prefix, int prefixLength)>();
+
+
         public static void Main(string[] args)
         {
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
@@ -107,6 +110,34 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
             ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run());
+
+            #region cloudflare_ips
+            ThreadPool.QueueUserWorkItem(async _ => 
+            {
+                string ips = await HttpClient.Get("https://www.cloudflare.com/ips-v4");
+                if (ips != null)
+                {
+                    string ips_v6 = await HttpClient.Get("https://www.cloudflare.com/ips-v6");
+                    if (ips_v6 != null)
+                    {
+                        foreach (string ip in (ips + "\n" + ips_v6).Split('\n'))
+                        {
+                            if (string.IsNullOrEmpty(ip) || !ip.Contains("/"))
+                                continue;
+
+                            try
+                            {
+                                string[] ln = ip.Split('/');
+                                cloudflare_ips.Add((IPAddress.Parse(ln[0].Trim()), int.Parse(ln[1].Trim())));
+                            }
+                            catch { }
+                        }
+                    }
+                }
+
+                Console.WriteLine($"cloudflare_ips: {cloudflare_ips.Count}");
+            });
+            #endregion
 
             #region users.json
             ThreadPool.QueueUserWorkItem(async _ =>
