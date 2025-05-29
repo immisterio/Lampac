@@ -214,6 +214,8 @@ namespace Shared.Model
 
         public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "kwwsv=22uxwxeh1ux", streamproxy: true);
 
+        public OnlinesSettings Plvideo { get; set; } = new OnlinesSettings("Plvideo", "kwwsv=22dsl1j41soylghr1ux", streamproxy: true);
+
         public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false)
         {
             headers = HeadersModel.Init(
