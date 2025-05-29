@@ -830,15 +830,15 @@ namespace Lampac.Controllers
                     return i;
                 });
 
-                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "dash" : "hls")})", rch_access: "apk", myinit: myinit);
+                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "DASH" : "HLS")})", rch_access: "apk", myinit: myinit);
 
                 if (myinit.two && !myinit.dash)
-                    send(myinit, "collaps-dash", "Collaps (dash)", rch_access: "apk");
+                    send(myinit, "collaps-dash", "Collaps (DASH)", rch_access: "apk");
             }
             #endregion
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
-                send(conf.Hydraflix, "hydraflix", "HydraFlix (dash)");
+                send(conf.Hydraflix, "hydraflix", "HydraFlix (DASH)");
 
             if (conf.Videoseed.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled)
                 send(conf.Videoseed);
