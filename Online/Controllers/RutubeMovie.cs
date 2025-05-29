@@ -71,8 +71,7 @@ namespace Lampac.Controllers.LITE
                                         if (nextLine.Contains("vod.plvideo"))
                                             nextLine += "#.m3u8";
 
-                                        mtpl.Append("По умолчанию", HostStreamProxy(init, nextLine, proxy: proxy), vast: init.vast);
-                                        break;
+                                        mtpl.Append(nextLine.Contains("rutube.ru") ? "rutube" : "plvideo", HostStreamProxy(init, nextLine, proxy: proxy), vast: init.vast);
                                     }
                                 }
                             }
