@@ -228,5 +228,7 @@ namespace JinEnergy
         public static OnlinesSettings MoonAnime => conf.MoonAnime;
 
         public static OnlinesSettings HDVB => conf.HDVB;
+
+        public static OnlinesSettings RutubeMovie => conf.RutubeMovie;
     }
 }

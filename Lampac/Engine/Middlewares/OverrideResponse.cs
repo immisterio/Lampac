@@ -37,6 +37,13 @@ namespace Lampac.Engine.Middlewares
                             case "file":
                                 {
                                     httpContext.Response.ContentType = over.type;
+
+                                    if (string.IsNullOrEmpty(over.val) || !File.Exists(over.val))
+                                    {                                         
+                                        httpContext.Response.StatusCode = 404;
+                                        return Task.CompletedTask;
+                                    }
+
                                     if (Regex.IsMatch(over.val, "\\.(html|txt|css|js|json|xml)$", RegexOptions.IgnoreCase))
                                     {
                                         string val = FileCache.ReadAllText(over.val);

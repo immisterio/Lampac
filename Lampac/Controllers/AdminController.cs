@@ -1,4 +1,5 @@
 ﻿using Lampac.Engine;
+using Lampac.Models.Module;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,7 +9,7 @@ using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
+using System.Linq;
 using IO = System.IO;
 
 namespace Lampac.Controllers
@@ -369,12 +370,47 @@ namespace Lampac.Controllers
 				}
 				else
 				{
+                    #region frontend cloudflare
+                    if (HttpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
+					{
+                        if (IO.File.Exists("init.conf"))
+                        {
+                            string initconf = IO.File.ReadAllText("init.conf").Trim();
+                            if (initconf != null)
+                            {
+                                if (initconf.StartsWith("{"))
+                                    IO.File.WriteAllText("init.conf", "{\"frontend\":\"cloudflare\"," + initconf.Remove(0, 1));
+                                else
+                                    IO.File.WriteAllText("init.conf", "\"frontend\":\"cloudflare\"," + initconf);
+                            }
+                        }
+                        else
+                        {
+                            IO.File.WriteAllText("init.conf", "\"frontend\":\"cloudflare\"");
+                        }
+                    }
+                    #endregion
+
                     Program.Reload();
                     return Redirect("/admin/auth");
                 }
             }
 
-            string html = @"
+            #region renderHtml
+            string renderHtml()
+			{
+				var modules = IO.File.Exists("module/manifest.json") ? JsonConvert.DeserializeObject<List<RootModule>>(IO.File.ReadAllText("module/manifest.json")) : null;
+
+				string IsChecked(string name, string def)
+				{
+					if (modules == null)
+						return def;	
+
+                    bool res = modules.FirstOrDefault(m => m.dll == name)?.enable ?? false;
+                    return res ? "checked" : string.Empty;
+                }
+
+                return $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -382,78 +418,80 @@ namespace Lampac.Controllers
 </head>
 <body>
 
-<style type=""text/css"">
-	* {
+<style type='text/css'>
+	* {{
 	    box-sizing: border-box;
 	    outline: none;
-	}
-	body{
+	}}
+	body{{
 		padding: 40px;
 		font-family: sans-serif;
-	}
-	label{
+	}}
+	label{{
 		display: block;
 		font-weight: 700;
 		margin-bottom: 8px;
-	}
+	}}
 	input,
-	select{
+	select{{
 		margin: 10px;
 		margin-left: 0px;
-	}
-	button{
+	}}
+	button{{
 		padding: 10px;
-	}
-	form > * + *{
+	}}
+	form > * + *{{
 		margin-top: 30px;
-	}
-	.flex{
+	}}
+	.flex{{
 		display: flex;
 		align-items: center;
-	}
+	}}
 </style>
 
-<form method=""post"" action=""/admin/manifest/install"" id=""form"">
+<form method='post' action='/admin/manifest/install' id='form'>
 	<div>
 		<label>Установка модулей</label>
-		<div class=""flex"">
-			<input name=""online"" type=""checkbox"" checked /> Онлайн балансеры Rezka, Filmix, etc
+		<div class='flex'>
+			<input name='online' type='checkbox' {IsChecked("Online.dll", "checked")} /> Онлайн балансеры Rezka, Filmix, etc
 		</div>
-		<div class=""flex"">
-			<input name=""eng"" type=""checkbox"" /> ENG балансеры, требуется дополнительно 1GB HDD и 1.5Gb RAM
+		<div class='flex'>
+			&nbsp; &nbsp; &nbsp; <input name='eng' type='checkbox' /> ENG балансеры, требуется дополнительно 1GB HDD и 1.5Gb RAM
 		</div>
-		<div class=""flex"">
-			<input name=""sisi"" type=""checkbox"" checked /> Клубничка 18+, PornHub, Xhamster, etc
+		<div class='flex'>
+			<input name='sisi' type='checkbox' {IsChecked("SISI.dll", "checked")} /> Клубничка 18+, PornHub, Xhamster, etc
 		</div>
-		<div class=""flex"">
-			<input name=""dlna"" type=""checkbox"" checked /> DLNA - Загрузка торрентов и просмотр медиа файлов с локального устройства 
+		<div class='flex'>
+			<input name='dlna' type='checkbox' {IsChecked("DLNA.dll", "checked")} /> DLNA - Загрузка торрентов и просмотр медиа файлов с локального устройства 
 		</div>
-		<div class=""flex"">
-			<input name=""ts"" type=""checkbox"" checked /> TorrServer - возможность просматривать торренты в онлайн 
+		<div class='flex'>
+			<input name='ts' type='checkbox' {IsChecked("TorrServer.dll", "checked")} /> TorrServer - возможность просматривать торренты в онлайн 
 		</div>
-		<div class=""flex"">
-			<input name=""tracks"" type=""checkbox"" checked /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
+		<div class='flex'>
+			<input name='tracks' type='checkbox' {IsChecked("Tracks.dll", "checked")} /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
 		</div>
-		<!--<div class=""flex"">
-			<input name=""jac"" type=""checkbox"" /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства из за частых операций с диском)
+		<!--<div class='flex'>
+			<input name='jac' type='checkbox' /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства из за частых операций с диском)
 		</div>-->
-		<div class=""flex"">
-			<input name=""merch"" type=""checkbox"" /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud
+		<div class='flex'>
+			<input name='merch' type='checkbox' {IsChecked("Merchant.dll", "")} /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud
 		</div>
 
 		<br><br>
 		<label>Поиск торрентов</label>
-		<div class=""flex"">
-			<input name=""jac"" type=""radio"" value=""webapi"" checked /> Быстрый поиск по внешним базам JacRed, Rutor, Kinozal, NNM-Club, Rutracker, etc
+		<div class='flex'>
+			<input name='jac' type='radio' value='webapi' checked /> Быстрый поиск по внешним базам JacRed, Rutor, Kinozal, NNM-Club, Rutracker, etc
 		</div>
-		<div class=""flex"">
-			<input name=""jac"" type=""radio"" value=""fdb"" /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства) - 10GB HDD
+		<div class='flex'>
+			<input name='jac' type='radio' value='fdb' /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства) - 10GB HDD
 		</div>
 	</div>
 	
-	<button type=""submit"">" + (isEditManifest ? "Изменить настройки" : "Завершить настройку")+@"</button></form></body></html>";
+	<button type='submit'>{(isEditManifest ? "Изменить настройки" : "Завершить настройку")}</button></form></body></html>";
+            }
+            #endregion
 
-            return Content(html, contentType: "text/html; charset=utf-8");
+            return Content(renderHtml(), contentType: "text/html; charset=utf-8");
         }
         #endregion
     }

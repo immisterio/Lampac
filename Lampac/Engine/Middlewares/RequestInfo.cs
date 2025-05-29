@@ -1,13 +1,11 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Models;
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Net;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -40,6 +38,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             bool IsLocalRequest = false;
+            string cf_country = null;
             string clientIp = httpContext.Connection.RemoteIpAddress.ToString();
 
             if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd))
@@ -57,34 +56,38 @@ namespace Lampac.Engine.Middlewares
                 #region cloudflare
                 if (Program.cloudflare_ips != null && Program.cloudflare_ips.Count > 0)
                 {
-                    var clientIPAddress = IPAddress.Parse(clientIp);
-                    foreach (var cf in Program.cloudflare_ips)
+                    try
                     {
-                        if (new IPNetwork(cf.prefix, cf.prefixLength).Contains(clientIPAddress))
+                        var clientIPAddress = IPAddress.Parse(clientIp);
+                        foreach (var cf in Program.cloudflare_ips)
                         {
-                            if (httpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
-                                clientIp = xip;
-
-                            try
+                            if (new IPNetwork(cf.prefix, cf.prefixLength).Contains(clientIPAddress))
                             {
-                                if (httpContext.Request.Headers.TryGetValue("CF-Visitor", out var cfVisitor))
-                                {
-                                    var visitorInfo = JsonNode.Parse(cfVisitor);
-                                    if (visitorInfo != null && visitorInfo["scheme"] != null)
-                                        httpContext.Request.Scheme = visitorInfo["scheme"].ToString();
-                                }
-                            }
-                            catch { }
+                                if (httpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
+                                    clientIp = xip;
 
-                            break;
+                                if (httpContext.Request.Headers.TryGetValue("X-Forwarded-Proto", out var xfp) && !string.IsNullOrEmpty(xfp))
+                                {
+                                    if (xfp == "http" || xfp == "https")
+                                        httpContext.Request.Scheme = xfp;
+                                }
+
+                                if (httpContext.Request.Headers.TryGetValue("CF-IPCountry", out var xcountry) && !string.IsNullOrEmpty(xcountry))
+                                    cf_country = xcountry;
+
+                                break;
+                            }
                         }
                     }
+                    catch { }
                 }
                 #endregion
             }
-            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP"))
+            // запрос с cloudflare, запрос не в админку
+            else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP") && !httpContext.Request.Path.Value.StartsWith("/admin"))
             {
-                if (string.IsNullOrEmpty(AppInit.conf.frontend))
+                // если не указан frontend и это не первоначальная установка, тогда выводим ошибку
+                if (string.IsNullOrEmpty(AppInit.conf.frontend) && File.Exists("module/manifest.json"))
                     return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
             }
 
@@ -92,6 +95,7 @@ namespace Lampac.Engine.Middlewares
             {
                 IsLocalRequest = IsLocalRequest,
                 IP = clientIp,
+                Country = cf_country,
                 Path = httpContext.Request.Path.Value,
                 Query = httpContext.Request.QueryString.Value,
                 UserAgent = httpContext.Request.Headers.UserAgent
@@ -147,13 +151,13 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        static string unknownFrontend = @"<!DOCTYPE html>
+        string unknownFrontend = @"<!DOCTYPE html>
 <html lang='ru'>
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>CloudFlare</title>
-    <link href='https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css' rel='stylesheet'>
+    <link href='/control/npm/bootstrap.min.css' rel='stylesheet'>
 </head>
 <body>
     <div class='container mt-5'>
@@ -167,7 +171,7 @@ namespace Lampac.Engine.Middlewares
                 <p class='card-text'>Либо отключите проверку CF-Connecting-IP:</p>
                 <pre style='background: #e9ecef;'><code>""frontend"": ""off""</code></pre>
 				<br>
-                <p class='card-text'>Так же параметр можно изменить в админке: Остальное, base, frontend</p>
+                <p class='card-text'>Так же параметр можно изменить в <a href='/admin' target='_blank'>админке</a>: Остальное, base, frontend</p>
             </div>
         </div>
     </div>

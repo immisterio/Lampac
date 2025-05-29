@@ -37,6 +37,11 @@ namespace Shared.Models
 
                 return _countryCode;
             }
+            set
+            {
+                if (!string.IsNullOrEmpty(value))
+                    _countryCode = value;
+            }
         }
         #endregion
 

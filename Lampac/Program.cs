@@ -115,9 +115,15 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => 
             {
                 string ips = await HttpClient.Get("https://www.cloudflare.com/ips-v4");
+                if (ips == null || !ips.Contains("173.245."))
+                    ips = File.Exists("data/cloudflare/ips-v4.txt") ? File.ReadAllText("data/cloudflare/ips-v4.txt") : null;
+
                 if (ips != null)
                 {
                     string ips_v6 = await HttpClient.Get("https://www.cloudflare.com/ips-v6");
+                    if (ips_v6 == null || !ips_v6.Contains("2400:cb00"))
+                        ips_v6 = File.Exists("data/cloudflare/ips-v6.txt") ? File.ReadAllText("data/cloudflare/ips-v6.txt") : null;
+
                     if (ips_v6 != null)
                     {
                         foreach (string ip in (ips + "\n" + ips_v6).Split('\n'))
