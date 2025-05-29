@@ -212,10 +212,7 @@ namespace Shared.Model
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1fr", streamproxy: true);
 
-        public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "https://raw.githubusercontent.com/Dimonovich/TV/refs/heads/Dimonovich/FREE/FILMS", streamproxy: true) 
-        {
-            geo_hide = new string[] { "UA" },
-        };
+        public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "kwwsv=22uxwxeh1ux", streamproxy: true);
 
         public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false)
         {
