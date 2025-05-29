@@ -65,10 +65,10 @@ namespace Lampac.Controllers.LITE
 
                                 if (movie["category"].Value<int>("id") == 4)
                                 {
-                                    if (movie.Value<bool>("is_hidden") || movie.Value<bool>("is_deleted") || movie.Value<bool>("is_adult") || movie.Value<bool>("is_locked") || movie.Value<bool>("is_audio") || movie.Value<bool>("is_paid") || movie.Value<bool>("is_reborn_channel") || movie.Value<bool>("is_official") || movie.Value<bool>("is_livestream"))
+                                    if (movie.Value<bool>("is_hidden") || movie.Value<bool>("is_deleted") || movie.Value<bool>("is_adult") || movie.Value<bool>("is_locked") || movie.Value<bool>("is_audio") || movie.Value<bool>("is_paid") || movie.Value<bool>("is_livestream"))
                                         continue;
 
-                                    mtpl.Append(movie.Value<string>("title"), $"{host}/lite/rutubemovie/play.m3u8?linkid={movie.Value<string>("id")}", vast: init.vast);
+                                    mtpl.Append(movie.Value<string>("title"), accsArgs($"{host}/lite/rutubemovie/play.m3u8?linkid={movie.Value<string>("id")}"), vast: init.vast);
                                 }
                             }
                         }
