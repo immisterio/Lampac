@@ -5,6 +5,7 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Templates;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -37,7 +38,7 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    string uri = $"api/search/video/?content_type=video&duration=movie&query={title} {year}";
+                    string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
                     var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("results"))
                         return res.Fail("content");
@@ -112,7 +113,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return Redirect(HostStreamProxy(init, cache.Value, proxy: proxyManager.Get()));
+            return Redirect(HostStreamProxy(init, cache.Value, proxy: proxy));
         }
     }
 }
