@@ -66,7 +66,7 @@ namespace Lampac.Controllers.LITE
                                 if (extinfLines.Length > 1)
                                 {
                                     var nextLine = extinfLines[1].Trim();
-                                    if (nextLine.Contains("vod.plvideo") || nextLine.Contains("rutube.ru"))
+                                    if (nextLine.StartsWith("http") && (nextLine.Contains("vod.plvideo") || nextLine.Contains("rutube.ru")))
                                     {
                                         if (nextLine.Contains("vod.plvideo"))
                                             nextLine += "#.m3u8";
