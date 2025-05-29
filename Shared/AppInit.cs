@@ -352,7 +352,7 @@ namespace Lampac
             spider = true, spiderName = "Spider",
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов",
             version = true, btn_priority_forced = true, showquality = true,
-            with_search = new List<string>() { "kinotochka", "kinobase", "kinopub", "lumex", "filmix", "filmixtv", "fxapi", "redheadsound", "animevost", "animego", "animedia", "animebesst", "anilibria", "rezka", "rhsprem", "kodik", "remux", "animelib", "kinoukr", "rc/filmix", "rc/fxapi", "rc/rhs", "vcdn", "videocdn", "lumex", "collaps", "collaps-dash", "vdbmovies", "hdvb", "mirage", "alloha", "veoveo" }
+            with_search = new List<string>() { "kinotochka", "kinobase", "kinopub", "lumex", "filmix", "filmixtv", "fxapi", "redheadsound", "animevost", "animego", "animedia", "animebesst", "anilibria", "rezka", "rhsprem", "kodik", "remux", "animelib", "kinoukr", "rc/filmix", "rc/fxapi", "rc/rhs", "vcdn", "videocdn", "lumex", "collaps", "collaps-dash", "vdbmovies", "hdvb", "mirage", "alloha", "veoveo", "rutubemovie" }
         };
 
         public AccsConf accsdb = new AccsConf() 

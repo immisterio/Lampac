@@ -837,6 +837,9 @@ namespace Lampac.Controllers
             }
             #endregion
 
+            if (serial == -1 || serial == 0)
+                send(conf.RutubeMovie);
+
             if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (DASH)");
 
@@ -1053,6 +1056,7 @@ namespace Lampac.Controllers
                             case "mirage":
                             case "videodb":
                             case "iptvonline":
+                            case "rutubemovie":
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":
