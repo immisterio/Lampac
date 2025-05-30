@@ -839,8 +839,8 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0)
             {
-                send(conf.RutubeMovie, "rutubemovie", "Rutube");
-                send(conf.Plvideo, "plvideo", "Plvideo");
+                send(conf.Plvideo, "plvideo", "Plvideo", rch_access: "apk,cors");
+                send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
             }
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
@@ -1060,6 +1060,7 @@ namespace Lampac.Controllers
                             case "videodb":
                             case "iptvonline":
                             case "plvideo":
+                            case "rutubemovie":
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":
@@ -1100,7 +1101,6 @@ namespace Lampac.Controllers
                             case "vokino-remux":
                             case "vokino-ashdi":
                             case "vokino-hdvb":
-                            case "rutubemovie":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":

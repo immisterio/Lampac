@@ -25,7 +25,10 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             if (serial == 1)
             {
@@ -59,9 +62,9 @@ namespace Lampac.Controllers.LITE
                         if (name != null && name.StartsWith(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
                             long duration = movie["uploadFile"].Value<long>("videoDuration");
-                            if (duration > 170000)
+                            if (duration > 1900000) // 30 minutes
                             {
-                                if (name.Contains("ענויכונ") || name.Contains("ןנולונא") || name.Contains("סוחמם") || name.Contains("סונטאכ") || name.Contains("סונט") || name.Contains("סונטי"))
+                                if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
                                     continue;
 
                                 if (movie.Value<string>("visible") != "public")
@@ -115,9 +118,9 @@ namespace Lampac.Controllers.LITE
             var streams = new StreamQualityTpl();
             foreach (string q in new string[] { "2160p", "1440p", "1080p", "720p", "468p", "360p", "240p" })
             {
-                if (cache.Value.ContainsKey(q))
+                if (cache.Value[q] is JObject jq && jq.ContainsKey("hls"))
                 {
-                    string hls = cache.Value[q].Value<string>("hls");
+                    string hls = jq.Value<string>("hls");
                     if (!string.IsNullOrEmpty(hls))
                         streams.Append(HostStreamProxy(init, hls + "#.m3u8", proxy: proxy), q);
                 }

@@ -25,7 +25,10 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             if (serial == 1)
             {
@@ -59,9 +62,9 @@ namespace Lampac.Controllers.LITE
                         if (name != null && name.StartsWith(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
                             long duration = movie.Value<long>("duration");
-                            if (duration > 900)
+                            if (duration > 1800) // 30 minutes
                             {
-                                if (name.Contains("трейлер") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
+                                if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
                                     continue;
 
                                 if (movie["category"].Value<int>("id") == 4)
