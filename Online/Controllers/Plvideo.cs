@@ -70,8 +70,7 @@ namespace Lampac.Controllers.LITE
                                 if (movie.Value<string>("visible") != "public")
                                     continue;
 
-                                string file = $"{host}/lite/plvideo/movie.m3u8?linkid={movie.Value<string>("id")}";
-                                mtpl.Append(movie.Value<string>("title"), file, "call", accsArgs($"{file}&play=true"));
+                                mtpl.Append(movie.Value<string>("title"), $"{host}/lite/plvideo/movie?linkid={movie.Value<string>("id")}", "call");
                             }
                         }
                     }
@@ -85,8 +84,8 @@ namespace Lampac.Controllers.LITE
 
 
         [HttpGet]
-        [Route("lite/plvideo/movie.m3u8")]
-        async public Task<ActionResult> Movie(string linkid, bool play)
+        [Route("lite/plvideo/movie")]
+        async public Task<ActionResult> Movie(string linkid)
         {
             var init = await loadKit(AppInit.conf.Plvideo);
             if (await IsBadInitialization(init, rch: true))
@@ -97,13 +96,13 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             var cache = await InvokeCache<JObject>($"plvideo:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"v1/videos/{linkid}?Aud=16";
                 var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("item"))
@@ -125,9 +124,6 @@ namespace Lampac.Controllers.LITE
                         streams.Append(HostStreamProxy(init, hls + "#.m3u8", proxy: proxy), q);
                 }
             }
-
-            if (play)
-                return Redirect(streams.Firts().link);
 
             return ContentTo(VideoTpl.ToJson("play", streams.Firts().link, streams.Firts().quality, streamquality: streams, vast: init.vast));
         }

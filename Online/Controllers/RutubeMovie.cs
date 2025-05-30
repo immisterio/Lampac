@@ -72,7 +72,7 @@ namespace Lampac.Controllers.LITE
                                     if (movie.Value<bool>("is_hidden") || movie.Value<bool>("is_deleted") || movie.Value<bool>("is_adult") || movie.Value<bool>("is_locked") || movie.Value<bool>("is_audio") || movie.Value<bool>("is_paid") || movie.Value<bool>("is_livestream"))
                                         continue;
 
-                                    mtpl.Append(movie.Value<string>("title"), accsArgs($"{host}/lite/rutubemovie/play.m3u8?linkid={movie.Value<string>("id")}"), vast: init.vast);
+                                    mtpl.Append(movie.Value<string>("title"), $"{host}/lite/rutubemovie/play?linkid={movie.Value<string>("id")}", "call", vast: init.vast);
                                 }
                             }
                         }
@@ -86,7 +86,7 @@ namespace Lampac.Controllers.LITE
 
 
         [HttpGet]
-        [Route("lite/rutubemovie/play.m3u8")]
+        [Route("lite/rutubemovie/play")]
         async public Task<ActionResult> Movie(string linkid)
         {
             var init = await loadKit(AppInit.conf.RutubeMovie);
@@ -98,13 +98,13 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             var cache = await InvokeCache<string>($"rutubemovie:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";
                 var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("video_balancer"))
@@ -116,7 +116,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return Redirect(HostStreamProxy(init, cache.Value, proxy: proxy));
+            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, cache.Value, proxy: proxy), "auto", vast: init.vast));
         }
     }
 }
