@@ -24,7 +24,7 @@ namespace Lampac.Controllers
 			if (IO.File.ReadAllText("passwd") == "termux")
 			{
                 HttpContext.Response.Cookies.Append("passwd", "termux");
-                return Content(IO.File.ReadAllText("wwwroot/control/index.html"), contentType: "text/html; charset=utf-8");
+                return renderAdmin();
             }
 
             if (!string.IsNullOrEmpty(parol))
@@ -47,7 +47,7 @@ namespace Lampac.Controllers
             }
 
 			if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd"))
-				return Content(IO.File.ReadAllText("wwwroot/control/index.html"), contentType: "text/html; charset=utf-8");
+				return renderAdmin();
 
             string html = @"
 <!DOCTYPE html>
@@ -105,6 +105,12 @@ namespace Lampac.Controllers
 
             return Content(html, contentType: "text/html; charset=utf-8");
         }
+
+        ActionResult renderAdmin()
+		{
+            string adminHtml = IO.File.Exists("wwwroot/mycontrol/index.html") ? IO.File.ReadAllText("wwwroot/mycontrol/index.html") : IO.File.ReadAllText("wwwroot/control/index.html");
+            return Content(adminHtml, contentType: "text/html; charset=utf-8");
+		}
         #endregion
 
 
