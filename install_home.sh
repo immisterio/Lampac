@@ -4,7 +4,7 @@ DEST="/home/lampac"
 # Become root
 # sudo su -
 apt-get update
-apt-get install -y unzip curl coreutils
+apt-get install -y unzip curl coreutils libicu-dev
 
 # Install .NET
 if ! curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh; then
