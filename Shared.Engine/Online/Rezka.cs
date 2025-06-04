@@ -266,12 +266,12 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>([^>]+)</").Match(result.content);
+                var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>(?<voice>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(result.content);
                 if (match.Success)
                 {
                     while (match.Success)
                     {
-                        if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups[3].Value))
+                        if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(match.Groups["voice"].Value))
                         {
                             if (!userprem && match.Groups[0].Value.Contains("prem_translator"))
                             {
@@ -283,13 +283,10 @@ namespace Shared.Engine.Online
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}&favs={favs}";
 
                             #region voice
-                            string voice = match.Groups[3].Value.Split("<")[0].Trim();
+                            string voice = match.Groups["voice"].Value.Trim();
 
-                            if (!voice.Contains("Украинский") && match.Groups[3].Value.Contains("/flags/ua.png"))
-                                voice += " (Украинский)";
-
-                            if (match.Groups[3].Value.Contains("реж. версия"))
-                                voice += " (реж. версия)";
+                            if (!string.IsNullOrEmpty(match.Groups["imgname"].Value) && !voice.ToLower().Contains(match.Groups["imgname"].Value.ToLower().Trim()))
+                                voice += $" ({match.Groups["imgname"].Value.Trim()})";
 
                             if (voice == "-" || string.IsNullOrEmpty(voice))
                                 voice = "Оригинал";
@@ -345,7 +342,10 @@ namespace Shared.Engine.Online
                             continue;
                         }
 
-                        string name = match.Groups["name"].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups["imgname"].Value) ? "" : $" ({match.Groups["imgname"].Value})");
+                        string name = match.Groups["name"].Value.Trim();
+                        if (!string.IsNullOrEmpty(match.Groups["imgname"].Value) && !name.ToLower().Contains(match.Groups["imgname"].Value.ToLower().Trim()))
+                            name += $" ({match.Groups["imgname"].Value})";
+
                         string link = host + $"lite/rezka/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={result.id}&t={match.Groups["translator"].Value}";
 
                         vtpl.Append(name, match.Groups["translator"].Value == trs, link);

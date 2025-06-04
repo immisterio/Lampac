@@ -114,6 +114,10 @@ namespace Jackett
 
         public string webApiHost = "http://redapi.cfhttp.top";
 
+        public string filter { get; set; }
+
+        public string filter_ignore { get; set; }
+
 
         public RedConf Red = new RedConf();
 

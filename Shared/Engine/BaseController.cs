@@ -32,7 +32,7 @@ namespace Lampac.Engine
 
         public static string appversion => "142";
 
-        public static string minorversion => "12";
+        public static string minorversion => "14";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -418,6 +418,7 @@ namespace Lampac.Engine
                 return new RedirectResult(overridehost);
             }
 
+            overridehost = Regex.Replace(overridehost, "^(https?://[^/]+)/.*", "$1");
             string uri = overridehost + HttpContext.Request.Path.Value + HttpContext.Request.QueryString.Value;
 
             string clientip = requestInfo.IP;

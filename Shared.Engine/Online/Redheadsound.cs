@@ -81,21 +81,19 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (!news.Contains("tabs-block__content"))
-                return null;
-
-            string iframeUri = Regex.Match(news.Split("tabs-block__content")[1], "<iframe data-src=\"(https?://[^\"]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "url:([\t ]+)?(\"|')(?<uri>https?://[^\'\"\n\r\t ]+)").Groups["uri"].Value;
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
 
             string? iframe = await onget(iframeUri);
-            if (string.IsNullOrWhiteSpace(iframe) || !iframe.Contains("sources:"))
-            {
-                requesterror?.Invoke();
+            if (string.IsNullOrEmpty(iframe))
                 return null;
-            }
 
-            return new EmbedModel() { iframe = iframe.Split("sources:")[1].Split("poster")[0], iframeUri = iframeUri };
+            string contentUrl = Regex.Match(iframe, "\"contentUrl\": ?\"([^\"]+)\"").Groups[1].Value;
+            if (string.IsNullOrEmpty(contentUrl))
+                return null;
+
+            return new EmbedModel() { iframe = contentUrl };
         }
         #endregion
 
@@ -107,10 +105,7 @@ namespace Shared.Engine.Online
 
             var mtpl = new MovieTpl(title, null);
 
-            string quality = content.iframe.Contains("1080p") ? "1080p": content.iframe.Contains("720p") ? "720p" : "360p";
-            string hls = Regex.Match(content.iframe, "\"src\":\"([^\"]+)\"").Groups[1].Value;
-            if (!string.IsNullOrEmpty(hls))
-                mtpl.Append(quality, onstreamfile(hls.Replace("\u0026", "&")));
+            mtpl.Append("1080p", onstreamfile(content.iframe.Replace("&amp;", "&")));
 
             return rjson ? mtpl.ToJson() : mtpl.ToHtml();
         }

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -48,11 +49,39 @@ namespace JacRed.Engine
             {
                 try
                 {
+                    string name = torrent.Value<string>("Title");
+                    string tracker = torrent.Value<string>("Tracker");
+
+                    if (ModInit.conf.Red.trackers != null)
+                    {
+                        if (!tracker.Contains(","))
+                        {
+                            if (!ModInit.conf.Red.trackers.Contains(tracker))
+                                continue;
+                        }
+                        else
+                        {
+                            /*
+                             * Этот код фильтрует результаты поиска торрентов по списку разрешённых трекеров, который хранится в ModInit.conf.Red.trackers. 
+                             * Если у торрента в поле Tracker указано несколько трекеров через запятую, то он будет допущен только в том случае, если хотя бы один из этих трекеров есть в разрешённом списке.
+                             */
+                            var trackers = tracker.Split(',');
+                            if (!ModInit.conf.Red.trackers.Any(t => trackers.Contains(t)))
+                                continue;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(ModInit.conf.filter) && !Regex.IsMatch(name, ModInit.conf.filter, RegexOptions.IgnoreCase))
+                        continue;
+
+                    if (!string.IsNullOrEmpty(ModInit.conf.filter_ignore) && Regex.IsMatch(name, ModInit.conf.filter_ignore, RegexOptions.IgnoreCase))
+                        continue;
+
                     torrents.Add(new TorrentDetails()
                     {
-                        trackerName = torrent.Value<string>("Tracker"),
+                        trackerName = tracker,
                         url = torrent.Value<string>("Details"),
-                        title = torrent.Value<string>("Title"),
+                        title = name,
                         sid = torrent.Value<int>("Seeders"),
                         pir = torrent.Value<int>("Peers"),
                         size = torrent.Value<double>("Size"),
