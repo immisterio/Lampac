@@ -1,7 +1,5 @@
 ﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.SignalR;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Shared.Models;
 using System;
 using System.Collections.Concurrent;

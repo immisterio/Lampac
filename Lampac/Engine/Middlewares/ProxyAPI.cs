@@ -114,7 +114,7 @@ namespace Lampac.Engine.Middlewares
                     using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient(servUri.StartsWith("https") ? "proxyhttp2" : "proxy"))
                     {
                         var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
-                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
+                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
 
                         httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
                         await CopyProxyHttpResponse(httpContext, response);
@@ -208,7 +208,7 @@ namespace Lampac.Engine.Middlewares
                     using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient(servUri.StartsWith("https") ? "proxyhttp2" : "proxy"))
                     {
                         var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
-                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
+                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
 
                         if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                         {
@@ -232,11 +232,12 @@ namespace Lampac.Engine.Middlewares
                                         return;
                                     }
 
-                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
+                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
                                     if (array == null)
                                     {
                                         httpContext.Response.StatusCode = 502;
                                         await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                        return;
                                     }
 
                                     string m3u8 = Encoding.UTF8.GetString(array);
@@ -269,11 +270,12 @@ namespace Lampac.Engine.Middlewares
                                         return;
                                     }
 
-                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
+                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
                                     if (array == null)
                                     {
                                         httpContext.Response.StatusCode = 502;
                                         await httpContext.Response.WriteAsync("error proxy mpd", httpContext.RequestAborted).ConfigureAwait(false);
+                                        return;
                                     }
 
                                     string mpd = Encoding.UTF8.GetString(array);
@@ -313,7 +315,7 @@ namespace Lampac.Engine.Middlewares
                                         return;
                                     }
 
-                                    byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
+                                    byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
 
                                     httpContext.Response.StatusCode = (int)response.StatusCode;
                                     httpContext.Response.Headers.Add("PX-Cache", "MISS");
