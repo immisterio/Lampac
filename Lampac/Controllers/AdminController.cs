@@ -305,7 +305,10 @@ namespace Lampac.Controllers
         [Route("admin/manifest/install")]
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
-			bool isEditManifest = false;
+			if (IO.File.ReadAllText("passwd") == "termux")
+                return Content("На termux операция недоступна", contentType: "text/html; charset=utf-8");
+
+            bool isEditManifest = false;
 
 			if (IO.File.Exists("module/manifest.json"))
 			{

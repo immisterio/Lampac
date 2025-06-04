@@ -92,13 +92,29 @@ namespace Lampac.Engine.Middlewares
 
                 if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
                 {
+                    #region handler
+                    HttpClientHandler handler = new HttpClientHandler()
+                    {
+                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                        AllowAutoRedirect = false
+                    };
+
+                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+                    if (decryptLink.proxy != null)
+                    {
+                        handler.UseProxy = true;
+                        handler.Proxy = decryptLink.proxy;
+                    }
+                    #endregion
+
                     #region DASH
                     servUri += Regex.Replace(httpContext.Request.Path.Value, "/[^/]+/[^/]+/", "") + httpContext.Request.QueryString.Value;
 
-                    using (var client = _httpClientFactory.CreateClient("proxy"))
+                    using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient(servUri.StartsWith("https") ? "proxyhttp2" : "proxy"))
                     {
                         var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
-                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
+                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
                         httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
                         await CopyProxyHttpResponse(httpContext, response);
@@ -153,7 +169,8 @@ namespace Lampac.Engine.Middlewares
 
                         try
                         {
-                            using (var client = new HttpClient(hdlr))
+                            // base => AllowAutoRedirect = true
+                            using (var client = decryptLink.proxy != null ? new HttpClient(hdlr) : _httpClientFactory.CreateClient("base"))
                             {
                                 client.Timeout = TimeSpan.FromSeconds(7);
                                 var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
@@ -188,10 +205,10 @@ namespace Lampac.Engine.Middlewares
                     }
                     #endregion
 
-                    using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient("proxy"))
+                    using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient(servUri.StartsWith("https") ? "proxyhttp2" : "proxy"))
                     {
                         var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
-                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
+                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted);
 
                         if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                         {
@@ -215,7 +232,7 @@ namespace Lampac.Engine.Middlewares
                                         return;
                                     }
 
-                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
                                     if (array == null)
                                     {
                                         httpContext.Response.StatusCode = 502;
@@ -252,7 +269,7 @@ namespace Lampac.Engine.Middlewares
                                         return;
                                     }
 
-                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
                                     if (array == null)
                                     {
                                         httpContext.Response.StatusCode = 502;
@@ -296,7 +313,7 @@ namespace Lampac.Engine.Middlewares
                                         return;
                                     }
 
-                                    byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                    byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted);
 
                                     httpContext.Response.StatusCode = (int)response.StatusCode;
                                     httpContext.Response.Headers.Add("PX-Cache", "MISS");

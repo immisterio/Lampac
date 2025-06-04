@@ -1,32 +1,32 @@
+using Lampac.Engine;
+using Lampac.Engine.Middlewares;
+using Lampac.Models.Module;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
-using System.Text.Json.Serialization;
-using Lampac.Engine.Middlewares;
-using Lampac.Engine.CORE;
-using System.Net;
-using System;
-using Lampac.Engine;
-using Shared.Engine.CORE;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Http;
-using Lampac.Models.Module;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Reflection;
-using System.IO;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
+using Newtonsoft.Json;
 using Shared.Engine;
+using Shared.Engine.CORE;
 using Shared.Models.Module;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace Lampac
 {
@@ -53,7 +53,7 @@ namespace Lampac
             #region IHttpClientFactory
             services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() =>
             {
-                var handler = new System.Net.Http.HttpClientHandler()
+                var handler = new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                     AllowAutoRedirect = false
@@ -63,9 +63,24 @@ namespace Lampac
                 return handler;
             });
 
+            services.AddHttpClient("proxyhttp2", client =>
+            {
+                client.DefaultRequestVersion = new Version(2, 0);
+                client.DefaultRequestHeaders.ConnectionClose = false;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                EnableMultipleHttp2Connections = true
+            });
+
             services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() =>
             {
-                var handler = new System.Net.Http.HttpClientHandler()
+                var handler = new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                     AllowAutoRedirect = true
@@ -73,6 +88,21 @@ namespace Lampac
 
                 handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 return handler;
+            });
+
+            services.AddHttpClient("http2", client =>
+            {
+                client.DefaultRequestVersion = new Version(2, 0);
+                client.DefaultRequestHeaders.ConnectionClose = false;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                EnableMultipleHttp2Connections = true
             });
 
             services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
@@ -292,7 +322,7 @@ namespace Lampac
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
-            HttpClient.httpClientFactory = httpClientFactory;
+            Engine.CORE.HttpClient.httpClientFactory = httpClientFactory;
 
             #region modules loaded
             if (AppInit.modules != null)

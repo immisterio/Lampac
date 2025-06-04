@@ -143,7 +143,7 @@ namespace Lampac.Engine.Middlewares
                         if (!handler.UseProxy)
                             client.DefaultRequestHeaders.ConnectionClose = false;
 
-                        using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
+                        using (HttpResponseMessage response = await client.GetAsync(href))
                         {
                             if (url_reserve != null && response.StatusCode != HttpStatusCode.OK)
                             {
