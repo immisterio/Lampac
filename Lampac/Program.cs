@@ -258,8 +258,13 @@ namespace Lampac
                         else
                         {
                             if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
+                            {
+                                if (File.Exists($"/var/run/{AppInit.conf.listen_sock}.sock"))
+                                    File.Delete($"/var/run/{AppInit.conf.listen_sock}.sock");
+
                                 op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
-                            
+                            }
+
                             if (!string.IsNullOrEmpty(AppInit.conf.listenip))
                                 op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
                         }

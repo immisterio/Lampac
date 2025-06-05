@@ -272,12 +272,12 @@ namespace Lampac.Controllers.NextHUB
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy: proxy, keepopen: init.keepopen);
+                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy: proxy, keepopen: init.keepopen).ConfigureAwait(false);
                     if (page == default)
                         return null;
 
                     if (init.cookies != null)
-                        await page.Context.AddCookiesAsync(init.cookies);
+                        await page.Context.AddCookiesAsync(init.cookies).ConfigureAwait(false);
 
                     string routeEval = null;
                     if (conf.routeEval != null)
@@ -335,7 +335,8 @@ namespace Lampac.Controllers.NextHUB
                             await page.WaitForSelectorAsync(conf.waitForSelector, new PageWaitForSelectorOptions
                             {
                                 Timeout = conf.waitForSelector_timeout
-                            });
+
+                            }).ConfigureAwait(false);
                         }
                         catch { }
 

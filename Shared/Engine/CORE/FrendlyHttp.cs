@@ -54,12 +54,18 @@ namespace Shared.Engine.CORE
             Action<HttpClient> updateClient = null
         )
         {
-            if (handler != null && handler.CookieContainer.Count > 0)
-                return new HttpClient(handler);
+            if (handler != null && handler.CookieContainer.Count > 0 || httpcore.httpClientFactory == null)
+            {
+                var client = new HttpClient(handler);
+                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+                updateClient?.Invoke(client);
+                return client;
+            }
 
             if (handler == null || handler.UseProxy == false)
             {
                 var factory = httpcore.httpClientFactory.CreateClient(factoryClient);
+                factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
                 updateClient?.Invoke(factory);
                 return factory;
             }
@@ -71,6 +77,7 @@ namespace Shared.Engine.CORE
             if (webProxy == null)
             {
                 var factory = httpcore.httpClientFactory.CreateClient(factoryClient);
+                factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
                 updateClient?.Invoke(factory);
                 return factory;
             }
@@ -90,10 +97,6 @@ namespace Shared.Engine.CORE
 
             lock (_clients)
             {
-                Console.WriteLine(  );
-                Console.WriteLine(key);
-                Console.WriteLine(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length);
-
                 if (_clients.TryGetValue(key, out (DateTime, HttpClient http) value))
                     return value.http;
 

@@ -78,20 +78,20 @@ namespace Lampac.Controllers.NextHUB
                 {
                     using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen).ConfigureAwait(false);
                         if (page == default)
                             return default;
 
                         string browser_host = "." + Regex.Replace(init.host, "^https?://", "");
 
                         if (init.view.keepopen)
-                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = browser_host, Name = "cf_clearance" });
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = browser_host, Name = "cf_clearance" }).ConfigureAwait(false);
 
                         if (init.cookies != null)
-                            await page.Context.AddCookiesAsync(init.cookies);
+                            await page.Context.AddCookiesAsync(init.cookies).ConfigureAwait(false);
 
                         if (!string.IsNullOrEmpty(init.view.addInitScript))
-                            await page.AddInitScriptAsync(init.view.addInitScript);
+                            await page.AddInitScriptAsync(init.view.addInitScript).ConfigureAwait(false);
 
                         #region RouteAsync
                         await page.RouteAsync("**/*", async route =>
@@ -213,7 +213,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 for (int i = 0; i < 10; i++)
                                 {
-                                    cache.file = goFile(await page.ContentAsync());
+                                    cache.file = goFile(await page.ContentAsync().ConfigureAwait(false));
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
@@ -246,7 +246,7 @@ namespace Lampac.Controllers.NextHUB
                                         string evaluate = FileCache.ReadAllText(infile);
 
                                         if (init.view.eval.EndsWith(".js"))
-                                            return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url });
+                                            return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url }).ConfigureAwait(false);
 
                                         return Root.Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
                                     }
@@ -277,7 +277,7 @@ namespace Lampac.Controllers.NextHUB
                         }
                         else
                         {
-                            cache.file = await browser.WaitPageResult();
+                            cache.file = await browser.WaitPageResult().ConfigureAwait(false);
                         }
 
                         #region related

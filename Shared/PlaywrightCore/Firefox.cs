@@ -201,7 +201,7 @@ namespace Shared.Engine
                             {
                                 if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
                                 {
-                                    _ = pg.page.CloseAsync();
+                                    _ = pg.page.CloseAsync().ConfigureAwait(false);
                                     pages_keepopen.Remove(pg);
                                     continue;
                                 }
@@ -231,8 +231,8 @@ namespace Shared.Engine
                     };
 
                     stats_newcontext++;
-                    var context = await browser.NewContextAsync(contextOptions);
-                    page = await context.NewPageAsync();
+                    var context = await browser.NewContextAsync(contextOptions).ConfigureAwait(false);
+                    page = await context.NewPageAsync().ConfigureAwait(false);
                     #endregion
                 }
                 else
@@ -255,12 +255,12 @@ namespace Shared.Engine
                     }
 
                     stats_newcontext++;
-                    page = await browser.NewPageAsync();
+                    page = await browser.NewPageAsync().ConfigureAwait(false);
                     #endregion
                 }
 
                 if (headers != null && headers.Count > 0)
-                    await page.SetExtraHTTPHeadersAsync(headers);
+                    await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
 
                 page.Popup += Page_Popup;
                 page.Download += Page_Download;
@@ -297,7 +297,7 @@ namespace Shared.Engine
         {
             try
             {
-                e.CancelAsync();
+                e.CancelAsync().ConfigureAwait(false);
             }
             catch { }
         }
@@ -306,7 +306,7 @@ namespace Shared.Engine
         {
             try
             {
-                e.CloseAsync();
+                e.CloseAsync().ConfigureAwait(false);
             }
             catch { }
         }
@@ -323,7 +323,7 @@ namespace Shared.Engine
 
                 if (keepopen_page != null)
                 {
-                    keepopen_page.page.GotoAsync("about:blank");
+                    keepopen_page.page.GotoAsync("about:blank").ConfigureAwait(false);
                     keepopen_page.lastActive = DateTime.Now;
                     keepopen_page.lockTo = DateTime.Now.AddSeconds(1);
                     keepopen_page.busy = false;
@@ -332,7 +332,7 @@ namespace Shared.Engine
                 {
                     page.Popup -= Page_Popup;
                     page.Download -= Page_Download;
-                    page.CloseAsync();
+                    page.CloseAsync().ConfigureAwait(false);
                 }
             }
             catch { }
@@ -357,7 +357,7 @@ namespace Shared.Engine
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
 
                 try
                 {
@@ -374,7 +374,7 @@ namespace Shared.Engine
                         {
                             try
                             {
-                                await k.page.CloseAsync();
+                                await k.page.CloseAsync().ConfigureAwait(false);
                                 pages_keepopen.Remove(k);
                             }
                             catch { }
