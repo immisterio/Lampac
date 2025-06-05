@@ -252,7 +252,7 @@ namespace Lampac.Controllers.NextHUB
                     };
 
                     if (eval != null)
-                        pl = Root.Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
+                        pl = Root.Eval.Execute<PlaylistItem>(eval, new { html, host, init, pl, nodes, row });
 
                     if (pl != null)
                         playlists.Add(pl);

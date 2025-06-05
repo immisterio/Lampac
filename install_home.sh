@@ -53,9 +53,6 @@ cat <<EOF > $DEST/init.conf
     "enable": false
   }
 },
-"tmdb": {
-  "cache_img": -1
-},
 "serverproxy": {
   "verifyip": false,
   "image": {

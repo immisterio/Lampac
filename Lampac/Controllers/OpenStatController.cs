@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
-using Lampac.Models.AppConf;
-using Shared.Engine;
-using Microsoft.AspNetCore.Http;
-using System;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Lampac.Engine;
 using Lampac.Engine.CORE;
+using Lampac.Models.AppConf;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
+using System;
+using System.Net.NetworkInformation;
 
 namespace Lampac.Controllers
 {
@@ -64,7 +65,13 @@ namespace Lampac.Controllers
                     req_hour += _r;
             }
 
-            return Json(new { req_min, req_hour, soks_online = soks._connections.Count });
+            return Json(new 
+            { 
+                req_min, 
+                req_hour, 
+                soks_online = soks._connections?.Count,
+                tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
+            });
         }
         #endregion
 
