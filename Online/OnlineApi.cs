@@ -1,29 +1,30 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
+﻿using Lampac.Engine;
 using Lampac.Engine.CORE;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System;
-using IO = System.IO;
-using System.Reflection;
-using Newtonsoft.Json;
-using Shared.Engine.CORE;
-using System.IO;
-using Shared.Model.Online;
-using Shared.Model.Base;
-using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine;
-using Shared.Engine.Online;
-using System.Data;
-using System.Collections.Concurrent;
-using Shared.Models.Module;
-using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Engine.Online;
+using Shared.Model.Base;
+using Shared.Model.Online;
+using Shared.Models.CSharpGlobals;
+using Shared.Models.Module;
 using Shared.PlaywrightCore;
-using Z.Expressions;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -38,7 +39,7 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("online.js")]
         [Route("online/js/{token}")]
-        public ActionResult Online(string token)
+        async public Task<ActionResult> Online(string token)
         {
             var init = AppInit.conf.online;
 
@@ -95,7 +96,7 @@ namespace Lampac.Controllers
             file = file.Replace("{localhost}", host);
 
             if (!string.IsNullOrEmpty(init.eval))
-                file = Eval.Execute<string>(FileCache.ReadAllText(init.eval), new { file, host, token, requestInfo });
+                file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(file, host, token, requestInfo));
 
             return Content(file, contentType: "application/javascript; charset=utf-8");
         }
@@ -988,7 +989,7 @@ namespace Lampac.Controllers
                 var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
 
                 string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
-                string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header).ConfigureAwait(false);
+                string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header, configureAwait: false).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(res))
                     res = string.Empty;

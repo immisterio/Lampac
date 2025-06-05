@@ -1,21 +1,23 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
+﻿using Lampac.Engine;
 using Lampac.Engine.CORE;
-using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Models.CSharpGlobals;
 using System;
-using IO = System.IO;
-using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Microsoft.AspNetCore.Http;
-using Shared.Engine.CORE;
-using System.Diagnostics;
-using Z.Expressions;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -132,7 +134,7 @@ namespace Lampac.Controllers
         #region app.min.js
         [Route("/app.min.js")]
         [Route("{type}/app.min.js")]
-        public ActionResult LampaApp(string type)
+        async public Task<ActionResult> LampaApp(string type)
         {
             if (string.IsNullOrEmpty(type))
             {
@@ -197,7 +199,7 @@ namespace Lampac.Controllers
             file = file.Replace("Player.play(element);", playerinner);
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
-                file = Eval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new { file, host, type, requestInfo });
+                file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), globals: new appReplaceGlobals(file, host, null, requestInfo, type));
 
             return Content(file, "application/javascript; charset=utf-8");
         }
@@ -205,22 +207,42 @@ namespace Lampac.Controllers
 
         #region app.css
         [Route("/css/app.css")]
-        public ActionResult LampaAppCss()
+        [Route("{type}/css/app.css")]
+        async public Task<ActionResult> LampaAppCss(string type)
         {
-            string path;
-            if (AppInit.conf.LampaWeb.path != null)
+            if (string.IsNullOrEmpty(type))
             {
-                path = AppInit.conf.LampaWeb.path;
+                if (AppInit.conf.LampaWeb.path != null)
+                {
+                    type = AppInit.conf.LampaWeb.path;
+                }
+                else
+                {
+                    if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
+                        return Content(string.Empty, "application/javascript; charset=utf-8");
+
+                    type = AppInit.conf.LampaWeb.index.Split("/")[0];
+                }
             }
-            else
+
+            string css = FileCache.ReadAllText($"wwwroot/{type}/css/app.css");
+
+            if (AppInit.conf.LampaWeb.cssReplace != null)
             {
-                if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
-                    return Content(string.Empty, "text/css; charset=utf-8");
+                foreach (var r in AppInit.conf.LampaWeb.cssReplace)
+                {
+                    string val = r.Value;
+                    if (val.StartsWith("file:"))
+                        val = IO.File.ReadAllText(val.Remove(0, 5));
 
-                path = AppInit.conf.LampaWeb.index.Split("/")[0];
+                    val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+
+                    css = Regex.Replace(css, r.Key, val, RegexOptions.IgnoreCase);
+                }
             }
 
-            string css = FileCache.ReadAllText($"wwwroot/{path}/css/app.css");
+            if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.cssEval))
+                css = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.cssEval), globals: new appReplaceGlobals(css, host, null, requestInfo, type));
 
             return Content(css, "text/css; charset=utf-8");
         }
