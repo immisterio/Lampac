@@ -34,7 +34,7 @@ namespace Lampac.Controllers.Porntrex
                     return ContentTo(rch.connectionMsg);
 
                 string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
                 );
 
                 playlists = PorntrexTo.Playlist($"{host}/ptx/vidosik", html);

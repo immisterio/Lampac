@@ -52,7 +52,7 @@ namespace Lampac.Controllers.Ebalovo
                             ("upgrade-insecure-requests", "1")
                         ));
 
-                        return rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: headers);
+                        return rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: headers, configureAwait: AppInit.conf.mikrotik);
                     },
                     async location =>
                     {

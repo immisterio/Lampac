@@ -1,4 +1,5 @@
-﻿using Microsoft.Playwright;
+﻿using Lampac;
+using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.Model.Base;
 using Shared.Model.Online;
@@ -177,16 +178,16 @@ namespace Shared.PlaywrightCore
 
                     if (browser.firefox != null)
                     {
-                        response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                        response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(AppInit.conf.mikrotik);
                     }
                     else
                     {
-                        response = await page.GotoAsync($"view-source:{url}");
+                        response = await page.GotoAsync($"view-source:{url}").ConfigureAwait(AppInit.conf.mikrotik);
                     }
 
                     if (response != null)
                     {
-                        string result = await response.TextAsync();
+                        string result = await response.TextAsync().ConfigureAwait(AppInit.conf.mikrotik);
                         PlaywrightBase.WebLog(response.Request, response, result, proxy);
 
                         return result;

@@ -42,7 +42,7 @@ namespace Lampac.Controllers.Runetki
                         return rch.Get(init.cors(url), httpHeaders(init));
 
                     if (init.priorityBrowser == "http")
-                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy, configureAwait: AppInit.conf.mikrotik);
 
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });

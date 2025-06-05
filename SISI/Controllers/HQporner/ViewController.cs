@@ -32,8 +32,8 @@ namespace Lampac.Controllers.HQporner
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri, 
-                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
-                               iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik), 
+                               iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik));
 
                 if (stream_links == null || stream_links.Count == 0)
                 {

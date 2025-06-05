@@ -33,7 +33,7 @@ namespace Lampac.Controllers.Eporner
                     return res.Fail(rch.connectionMsg);
 
                 string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => 
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
                 );
 
                 var playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);

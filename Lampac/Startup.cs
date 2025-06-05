@@ -323,7 +323,7 @@ namespace Lampac
         #endregion
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, System.Net.Http.IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime)
         {
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
@@ -358,6 +358,9 @@ namespace Lampac
                 }
             }
             #endregion
+
+            if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
+                _ = Bash.Run($"chmod 666 /var/run/{AppInit.conf.listen_sock}.sock");
 
             app.UseDeveloperExceptionPage();
             applicationLifetime.ApplicationStopping.Register(OnShutdown);

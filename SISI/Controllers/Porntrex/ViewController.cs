@@ -38,7 +38,7 @@ namespace Lampac.Controllers.Porntrex
                     if (rch.enable)
                         return rch.Get(init.cors(url), httpHeaders(init));
 
-                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik);
                 });
 
                 if (cache.links == null || cache.links.Count == 0)

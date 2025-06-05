@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Chaturbate
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
                 );
 
                 if (stream_links == null || stream_links.Count == 0)

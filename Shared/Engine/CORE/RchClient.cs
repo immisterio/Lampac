@@ -91,13 +91,16 @@ namespace Lampac.Engine.CORE
 
 
         #region Eval
-        public ValueTask<string> Eval(string data) => SendHub("eval", data);
+        public async ValueTask<string> Eval(string data)
+        {
+            return await SendHub("eval", data).ConfigureAwait(false);
+        }
 
         async public ValueTask<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
         {
             try
             {
-                string json = await SendHub("eval", data);
+                string json = await SendHub("eval", data).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -118,7 +121,7 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                string json = await SendHub(url, data, headers, useDefaultHeaders, true);
+                string json = await SendHub(url, data, headers, useDefaultHeaders, true).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -136,13 +139,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Get
-        public ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
+        public async ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        {
+            return await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
+        }
 
         async public ValueTask<T> Get<T>(string url, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string html = await SendHub(url, null, headers, useDefaultHeaders);
+                string html = await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
                 if (html == null)
                     return default;
 
@@ -159,13 +165,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) => SendHub(url, data, headers, useDefaultHeaders);
+        public async ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
+        {
+            return await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
+        }
 
         async public ValueTask<T> Post<T>(string url, string data, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string json = await SendHub(url, data, headers, useDefaultHeaders);
+                string json = await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -214,7 +223,7 @@ namespace Lampac.Engine.CORE
 
                 hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
 
-                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12));
+                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
                 rchIds.TryRemove(rchId, out _);
 
                 if (string.IsNullOrWhiteSpace(result))

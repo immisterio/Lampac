@@ -32,8 +32,8 @@ namespace Lampac.Controllers.Eporner
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await EpornerTo.StreamLinks($"{host}/epr/vidosik", init.corsHost(), uri, 
-                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
-                               jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : HttpClient.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik), 
+                               jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : HttpClient.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                 {

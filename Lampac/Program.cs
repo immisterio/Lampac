@@ -251,10 +251,18 @@ namespace Lampac
                 {
                     webBuilder.UseKestrel(op => 
                     {
-                        if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
-                            op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
+                        if (string.IsNullOrEmpty(AppInit.conf.listen_sock) && string.IsNullOrEmpty(AppInit.conf.listenip))
+                        {
+                            op.Listen(IPAddress.Parse("127.0.0.1"), 9118);
+                        }
                         else
-                            op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
+                        {
+                            if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
+                                op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
+                            
+                            if (!string.IsNullOrEmpty(AppInit.conf.listenip))
+                                op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
+                        }
                     })
                     .UseStartup<Startup>();
                 });
