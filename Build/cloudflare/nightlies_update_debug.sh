@@ -2,9 +2,9 @@
 
 VERSION=$1
 if [ -n "$VERSION" ]; then
-    UPDATEURI="https://${VERSION}.bwa.pages.dev/debug/update.zip"
+    UPDATEURI="https://${VERSION}.bwa.pages.dev/debug.zip"
 else
-    UPDATEURI="https://bwa.pages.dev/debug/update.zip"
+    UPDATEURI="https://bwa.pages.dev/debug.zip"
 fi
 
 cd /home/lampac || { echo "Failed to change directory to /home/lampac. Exiting."; exit 1; }
