@@ -29,12 +29,7 @@ cp Tracks/bin/Debug/net6.0/publish/Tracks.dll debug/module/
 
 cd debug/
 rm -f Lampac.runtimeconfig.json
-
-curl -L -k -o cloudflare.zip "https://lampac.sh/update/cloudflare.zip?v=$(date +%s)"
-unzip -o cloudflare.zip
-rm -f cloudflare.zip
-
-python -m zipfile -c update.zip *
+python -m zipfile -c debug.zip *
 
 cd ../
-cat Build/cloudflare/nightlies_update_debug.sh > debug/update.sh
+cat Build/cloudflare/nightlies_update_debug.sh > debug/debug.sh
