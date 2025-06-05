@@ -1,19 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using System.IO;
-using System;
-using System.Net.Http;
-using System.Text.RegularExpressions;
-using System.Net.Http.Headers;
-using System.Net;
-using System.Linq;
-using System.Text;
-using System.Collections.Generic;
-using System.Buffers;
-using Shared.Models;
-using Shared.Model.Online;
-using Shared.Engine.CORE;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine.CORE;
+using Shared.Model.Online;
+using Shared.Models;
+using System;
+using System.Buffers;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -90,34 +90,34 @@ namespace Lampac.Engine.Middlewares
                 if (init.showOrigUri)
                     httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
 
+                #region handler
+                HttpClientHandler handler = new HttpClientHandler()
+                {
+                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AllowAutoRedirect = false
+                };
+
+                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+                if (decryptLink.proxy != null)
+                {
+                    handler.UseProxy = true;
+                    handler.Proxy = decryptLink.proxy;
+                }
+                #endregion
+
                 if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
                 {
-                    #region handler
-                    HttpClientHandler handler = new HttpClientHandler()
-                    {
-                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                        AllowAutoRedirect = false
-                    };
-
-                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                    if (decryptLink.proxy != null)
-                    {
-                        handler.UseProxy = true;
-                        handler.Proxy = decryptLink.proxy;
-                    }
-                    #endregion
-
                     #region DASH
                     servUri += Regex.Replace(httpContext.Request.Path.Value, "/[^/]+/[^/]+/", "") + httpContext.Request.QueryString.Value;
 
-                    using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient(servUri.StartsWith("https") ? "proxyhttp2" : "proxy"))
-                    {
-                        var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
-                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
+                    var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, servUri.StartsWith("https") ? "proxyhttp2" : "proxy");
 
+                    var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
+                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                    {
                         httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
-                        await CopyProxyHttpResponse(httpContext, response);
+                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                     }
                     #endregion
                 }
@@ -170,11 +170,11 @@ namespace Lampac.Engine.Middlewares
                         try
                         {
                             // base => AllowAutoRedirect = true
-                            using (var client = decryptLink.proxy != null ? new HttpClient(hdlr) : _httpClientFactory.CreateClient("base"))
+                            var clientor = FrendlyHttp.CreateClient("ProxyAPI:or", hdlr, "base", timeoutSeconds: 7);
+
+                            var requestor = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
+                            using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                             {
-                                client.Timeout = TimeSpan.FromSeconds(7);
-                                var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
-                                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
                                 if ((int)response.StatusCode != 200)
                                     servUri = links[1].Trim();
                             }
@@ -189,27 +189,12 @@ namespace Lampac.Engine.Middlewares
                     }
                     #endregion
 
-                    #region handler
-                    HttpClientHandler handler = new HttpClientHandler()
+                    var client = FrendlyHttp.CreateClient("ProxyAPI", handler, servUri.StartsWith("https") ? "proxyhttp2" : "proxy");
+
+                    var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
+
+                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                     {
-                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                        AllowAutoRedirect = false
-                    };
-
-                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                    if (decryptLink.proxy != null)
-                    {
-                        handler.UseProxy = true;
-                        handler.Proxy = decryptLink.proxy;
-                    }
-                    #endregion
-
-                    using (var client = decryptLink.proxy != null ? new HttpClient(handler) : _httpClientFactory.CreateClient(servUri.StartsWith("https") ? "proxyhttp2" : "proxy"))
-                    {
-                        var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
-                        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false);
-
                         if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                         {
                             httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", httpContext));
@@ -281,7 +266,7 @@ namespace Lampac.Engine.Middlewares
                                     string mpd = Encoding.UTF8.GetString(array);
 
                                     var m = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>");
-                                    while(m.Success)
+                                    while (m.Success)
                                     {
                                         string baseURL = m.Groups[1].Value;
                                         mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{CORE.ProxyLink.Encrypt(baseURL, decryptLink, forceMd5: true)}/");
@@ -346,7 +331,7 @@ namespace Lampac.Engine.Middlewares
                         else
                         {
                             httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
-                            await CopyProxyHttpResponse(httpContext, response);
+                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                         }
                     }
                 }

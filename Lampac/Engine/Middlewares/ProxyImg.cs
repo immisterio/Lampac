@@ -43,7 +43,7 @@ namespace Lampac.Engine.Middlewares
                 var requestInfo = httpContext.Features.Get<RequestModel>();
 
                 var init = AppInit.conf.serverproxy.image;
-                bool cacheimg = init.cache;
+                bool cacheimg = init.cache && AppInit.conf.mikrotik == false;
 
                 #region Проверки
                 string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
@@ -133,41 +133,41 @@ namespace Lampac.Engine.Middlewares
                 if (width == 0 && height == 0 && !cacheimg)
                 {
                     #region bypass
-                    bypass_reset:  var handler = CORE.HttpClient.Handler(href, proxy);
+                    bypass_reset: var handler = CORE.HttpClient.Handler(href, proxy);
                     handler.AllowAutoRedirect = true;
 
-                    using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
+                    var client = FrendlyHttp.CreateClient("proxyimg", handler, href.StartsWith("https") ? "http2" : "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
                     {
-                        CORE.HttpClient.DefaultRequestHeaders(client, 8, 0, null, null, decryptLink?.headers);
+                        CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
 
                         if (!handler.UseProxy)
-                            client.DefaultRequestHeaders.ConnectionClose = false;
+                            uclient.DefaultRequestHeaders.ConnectionClose = false;
+                    });
 
-                        using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
+                    using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
+                    {
+                        if (url_reserve != null && response.StatusCode != HttpStatusCode.OK)
                         {
-                            if (url_reserve != null && response.StatusCode != HttpStatusCode.OK)
-                            {
-                                href = url_reserve;
-                                url_reserve = null;
-                                goto bypass_reset;
-                            }
-
-                            httpContext.Response.StatusCode = (int)response.StatusCode;
-                            httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
-
-                            if (response.Headers.TryGetValues("Content-Type", out var contype))
-                                httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
-
-                            await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
-                            return;
+                            href = url_reserve;
+                            url_reserve = null;
+                            goto bypass_reset;
                         }
+
+                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                        httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+
+                        if (response.Headers.TryGetValues("Content-Type", out var contype))
+                            httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+
+                        await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                        return;
                     }
                     #endregion
                 }
                 else
                 {
                     #region rsize / cache
-                    rsize_reset: var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
+                    rsize_reset: var array = await Download(href, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
                     if (array == null)
                     {
                         if (url_reserve != null)
@@ -233,33 +233,33 @@ namespace Lampac.Engine.Middlewares
 
 
         #region Download
-        async public ValueTask<byte[]> Download(string url, List<HeadersModel> headers = null, WebProxy proxy = null)
+        async ValueTask<byte[]> Download(string url, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             try
             {
                 var handler = CORE.HttpClient.Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
-                using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : _httpClientFactory.CreateClient("base"))
+                var client = FrendlyHttp.CreateClient("proxyimg", handler, url.StartsWith("https") ? "http2" : "base", headers?.ToDictionary(), updateClient: uclient => 
                 {
-                    CORE.HttpClient.DefaultRequestHeaders(client, 8, 0, null, null, headers);
+                    CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
 
                     if (!handler.UseProxy)
-                        client.DefaultRequestHeaders.ConnectionClose = false;
+                        uclient.DefaultRequestHeaders.ConnectionClose = false;
+                });
 
-                    using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
+                using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
+                {
+                    if (response.StatusCode != HttpStatusCode.OK)
+                        return null;
+
+                    using (HttpContent content = response.Content)
                     {
-                        if (response.StatusCode != HttpStatusCode.OK)
+                        byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                        if (res == null || res.Length == 0)
                             return null;
 
-                        using (HttpContent content = response.Content)
-                        {
-                            byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                            if (res == null || res.Length == 0)
-                                return null;
-
-                            return res;
-                        }
+                        return res;
                     }
                 }
             }

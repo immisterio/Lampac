@@ -51,7 +51,10 @@ namespace Lampac
             serviceCollection = services;
 
             #region IHttpClientFactory
-            services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() =>
+            services.AddHttpClient("proxy", client =>
+            {
+                client.DefaultRequestHeaders.ConnectionClose = false;
+            }).ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var handler = new HttpClientHandler()
                 {
@@ -78,7 +81,11 @@ namespace Lampac
                 EnableMultipleHttp2Connections = true
             });
 
-            services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() =>
+
+            services.AddHttpClient("base", client =>
+            {
+                client.DefaultRequestHeaders.ConnectionClose = false;
+            }).ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var handler = new HttpClientHandler()
                 {

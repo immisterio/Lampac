@@ -128,7 +128,7 @@ namespace Lampac.Controllers
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: headers, statusCodeOK: false).ConfigureAwait(false);
+            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: headers, statusCodeOK: false, configureAwait: false).ConfigureAwait(false);
             if (result.content == null)
             {
                 proxyManager.Refresh();
@@ -230,10 +230,10 @@ namespace Lampac.Controllers
                 uri = uri.Replace("image.tmdb.org", tmdb_ip);
             }
 
-            if (init.cache_img > 0)
+            if (init.cache_img > 0 && AppInit.conf.mikrotik == false)
             {
                 #region cache
-                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, factoryClient: "http2").ConfigureAwait(false);
+                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, configureAwait: false, factoryClient: "http2").ConfigureAwait(false);
                 if (array == null || array.Length == 0)
                 {
                     proxyManager.Refresh();
@@ -294,18 +294,18 @@ namespace Lampac.Controllers
                     var handler = HttpClient.Handler(uri, proxyManager.Get());
                     handler.AllowAutoRedirect = true;
 
-                    using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : HttpClient.httpClientFactory.CreateClient("http2"))
+                    var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, "http2", headers?.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
                     {
-                        HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+                        HttpClient.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
+                    });
 
-                        using (var response = await client.GetAsync(uri).ConfigureAwait(false))
-                        {
-                            HttpContext.Response.StatusCode = (int)response.StatusCode;
-                            HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+                    using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                    {
+                        HttpContext.Response.StatusCode = (int)response.StatusCode;
+                        HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
 
-                            proxyManager.Success();
-                            await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
-                        }
+                        proxyManager.Success();
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
                     }
                 }
                 catch 

@@ -54,20 +54,20 @@ namespace Lampac.Controllers
 
             if (domain.StartsWith("geo") && !string.IsNullOrEmpty(requestInfo.Country))
             {
-                await HttpContext.Response.WriteAsync(requestInfo.Country, HttpContext.RequestAborted);
+                await HttpContext.Response.WriteAsync(requestInfo.Country, HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
             if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
             {
-                await HttpContext.Response.WriteAsync("ok", HttpContext.RequestAborted);
+                await HttpContext.Response.WriteAsync("ok", HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
             if (uri.StartsWith("api/plugins/blacklist"))
             {
                 HttpContext.Response.ContentType = "application/json; charset=utf-8";
-                await HttpContext.Response.WriteAsync("[]", HttpContext.RequestAborted);
+                await HttpContext.Response.WriteAsync("[]", HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
@@ -101,7 +101,7 @@ namespace Lampac.Controllers
                         }
                     }
 
-                    var result = await Engine.CORE.HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
+                    var result = await Engine.CORE.HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, configureAwait: false, useDefaultHeaders: false).ConfigureAwait(false);
                     if (result.array == null || result.array.Length == 0)
                     {
                         proxyManager.Refresh();
@@ -125,7 +125,17 @@ namespace Lampac.Controllers
                     HttpContext.Response.Headers.Add("X-Cache-Status", setCache ? "MISS" : "bypass");
 
                     if (setCache && cache.statusCode == 200)
-                        hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(isMedia ? init.cache_img : init.cache_api));
+                    {
+                        if (isMedia)
+                        {
+                            if (AppInit.conf.mikrotik == false)
+                                hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_img));
+                        }
+                        else
+                        {
+                            hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_api));
+                        }
+                    }
                 }
                 else
                 {
@@ -137,7 +147,7 @@ namespace Lampac.Controllers
                     if (Encoding.UTF8.GetString(cache.array) == "{\"blocked\":true}")
                     {
                         var header = HeadersModel.Init(("localrequest", System.IO.File.ReadAllText("passwd")));
-                        string json = await Engine.CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
+                        string json = await Engine.CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header, configureAwait: false).ConfigureAwait(false);
                         if (!string.IsNullOrEmpty(json))
                         {
                             HttpContext.Response.ContentType = "application/json; charset=utf-8";
@@ -154,9 +164,9 @@ namespace Lampac.Controllers
             }
             else
             {
+                #region bypass
                 HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
 
-                #region handler
                 HttpClientHandler handler = new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
@@ -170,18 +180,17 @@ namespace Lampac.Controllers
                     handler.UseProxy = true;
                     handler.Proxy = proxy;
                 }
-                #endregion
 
-                using (var client = new HttpClient(handler))
+                var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
+                var request = CreateProxyHttpRequest(HttpContext, new Uri($"{init.scheme}://{domain}/{uri}"));
+
+                using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted).ConfigureAwait(false))
                 {
-                    var request = CreateProxyHttpRequest(HttpContext, new Uri($"{init.scheme}://{domain}/{uri}"));
-                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted).ConfigureAwait(false);
-
-                    await CopyProxyHttpResponse(HttpContext, response);
+                    await CopyProxyHttpResponse(HttpContext, response).ConfigureAwait(false);
                 }
+                #endregion
             }
         }
-
 
 
         #region CreateProxyHttpRequest
