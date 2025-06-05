@@ -21,8 +21,8 @@ cp -R ../lpc/* lpc/
 cp lpc/update.sh ver.sh
 
 mkdir -p debug
-mv ../debug/debug.zip debug/
-mv ../debug/debug.sh debug/
+mv ../debug/debug.zip .
+mv ../debug/debug.sh .
 
 return;
 
