@@ -7,6 +7,9 @@ chmod +x dotnet-install.sh
 chmod +x Build/cloudflare/nightlies.sh
 ./Build/cloudflare/nightlies.sh
 
+chmod +x Build/cloudflare/nightlies_debug.sh
+./Build/cloudflare/nightlies_debug.sh
+
 mkdir -p out/
 cp -R Build/cloudflare/functions .
 cat Build/cloudflare/_headers > out/_headers
@@ -16,6 +19,9 @@ cd out/
 mkdir -p lpc
 cp -R ../lpc/* lpc/
 cp lpc/update.sh ver.sh
+
+mkdir -p debug
+cp -R ../debug/* debug/
 
 return;
 
