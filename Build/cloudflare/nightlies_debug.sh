@@ -37,3 +37,4 @@ rm -f cloudflare.zip
 python -m zipfile -c update.zip *
 
 cd ../
+cat Build/cloudflare/nightlies_update_debug.sh > debug/update.sh
