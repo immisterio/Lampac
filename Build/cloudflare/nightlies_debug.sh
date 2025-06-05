@@ -28,7 +28,6 @@ cp TorrServer/bin/Debug/net6.0/publish/TorrServer.dll debug/module/
 cp Tracks/bin/Debug/net6.0/publish/Tracks.dll debug/module/
 
 cd debug/
-rm -f Lampac.runtimeconfig.json
 python -m zipfile -c debug.zip *
 
 cd ../
