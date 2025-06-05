@@ -101,7 +101,7 @@ namespace Lampac.Controllers
                         }
                     }
 
-                    var result = await Engine.CORE.HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, configureAwait: false, useDefaultHeaders: false).ConfigureAwait(false);
+                    var result = await Engine.CORE.HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
                     if (result.array == null || result.array.Length == 0)
                     {
                         proxyManager.Refresh();
@@ -147,7 +147,7 @@ namespace Lampac.Controllers
                     if (Encoding.UTF8.GetString(cache.array) == "{\"blocked\":true}")
                     {
                         var header = HeadersModel.Init(("localrequest", System.IO.File.ReadAllText("passwd")));
-                        string json = await Engine.CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header, configureAwait: false).ConfigureAwait(false);
+                        string json = await Engine.CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
                         if (!string.IsNullOrEmpty(json))
                         {
                             HttpContext.Response.ContentType = "application/json; charset=utf-8";

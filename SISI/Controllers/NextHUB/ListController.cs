@@ -339,12 +339,12 @@ namespace Lampac.Controllers.NextHUB
                         }
                         catch { }
 
-                        content = await page.ContentAsync();
+                        content = await page.ContentAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                        content = await page.ContentAsync();
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle).ConfigureAwait(false);
+                        content = await page.ContentAsync().ConfigureAwait(false);
                     }
 
                     PlaywrightBase.WebLog("GET", url, content, proxy);

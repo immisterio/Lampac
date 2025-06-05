@@ -360,7 +360,7 @@ namespace Lampac
             #endregion
 
             if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
-                _ = Bash.Run($"chmod 666 /var/run/{AppInit.conf.listen_sock}.sock");
+                _ = Bash.Run($"sleep 10 && chmod 666 /var/run/{AppInit.conf.listen_sock}.sock");
 
             app.UseDeveloperExceptionPage();
             applicationLifetime.ApplicationStopping.Register(OnShutdown);

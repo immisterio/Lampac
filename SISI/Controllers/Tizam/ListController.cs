@@ -44,7 +44,7 @@ namespace Lampac.Controllers.Tizam
                     uri += $"?p={page}";
 
                 string html = rch.enable ? await rch.Get(init.cors(uri), httpHeaders(init)) : 
-                                           await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik);
+                                           await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
 
                 playlists = Playlist(html);
 

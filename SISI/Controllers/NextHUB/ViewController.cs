@@ -169,9 +169,9 @@ namespace Lampac.Controllers.NextHUB
 
                         #region GotoAsync
                         string html = null;
-                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
                         if (responce != null)
-                            html = await responce.TextAsync();
+                            html = await responce.TextAsync().ConfigureAwait(false);
                         #endregion
 
                         #region WaitForSelector
@@ -182,14 +182,15 @@ namespace Lampac.Controllers.NextHUB
                                 await page.WaitForSelectorAsync(init.view.waitForSelector ?? init.view.playbtn, new PageWaitForSelectorOptions
                                 {
                                     Timeout = init.view.waitForSelector_timeout
-                                });
+
+                                }).ConfigureAwait(false);
                             }
                             catch { }
                         }
                         #endregion
 
                         if (!string.IsNullOrEmpty(init.view.playbtn))
-                            await page.ClickAsync(init.view.playbtn);
+                            await page.ClickAsync(init.view.playbtn).ConfigureAwait(false);
 
                         if (init.view.nodeFile != null)
                         {
@@ -217,7 +218,7 @@ namespace Lampac.Controllers.NextHUB
                                         break;
 
                                     PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
-                                    await Task.Delay(800);
+                                    await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
                             else
@@ -263,7 +264,7 @@ namespace Lampac.Controllers.NextHUB
                                         break;
 
                                     PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
-                                    await Task.Delay(800);
+                                    await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
                             else
@@ -286,7 +287,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 if (init.view.NetworkIdle)
                                 {
-                                    string contetnt = await page.ContentAsync();
+                                    string contetnt = await page.ContentAsync().ConfigureAwait(false);
                                     cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, contetnt, plugin);
                                 }
                                 else

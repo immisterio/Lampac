@@ -33,7 +33,7 @@ namespace Lampac.Controllers.PornHub
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", "phub", init.corsHost(), vkey, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)

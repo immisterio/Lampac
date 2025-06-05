@@ -55,7 +55,7 @@ namespace Lampac.Controllers.XvideosRED
                 }
                 #endregion
 
-                string html = await HttpClient.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik);
+                string html = await HttpClient.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 

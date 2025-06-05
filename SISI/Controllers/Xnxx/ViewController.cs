@@ -32,7 +32,7 @@ namespace Lampac.Controllers.Xnxx
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)

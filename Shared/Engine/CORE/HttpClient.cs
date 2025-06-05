@@ -161,7 +161,7 @@ namespace Lampac.Engine.CORE
                         Version = new Version(httpversion, 0)
                     };
 
-                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead))
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
                     {
                         string location = ((int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307) ? response.Headers.Location?.ToString() : response.RequestMessage.RequestUri?.ToString();
                         location = Uri.EscapeUriString(System.Web.HttpUtility.UrlDecode(location ?? ""));
@@ -194,7 +194,7 @@ namespace Lampac.Engine.CORE
                         Version = new Version(httpversion, 0)
                     };
 
-                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead))
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
                         return response;
                 }
             }
@@ -207,9 +207,9 @@ namespace Lampac.Engine.CORE
 
 
         #region Get
-        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool configureAwait = true)
+        async public static ValueTask<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
-            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, weblog: weblog, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body, configureAwait: configureAwait).ConfigureAwait(configureAwait)).content;
+            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, weblog: weblog, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body).ConfigureAwait(false)).content;
         }
         #endregion
 
@@ -218,7 +218,7 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, weblog: weblog, body: body)).content;
+                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, weblog: weblog, body: body).ConfigureAwait(false)).content;
                 if (html == null)
                     return default;
 
@@ -236,11 +236,11 @@ namespace Lampac.Engine.CORE
 
 
         #region BaseGetAsync<T>
-        async public static ValueTask<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool configureAwait = true)
+        async public static ValueTask<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
             try
             {
-                var result = await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body, configureAwait: configureAwait).ConfigureAwait(configureAwait);
+                var result = await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body).ConfigureAwait(false);
                 if (result.content == null)
                     return default;
 
@@ -259,7 +259,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region BaseGetAsync
-        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool configureAwait = true)
+        async public static ValueTask<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
             string loglines = string.Empty;
 
@@ -288,7 +288,7 @@ namespace Lampac.Engine.CORE
                     Content = body
                 };
 
-                using (HttpResponseMessage response = await client.SendAsync(req).ConfigureAwait(configureAwait))
+                using (HttpResponseMessage response = await client.SendAsync(req).ConfigureAwait(false))
                 {
                     loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
                     foreach (var h in response.Headers)
@@ -306,7 +306,7 @@ namespace Lampac.Engine.CORE
                     {
                         if (encoding != default)
                         {
-                            string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(configureAwait));
+                            string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
                             if (string.IsNullOrWhiteSpace(res))
                                 return (null, response);
 
@@ -318,7 +318,7 @@ namespace Lampac.Engine.CORE
                         }
                         else
                         {
-                            string res = await content.ReadAsStringAsync().ConfigureAwait(configureAwait);
+                            string res = await content.ReadAsStringAsync().ConfigureAwait(false);
                             if (string.IsNullOrWhiteSpace(res))
                                 return (null, response);
 
@@ -351,28 +351,28 @@ namespace Lampac.Engine.CORE
 
 
         #region Post
-        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false)
+        public static async ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false)
         {
-            return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, removeContentType: removeContentType);
+            return await Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, removeContentType: removeContentType).ConfigureAwait(false);
         }
 
         async public static ValueTask<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
-            return (await BasePost(url, data, encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK)).content;
+            return (await BasePost(url, data, encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK).ConfigureAwait(false)).content;
         }
         #endregion
 
         #region Post<T>
         async public static ValueTask<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
         {
-            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion);
+            return await Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion).ConfigureAwait(false);
         }
 
         async public static ValueTask<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
         {
             try
             {
-                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion);
+                string json = await Post(url, data, cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -421,7 +421,7 @@ namespace Lampac.Engine.CORE
                 if (removeContentType)
                     req.Content.Headers.Remove("Content-Type");
 
-                using (HttpResponseMessage response = await client.SendAsync(req))
+                using (HttpResponseMessage response = await client.SendAsync(req).ConfigureAwait(false))
                 {
                     loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
                     foreach (var h in response.Headers)
@@ -439,7 +439,7 @@ namespace Lampac.Engine.CORE
                     {
                         if (encoding != default)
                         {
-                            string res = encoding.GetString(await content.ReadAsByteArrayAsync());
+                            string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
                             if (string.IsNullOrWhiteSpace(res))
                                 return (null, response);
 
@@ -451,7 +451,7 @@ namespace Lampac.Engine.CORE
                         }
                         else
                         {
-                            string res = await content.ReadAsStringAsync();
+                            string res = await content.ReadAsStringAsync().ConfigureAwait(false);
                             if (string.IsNullOrWhiteSpace(res))
                                 return (null, response);
 
@@ -482,14 +482,14 @@ namespace Lampac.Engine.CORE
 
 
         #region Download
-        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true, bool configureAwait = true, string factoryClient = null)
+        async public static ValueTask<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true, string factoryClient = null)
         {
-            return (await BaseDownload(url, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, statusCodeOK, useDefaultHeaders, configureAwait, factoryClient).ConfigureAwait(configureAwait)).array;
+            return (await BaseDownload(url, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, statusCodeOK, useDefaultHeaders, factoryClient).ConfigureAwait(false)).array;
         }
         #endregion
 
         #region BaseDownload
-        async public static ValueTask<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true, bool configureAwait = true, string factoryClient = null)
+        async public static ValueTask<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true, string factoryClient = null)
         {
             try
             {
@@ -501,14 +501,14 @@ namespace Lampac.Engine.CORE
                     DefaultRequestHeaders(uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders: useDefaultHeaders);
                 });
 
-                using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(configureAwait))
+                using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
                 {
                     if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                         return (null, response);
 
                     using (HttpContent content = response.Content)
                     {
-                        byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(configureAwait);
+                        byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
                         if (res == null || res.Length == 0)
                             return (null, response);
 
@@ -586,8 +586,8 @@ namespace Lampac.Engine.CORE
                 logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write, FileShare.Read);
 
             var buffer = Encoding.UTF8.GetBytes($"\n\n\n################################################################\n\n{log}");
-            await logFileStream.WriteAsync(buffer, 0, buffer.Length);
-            await logFileStream.FlushAsync();
+            await logFileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            await logFileStream.FlushAsync().ConfigureAwait(false);
         }
         #endregion
     }

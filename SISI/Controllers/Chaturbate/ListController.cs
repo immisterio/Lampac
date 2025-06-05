@@ -36,7 +36,7 @@ namespace Lampac.Controllers.Chaturbate
                     return ContentTo(rch.connectionMsg);
 
                 string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html);

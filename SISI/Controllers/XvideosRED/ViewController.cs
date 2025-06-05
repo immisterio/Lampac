@@ -25,7 +25,7 @@ namespace Lampac.Controllers.XvideosRED
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await XvideosTo.StreamLinks($"{host}/xdsred/vidosik", $"{host}/xdsred/stars", init.corsHost(), uri, 
-                    url => HttpClient.Get(url, cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), configureAwait: AppInit.conf.mikrotik)
+                    url => HttpClient.Get(url, cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)

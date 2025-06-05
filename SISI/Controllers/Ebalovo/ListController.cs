@@ -44,7 +44,7 @@ namespace Lampac.Controllers.Ebalovo
                 ));
 
                 string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers, configureAwait: AppInit.conf.mikrotik)
+                    rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
                 );
 
                 playlists = EbalovoTo.Playlist($"{host}/elo/vidosik", html);

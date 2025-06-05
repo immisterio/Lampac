@@ -128,7 +128,7 @@ namespace Lampac.Controllers
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: headers, statusCodeOK: false, configureAwait: false).ConfigureAwait(false);
+            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: headers, statusCodeOK: false).ConfigureAwait(false);
             if (result.content == null)
             {
                 proxyManager.Refresh();
@@ -233,7 +233,7 @@ namespace Lampac.Controllers
             if (init.cache_img > 0 && AppInit.conf.mikrotik == false)
             {
                 #region cache
-                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, configureAwait: false, factoryClient: "http2").ConfigureAwait(false);
+                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, factoryClient: "http2").ConfigureAwait(false);
                 if (array == null || array.Length == 0)
                 {
                     proxyManager.Refresh();
