@@ -65,7 +65,7 @@ namespace Shared.Engine.Online
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region Перевод html
-            var vtpl = new VoiceTpl();
+            var vtpl = new VoiceTpl(voices.Count);
 
             for (int i = 0; i < voices.Count; i++)
             {
@@ -96,10 +96,11 @@ namespace Shared.Engine.Online
             {
                 #region Серии
                 var etpl = new EpisodeTpl();
+                string sArhc = s.ToString();
 
                 foreach (var item in voices[t].folder[sid].folder)
                 {
-                    var streams = new List<(string link, string quality)>() { Capacity = 2 };
+                    var streams = new List<(string link, string quality)>(2);
 
                     foreach (Match m in Regex.Matches(item.file, "\\[(360|240)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
@@ -107,14 +108,16 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                        streams.Add((onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
                         continue;
 
+                    streams.Reverse();
+
                     string episode = Regex.Match(item.title, "([0-9]+)$").Groups[1].Value;
-                    etpl.Append($"{episode} cерия", title ?? original_title, s.ToString(), episode, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    etpl.Append($"{episode} cерия", title ?? original_title, sArhc, episode, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
 
                 if (rjson)

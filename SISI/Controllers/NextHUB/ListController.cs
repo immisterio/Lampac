@@ -76,7 +76,7 @@ namespace Lampac.Controllers.NextHUB
             }
 
 
-            List<MenuItem> menu = new List<MenuItem>();
+            List<MenuItem> menu = new List<MenuItem>(3);
 
             #region search
             if (init.search?.uri != null)
@@ -158,7 +158,7 @@ namespace Lampac.Controllers.NextHUB
             if (nodes == null || nodes.Count == 0)
                 return null;
 
-            var playlists = new List<PlaylistItem>() { Capacity = nodes.Count };
+            var playlists = new List<PlaylistItem>(nodes.Count);
             string eval = string.IsNullOrEmpty(parse.eval) ? null : FileCache.ReadAllText($"NextHUB/{parse.eval}");
 
             foreach (var row in nodes)

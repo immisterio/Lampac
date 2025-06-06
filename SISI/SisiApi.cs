@@ -5,6 +5,7 @@ using Lampac.Models.Module;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
@@ -17,6 +18,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -32,43 +34,53 @@ namespace SISI
         async public Task<ActionResult> Sisi(string token, bool lite)
         {
             if (lite)
-                return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+                return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), "application/javascript; charset=utf-8");
 
             var init = AppInit.conf.sisi;
-            string file = FileCache.ReadAllText("plugins/sisi.js");
+
+            string memKey = "SisiApiController:sisi.js";
+            if (!memoryCache.TryGetValue(memKey, out string infile))
+            {
+                infile = FileCache.ReadAllText("plugins/sisi.js");
+
+                if (init.appReplace != null)
+                {
+                    foreach (var r in init.appReplace)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = System.IO.File.ReadAllText(val.AsSpan(5).ToString());
+
+                        infile = Regex.Replace(infile, r.Key, val, RegexOptions.IgnoreCase);
+                    }
+                }
+
+                if (!AppInit.conf.mikrotik)
+                    memoryCache.Set(memKey, infile, TimeSpan.FromSeconds(20));
+            }
+
+            if (!string.IsNullOrEmpty(init.eval))
+                infile = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(infile, host, token, requestInfo));
+
+            var bulder = new StringBuilder(infile);
 
             if (init.component != "sisi")
-                file = file.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
+                bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
 
             if (!string.IsNullOrEmpty(init.iconame))
             {
-                file = file.Replace("Defined.use_api == 'pwa'", "true");
-                file = file.Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
+                bulder = bulder.Replace("Defined.use_api == 'pwa'", "true")
+                               .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
             }
 
-            if (init.appReplace != null)
-            {
-                foreach (var r in init.appReplace)
-                {
-                    string val = r.Value;
-                    if (val.StartsWith("file:"))
-                        val = System.IO.File.ReadAllText(val.Remove(0, 5));
-
-                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
-                }
-            }
-
-            file = file.Replace("{localhost}", host);
-            file = file.Replace("{push_all}", init.push_all.ToString().ToLower());
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            bulder = bulder.Replace("{localhost}", host)
+                           .Replace("{push_all}", init.push_all.ToString().ToLower())
+                           .Replace("{token}", HttpUtility.UrlEncode(token));
 
             if (init.forced_checkRchtype)
-                file = file.Replace("window.rchtype", "Defined.rchtype");
+                bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
 
-            if (!string.IsNullOrEmpty(init.eval))
-                file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(file, host, token, requestInfo));
-
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(bulder.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -94,7 +106,7 @@ namespace SISI
             var conf = AppInit.conf;
             JObject kitconf = await loadKitConf();
 
-            var channels = new List<ChannelItem>() 
+            var channels = new List<ChannelItem>(conf.sisi.NextHUB ? 50 : 20) 
             {
                 new ChannelItem("Закладки", $"{host}/sisi/bookmarks", 0)
             };

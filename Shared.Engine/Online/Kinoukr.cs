@@ -273,7 +273,7 @@ namespace Shared.Engine.Online
                 #region Фильм
                 onlog?.Invoke("movie");
 
-                var mtpl = new MovieTpl(title, original_title);
+                var mtpl = new MovieTpl(title, original_title, 1);
 
                 string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(hls))
@@ -309,7 +309,7 @@ namespace Shared.Engine.Online
                     if (s == -1)
                     {
                         #region Сезоны
-                        var tpl = new SeasonTpl(result.serial.Count);
+                        var tpl = new SeasonTpl();
                         var hashseason = new HashSet<string>();
 
                         foreach (var voice in result.serial)
@@ -352,6 +352,7 @@ namespace Shared.Engine.Online
                         #endregion
 
                         var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
 
                         foreach (var episode in result.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
                         {
@@ -370,7 +371,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                            etpl.Append(episode.title, title ?? original_title, sArhc, Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         if (rjson)

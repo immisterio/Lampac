@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using(var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
                         if (page == null)
                             return null;
 
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        await browser.WaitPageResult();
+                        await browser.WaitPageResult().ConfigureAwait(false);
                     }
                 }
                 catch { }

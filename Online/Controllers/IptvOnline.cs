@@ -11,7 +11,6 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -104,7 +103,7 @@ namespace Lampac.Controllers.LITE
                 if (cache.Value.Value<string>("category") == "movie")
                 {
                     #region Фильм
-                    var mtpl = new MovieTpl(title, original_title);
+                    var mtpl = new MovieTpl(title, original_title, 1);
 
                     string stream = HostStreamProxy(init, cache.Value["medias"].First.Value<string>("url") + "#.m3u8", proxy: proxy);
                     string quality = cache.Value.Value<int?>("quality")?.ToString();
@@ -142,6 +141,7 @@ namespace Lampac.Controllers.LITE
                     else
                     {
                         var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
 
                         foreach (var episode in cache.Value["medias"].First(i => i.Value<int>("season") == s).Value<JArray>("episodes"))
                         {
@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             string stream = HostStreamProxy(init, file, proxy: proxy);
-                            etpl.Append(name ?? $"{episode.Value<int>("episode")} серия", title ?? original_title, s.ToString(), episode.Value<int>("episode").ToString(), stream, vast: init.vast);
+                            etpl.Append(name ?? $"{episode.Value<int>("episode")} серия", title ?? original_title, sArhc, episode.Value<int>("episode").ToString(), stream, vast: init.vast);
                         }
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();
@@ -171,6 +171,9 @@ namespace Lampac.Controllers.LITE
 
             if (!hybridCache.TryGetValue(memKey, out JToken data))
             {
+                string stitle = StringConvert.SearchName(title);
+                string sorigtitle = StringConvert.SearchName(original_title);
+
                 async ValueTask<JToken> goSearch(string search)
                 {
                     if (string.IsNullOrEmpty(search))
@@ -212,15 +215,15 @@ namespace Lampac.Controllers.LITE
 
                     foreach (var item in video["data"])
                     {
-                        if (StringConvert.SearchName(original_title) != null)
+                        if (sorigtitle != null)
                         {
-                            if (StringConvert.SearchName(item.Value<string>("orig_title")) == StringConvert.SearchName(original_title))
+                            if (StringConvert.SearchName(item.Value<string>("orig_title")) == sorigtitle)
                                 return item;
                         }
 
-                        if (StringConvert.SearchName(title) != null)
+                        if (stitle != null)
                         {
-                            if (StringConvert.SearchName(item.Value<string>("ru_title")) == StringConvert.SearchName(title))
+                            if (StringConvert.SearchName(item.Value<string>("ru_title")) == stitle)
                                 return item;
                         }
                     }

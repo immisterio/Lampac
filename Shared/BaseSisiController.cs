@@ -104,7 +104,7 @@ namespace SISI
         #endregion
 
         #region OnResult
-        public JsonResult OnResult(List<PlaylistItem> playlists, BaseSettings conf, List<MenuItem> menu, WebProxy proxy = null, int total_pages = 0)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, BaseSettings conf, IList<MenuItem> menu, WebProxy proxy = null, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
@@ -138,7 +138,7 @@ namespace SISI
             });
         }
 
-        public JsonResult OnResult(List<PlaylistItem> playlists, List<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);

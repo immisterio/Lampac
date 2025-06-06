@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
 
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(player.media.First()?.max_quality?.ToString());
+                    var tpl = new SeasonTpl(player.media.First()?.max_quality?.ToString(), player.media.Count);
 
                     foreach (var media in player.media.OrderBy(s => s.season_id))
                     {
@@ -160,6 +160,7 @@ namespace Lampac.Controllers.LITE
                         t = "0";
 
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
                     foreach (var media in player.media)
                     {
@@ -177,7 +178,7 @@ namespace Lampac.Controllers.LITE
                                 string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&hash={hash}&serial=true");
                                 string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
-                                etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, "call", streamlink: streamlink);
+                                etpl.Append($"{episode.episode_id} серия", title ?? original_title, sArhc, episode.episode_id.ToString(), link, "call", streamlink: streamlink);
                             }
                         }
                     }

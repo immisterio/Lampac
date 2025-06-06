@@ -9,7 +9,11 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                return data.Substring(0, data.IndexOf(end));
+                int endtIndex = data.IndexOf(end);
+                if (endtIndex == -1)
+                    return null;
+
+                return data.AsSpan(0, endtIndex).ToString();
             }
             catch
             {
@@ -23,7 +27,13 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                string res = data.Substring(data.IndexOf(start));
+                int startIndex = data.IndexOf(start);
+                if (startIndex == -1)
+                    return null;
+
+                var resSpan = data.AsSpan(startIndex);
+                string res = resSpan.ToString();
+
                 if (end == null)
                     return res;
 

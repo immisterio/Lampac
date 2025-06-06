@@ -4,7 +4,7 @@ namespace Shared.Model.SISI
 {
     public class OnListResult
     {
-        public List<MenuItem>? menu { get; set; }
+        public IList<MenuItem>? menu { get; set; }
 
         public int total_pages { get; set; }
 

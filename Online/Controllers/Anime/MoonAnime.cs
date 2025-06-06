@@ -156,6 +156,7 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
                     foreach (var voices in root)
                     {
@@ -166,7 +167,7 @@ namespace Lampac.Controllers.LITE
 
                             foreach (var season in voice.Value)
                             {
-                                if (season.Key != s.ToString())
+                                if (season.Key != sArhc)
                                     continue;
 
                                 foreach (var folder in season.Value)
@@ -177,7 +178,7 @@ namespace Lampac.Controllers.LITE
                                     string link = $"{host}/lite/moonanime/video?vod={HttpUtility.UrlEncode(vod)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}";
                                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                                    etpl.Append($"{episode} серия", title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
+                                    etpl.Append($"{episode} серия", title, sArhc, episode.ToString(), link, "call", streamlink: streamlink);
                                 }
                             }
                         }

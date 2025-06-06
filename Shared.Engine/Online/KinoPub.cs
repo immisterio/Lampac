@@ -58,8 +58,10 @@ namespace Shared.Engine.Online
                     var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
                     if (items != null)
                     {
-                        var ids = new List<int>();
+                        var ids = new List<int>(items.Count);
                         var result = new SearchResult() { similars = new SimilarTpl(items.Count) };
+
+                        string? _q = StringConvert.SearchName(q);
 
                         foreach (var item in items)
                         {
@@ -73,7 +75,6 @@ namespace Shared.Engine.Online
                                 if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                                 {
                                     string? _t = StringConvert.SearchName(item.title);
-                                    string? _q = StringConvert.SearchName(q);
 
                                     if (!string.IsNullOrEmpty(_t) && !string.IsNullOrEmpty(_q))
                                     {
@@ -140,7 +141,7 @@ namespace Shared.Engine.Online
                 {
                     foreach (var a in root.item.videos[0].audios)
                     {
-                        var streams = new List<(string link, string quality)>(4);
+                        var streams = new List<(string link, string quality)>(5);
 
                         foreach (var f in root.item.videos[0].files)
                         {
@@ -156,7 +157,7 @@ namespace Shared.Engine.Online
                             voice += $" ({a.author.title})";
 
                         #region subtitle
-                        var subtitles = new SubtitleTpl();
+                        var subtitles = new SubtitleTpl(root.item.videos[0]?.subtitles?.Count ?? 0);
 
                         if (root.item.videos[0].subtitles != null)
                         {
@@ -214,7 +215,7 @@ namespace Shared.Engine.Online
                                 continue;
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl();
+                            var subtitles = new SubtitleTpl(v.subtitles?.Count ?? 0);
 
                             if (v.subtitles != null)
                             {
@@ -247,7 +248,7 @@ namespace Shared.Engine.Online
                 if (s == -1)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(root.item.quality > 0 ? $"{root.item.quality}p" : null);
+                    var tpl = new SeasonTpl(root.item.quality > 0 ? $"{root.item.quality}p" : null, root.item.seasons.Count);
 
                     foreach (var season in root.item.seasons)
                     {
@@ -261,6 +262,8 @@ namespace Shared.Engine.Online
                 else
                 {
                     #region Серии
+                    string sArhc = s.ToString();
+
                     if (filetype == "hls")
                     {
                         #region Перевод
@@ -340,7 +343,7 @@ namespace Shared.Engine.Online
                                     break;
                             }
 
-                            var streams = new List<(string link, string quality)>(4);
+                            var streams = new List<(string link, string quality)>(5);
 
                             foreach (var f in episode.files)
                             {
@@ -352,7 +355,7 @@ namespace Shared.Engine.Online
                                 continue;
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl();
+                            var subtitles = new SubtitleTpl(episode.subtitles?.Count ?? 0);
 
                             if (episode.subtitles != null)
                             {
@@ -364,7 +367,7 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast);
+                            etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast);
                         }
                         #endregion
 
@@ -375,9 +378,11 @@ namespace Shared.Engine.Online
                     }
                     else
                     {
-                        var etpl = new EpisodeTpl();
+                        var episodes = root.item.seasons.First(i => i.number == s).episodes;
 
-                        foreach (var episode in root.item.seasons.First(i => i.number == s).episodes)
+                        var etpl = new EpisodeTpl(episodes.Count);
+
+                        foreach (var episode in episodes)
                         {
                             #region voicename
                             string voicename = string.Empty;
@@ -400,7 +405,7 @@ namespace Shared.Engine.Online
                                 if (episode.files[0].url.hls4 == null)
                                     continue;
 
-                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename, vast: vast);
+                                etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename, vast: vast);
                             }
                             else
                             {
@@ -408,7 +413,7 @@ namespace Shared.Engine.Online
                                     continue;
 
                                 #region subtitle
-                                var subtitles = new SubtitleTpl();
+                                var subtitles = new SubtitleTpl(episode.subtitles?.Count ?? 0);
 
                                 if (episode.subtitles != null)
                                 {
@@ -421,7 +426,7 @@ namespace Shared.Engine.Online
                                 #endregion
 
                                 #region streams
-                                var streams = new List<(string link, string quality)>() { Capacity = episode.files.Count };
+                                var streams = new List<(string link, string quality)>(episode.files.Count);
 
                                 foreach (var f in episode.files)
                                 {
@@ -431,7 +436,7 @@ namespace Shared.Engine.Online
                                 #endregion
 
                                 string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
-                                etpl.Append($"{episode.number} серия", title ?? original_title, s.ToString(), episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams), vast: vast);
+                                etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams), vast: vast);
                             }
                         }
 

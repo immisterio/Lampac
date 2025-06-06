@@ -144,12 +144,12 @@ namespace Lampac.Controllers.LITE
 
                 string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
-                streams = new List<(string q, string url)>();
+                streams = new List<(string q, string url)>(4);
                 var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
                 while (match.Success)
                 {
                     if (!string.IsNullOrWhiteSpace(match.Groups[3].Value))
-                        streams.Insert(0, ($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
+                        streams.Add(($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
 
                     match = match.NextMatch();
                 }
@@ -159,6 +159,8 @@ namespace Lampac.Controllers.LITE
                     proxyManager.Refresh();
                     return Content(string.Empty);
                 }
+
+                streams.Reverse();
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, streams, cacheTime(20, init: init));

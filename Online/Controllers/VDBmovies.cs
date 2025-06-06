@@ -22,6 +22,8 @@ namespace Lampac.Controllers.LITE
     {
         public static List<MovieDB> database = null;
 
+        static string referer = CrypTo.DecodeBase64("aHR0cHM6Ly9tb3ZpZWJvb20uc3RvcmUv");
+
         [HttpGet]
         [Route("lite/vdbmovies")]
         async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
@@ -55,6 +57,9 @@ namespace Lampac.Controllers.LITE
 
                 var stpl = new SimilarTpl();
 
+                string stitle = StringConvert.SearchName(title);
+                string sorigtitle = StringConvert.SearchName(original_title);
+
                 foreach (var j in database)
                 {
                     if (stpl.data.Count > 100)
@@ -70,20 +75,20 @@ namespace Lampac.Controllers.LITE
 
                     if (!IsOkID)
                     {
-                        if (StringConvert.SearchName(original_title) != null && StringConvert.SearchName(j.orig_title) == StringConvert.SearchName(original_title))
+                        if (sorigtitle != null && StringConvert.SearchName(j.orig_title) == sorigtitle)
                             IsOkTitle = true;
 
-                        if (!IsOkTitle && StringConvert.SearchName(title) != null)
+                        if (!IsOkTitle && stitle != null)
                         {
                             if (StringConvert.SearchName(j.ru_title) != null)
                             {
-                                if (StringConvert.SearchName(j.ru_title).Contains(StringConvert.SearchName(title)))
+                                if (StringConvert.SearchName(j.ru_title).Contains(stitle))
                                     IsOkTitle = true;
                             }
 
                             if (!IsOkTitle && StringConvert.SearchName(j.orig_title) != null)
                             {
-                                if (StringConvert.SearchName(j.orig_title).Contains(StringConvert.SearchName(title)))
+                                if (StringConvert.SearchName(j.orig_title).Contains(stitle))
                                     IsOkTitle = true;
                             }
                         }
@@ -113,8 +118,6 @@ namespace Lampac.Controllers.LITE
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
-
-                string referer = CrypTo.DecodeBase64("aHR0cHM6Ly9tb3ZpZWJvb20uc3RvcmUv");
 
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
                 if (!string.IsNullOrEmpty(orid))
@@ -157,12 +160,12 @@ namespace Lampac.Controllers.LITE
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
                     browser.failedUrl = uri;
-                    await page.SetExtraHTTPHeadersAsync(headers.ToDictionary());
+                    await page.SetExtraHTTPHeadersAsync(headers.ToDictionary()).ConfigureAwait(false);
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -208,7 +211,7 @@ namespace Lampac.Controllers.LITE
                     });
 
                     PlaywrightBase.GotoAsync(page, referer);
-                    return await browser.WaitPageResult();
+                    return await browser.WaitPageResult().ConfigureAwait(false);
                 }
             }
             catch { return null; }

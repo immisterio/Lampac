@@ -30,7 +30,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrEmpty(token))
                 file = Regex.Replace(file, "Lampa.Storage.set\\('torrserver_login'[^\n\r]+", $"Lampa.Storage.set('torrserver_login','{HttpUtility.UrlEncode(token)}');");
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 

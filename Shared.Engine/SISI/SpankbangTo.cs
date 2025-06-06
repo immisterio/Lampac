@@ -28,18 +28,17 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>() { Capacity = 105 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
-            foreach (string row in html.Split("class=\"video-item\"").Skip(1))
+            var rows = html.Split("class=\"video-item\"");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
-                var g = Regex.Match(row, "<a href=\"/([^\"]+)\" title=\"([^\"]+)\"").Groups;
-                string link = g[1].Value;
-                string title = g[2].Value;
+                var g = Regex.Match(row, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"").Groups;
 
-                if (!string.IsNullOrWhiteSpace(link) && !string.IsNullOrWhiteSpace(title))
+                if (!string.IsNullOrWhiteSpace(g["link"].Value) && !string.IsNullOrWhiteSpace(g["title"].Value))
                 {
                     string quality = Regex.Match(row, "<span class=\"video-badge h\">([^<]+)</span>").Groups[1].Value;
                     string duration = Regex.Match(row, "<span class=\"video-badge l\">([^<]+)</span>").Groups[1].Value.Trim();
@@ -48,8 +47,8 @@ namespace Shared.Engine.SISI
 
                     var pl = new PlaylistItem()
                     {
-                        name = title,
-                        video = $"{uri}?uri={link}",
+                        name = g["title"].Value,
+                        video = $"{uri}?uri={g["link"].Value}",
                         quality = string.IsNullOrEmpty(quality) ? null : quality,
                         picture = img,
                         preview = Regex.Match(row, "data-preview=\"([^\"]+)\"").Groups[1].Value,
@@ -59,7 +58,7 @@ namespace Shared.Engine.SISI
                         bookmark = new Bookmark()
                         {
                             site = "sbg",
-                            href = link,
+                            href = g["link"].Value,
                             image = img
                         }
                     };

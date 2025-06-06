@@ -51,7 +51,10 @@ namespace Shared.Engine.Online
 
                 onlog?.Invoke("search ok");
 
-                foreach (string row in search.Split("<article ").Skip(1))
+                var rows = search.Split("<article ");
+                string? stitle = original_title?.ToLower();
+
+                foreach (string row in rows.Skip(1))
                 {
                     if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
                         continue;
@@ -64,7 +67,7 @@ namespace Shared.Engine.Online
 
                     string name = g[3].Value.Replace("&bull;", "").ToLower().Trim();
                     if (result.similars == null)
-                        result.similars = new List<Similar>();
+                        result.similars = new List<Similar>(rows.Length);
 
                     result.similars.Add(new Similar()
                     {
@@ -73,7 +76,7 @@ namespace Shared.Engine.Online
                         href = newslink
                     });
 
-                    if (name == original_title?.ToLower())
+                    if (name == stitle)
                     {
                         reservedlink = newslink;
 

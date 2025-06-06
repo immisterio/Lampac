@@ -62,7 +62,8 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                    catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>();
+                    string stitle = StringConvert.SearchName(title);
+                    catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>(search["data"].Count());
 
                     foreach (var anime in search["data"])
                     {
@@ -81,7 +82,7 @@ namespace Lampac.Controllers.LITE
 
                         var model = ($"{rus_name} / {eng_name}", (releaseDate != null ? releaseDate.Split("-")[0] : "0"), slug_url, false, img);
 
-                        if (StringConvert.SearchName(title) == StringConvert.SearchName(rus_name) || StringConvert.SearchName(title) == StringConvert.SearchName(eng_name))
+                        if (stitle == StringConvert.SearchName(rus_name) || stitle == StringConvert.SearchName(eng_name))
                         {
                             if (!string.IsNullOrEmpty(releaseDate) && releaseDate.StartsWith(year.ToString()))
                                 model.Item4 = true;
@@ -157,7 +158,7 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memKey, players, cacheTime(30, init: init));
                 }
 
-                var vtpl = new VoiceTpl();
+                var vtpl = new VoiceTpl(players.Count);
                 string activTranslate = t;
 
                 foreach (var player in players)
@@ -174,7 +175,7 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                var etpl = new EpisodeTpl();
+                var etpl = new EpisodeTpl(episodes.Count);
 
                 foreach (var episode in episodes)
                 {
@@ -242,7 +243,7 @@ namespace Lampac.Controllers.LITE
 
             List<(string link, string quality)> goStreams(string _voice)
             {
-                var _streams = new List<(string link, string quality)>() { Capacity = 5 };
+                var _streams = new List<(string link, string quality)>(5);
 
                 foreach (var player in cache.Value)
                 {

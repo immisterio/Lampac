@@ -20,10 +20,12 @@ namespace Lampac.Controllers
             if (!AppInit.conf.ffprobe.enable)
                 return Content(string.Empty);
 
-            string file = FileCache.ReadAllText("plugins/tracks.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/tracks.js"));
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            sb.Replace("{localhost}", host)
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
 
 

@@ -103,7 +103,7 @@ namespace Shared.Engine.Online
             if (content == null || content.IsEmpty)
                 return string.Empty;
 
-            var mtpl = new MovieTpl(title, null);
+            var mtpl = new MovieTpl(title, null, 1);
 
             mtpl.Append("1080p", onstreamfile(content.iframe.Replace("&amp;", "&")));
 

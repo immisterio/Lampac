@@ -4,7 +4,7 @@ namespace Shared.Model.Templates
 {
     public class StreamQualityTpl
     {
-        List<(string link, string quality)> data = new List<(string, string)>();
+        List<(string link, string quality)> data = new List<(string, string)>(8);
 
         public StreamQualityTpl() { }
 

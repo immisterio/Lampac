@@ -171,6 +171,7 @@ namespace Lampac.Controllers.LITE
 
                     #region Серии
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
                     foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
                     {
@@ -189,7 +190,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         int e = episode.Value<int>("episode");
-                        etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                        etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
                     }
                     #endregion
 

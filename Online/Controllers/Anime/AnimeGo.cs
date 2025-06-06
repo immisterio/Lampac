@@ -41,9 +41,11 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string year, string pid, string s, string img)>();
+                    var rows = search.Split("class=\"p-poster__stack\"");
 
-                    foreach (string row in search.Split("class=\"p-poster__stack\"").Skip(1))
+                    catalog = new List<(string title, string year, string pid, string s, string img)>(rows.Length);
+
+                    foreach (string row in rows.Skip(1))
                     {
                         string player_id = Regex.Match(row, "data-ajax-url=\"/[^\"]+-([0-9]+)\"").Groups[1].Value;
                         string name = Regex.Match(row, "card-title text-truncate\"><a [^>]+>([^<]+)<").Groups[1].Value;
@@ -111,8 +113,9 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     #region links
-                    cache.links = new List<(string episode, string uri)>();
                     var match = Regex.Match(content, "data-episode=\"([0-9]+)\"");
+                    cache.links = new List<(string episode, string uri)>(match.Length);
+
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value))
@@ -126,10 +129,11 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     #region translation / translations
-                    cache.translation = g[4].Value;
-                    cache.translations = new List<(string name, string id)>();
-
                     match = Regex.Match(content, "data-player=\"(https?:)?//aniboom\\.[^/]+/embed/[^\"\\?&]+\\?episode=[0-9]+\\&amp;translation=([0-9]+)\"[\n\r\t ]+data-provider=\"[0-9]+\"[\n\r\t ]+data-provide-dubbing=\"([0-9]+)\"");
+
+                    cache.translation = g[4].Value;
+                    cache.translations = new List<(string name, string id)>(match.Length);
+
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[2].Value) && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
@@ -148,7 +152,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 #region Перевод
-                var vtpl = new VoiceTpl();
+                var vtpl = new VoiceTpl(cache.translations.Count);
                 if (string.IsNullOrWhiteSpace(t))
                     t = cache.translation;
 
@@ -159,13 +163,14 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                var etpl = new EpisodeTpl();
+                var etpl = new EpisodeTpl(cache.links.Count);
+                string sArhc = s.ToString();
 
                 foreach (var l in cache.links)
                 {
                     string hls = accsArgs($"{host}/lite/animego/{l.uri}&t={t ?? cache.translation}");
 
-                    etpl.Append($"{l.episode} серия", title, s.ToString(), l.episode, hls, "play", headers: headers_stream);
+                    etpl.Append($"{l.episode} серия", title, sArhc, l.episode, hls, "play", headers: headers_stream);
                 }
 
                 if (rjson)

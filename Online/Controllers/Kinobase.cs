@@ -89,7 +89,7 @@ namespace Lampac.Controllers.LITE
             {
                 using (var browser = new PlaywrightBrowser())
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy, headers: init.headers);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy, headers: init.headers).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
@@ -103,7 +103,7 @@ namespace Lampac.Controllers.LITE
                             Path = "/",
                             Expires = 2220002226
                         }
-                    });
+                    }).ConfigureAwait(false);
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -134,8 +134,8 @@ namespace Lampac.Controllers.LITE
                     });
 
                     PlaywrightBase.GotoAsync(page, uri);
-                    await page.WaitForSelectorAsync(".uppod-media");
-                    string content = await page.ContentAsync();
+                    await page.WaitForSelectorAsync(".uppod-media").ConfigureAwait(false);
+                    string content = await page.ContentAsync().ConfigureAwait(false);
 
                     PlaywrightBase.WebLog("GET", uri, content, proxy);
                     return content;

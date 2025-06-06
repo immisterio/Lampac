@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(data.Count);
+                    var tpl = new SeasonTpl();
                     var tmp_season = new HashSet<string>();
 
                     foreach (var voice in data)
@@ -96,12 +96,14 @@ namespace Lampac.Controllers.LITE
                     string iframe = HttpUtility.UrlEncode(data[t].Value<string>("iframe_url"));
                     string translator = HttpUtility.UrlEncode(data[t].Value<string>("translator"));
 
+                    string sArhc = s.ToString();
+
                     foreach (int episode in data[t].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s).Value<JArray>("episodes").ToObject<List<int>>())
                     {
                         string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={s}&e={episode}";
                         string streamlink = accsArgs($"{link.Replace("/serial", "/serial.m3u8")}&play=true");
 
-                        etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
+                        etpl.Append($"{episode} серия", title ?? original_title, sArhc, episode.ToString(), link, "call", streamlink: streamlink);
                     }
 
                     if (rjson)
@@ -284,7 +286,7 @@ namespace Lampac.Controllers.LITE
 
             return OnResult(cache, () =>
             {
-                var hash = new HashSet<long>();
+                var hash = new HashSet<long>(cache.Value.Count);
                 var stpl = new SimilarTpl(cache.Value.Count);
 
                 foreach (var j in cache.Value)

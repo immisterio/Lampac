@@ -260,7 +260,7 @@ namespace Shared.Engine.Online
                         name = "По умолчанию";
                     }
 
-                    var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                    var streams = new List<(string link, string quality)>(4);
 
                     foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
@@ -273,11 +273,13 @@ namespace Shared.Engine.Online
                         else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        streams.Insert(0, (onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
+                        streams.Add((onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
                         continue;
+
+                    streams.Reverse();
 
                     mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
                 }
@@ -306,7 +308,7 @@ namespace Shared.Engine.Online
                                 seasons.Add(season.id);
                         }
 
-                        var tpl = new SeasonTpl(result.quality);
+                        var tpl = new SeasonTpl(result.quality, seasons.Count);
 
                         foreach (int id in seasons.OrderBy(s => s))
                         {
@@ -343,11 +345,12 @@ namespace Shared.Engine.Online
                         if (season.folder == null)
                             return string.Empty;
 
-                        var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
+                        var etpl = new EpisodeTpl(season.folder.Count);
 
                         foreach (var episode in season.folder)
                         {
-                            var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                            var streams = new List<(string link, string quality)>(4);
                             foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                             {
                                 string link = m.Groups[2].Value;
@@ -359,15 +362,17 @@ namespace Shared.Engine.Online
                                 else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                streams.Insert(0, (onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
+                                streams.Add((onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)
                                 continue;
 
+                            streams.Reverse();
+
                             string e = episode.id.Split("_")[1];
 
-                            etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
 
                         if (rjson)

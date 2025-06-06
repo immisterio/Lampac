@@ -9,11 +9,12 @@ namespace Shared.Model.Templates
 {
     public class EpisodeTpl
     {
-        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?, int?)>();
+        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
 
-        public EpisodeTpl() { }
-
-        public EpisodeTpl(int capacity) { data.Capacity = capacity; }
+        public EpisodeTpl(int capacity = 20) 
+        {
+            data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?, int?)>(capacity);
+        }
 
         public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
         {

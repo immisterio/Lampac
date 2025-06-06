@@ -1,5 +1,4 @@
 ﻿using Lampac.Models.SISI;
-using Shared.Model;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -58,14 +57,15 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>() { Capacity = 50 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
             string section = html.Contains("mixed-section") ? html.Split("mixed-section")[1] : html;
 
-            foreach (string row in Regex.Split(section, "(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)").Skip(1))
+            var rows = Regex.Split(section, "(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(row) || row.Contains("badge_premium"))
                     continue;
@@ -76,13 +76,9 @@ namespace Shared.Engine.SISI
 
                 if (!string.IsNullOrEmpty(href) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string duration = Regex.Match(row, "<div class=\"thumb-image-container__duration\">([^<]+)</div>").Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(duration))
-                    {
-                        duration = Regex.Match(row, "<span (data-role-video-duration|data-role=\"video-duration\")>([^<]+)</span>").Groups[2].Value;
-                        if (string.IsNullOrWhiteSpace(duration))
-                            duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
-                    }
+                    string duration = Regex.Match(row, "data-role=\"video-duration\"><[^>]+>([^<]+)").Groups[1].Value;
+                    if (string.IsNullOrEmpty(duration))
+                        duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
 
                     string img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
                     if (!img.StartsWith("http"))

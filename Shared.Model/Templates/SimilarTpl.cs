@@ -7,11 +7,9 @@ namespace Shared.Model.Templates
 {
     public class SimilarTpl
     {
-        public List<(string title, string year, string details, string link, string? img)> data { get; set; } = new List<(string, string, string, string, string?)>();
+        public List<(string title, string year, string details, string link, string? img)> data;
 
-        public SimilarTpl() { }
-
-        public SimilarTpl(int capacity) { data.Capacity = capacity; }
+        public SimilarTpl(int capacity = 20) { data = new List<(string, string, string, string, string?)>(capacity); }
 
 
         public string OnlineSplit => "{prestige-split}";

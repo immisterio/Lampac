@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/rutubemovie")]
-        async public Task<ActionResult> Index(string title, int year, int serial, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.RutubeMovie);
             if (await IsBadInitialization(init, rch: true))
@@ -54,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
                 return OnResult(cache, () =>
                 {
-                    var mtpl = new MovieTpl(title);
+                    var mtpl = new MovieTpl(title, original_title, cache.Value.Count);
 
                     foreach (var movie in cache.Value)
                     {

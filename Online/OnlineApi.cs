@@ -76,7 +76,8 @@ namespace Lampac.Controllers
                 if (!string.IsNullOrEmpty(init.apn))
                     cache.infile = Regex.Replace(cache.infile, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-                memoryCache.Set(memKey, cache, TimeSpan.FromMinutes(1));
+                if (!AppInit.conf.mikrotik)
+                    memoryCache.Set(memKey, cache, TimeSpan.FromSeconds(20));
             }
 
             var bulder = new StringBuilder();
@@ -127,10 +128,12 @@ namespace Lampac.Controllers
         [Route("lite/js/{token}")]
         public ActionResult Lite(string token)
         {
-            string file = FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite");
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/lite.js"));
 
-            return Content(file, "application/javascript; charset=utf-8");
+            sb.Replace("{localhost}", $"{host}/lite")
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -212,7 +215,7 @@ namespace Lampac.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token) || LITE.Lumex.database != null)
                 {
                     if (LITE.Lumex.database == null && AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
                         LITE.Lumex.database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
@@ -220,7 +223,7 @@ namespace Lampac.Controllers
                     if (LITE.Lumex.database == null)
                         return null;
 
-                    long? res = LITE.Lumex.database.FirstOrDefault(i => i.imdb_id == imdb)?.kinopoisk_id;
+                    long? res = LITE.Lumex.database.Find(i => i.imdb_id == imdb)?.kinopoisk_id;
                     if (res > 0)
                         return res.ToString();
 
@@ -515,7 +518,7 @@ namespace Lampac.Controllers
         [Route("lite/events")]
         async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
-            var online = new List<(dynamic init, string name, string url, string plugin, int index)>(20);
+            var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
 
             #region fix title

@@ -487,7 +487,7 @@ namespace Lampac.Engine
                 if (Regex.IsMatch(AppInit.conf.kit.path, "^https?://"))
                 {
                     string uri = AppInit.conf.kit.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
-                    json = await HttpClient.Get(uri, timeoutSeconds: 5);
+                    json = await HttpClient.Get(uri, timeoutSeconds: 5).ConfigureAwait(false);
                 }
                 else
                 {

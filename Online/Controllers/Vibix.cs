@@ -84,7 +84,7 @@ namespace Lampac.Controllers.LITE
                 #region Фильм
                 return OnResult(cache, () => 
                 {
-                    var mtpl = new MovieTpl(title, original_title);
+                    var mtpl = new MovieTpl(title, original_title, 1);
 
                     var streams = new StreamQualityTpl();
 
@@ -130,6 +130,7 @@ namespace Lampac.Controllers.LITE
                     else
                     {
                         var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
 
                         foreach (var season in cache.Value.serial)
                         {
@@ -154,7 +155,7 @@ namespace Lampac.Controllers.LITE
                                 }
 
                                 if (streams.Any())
-                                    etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "([0-9]+)").Groups[1].Value, streams.Firts().link, streamquality: streams, vast: init.vast);
+                                    etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "([0-9]+)").Groups[1].Value, streams.Firts().link, streamquality: streams, vast: init.vast);
                             }
                         }
 

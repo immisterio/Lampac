@@ -106,7 +106,11 @@ namespace Shared.Engine.Online
 
             log("search OK");
 
-            foreach (string row in search.Split("\"b-content__inline_item\"").Skip(1))
+            string? stitle = title?.ToLower();
+            string? sorigtitle = original_title?.ToLower();
+
+            var rows = search.Split("\"b-content__inline_item\"");
+            foreach (string row in rows.Skip(1))
             {
                 var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
 
@@ -115,13 +119,13 @@ namespace Shared.Engine.Online
 
                 string name = g[2].Value.ToLower().Trim();
                 if (result.similar == null)
-                    result.similar = new List<SimilarModel>();
+                    result.similar = new List<SimilarModel>(rows.Length);
 
                 string? img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
                 result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
 
-                if ((title != null && (name.Contains(" / ") && name.Contains(title.ToLower()) || name == title.ToLower())) || 
-                    (original_title != null && (name.Contains(" / ") && name.Contains(original_title.ToLower()) || name == original_title.ToLower())))
+                if ((stitle != null && (name.Contains(" / ") && name.Contains(stitle) || name == stitle)) || 
+                    (sorigtitle != null && (name.Contains(" / ") && name.Contains(sorigtitle.ToLower()) || name == sorigtitle.ToLower())))
                 {
                     reservedlink = g[1].Value;
 
@@ -264,9 +268,10 @@ namespace Shared.Engine.Online
             if (!result.content.Contains("data-season_id="))
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
-
                 var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>(?<voice>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(result.content);
+
+                var mtpl = new MovieTpl(title, original_title, match.Length);
+
                 if (match.Success)
                 {
                     while (match.Success)
@@ -359,6 +364,8 @@ namespace Shared.Engine.Online
                 var etpl = new EpisodeTpl();
                 HashSet<string> eshash = new HashSet<string>();
 
+                string sArhc = s.ToString();
+
                 var m = Regex.Match(result.content, "data-cdn_url=\"(?<cdn>[^\"]+)\" [^>]+ data-season_id=\"(?<season>[0-9]+)\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^>]+)</[a-z]+>");
                 while (m.Success)
                 {
@@ -390,7 +397,7 @@ namespace Shared.Engine.Online
                                 stream += args;
                             }
 
-                            etpl.Append(m.Groups["name"].Value, title ?? original_title, s.ToString(), m.Groups["episode"].Value, link, "call", streamlink: stream);
+                            etpl.Append(m.Groups["name"].Value, title ?? original_title, sArhc, m.Groups["episode"].Value, link, "call", streamlink: stream);
                         }
                         #endregion
                     }
@@ -537,6 +544,8 @@ namespace Shared.Engine.Online
                 #region Серии
                 var etpl = new EpisodeTpl();
 
+                string sArhc = s.ToString();
+
                 var m = new Regex($"data-season_id=\"{s}\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^<]+)</li>").Match(root.episodes);
                 while (m.Success)
                 {
@@ -545,7 +554,7 @@ namespace Shared.Engine.Online
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups["episode"].Value}";
                         string stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
 
-                        etpl.Append(m.Groups["name"].Value, title ?? original_title, s.ToString(), m.Groups["episode"].Value, link, "call", streamlink: (showstream ? $"{stream}{args}" : null));
+                        etpl.Append(m.Groups["name"].Value, title ?? original_title, sArhc, m.Groups["episode"].Value, link, "call", streamlink: (showstream ? $"{stream}{args}" : null));
                     }
 
                     m = m.NextMatch();

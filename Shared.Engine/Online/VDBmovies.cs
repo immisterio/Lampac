@@ -162,15 +162,20 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(m.file))
                         continue;
 
-                    var streams = new List<(string link, string quality)>() { Capacity = 5 };
+                    var streams = new List<(string link, string quality)>(5);
                     foreach (Match mf in Regex.Matches(m.file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
                     {
                         string link = mf.Groups[2].Value;
                         if (!usehls)
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        streams.Insert(0, (onstreamfile.Invoke(link), mf.Groups[1].Value));
+                        streams.Add((onstreamfile.Invoke(link), mf.Groups[1].Value));
                     }
+
+                    if (streams.Count == 0)
+                        continue;
+
+                    streams.Reverse();
 
                     mtpl.Append(m.title, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
@@ -187,7 +192,7 @@ namespace Shared.Engine.Online
                 if (s == -1)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(root.quality);
+                    var tpl = new SeasonTpl(root.quality, root.serial.Count);
 
                     for (int i = 0; i < root.serial.Count; i++)
                     {
@@ -209,6 +214,8 @@ namespace Shared.Engine.Online
 
                     var hashvoices = new HashSet<string>();
 
+                    string sArhc = s.ToString();
+
                     foreach (var episode in root.serial[sid].folder)
                     {
                         string ename = Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value;
@@ -228,17 +235,22 @@ namespace Shared.Engine.Online
                             if (perevod != t)
                                 continue;
 
-                            var streams = new List<(string link, string quality)>() { Capacity = 5 };
+                            var streams = new List<(string link, string quality)>(5);
                             foreach (Match mf in Regex.Matches(voice.file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
                             {
                                 string link = mf.Groups[2].Value;
                                 if (!usehls)
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                streams.Insert(0, (onstreamfile.Invoke(link), mf.Groups[1].Value));
+                                streams.Add((onstreamfile.Invoke(link), mf.Groups[1].Value));
                             }
 
-                            etpl.Append($"{ename} cерия", title ?? original_title, s.ToString(), ename, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                            if (streams.Count == 0)
+                                continue;
+
+                            streams.Reverse();
+
+                            etpl.Append($"{ename} cерия", title ?? original_title, sArhc, ename, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                         }
                     }
 

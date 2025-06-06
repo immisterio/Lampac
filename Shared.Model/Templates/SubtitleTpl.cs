@@ -4,11 +4,9 @@ namespace Shared.Model.Templates
 {
     public class SubtitleTpl
     {
-        List<(string label, string url)> data = new List<(string, string)>();
+        List<(string label, string url)> data;
 
-        public SubtitleTpl() { }
-
-        public SubtitleTpl(int capacity) { data.Capacity = capacity; }
+        public SubtitleTpl(int capacity = 10) { data = new List<(string, string)>(capacity); }
 
         public bool IsEmpty() => data.Count == 0;
 

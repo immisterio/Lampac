@@ -86,7 +86,7 @@ namespace Lampac.Controllers.LITE
             if (cache.iframe != null)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
+                var mtpl = new MovieTpl(title, original_title, 1);
                 mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}"), vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -112,12 +112,15 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
+                    var videos = cache.seasons.First(i => i.Key == sArhc).Value["videos"].ToObject<Dictionary<string, JObject>>();
 
-                    foreach (var video in cache.seasons.First(i => i.Key == s.ToString()).Value["videos"].ToObject<Dictionary<string, JObject>>())
+                    var etpl = new EpisodeTpl(videos.Count);
+
+                    foreach (var video in videos)
                     {
                         string iframe = video.Value.Value<string>("iframe");
-                        etpl.Append($"{video.Key} серия", title ?? original_title, s.ToString(), video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), vast: init.vast);
+                        etpl.Append($"{video.Key} серия", title ?? original_title, sArhc, video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -171,11 +174,11 @@ namespace Lampac.Controllers.LITE
                         #region PlaywrightBrowser
                         using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers?.ToDictionary());
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers?.ToDictionary()).ConfigureAwait(false);
                             if (page == null)
                                 return null;
 
-                            await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');");
+                            await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');").ConfigureAwait(false);
 
                             await page.RouteAsync("**/*", async route =>
                             {
@@ -196,8 +199,8 @@ namespace Lampac.Controllers.LITE
                             });
 
                             PlaywrightBase.GotoAsync(page, iframe);
-                            await page.WaitForSelectorAsync(".pjscssed");
-                            string html = await page.ContentAsync();
+                            await page.WaitForSelectorAsync(".pjscssed").ConfigureAwait(false);
+                            string html = await page.ContentAsync().ConfigureAwait(false);
 
                             PlaywrightBase.WebLog("GET", iframe, html, proxy.data);
 
