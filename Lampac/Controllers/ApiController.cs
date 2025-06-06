@@ -155,7 +155,8 @@ namespace Lampac.Controllers
 
             bool usecubproxy = AppInit.conf.cub.enabled(requestInfo.Country);
 
-            if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:{usecubproxy}:app.min.js", out string file))
+            string memKey = $"ApiController:{type}:{host}:{usecubproxy}:app.min.js";
+            if (!memoryCache.TryGetValue(memKey, out string file))
             {
                 file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
 
@@ -202,7 +203,7 @@ namespace Lampac.Controllers
                 bulder = bulder.Replace("{localhost}", host);
 
                 file = bulder.ToString();
-                memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(1));
+                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 1));
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
@@ -235,7 +236,7 @@ namespace Lampac.Controllers
             string memKey = "ApiController:css/app.css";
             if (!memoryCache.TryGetValue(memKey, out string css))
             {
-                css = FileCache.ReadAllText($"wwwroot/{type}/css/app.css");
+                css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");
 
                 if (AppInit.conf.LampaWeb.cssReplace != null)
                 {
@@ -251,8 +252,7 @@ namespace Lampac.Controllers
                     }
                 }
 
-                if (!AppInit.conf.mikrotik && AppInit.conf.LampaWeb.cssReplace != null)
-                    memoryCache.Set(memKey, css, TimeSpan.FromSeconds(20));
+                memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 1));
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.cssEval))

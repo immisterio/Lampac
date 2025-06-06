@@ -38,10 +38,10 @@ namespace SISI
 
             var init = AppInit.conf.sisi;
 
-            string memKey = "SisiApiController:sisi.js";
-            if (!memoryCache.TryGetValue(memKey, out string infile))
+            string memKey = $"sisi.js:{init.appReplace?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
+            if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                infile = FileCache.ReadAllText("plugins/sisi.js");
+                cache.file = System.IO.File.ReadAllText("plugins/sisi.js");
 
                 if (init.appReplace != null)
                 {
@@ -51,36 +51,53 @@ namespace SISI
                         if (val.StartsWith("file:"))
                             val = System.IO.File.ReadAllText(val.AsSpan(5).ToString());
 
-                        infile = Regex.Replace(infile, r.Key, val, RegexOptions.IgnoreCase);
+                        cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
                     }
                 }
 
-                if (!AppInit.conf.mikrotik)
-                    memoryCache.Set(memKey, infile, TimeSpan.FromSeconds(20));
+                var bulder = new StringBuilder(cache.file);
+
+                if (init.component != "sisi")
+                    bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
+
+                if (!string.IsNullOrEmpty(init.iconame))
+                {
+                    bulder = bulder.Replace("Defined.use_api == 'pwa'", "true")
+                                   .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
+                }
+
+                bulder = bulder.Replace("{localhost}", host)
+                               .Replace("{push_all}", init.push_all.ToString().ToLower())
+                               .Replace("{token}", HttpUtility.UrlEncode(token));
+
+                if (init.forced_checkRchtype)
+                    bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
+
+                cache.file = bulder.ToString();
+                cache.filecleaer = cache.file.Replace("{token}", string.Empty);
+
+                if (AppInit.conf.multiaccess)
+                    memoryCache.Set(memKey, cache, TimeSpan.FromMinutes(10));
+            }
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                if (!string.IsNullOrEmpty(init.eval))
+                {
+                    string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.file, host, token, requestInfo));
+                    return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
+                }
+
+                return Content(cache.file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
             }
 
             if (!string.IsNullOrEmpty(init.eval))
-                infile = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(infile, host, token, requestInfo));
-
-            var bulder = new StringBuilder(infile);
-
-            if (init.component != "sisi")
-                bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
-
-            if (!string.IsNullOrEmpty(init.iconame))
             {
-                bulder = bulder.Replace("Defined.use_api == 'pwa'", "true")
-                               .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
+                string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
+                return Content(file, "application/javascript; charset=utf-8");
             }
 
-            bulder = bulder.Replace("{localhost}", host)
-                           .Replace("{push_all}", init.push_all.ToString().ToLower())
-                           .Replace("{token}", HttpUtility.UrlEncode(token));
-
-            if (init.forced_checkRchtype)
-                bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
-
-            return Content(bulder.ToString(), "application/javascript; charset=utf-8");
+            return Content(cache.filecleaer, "application/javascript; charset=utf-8");
         }
         #endregion
 
