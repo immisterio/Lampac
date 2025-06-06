@@ -230,6 +230,8 @@ namespace Lampac
 
         public string typecache = "hybrid"; // mem|file|hybrid
 
+        public int cacheHybridExtend = 5; // seconds
+
         public string imagelibrary = "NetVips"; // NetVips|ImageMagick|none
 
         public bool pirate_store = true;
