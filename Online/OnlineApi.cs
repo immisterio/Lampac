@@ -45,11 +45,13 @@ namespace Lampac.Controllers
         {
             var init = AppInit.conf.online;
 
+            bool fullUpdate = false;
             string memKey = "OnlineApiController:online.js";
             if (!memoryCache.TryGetValue(memKey, out (string infile, string playerinner) cache))
             {
-                cache.infile = FileCache.ReadAllText("plugins/online.js");
-                cache.playerinner = FileCache.ReadAllText("plugins/player-inner.js");
+                fullUpdate = true;
+                cache.infile = IO.File.ReadAllText("plugins/online.js");
+                cache.playerinner = IO.File.ReadAllText("plugins/player-inner.js");
                 cache.playerinner = cache.playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 if (init.appReplace != null)
@@ -76,49 +78,51 @@ namespace Lampac.Controllers
                 if (!string.IsNullOrEmpty(init.apn))
                     cache.infile = Regex.Replace(cache.infile, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-                if (!AppInit.conf.mikrotik)
-                    memoryCache.Set(memKey, cache, TimeSpan.FromSeconds(20));
+                if (AppInit.conf.multiaccess)
+                    memoryCache.Set(memKey, cache, TimeSpan.FromSeconds(180));
             }
 
-            var bulder = new StringBuilder();
+            memKey = $"OnlineApiController:online.js:{token}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
+            if (!memoryCache.TryGetValue(memKey, out string file) || fullUpdate)
+            {
+                var bulder = new StringBuilder(cache.infile);
+
+                if (!init.spider)
+                {
+                    bulder = bulder.Replace("addSourceSearch('Spider', 'spider');", "")
+                                   .Replace("addSourceSearch('Anime', 'spider/anime');", "");
+                }
+
+                if (init.component != "lampac")
+                {
+                    bulder = bulder.Replace("component: 'lampac'", $"component: '{init.component}'")
+                                   .Replace("'lampac', component", $"'{init.component}', component")
+                                   .Replace("window.lampac_plugin", $"window.{init.component}_plugin");
+                }
+
+                if (init.name != "Lampac")
+                    bulder = bulder.Replace("name: 'Lampac'", $"name: '{init.name}'");
+
+                if (init.spiderName != "Spider")
+                {
+                    bulder = bulder.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'")
+                                   .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
+                }
+
+                bulder = bulder.Replace("{player-inner}", cache.playerinner)
+                               .Replace("{token}", HttpUtility.UrlEncode(token))
+                               .Replace("{localhost}", host);
+
+                file = bulder.ToString();
+
+                if (AppInit.conf.multiaccess)
+                    memoryCache.Set(memKey, cache, TimeSpan.FromSeconds(60));
+            }
 
             if (!string.IsNullOrEmpty(init.eval))
-            {
-                string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.infile, host, token, requestInfo));
-                bulder.Append(file);
-            }
-            else
-            {
-                bulder.Append(cache.infile);
-            }
+                file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(file, host, token, requestInfo));
 
-            if (!init.spider)
-            {
-                bulder = bulder.Replace("addSourceSearch('Spider', 'spider');", "")
-                               .Replace("addSourceSearch('Anime', 'spider/anime');", "");
-            }
-
-            if (init.component != "lampac")
-            {
-                bulder = bulder.Replace("component: 'lampac'", $"component: '{init.component}'")
-                               .Replace("'lampac', component", $"'{init.component}', component")
-                               .Replace("window.lampac_plugin", $"window.{init.component}_plugin");
-            }
-
-            if (init.name != "Lampac")
-                bulder = bulder.Replace("name: 'Lampac'", $"name: '{init.name}'");
-
-            if (init.spiderName != "Spider")
-            {
-                bulder = bulder.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'")
-                               .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
-            }
-
-            bulder = bulder.Replace("{player-inner}", cache.playerinner)
-                           .Replace("{token}", HttpUtility.UrlEncode(token))
-                           .Replace("{localhost}", host);
-
-            return Content(bulder.ToString(), "application/javascript; charset=utf-8");
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
 
