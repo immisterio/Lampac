@@ -45,14 +45,12 @@ namespace Lampac.Controllers
         {
             var init = AppInit.conf.online;
 
-            bool fullUpdate = false;
-            string memKey = "OnlineApiController:online.js";
-            if (!memoryCache.TryGetValue(memKey, out (string infile, string playerinner) cache))
+            string memKey = $"online.js:{init.appReplace?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
+            if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                fullUpdate = true;
-                cache.infile = IO.File.ReadAllText("plugins/online.js");
-                cache.playerinner = IO.File.ReadAllText("plugins/player-inner.js");
-                cache.playerinner = cache.playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+                cache.file = IO.File.ReadAllText("plugins/online.js");
+                string playerinner = IO.File.ReadAllText("plugins/player-inner.js");
+                playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 if (init.appReplace != null)
                 {
@@ -62,30 +60,23 @@ namespace Lampac.Controllers
                         if (val.StartsWith("file:"))
                             val = IO.File.ReadAllText(val.AsSpan(5).ToString());
 
-                        cache.infile = Regex.Replace(cache.infile, r.Key, val, RegexOptions.IgnoreCase);
+                        cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
                     }
                 }
 
                 if (!init.version)
                 {
-                    cache.infile = Regex.Replace(cache.infile, "version: \\'[^\\']+\\'", "version: ''")
-                                        .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
+                    cache.file = Regex.Replace(cache.file, "version: \\'[^\\']+\\'", "version: ''")
+                                .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
                 }
 
                 if (init.description != "Плагин для просмотра онлайн сериалов и фильмов")
-                    cache.infile = Regex.Replace(cache.infile, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
+                    cache.file = Regex.Replace(cache.file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
 
                 if (!string.IsNullOrEmpty(init.apn))
-                    cache.infile = Regex.Replace(cache.infile, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
+                    cache.file = Regex.Replace(cache.file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
-                if (AppInit.conf.multiaccess)
-                    memoryCache.Set(memKey, cache, TimeSpan.FromSeconds(180));
-            }
-
-            memKey = $"OnlineApiController:online.js:{token}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
-            if (!memoryCache.TryGetValue(memKey, out string file) || fullUpdate)
-            {
-                var bulder = new StringBuilder(cache.infile);
+                var bulder = new StringBuilder(cache.file);
 
                 if (!init.spider)
                 {
@@ -109,20 +100,34 @@ namespace Lampac.Controllers
                                    .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
                 }
 
-                bulder = bulder.Replace("{player-inner}", cache.playerinner)
-                               .Replace("{token}", HttpUtility.UrlEncode(token))
+                bulder = bulder.Replace("{player-inner}", playerinner)
                                .Replace("{localhost}", host);
 
-                file = bulder.ToString();
+                cache.file = bulder.ToString();
+                cache.filecleaer = cache.file.Replace("{token}", string.Empty);
 
                 if (AppInit.conf.multiaccess)
-                    memoryCache.Set(memKey, cache, TimeSpan.FromSeconds(60));
+                    memoryCache.Set(memKey, cache, TimeSpan.FromMinutes(10));
+            }
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                if (!string.IsNullOrEmpty(init.eval))
+                {
+                    string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.file, host, token, requestInfo));
+                    return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
+                }
+
+                return Content(cache.file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
             }
 
             if (!string.IsNullOrEmpty(init.eval))
-                file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(file, host, token, requestInfo));
+            {
+                string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
+                return Content(file, "application/javascript; charset=utf-8");
+            }
 
-            return Content(file, "application/javascript; charset=utf-8");
+            return Content(cache.filecleaer, "application/javascript; charset=utf-8");
         }
         #endregion
 
