@@ -44,7 +44,7 @@ namespace Lampac.Controllers
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                string trackers_best_ip = await HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20);
+                string trackers_best_ip = await HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20).ConfigureAwait(false);
                 if (trackers_best_ip != null)
                 {
                     foreach (string line in trackers_best_ip.Split("\n"))
@@ -62,7 +62,7 @@ namespace Lampac.Controllers
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(5));
+                        await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
                         await removeClientEngine();
                     }
                     catch { }
@@ -782,9 +782,9 @@ namespace Lampac.Controllers
 
                                 string uri = Regex.Replace(thumb, "^https?://[^/]+/", "");
 
-                                var array = await HttpClient.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8);
+                                var array = await HttpClient.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8).ConfigureAwait(false);
                                 if (array == null || !IsValidImg(array))
-                                    array = await HttpClient.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}");
+                                    array = await HttpClient.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}").ConfigureAwait(false);
 
                                 if (array != null && IsValidImg(array))
                                 {

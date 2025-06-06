@@ -5,6 +5,7 @@ using Shared.Engine.CORE;
 using System;
 using Newtonsoft.Json.Linq;
 using Z.Expressions;
+using System.Linq;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -14,6 +15,9 @@ namespace Lampac.Controllers.NextHUB
         public static NxtSettings goInit(string plugin)
         {
             if (string.IsNullOrEmpty(plugin) || !File.Exists($"NextHUB/{plugin}.json"))
+                return null;
+
+            if (AppInit.conf.sisi.NextHUB_sites_enabled != null && !AppInit.conf.sisi.NextHUB_sites_enabled.Contains(plugin))
                 return null;
 
             var hybridCache = new HybridCache();

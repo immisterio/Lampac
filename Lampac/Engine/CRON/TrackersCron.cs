@@ -39,7 +39,7 @@ namespace Lampac.Engine.CRON
                             "https://newtrackon.com/api/all"
                         })
                         {
-                            string plain = await HttpClient.Get(uri, weblog: false);
+                            string plain = await HttpClient.Get(uri, weblog: false).ConfigureAwait(false);
                             if (plain == null)
                                 continue;
 
@@ -50,7 +50,7 @@ namespace Lampac.Engine.CRON
 
                         foreach (string url in temp)
                         {
-                            if (await ckeck(url))
+                            if (await ckeck(url).ConfigureAwait(false))
                                 trackers.Add(url);
                             else
                                 trackers_bad.Add(url);
@@ -82,7 +82,7 @@ namespace Lampac.Engine.CRON
                     using (var client = new System.Net.Http.HttpClient(handler))
                     {
                         client.Timeout = TimeSpan.FromSeconds(7);
-                        await client.GetAsync(tracker, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+                        await client.GetAsync(tracker, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                         return true;
                     }
                 }
@@ -103,7 +103,7 @@ namespace Lampac.Engine.CRON
                         cts.CancelAfter(7000);
 
                         string uri = Regex.Match(tracker, "^[^/]/(.*)").Groups[1].Value;
-                        await client.SendAsync(Encoding.UTF8.GetBytes($"GET /{uri} HTTP/1.1\r\nHost: {host}\r\n\r\n"), cts.Token);
+                        await client.SendAsync(Encoding.UTF8.GetBytes($"GET /{uri} HTTP/1.1\r\nHost: {host}\r\n\r\n"), cts.Token).ConfigureAwait(false);
                         return true;
                     }
                 }

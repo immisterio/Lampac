@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
+using Shared.Model.Online.PiTor;
 using Shared.Models;
 using System;
 using System.Collections.Concurrent;
@@ -13,6 +14,15 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
+    public class RchClientInfo
+    {
+        public int version { get; set; }
+        public string host { get; set; }
+        public string href { get; set; }
+        public string rchtype { get; set; }
+        public int apkVersion { get; set; }
+    }
+
     public class RchClient
     {
         #region static
@@ -20,7 +30,7 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static ConcurrentDictionary<string, (string ip, string json, JObject jb)> clients = new ConcurrentDictionary<string, (string, string, JObject)>();
+        public static ConcurrentDictionary<string, (string ip, string json, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
@@ -269,7 +279,7 @@ namespace Lampac.Engine.CORE
                 return false; // заглушка для checksearch
 
             var info = InfoConnected();
-            if (string.IsNullOrEmpty(info.rchtype))
+            if (string.IsNullOrEmpty(info?.rchtype))
                 return false; // клиент не в сети
 
             // разрешен возврат на сервер
@@ -294,28 +304,23 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region InfoConnected
-        public (int version, string host, string href, string rchtype, int apkVersion) InfoConnected()
+        public RchClientInfo InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (client.Value.json == null && client.Value.jb == null)
+            if (client.Value.json == null && client.Value.info == null)
                 return default;
 
-            JObject job = client.Value.jb;
+            var info = client.Value.info;
 
-            if (job == null)
+            if (info == null)
             {
                 try
                 {
-                    job = JsonConvert.DeserializeObject<JObject>(client.Value.json);
-                    clients[client.Key] = (client.Value.ip, null, job);
+                    info = JsonConvert.DeserializeObject<RchClientInfo>(client.Value.json);
+                    clients[client.Key] = (client.Value.ip, null, info);
                 }
                 catch { return default; }
             }
-
-            (int version, string host, string href, string rchtype, int apkVersion) info = (job.Value<int>("version"), job.Value<string>("host"), job.Value<string>("href"), job.Value<string>("rchtype"), 0);
-
-            if (info.version >= 142)
-                info.apkVersion = job.Value<int>("apkVersion");
 
             return info;
         }

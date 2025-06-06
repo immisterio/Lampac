@@ -8,6 +8,6 @@ namespace Shared.Model.SISI
 
         public int total_pages { get; set; }
 
-        public IEnumerable<PlaylistItem> list { get; set; }
+        public PlaylistItem[] list { get; set; }
     }
 }

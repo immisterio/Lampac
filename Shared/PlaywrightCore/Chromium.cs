@@ -178,7 +178,7 @@ namespace Shared.Engine
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
 
                 try
                 {
@@ -189,12 +189,12 @@ namespace Shared.Engine
                     if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
                     {
                         create_keepopen_context = DateTime.Now;
-                        var kpc = await browser.NewContextAsync();
-                        await kpc.NewPageAsync();
+                        var kpc = await browser.NewContextAsync().ConfigureAwait(false);
+                        await kpc.NewPageAsync().ConfigureAwait(false);
 
                         try
                         {
-                            await keepopen_context.CloseAsync();
+                            await keepopen_context.CloseAsync().ConfigureAwait(false);
                         }
                         catch { }
 
@@ -212,11 +212,11 @@ namespace Shared.Engine
                             {
                                 if (pages_keepopen.Remove(k))
                                 {
-                                    await Task.Delay(TimeSpan.FromSeconds(20));
+                                    await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                                     try
                                     {
-                                        await k.context.CloseAsync();
+                                        await k.context.CloseAsync().ConfigureAwait(false);
                                     }
                                     catch { pages_keepopen.Add(k); }
                                 }
@@ -247,13 +247,13 @@ namespace Shared.Engine
 
                         try
                         {
-                            var p = await keepopen_context.NewPageAsync();
+                            var p = await keepopen_context.NewPageAsync().ConfigureAwait(false);
                             if (p != null)
                             {
-                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping");
+                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping").ConfigureAwait(false);
                                 if (r != null && r.Status == 200)
                                 {
-                                    await p.CloseAsync();
+                                    await p.CloseAsync().ConfigureAwait(false);
                                     isOk = true;
                                 }
                             }
@@ -269,15 +269,15 @@ namespace Shared.Engine
                             {
                                 if (browser != null)
                                 {
-                                    await browser.CloseAsync();
-                                    await browser.DisposeAsync();
+                                    await browser.CloseAsync().ConfigureAwait(false);
+                                    await browser.DisposeAsync().ConfigureAwait(false);
                                 }
                             }
                             catch { }
 
                             browser = null;
                             pages_keepopen = new();
-                            await CreateAsync();
+                            await CreateAsync().ConfigureAwait(false);
                         }
                     }
                     catch (Exception ex) { Console.WriteLine(ex.Message); }

@@ -267,9 +267,9 @@ namespace Shared.Engine.CORE
                             string result = string.Empty;
 
                             if (!string.IsNullOrEmpty(action.data))
-                                result = await HttpClient.Post(action.url, action.data, httpversion: 2, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy).proxy);
+                                result = await HttpClient.Post(action.url, action.data, httpversion: 2, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy).proxy).ConfigureAwait(false);
                             else
-                                result = await HttpClient.Get(action.url, httpversion: 2, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy).proxy);
+                                result = await HttpClient.Get(action.url, httpversion: 2, timeoutSeconds: action.timeoutSeconds, proxy: ConfigureWebProxy(p, proxy).proxy).ConfigureAwait(false);
 
                             if (result == null || !result.Contains(action.contains))
                             {

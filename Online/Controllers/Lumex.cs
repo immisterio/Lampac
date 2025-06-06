@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
 {
     public class Lumex : BaseOnlineController
     {
-        static List<DatumDB> database = null;
+        public static List<DatumDB> database = null;
 
         [HttpGet]
         [Route("lite/lumex")]

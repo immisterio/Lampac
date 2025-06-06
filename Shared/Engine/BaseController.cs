@@ -94,25 +94,25 @@ namespace Lampac.Engine
             var headers = new List<HeadersModel>(_headers.Count);
 
             string ip = requestInfo.IP;
-            string account_email = HttpContext.Request.Query["account_email"].ToString() ?? string.Empty;
+            string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLower().Trim() ?? string.Empty;
 
             foreach (var h in _headers)
             {
                 if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                string val = h.val;
+                var bulder = new StringBuilder(h.val)
+                   .Replace("{account_email}", account_email)
+                   .Replace("{ip}", ip)
+                   .Replace("{host}", site);
+
+                string val = bulder.ToString();
 
                 if (val.StartsWith("encrypt:"))
                 {
                     string encrypt = Regex.Match(val, "^encrypt:([^\n\r]+)").Groups[1].Value;
                     val = new OnlinesSettings(null, encrypt).host;
                 }
-
-                val = val.Replace("{account_email}", account_email.ToLower().Trim())
-                         .Replace("{ip}", ip)
-                         .Replace("{host}", site)
-                         .Replace("{cf_clearance}", CrypTo.cf_clearance());
 
                 if (val.Contains("{arg:"))
                 {

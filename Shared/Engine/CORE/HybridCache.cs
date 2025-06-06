@@ -57,7 +57,7 @@ namespace Shared.Engine.CORE
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(5));
+                    await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
 
                     try
                     {

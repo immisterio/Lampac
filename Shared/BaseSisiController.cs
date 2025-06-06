@@ -96,7 +96,7 @@ namespace SISI
             if (AppInit.conf.multiaccess && rcache && !init.rhub)
             {
                 var gbc = new ResponseCache();
-                memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddMinutes(1));
+                memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(20));
             }
 
             return Json(model);
@@ -109,11 +109,12 @@ namespace SISI
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
-            return new JsonResult(new OnListResult()
+            var resultArray = new PlaylistItem[playlists.Count];
+
+            for (int i = 0; i < playlists.Count; i++)
             {
-                menu = menu,
-                total_pages = total_pages,
-                list = playlists.Select(pl => new PlaylistItem
+                var pl = playlists[i];
+                resultArray[i] = new PlaylistItem
                 {
                     name = pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy),
@@ -126,7 +127,14 @@ namespace SISI
                     quality = pl.quality,
                     qualitys = pl.qualitys,
                     bookmark = pl.bookmark
-                })
+                };
+            }
+
+            return new JsonResult(new OnListResult()
+            {
+                menu = menu,
+                total_pages = total_pages,
+                list = resultArray
             });
         }
 
@@ -135,11 +143,12 @@ namespace SISI
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
-            return new JsonResult(new OnListResult()
+            var resultArray = new PlaylistItem[playlists.Count];
+
+            for (int i = 0; i < playlists.Count; i++)
             {
-                menu = menu,
-                total_pages = total_pages,
-                list = playlists.Select(pl => new PlaylistItem
+                var pl = playlists[i];
+                resultArray[i] = new PlaylistItem
                 {
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
@@ -152,7 +161,14 @@ namespace SISI
                     quality = pl.quality,
                     qualitys = pl.qualitys,
                     bookmark = pl.bookmark
-                })
+                };
+            }
+
+            return new JsonResult(new OnListResult()
+            {
+                menu = menu,
+                total_pages = total_pages,
+                list = resultArray
             });
         }
 
@@ -174,17 +190,27 @@ namespace SISI
                 }
             }
 
+            var recomendsArray = new PlaylistItem[stream_links?.recomends?.Count ?? 0];
+            if (recomendsArray.Length > 0)
+            {
+                for (int i = 0; i < stream_links.recomends.Count; i++)
+                {
+                    var pl = stream_links.recomends[i];
+                    recomendsArray[i] = new PlaylistItem
+                    {
+                        name = pl.name,
+                        video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
+                        picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers_img),
+                        json = pl.json
+                    };
+                }
+            }
+
             return new JsonResult(new OnStreamResult()
             {
                 qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream)),
                 qualitys_proxy = qualitys_proxy,
-                recomends = stream_links?.recomends?.Select(pl => new PlaylistItem
-                {
-                    name = pl.name,
-                    video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers_img),
-                    json = pl.json
-                }),
+                recomends = recomendsArray,
                 headers_stream = init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream)
             });
         }
