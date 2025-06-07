@@ -1,6 +1,9 @@
 # Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
+# AI Документация
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/immisterio/Lampac)
+
 # Установка на linux
 спасибо @nikk, @Denis
 ```
