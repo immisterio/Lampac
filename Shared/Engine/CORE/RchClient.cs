@@ -4,7 +4,6 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
-using Shared.Model.Online.PiTor;
 using Shared.Models;
 using System;
 using System.Collections.Concurrent;
@@ -101,12 +100,12 @@ namespace Lampac.Engine.CORE
 
 
         #region Eval
-        public async ValueTask<string> Eval(string data)
+        public async Task<string> Eval(string data)
         {
             return await SendHub("eval", data).ConfigureAwait(false);
         }
 
-        async public ValueTask<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
+        async public Task<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
         {
             try
             {
@@ -127,7 +126,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Headers
-        async public ValueTask<(JObject headers, string currentUrl, string body)> Headers(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        async public Task<(JObject headers, string currentUrl, string body)> Headers(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
         {
             try
             {
@@ -201,7 +200,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
+        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
         {
             if (hub == null)
                 return null;

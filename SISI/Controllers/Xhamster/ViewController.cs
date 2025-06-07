@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Xhamster
     {
         [HttpGet]
         [Route("xmr/vidosik")]
-        async public Task<ActionResult> Index(string uri, bool related)
+        async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Xhamster);
             if (await IsBadInitialization(init, rch: true))

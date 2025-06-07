@@ -20,7 +20,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/pidtor")]
-        async public Task<ActionResult> Index(string account_email, string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string account_email, string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -338,7 +338,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/pidtor/serial/{id}")]
-        async public Task<ActionResult> Serial(string account_email, string id, string title, string original_title, int s, bool rjson = false)
+        async public ValueTask<ActionResult> Serial(string account_email, string id, string title, string original_title, int s, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -435,7 +435,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/pidtor/s{id}")]
-        async public Task<ActionResult> Stream(string id, int tsid = -1, string account_email = null)
+        async public ValueTask<ActionResult> Stream(string id, int tsid = -1, string account_email = null)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)

@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/zetflix")]
-        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Zetflix);
             if (await IsBadInitialization(init, rch: false))
@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async Task<string> goHost(string host)
+        async ValueTask<string> goHost(string host)
         {
             if (!Regex.IsMatch(host, "^https?://go\\."))
                 return host;

@@ -23,7 +23,7 @@ namespace Lampac.Controllers.NextHUB
     {
         [HttpGet]
         [Route("nexthub")]
-        async public Task<ActionResult> Index(string plugin, string search, string sort, string cat, int pg = 1)
+        async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, int pg = 1)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
@@ -264,7 +264,7 @@ namespace Lampac.Controllers.NextHUB
         #endregion
 
         #region ContentAsync
-        async ValueTask<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
+        async Task<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
         {
             try
             {

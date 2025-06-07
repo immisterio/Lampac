@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.HDVB);
             if (await IsBadInitialization(init, rch: false))
@@ -120,7 +120,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/hdvb/video")]
         [Route("lite/hdvb/video.m3u8")]
-        async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
+        async public ValueTask<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
             if (await IsBadInitialization(init, rch: false))
@@ -193,7 +193,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/hdvb/serial")]
         [Route("lite/hdvb/serial.m3u8")]
-        async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
+        async public ValueTask<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
             if (await IsBadInitialization(init, rch: false))
@@ -263,7 +263,7 @@ namespace Lampac.Controllers.LITE
         #region SpiderSearch
         [HttpGet]
         [Route("lite/hdvb-search")]
-        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.HDVB);
             if (await IsBadInitialization(init, rch: false))

@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/kodik/video")]
         [Route("lite/kodik/video.m3u8")]
-        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
+        async public ValueTask<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -185,7 +185,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/kodik/videoparse")]
         [Route("lite/kodik/videoparse.m3u8")]
-        async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
+        async public ValueTask<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))

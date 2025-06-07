@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -152,7 +152,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/alloha/video")]
         [Route("lite/alloha/video.m3u8")]
-        async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
+        async public ValueTask<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -248,7 +248,7 @@ namespace Lampac.Controllers.LITE
         #region SpiderSearch
         [HttpGet]
         [Route("lite/alloha-search")]
-        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))

@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.FilmixPartner);
             if (await IsBadInitialization(init, rch: false))
@@ -317,9 +317,9 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async ValueTask<SearchResult> Search2(string? title, string? original_title, int year)
+        async Task<SearchResult> Search2(string? title, string? original_title, int year)
         {
-            async ValueTask<List<SearchModel>> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string? story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;

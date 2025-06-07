@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
             if (await IsBadInitialization(init, rch: true))
@@ -159,7 +159,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animebesst/video.m3u8")]
-        async public Task<ActionResult> Video(string uri, string title, bool play)
+        async public ValueTask<ActionResult> Video(string uri, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
             if (await IsBadInitialization(init, rch: true))

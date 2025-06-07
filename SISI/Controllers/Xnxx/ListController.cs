@@ -13,7 +13,7 @@ namespace Lampac.Controllers.Xnxx
     {
         [HttpGet]
         [Route("xnx")]
-        async public Task<ActionResult> Index(string search, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xnxx);
             if (await IsBadInitialization(init, rch: true))

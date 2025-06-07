@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vdbmovies")]
-        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.VDBmovies);
             if (await IsBadInitialization(init, rch: true))
@@ -144,7 +144,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, string referer, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async Task<string> black_magic(string uri, string referer, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {

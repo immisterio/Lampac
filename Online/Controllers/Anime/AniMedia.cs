@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AniMedia);
             if (await IsBadInitialization(init, rch: false))

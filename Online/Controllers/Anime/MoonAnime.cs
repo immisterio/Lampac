@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/moonanime")]
-        async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
             if (await IsBadInitialization(init, rch: false))
@@ -198,7 +198,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/moonanime/video")]
         [Route("lite/moonanime/video.m3u8")]
-        async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
+        async public ValueTask<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
             if (await IsBadInitialization(init, rch: false))

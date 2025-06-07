@@ -203,7 +203,7 @@ namespace Lampac.Controllers
                 bulder = bulder.Replace("{localhost}", host);
 
                 file = bulder.ToString();
-                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 1));
+                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
@@ -252,7 +252,7 @@ namespace Lampac.Controllers
                     }
                 }
 
-                memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 10 : 1));
+                memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.cssEval))

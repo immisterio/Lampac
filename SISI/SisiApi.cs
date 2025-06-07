@@ -31,7 +31,7 @@ namespace SISI
         [HttpGet]
         [Route("sisi.js")]
         [Route("sisi/js/{token}")]
-        async public Task<ActionResult> Sisi(string token, bool lite)
+        async public ValueTask<ContentResult> Sisi(string token, bool lite)
         {
             if (lite)
                 return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), "application/javascript; charset=utf-8");
@@ -77,7 +77,7 @@ namespace SISI
                 cache.filecleaer = cache.file.Replace("{token}", string.Empty);
 
                 if (AppInit.conf.multiaccess)
-                    memoryCache.Set(memKey, cache, TimeSpan.FromMinutes(10));
+                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(5));
             }
 
             if (!string.IsNullOrEmpty(token))
@@ -118,7 +118,7 @@ namespace SISI
 
 
         [Route("sisi")]
-        async public Task<ActionResult> Index(string rchtype, string account_email, string uid, string token)
+        async public ValueTask<ActionResult> Index(string rchtype, string account_email, string uid, string token)
         {
             var conf = AppInit.conf;
             JObject kitconf = await loadKitConf();

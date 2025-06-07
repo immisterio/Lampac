@@ -20,7 +20,7 @@ namespace Lampac.Controllers.NextHUB
     {
         [HttpGet]
         [Route("nexthub/vidosik")]
-        async public Task<ActionResult> Index(string uri, bool related)
+        async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");

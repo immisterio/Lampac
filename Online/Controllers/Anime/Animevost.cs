@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Animevost);
             if (await IsBadInitialization(init, rch: true))
@@ -176,7 +176,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animevost/video")]
-        async public Task<ActionResult> Video(int id, string title, bool play)
+        async public ValueTask<ActionResult> Video(int id, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animevost);
             if (await IsBadInitialization(init, rch: true))

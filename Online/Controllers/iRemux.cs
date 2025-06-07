@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/remux")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.iRemux);
             if (await IsBadInitialization(init, rch: false))
@@ -52,7 +52,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/remux/movie")]
-        async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
+        async public ValueTask<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
             var init = await loadKit(AppInit.conf.iRemux);
             if (await IsBadInitialization(init, rch: false))

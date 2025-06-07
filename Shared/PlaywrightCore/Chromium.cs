@@ -32,7 +32,7 @@ namespace Shared.Engine
 
         public static PlaywrightStatus Status { get; private set; } = PlaywrightStatus.disabled;
 
-        async public static ValueTask CreateAsync()
+        async public static Task CreateAsync()
         {
             try
             {
@@ -300,7 +300,7 @@ namespace Shared.Engine
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
+        async public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
@@ -349,8 +349,8 @@ namespace Shared.Engine
                         };
 
                         stats_newcontext++;
-                        context = await browser.NewContextAsync(contextOptions);
-                        page = await context.NewPageAsync();
+                        context = await browser.NewContextAsync(contextOptions).ConfigureAwait(false);
+                        page = await context.NewPageAsync().ConfigureAwait(false);
                     }
                     #endregion
 

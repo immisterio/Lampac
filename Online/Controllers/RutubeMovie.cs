@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/rutubemovie")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.RutubeMovie);
             if (await IsBadInitialization(init, rch: true))
@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rutubemovie/play")]
-        async public Task<ActionResult> Movie(string linkid)
+        async public ValueTask<ActionResult> Movie(string linkid)
         {
             var init = await loadKit(AppInit.conf.RutubeMovie);
             if (await IsBadInitialization(init, rch: true))

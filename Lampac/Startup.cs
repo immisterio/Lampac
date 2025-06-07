@@ -392,8 +392,16 @@ namespace Lampac
             app.UseRequestInfo();
             app.UseAccsdb();
             app.UseOverrideResponse(first: false);
-            app.UseProxyIMG();
-            app.UseProxyAPI();
+
+            app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxyimg"), proxyApp =>
+            {
+                proxyApp.UseProxyIMG();
+            });
+
+            app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
+            {
+                proxyApp.UseProxyAPI();
+            });
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.middlewares != null) != null)
                 app.UseModule();

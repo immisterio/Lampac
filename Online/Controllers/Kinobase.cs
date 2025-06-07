@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinobase")]
-        async public Task<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Kinobase);
             if (await IsBadInitialization(init, rch: false))

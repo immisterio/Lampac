@@ -89,7 +89,7 @@ namespace SISI
                         if (image != null)
                         {
                             Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                            System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
+                            await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
                             data.bookmark.image = pimg;
                         }
                     }

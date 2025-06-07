@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/iptvonline")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial = -1, int s = -1, bool rjson = false, bool origsource = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial = -1, int s = -1, bool rjson = false, bool origsource = false)
         {
             var init = await loadKit(AppInit.conf.IptvOnline);
             if (await IsBadInitialization(init, rch: false))
@@ -174,7 +174,7 @@ namespace Lampac.Controllers.LITE
                 string stitle = StringConvert.SearchName(title);
                 string sorigtitle = StringConvert.SearchName(original_title);
 
-                async ValueTask<JToken> goSearch(string search)
+                async Task<JToken> goSearch(string search)
                 {
                     if (string.IsNullOrEmpty(search))
                         return null;

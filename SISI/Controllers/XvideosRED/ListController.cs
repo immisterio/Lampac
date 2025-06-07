@@ -16,7 +16,7 @@ namespace Lampac.Controllers.XvideosRED
     {
         [HttpGet]
         [Route("xdsred")]
-        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.XvideosRED);
             if (await IsBadInitialization(init, rch: false))

@@ -15,7 +15,7 @@ namespace Lampac.Controllers.Tizam
     public class ListController : BaseSisiController
     {
         [Route("tizam")]
-        async public Task<ActionResult> Index(string search, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Tizam);
             if (await IsBadInitialization(init, rch: true))

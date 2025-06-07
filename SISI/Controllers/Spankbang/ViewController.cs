@@ -4,7 +4,6 @@ using Shared.Engine.SISI;
 using Shared.Engine.CORE;
 using SISI;
 using Lampac.Models.SISI;
-using Shared.Engine;
 using Shared.PlaywrightCore;
 using Lampac.Engine.CORE;
 
@@ -14,7 +13,7 @@ namespace Lampac.Controllers.Spankbang
     {
         [HttpGet]
         [Route("sbg/vidosik")]
-        async public Task<ActionResult> Index(string uri, bool related)
+        async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
             if (await IsBadInitialization(init, rch: true))

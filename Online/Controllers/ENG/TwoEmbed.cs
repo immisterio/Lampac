@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/twoembed")]
-        public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             return ViewTmdb(AppInit.conf.Twoembed, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
@@ -24,7 +24,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/twoembed/video")]
         [Route("lite/twoembed/video.m3u8")]
-        async public Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
+        async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.Twoembed);
             if (await IsBadInitialization(init, rch: false))

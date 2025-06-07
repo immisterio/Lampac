@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/lumex")]
-        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Lumex);
             if (await IsBadInitialization(init, rch: false))
@@ -168,7 +168,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/lumex/video")]
         [Route("lite/lumex/video.m3u8")]
-        async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
+        async public ValueTask<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
             var init = await loadKit(AppInit.conf.Lumex);
             if (await IsBadInitialization(init, rch: false))

@@ -93,11 +93,11 @@ namespace Shared.Engine.CORE
 
         public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
         {
-            if (inmemory != true && !AppInit.conf.mikrotik)
+            if (!AppInit.conf.mikrotik)
             {
                 if (AppInit.conf.typecache == "hybrid" && memoryCache.TryGetValue(key, out value))
                 {
-                    if (condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddSeconds(AppInit.conf.cacheHybridExtend))
+                    if (inmemory != false && condition.TryGetValue($"{folderCache}:{CrypTo.md5(key)}", out DateTimeOffset ex) && ex > DateTime.Now.AddSeconds(AppInit.conf.cacheHybridExtend))
                         memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cacheHybridExtend));
 
                     return true;
@@ -105,7 +105,7 @@ namespace Shared.Engine.CORE
 
                 if (ReadCache(key, out value))
                 {
-                    if (AppInit.conf.typecache == "hybrid")
+                    if (inmemory != false && AppInit.conf.typecache == "hybrid")
                         memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cacheHybridExtend));
 
                     return true;
@@ -117,7 +117,7 @@ namespace Shared.Engine.CORE
         #endregion
 
         #region ReadCache
-        public bool ReadCache<TItem>(string key, out TItem value)
+        private bool ReadCache<TItem>(string key, out TItem value)
         {
             value = default;
             if (AppInit.conf.typecache == "mem")
@@ -161,7 +161,7 @@ namespace Shared.Engine.CORE
         {
             if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
             {
-                if (AppInit.conf.typecache == "hybrid" && inmemory == null)
+                if (AppInit.conf.typecache == "hybrid" && inmemory != false)
                     memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cacheHybridExtend));
 
                 return value;
@@ -174,7 +174,7 @@ namespace Shared.Engine.CORE
         {
             if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
             {
-                if (AppInit.conf.typecache == "hybrid")
+                if (AppInit.conf.typecache == "hybrid" && inmemory != false)
                     memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cacheHybridExtend));
 
                 return value;
@@ -185,7 +185,7 @@ namespace Shared.Engine.CORE
         #endregion
 
         #region WriteCache
-        public bool WriteCache<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, TimeSpan absoluteExpirationRelativeToNow)
+        private bool WriteCache<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, TimeSpan absoluteExpirationRelativeToNow)
         {
             if (AppInit.conf.typecache == "mem")
                 return false;

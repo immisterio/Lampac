@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/videoseed")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, int serial = -1)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, int serial = -1)
         {
             var init = await loadKit(AppInit.conf.Videoseed);
             if (await IsBadInitialization(init, rch: false))
@@ -133,7 +133,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/videoseed/video/{*iframe}")]
-        async public Task<ActionResult> Video(string iframe)
+        async public ValueTask<ActionResult> Video(string iframe)
         {
             var init = await loadKit(AppInit.conf.Videoseed);
             if (await IsBadInitialization(init, rch: false))

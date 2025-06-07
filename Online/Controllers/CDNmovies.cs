@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/cdnmovies")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.CDNmovies);
             if (await IsBadInitialization(init, rch: true))

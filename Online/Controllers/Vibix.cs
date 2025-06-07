@@ -22,7 +22,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/vibix")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
         {
             var init = await loadKit(AppInit.conf.Vibix);
             if (await IsBadInitialization(init, rch: true))
@@ -175,7 +175,7 @@ namespace Lampac.Controllers.LITE
 
             if (!hybridCache.TryGetValue(memKey, out JObject root))
             {
-                async ValueTask<JObject> goSearch(string imdb_id, long kinopoisk_id)
+                async Task<JObject> goSearch(string imdb_id, long kinopoisk_id)
                 {
                     if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                         return null;

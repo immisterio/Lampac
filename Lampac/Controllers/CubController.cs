@@ -232,7 +232,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region CopyProxyHttpResponse
-        async ValueTask CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage)
+        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage)
         {
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;

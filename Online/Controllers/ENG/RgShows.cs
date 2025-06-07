@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/rgshows")]
-        public Task<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             return ViewTmdb(AppInit.conf.Rgshows, false, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds);
         }
@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/rgshows/video")]
-        async public Task<ActionResult> Video(string imdb_id, int s = -1, int e = -1, bool play = false)
+        async public ValueTask<ActionResult> Video(string imdb_id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.Rgshows);
             if (await IsBadInitialization(init, rch: false))

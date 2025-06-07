@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/veoveo")]
-        async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.VeoVeo);
             if (await IsBadInitialization(init, rch: false))

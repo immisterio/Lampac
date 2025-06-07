@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fancdn")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.FanCDN);
             if (await IsBadInitialization(init, rch: true))
@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region black_magic
-        async ValueTask<string> black_magic(OnlinesSettings init, RchClient rch, string uri, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async Task<string> black_magic(OnlinesSettings init, RchClient rch, string uri, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {

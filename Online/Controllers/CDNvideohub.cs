@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/cdnvideohub")]
-        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, long kinopoisk_id, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.CDNvideohub);
             if (await IsBadInitialization(init, rch: true))

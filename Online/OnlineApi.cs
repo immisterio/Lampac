@@ -41,7 +41,7 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("online.js")]
         [Route("online/js/{token}")]
-        async public Task<ActionResult> Online(string token)
+        async public ValueTask<ContentResult> Online(string token)
         {
             var init = AppInit.conf.online;
 
@@ -107,7 +107,7 @@ namespace Lampac.Controllers
                 cache.filecleaer = cache.file.Replace("{token}", string.Empty);
 
                 if (AppInit.conf.multiaccess)
-                    memoryCache.Set(memKey, cache, TimeSpan.FromMinutes(10));
+                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(5));
             }
 
             if (!string.IsNullOrEmpty(token))
@@ -156,7 +156,7 @@ namespace Lampac.Controllers
         static DateTime externalids_lastWriteTime = default;
 
         [Route("externalids")]
-        async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
+        async public ValueTask<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
             #region load externalids
             if (IO.File.Exists("cache/externalids/master.json"))
@@ -525,7 +525,7 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
+        async public ValueTask<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";

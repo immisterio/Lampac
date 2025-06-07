@@ -1,5 +1,4 @@
-﻿using Lampac;
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.Model.Base;
 using Shared.Model.Online;
@@ -105,7 +104,7 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
+        public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
@@ -139,7 +138,7 @@ namespace Shared.PlaywrightCore
             catch { }
         }
 
-        public ValueTask<string> WaitPageResult(int seconds = 10)
+        public Task<string> WaitPageResult(int seconds = 10)
         {
             try
             {

@@ -311,7 +311,7 @@ namespace Lampac.Engine
 
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
-            if (hybridCache.TryGetValue(key, out T _val))
+            if (hybridCache.TryGetValue(key, out T _val, memory))
             {
                 HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "HIT");
                 return new CacheResult<T>() { IsSuccess = true, Value = _val };

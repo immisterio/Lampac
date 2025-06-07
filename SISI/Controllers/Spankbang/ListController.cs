@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Spankbang
     {
         [HttpGet]
         [Route("sbg")]
-        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
             if (await IsBadInitialization(init, rch: true))
