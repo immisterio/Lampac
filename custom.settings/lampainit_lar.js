@@ -76,7 +76,7 @@
       Lampa.Storage.set('proxy_tmdb','{country}'=='RU');
       Lampa.Storage.set('poster_size','w500');
   
-      Lampa.Storage.set('parser_use','true'); // использовать парсер
+      Lampa.Storage.set('parser_use','true'); // использовать локальный парсер
       Lampa.Storage.set('jackett_url','{jachost}');
       Lampa.Storage.set('jackett_key','1');
       Lampa.Storage.set('parser_torrent_type','jackett');
@@ -84,7 +84,7 @@
       Lampa.Storage.set('torrserver_url','192.168.10.140:8090'); // LAR IP
       Lampa.Storage.set('torrserver_url_two','192.168.3.240:8090'); // UVA IP
       Lampa.Storage.set('torrserver_auth','false');
-      Lampa.Storage.set('internal_torrclient','false');
+      Lampa.Storage.set('internal_torrclient','true'); // Использовать внутренний TS
       Lampa.Storage.set('background_type','complex'); // Сложный задник
       Lampa.Storage.set('video_quality_default','2160'); // 4К по-умолчанию
       Lampa.Storage.set('Reloadbutton','true'); // Кнопка перезагрузки

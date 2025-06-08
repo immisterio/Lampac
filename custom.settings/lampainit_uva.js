@@ -84,7 +84,7 @@
       Lampa.Storage.set('torrserver_url','192.168.3.240:8090'); // UVA IP
       Lampa.Storage.set('torrserver_url_two','192.168.10.140:8090'); // LAR IP
       Lampa.Storage.set('torrserver_auth','false');
-      Lampa.Storage.set('internal_torrclient','false');
+      Lampa.Storage.set('internal_torrclient','true'); // использовать локальный парсер
       Lampa.Storage.set('background_type','complex'); // Сложный задник
       Lampa.Storage.set('video_quality_default','1080'); // 4К по-умолчанию
       Lampa.Storage.set('Reloadbutton','true'); // Кнопка перезагрузки
