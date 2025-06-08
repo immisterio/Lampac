@@ -32,7 +32,7 @@ namespace Shared.Engine
 
         public static PlaywrightStatus Status { get; private set; } = PlaywrightStatus.disabled;
 
-        async public static ValueTask CreateAsync()
+        async public static Task CreateAsync()
         {
             try
             {
@@ -178,7 +178,7 @@ namespace Shared.Engine
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
 
                 try
                 {
@@ -189,12 +189,12 @@ namespace Shared.Engine
                     if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
                     {
                         create_keepopen_context = DateTime.Now;
-                        var kpc = await browser.NewContextAsync();
-                        await kpc.NewPageAsync();
+                        var kpc = await browser.NewContextAsync().ConfigureAwait(false);
+                        await kpc.NewPageAsync().ConfigureAwait(false);
 
                         try
                         {
-                            await keepopen_context.CloseAsync();
+                            await keepopen_context.CloseAsync().ConfigureAwait(false);
                         }
                         catch { }
 
@@ -212,11 +212,11 @@ namespace Shared.Engine
                             {
                                 if (pages_keepopen.Remove(k))
                                 {
-                                    await Task.Delay(TimeSpan.FromSeconds(20));
+                                    await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                                     try
                                     {
-                                        await k.context.CloseAsync();
+                                        await k.context.CloseAsync().ConfigureAwait(false);
                                     }
                                     catch { pages_keepopen.Add(k); }
                                 }
@@ -233,11 +233,11 @@ namespace Shared.Engine
         #region Browser_Disconnected
         async public static Task Browser_Disconnected()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (!shutdown)
             {
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                 if (AppInit.conf.multiaccess && keepopen_context != null && Status != PlaywrightStatus.disabled)
                 {
@@ -247,13 +247,13 @@ namespace Shared.Engine
 
                         try
                         {
-                            var p = await keepopen_context.NewPageAsync();
+                            var p = await keepopen_context.NewPageAsync().ConfigureAwait(false);
                             if (p != null)
                             {
-                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping");
+                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping").ConfigureAwait(false);
                                 if (r != null && r.Status == 200)
                                 {
-                                    await p.CloseAsync();
+                                    await p.CloseAsync().ConfigureAwait(false);
                                     isOk = true;
                                 }
                             }
@@ -269,15 +269,15 @@ namespace Shared.Engine
                             {
                                 if (browser != null)
                                 {
-                                    await browser.CloseAsync();
-                                    await browser.DisposeAsync();
+                                    await browser.CloseAsync().ConfigureAwait(false);
+                                    await browser.DisposeAsync().ConfigureAwait(false);
                                 }
                             }
                             catch { }
 
                             browser = null;
                             pages_keepopen = new();
-                            await CreateAsync();
+                            await CreateAsync().ConfigureAwait(false);
                         }
                     }
                     catch (Exception ex) { Console.WriteLine(ex.Message); }
@@ -300,7 +300,7 @@ namespace Shared.Engine
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
+        async public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
@@ -349,25 +349,25 @@ namespace Shared.Engine
                         };
 
                         stats_newcontext++;
-                        context = await browser.NewContextAsync(contextOptions);
-                        page = await context.NewPageAsync();
+                        context = await browser.NewContextAsync(contextOptions).ConfigureAwait(false);
+                        page = await context.NewPageAsync().ConfigureAwait(false);
                     }
                     #endregion
 
                     if (headers != null && headers.Count > 0)
-                        await page.SetExtraHTTPHeadersAsync(headers);
+                        await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
 
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;
                     page.RequestFailed += Page_RequestFailed;
 
                     if (AppInit.conf.chromium.Devtools)
-                        await Task.Delay(TimeSpan.FromSeconds(2)); // что бы devtools успел открыться
+                        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false); // что бы devtools успел открыться
 
                     if (!keepopen || keepopen_page != null || !AppInit.conf.chromium.context.keepopen || pages_keepopen.Count >= AppInit.conf.chromium.context.max)
                         return page;
 
-                    await context.NewPageAsync(); // что-бы context не закрывался с последней закрытой вкладкой
+                    await context.NewPageAsync().ConfigureAwait(false); // что-бы context не закрывался с последней закрытой вкладкой
                     if (pages_keepopen.Count >= AppInit.conf.chromium.context.max)
                         return page;
 
@@ -385,24 +385,24 @@ namespace Shared.Engine
                     if (keepopen && keepopen_context != default)
                     {
                         stats_keepopen++;
-                        page = await keepopen_context.NewPageAsync();
+                        page = await keepopen_context.NewPageAsync().ConfigureAwait(false);
                     }
                     else
                     {
                         stats_newcontext++;
-                        page = await browser.NewPageAsync();
+                        page = await browser.NewPageAsync().ConfigureAwait(false);
                     }
                     #endregion
 
                     if (headers != null && headers.Count > 0)
-                        await page.SetExtraHTTPHeadersAsync(headers);
+                        await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
 
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;
                     page.RequestFailed += Page_RequestFailed;
 
                     if (AppInit.conf.chromium.Devtools)
-                        await Task.Delay(TimeSpan.FromSeconds(2)); // что бы devtools успел открыться
+                        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false); // что бы devtools успел открыться
 
                     return page;
                 }
@@ -427,7 +427,7 @@ namespace Shared.Engine
         {
             try
             {
-                e.CancelAsync();
+                e.CancelAsync().ConfigureAwait(false);
             }
             catch { }
         }
@@ -436,7 +436,7 @@ namespace Shared.Engine
         {
             try
             {
-                e.CloseAsync();
+                e.CloseAsync().ConfigureAwait(false);
             }
             catch { }
         }
@@ -458,16 +458,16 @@ namespace Shared.Engine
 
                     if (keepopen_page != null)
                     {
-                        page.CloseAsync();
+                        page.CloseAsync().ConfigureAwait(false);
                         keepopen_page.lastActive = DateTime.Now;
                     }
                     else if (context != null)
                     {
-                        context.CloseAsync();
+                        context.CloseAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        page.CloseAsync();
+                        page.CloseAsync().ConfigureAwait(false);
                     }
                 }
 

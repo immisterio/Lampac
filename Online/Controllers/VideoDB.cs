@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/videodb")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
             var init = await loadKit(AppInit.conf.VideoDB);
             if (await IsBadInitialization(init, rch: true))
@@ -62,7 +62,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/videodb/manifest")]
         [Route("lite/videodb/manifest.m3u8")]
-        async public Task<ActionResult> Manifest(string link, bool serial)
+        async public ValueTask<ActionResult> Manifest(string link, bool serial)
         {
             var init = await loadKit(AppInit.conf.VideoDB);
             if (await IsBadInitialization(init, rch: true))
@@ -191,12 +191,12 @@ namespace Lampac.Controllers.LITE
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
                     browser.failedUrl = uri;
-                    await page.SetExtraHTTPHeadersAsync(init.headers);
+                    await page.SetExtraHTTPHeadersAsync(init.headers).ConfigureAwait(false);
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -243,7 +243,7 @@ namespace Lampac.Controllers.LITE
 
                     PlaywrightBase.GotoAsync(page, init.host);
 
-                    return await browser.WaitPageResult();
+                    return await browser.WaitPageResult().ConfigureAwait(false);
                 }
             }
             catch { return null; }

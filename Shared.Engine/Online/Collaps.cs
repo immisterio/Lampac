@@ -72,8 +72,6 @@ namespace Shared.Engine.Online
             if (md.content != null)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
-
                 string stream = Regex.Match(md.content, "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\"").Groups[1].Value;
 
                 if (dash)
@@ -86,20 +84,26 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(stream))
                     return string.Empty;
 
+                var mtpl = new MovieTpl(title, original_title, 1);
+
                 string name = Regex.Match(md.content, "audio: +\\{\"names\":\\[\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(name))
                     name = "По умолчанию";
 
                 #region subtitle
-                var subtitles = new SubtitleTpl();
+                SubtitleTpl? subtitles = null;
 
                 try
                 {
                     var subs = JsonSerializer.Deserialize<List<Cc>>(Regex.Match(md.content, "cc: +(\\[[^\n\r]+\\]),").Groups[1].Value);
                     if (subs != null)
                     {
-                        foreach (var cc in subs) 
-                            subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
+                        subtitles = new SubtitleTpl(subs.Count);
+                        foreach (var cc in subs)
+                        {
+                            if (cc.url != null)
+                                subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
+                        }
                     }
                 }
                 catch { }
@@ -140,36 +144,40 @@ namespace Shared.Engine.Online
                         if (episodes == null)
                             return string.Empty;
 
-                        var etpl = new EpisodeTpl();
+                        var etpl = new EpisodeTpl(episodes.Count);
+                        string sArch = s.ToString();
 
                         foreach (var episode in episodes)
                         {
-                            string? stream = episode?.hls ?? episode?.dasha ?? episode?.dash;
-                            if (dash && (episode?.dasha ?? episode?.dash) != null)
-                                stream = episode?.dasha ?? episode?.dash;
+                            string? stream = episode.hls ?? episode.dasha ?? episode.dash;
+                            if (dash && (episode.dasha ?? episode.dash) != null)
+                                stream = episode.dasha ?? episode.dash;
 
-                            if (string.IsNullOrEmpty(stream) || string.IsNullOrEmpty(episode?.episode))
+                            if (string.IsNullOrEmpty(stream) || string.IsNullOrEmpty(episode.episode))
                                 continue;
 
                             #region voicename
                             string voicename = string.Empty;
 
-                            if (episode?.audio?.names != null)
+                            if (episode.audio?.names != null)
                                 voicename = Regex.Replace(string.Join(", ", episode.audio.names), "[, ]+$", "");
                             #endregion
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl();
+                            var subtitles = new SubtitleTpl(episode.cc?.Count ?? 0);
 
-                            if (episode?.cc != null && episode.cc.Count > 0)
+                            if (episode.cc != null && episode.cc.Count > 0)
                             {
                                 foreach (var cc in episode.cc)
-                                    subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
+                                {
+                                    if (cc.url != null)
+                                        subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
+                                }
                             }
                             #endregion
 
                             string file = onstreamfile.Invoke(stream.Replace("\u0026", "&"));
-                            etpl.Append($"{episode.episode} серия", title ?? original_title, s.ToString(), episode.episode, file, subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
+                            etpl.Append($"{episode.episode} серия", title ?? original_title, sArch, episode.episode, file, subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
                         }
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();

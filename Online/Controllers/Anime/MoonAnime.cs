@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/moonanime")]
-        async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
             if (await IsBadInitialization(init, rch: false))
@@ -156,6 +156,7 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
                     foreach (var voices in root)
                     {
@@ -166,7 +167,7 @@ namespace Lampac.Controllers.LITE
 
                             foreach (var season in voice.Value)
                             {
-                                if (season.Key != s.ToString())
+                                if (season.Key != sArhc)
                                     continue;
 
                                 foreach (var folder in season.Value)
@@ -177,7 +178,7 @@ namespace Lampac.Controllers.LITE
                                     string link = $"{host}/lite/moonanime/video?vod={HttpUtility.UrlEncode(vod)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}";
                                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                                    etpl.Append($"{episode} серия", title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
+                                    etpl.Append($"{episode} серия", title, sArhc, episode.ToString(), link, "call", streamlink: streamlink);
                                 }
                             }
                         }
@@ -197,7 +198,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/moonanime/video")]
         [Route("lite/moonanime/video.m3u8")]
-        async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
+        async public ValueTask<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
             var init = await loadKit(AppInit.conf.MoonAnime);
             if (await IsBadInitialization(init, rch: false))

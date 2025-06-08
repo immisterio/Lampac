@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
             if (await IsBadInitialization(init, rch: true))
@@ -45,9 +45,11 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                    catalog = new List<(string title, string year, string uri, string s, string img)>();
+                    var rows = search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"");
 
-                    foreach (string row in search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"").Skip(1))
+                    catalog = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
+
+                    foreach (string row in rows.Skip(1))
                     {
                         if (row.Contains("Новости"))
                             continue;
@@ -116,7 +118,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrEmpty(videoList))
                         return OnError();
 
-                    links = new List<(string episode, string name, string uri)>();
+                    links = new List<(string episode, string name, string uri)>(5);
                     var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
                     while (match.Success)
                     {
@@ -135,7 +137,8 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(memKey, links, cacheTime(30, init: init));
                 }
 
-                var etpl = new EpisodeTpl();
+                var etpl = new EpisodeTpl(links.Count);
+                string sArhc = s.ToString();
 
                 foreach (var l in links)
                 {
@@ -144,7 +147,7 @@ namespace Lampac.Controllers.LITE
 
                     string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
 
-                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: $"{link}&play=true", voice_name: Regex.Unescape(voice_name));
+                    etpl.Append(name, $"{title} / {name}", sArhc, l.episode, link, "call", streamlink: $"{link}&play=true", voice_name: Regex.Unescape(voice_name));
                 }
 
                 return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -156,7 +159,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animebesst/video.m3u8")]
-        async public Task<ActionResult> Video(string uri, string title, bool play)
+        async public ValueTask<ActionResult> Video(string uri, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animebesst);
             if (await IsBadInitialization(init, rch: true))

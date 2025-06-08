@@ -7,17 +7,17 @@ namespace Shared.Model.Templates
 {
     public class SeasonTpl
     {
-        #region SeasonTpl
+        List<(string name, string link, int? id)> data;
+
         public string? quality = null;
 
-        public SeasonTpl() { }
+        public SeasonTpl(int capacity = 10) { data = new List<(string, string, int?)>(capacity); }
 
-        public SeasonTpl(string? quality) { this.quality = quality; }
-        #endregion
-
-        List<(string name, string link, int? id)> data = new List<(string, string, int?)>();
-
-        public SeasonTpl(int capacity) { data.Capacity = capacity; }
+        public SeasonTpl(string? quality, int capacity = 10) 
+        {
+            data = new List<(string, string, int?)>(capacity);
+            this.quality = quality; 
+        }
 
         public void Append(string? name, string link, string? id)
         {

@@ -65,11 +65,14 @@ namespace Shared.Engine.Online
             if (root == null || root.Count == 0)
                 return await Search2(title, original_title, clarification, year);
 
-            var ids = new List<int>();
+            var ids = new List<int>(root.Count);
             var stpl = new SimilarTpl(root.Count);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            string? stitle = title?.ToLower();
+            string? sorigtitle = original_title?.ToLower();
 
             foreach (var item in root)
             {
@@ -80,8 +83,8 @@ namespace Shared.Engine.Online
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster)); 
 
-                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
-                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -133,11 +136,14 @@ namespace Shared.Engine.Online
             if (result == null)
                 return await Search3(title, original_title, clarification, year);
 
-            var ids = new List<int>();
+            var ids = new List<int>(result.Count);
             var stpl = new SimilarTpl(result.Count);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            string? stitle = title?.ToLower();
+            string? sorigtitle = original_title?.ToLower();
 
             foreach (var item in result)
             {
@@ -148,8 +154,8 @@ namespace Shared.Engine.Online
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
 
-                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
-                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -192,13 +198,18 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var ids = new List<int>();
-            var stpl = new SimilarTpl();
+            var rows = html.Split("</article>");
+
+            var ids = new List<int>(rows.Length);
+            var stpl = new SimilarTpl(rows.Length);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            foreach (string row in html.Split("</article>"))
+            string? stitle = title?.ToLower();
+            string? sorigtitle = original_title?.ToLower();
+
+            foreach (string row in rows)
             {
                 string ftitle = Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value;
                 string ftitle_orig = Regex.Match(row, "itemprop=\"alternativeHeadline\" content=\"([^\"]+)\"").Groups[1].Value;
@@ -211,8 +222,8 @@ namespace Shared.Engine.Online
 
                     stpl.Append(name, fyear, string.Empty, host + $"lite/filmix?postid={id}&title={enc_title}&original_title={enc_original_title}");
 
-                    if ((!string.IsNullOrEmpty(title) && ftitle.ToLower() == title.ToLower()) ||
-                        (!string.IsNullOrEmpty(original_title) && ftitle_orig.ToLower() == original_title.ToLower()))
+                    if ((!string.IsNullOrEmpty(stitle) && ftitle.ToLower() == stitle) ||
+                        (!string.IsNullOrEmpty(sorigtitle) && ftitle_orig.ToLower() == sorigtitle))
                     {
                         if (fyear == year.ToString())
                             ids.Add(id);
@@ -280,7 +291,7 @@ namespace Shared.Engine.Online
 
                 foreach (var v in player_links.movie)
                 {
-                    var streams = new List<(string link, string quality)>() { Capacity = pro ? 5 : 2 };
+                    var streams = new List<(string link, string quality)>(5);
 
                     foreach (int q in new int[] { 2160, 1440, 1080, 720, 480 })
                     {
@@ -321,7 +332,7 @@ namespace Shared.Engine.Online
                 if (s == null)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(!string.IsNullOrEmpty(root?.quality) ? $"{root.quality.Replace("+", "")}p" : null);
+                    var tpl = new SeasonTpl(!string.IsNullOrEmpty(root?.quality) ? $"{root.quality.Replace("+", "")}p" : null, player_links.playlist.Count);
 
                     foreach (var season in player_links.playlist)
                     {
@@ -334,11 +345,18 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    #region Перевод
-                    int indexTranslate = 0;
-                    var vtpl = new VoiceTpl();
+                    string? sArch = s?.ToString();
 
-                    foreach (var translation in player_links.playlist[s.ToString()])
+                    if (sArch == null)
+                        return string.Empty;
+
+                    #region Перевод
+                    var voices = player_links.playlist[sArch];
+
+                    int indexTranslate = 0;
+                    var vtpl = new VoiceTpl(voices.Count);
+
+                    foreach (var translation in voices)
                     {
                         string link = host + $"lite/filmix?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
                         bool active = t == indexTranslate;
@@ -353,7 +371,7 @@ namespace Shared.Engine.Online
 
                     try
                     {
-                        episodes = player_links.playlist[s.ToString()].ElementAt(t).Value.ToObject<Dictionary<string, Movie>>();
+                        episodes = player_links.playlist[sArch].ElementAt(t).Value.ToObject<Dictionary<string, Movie>>();
                     }
                     catch
                     {
@@ -362,7 +380,7 @@ namespace Shared.Engine.Online
                             int episod_id = 0;
                             episodes = new Dictionary<string, Movie>();
 
-                            foreach (var item in player_links.playlist[s.ToString()].ElementAt(t).Value.ToObject<List<Movie>>())
+                            foreach (var item in player_links.playlist[sArch].ElementAt(t).Value.ToObject<List<Movie>>())
                             {
                                 episod_id++;
                                 episodes.Add(episod_id.ToString(), item);
@@ -376,12 +394,11 @@ namespace Shared.Engine.Online
                     #endregion
 
                     #region Серии
-                    onlog?.Invoke("episodes: " + episodes.Count);
-                    var etpl = new EpisodeTpl();
+                    var etpl = new EpisodeTpl(episodes.Count);
 
                     foreach (var episode in episodes)
                     {
-                        var streams = new List<(string link, string quality)>() { Capacity = pro ? episode.Value.qualities.Count : 2 };
+                        var streams = new List<(string link, string quality)>(episode.Value.qualities.Count);
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
@@ -400,8 +417,6 @@ namespace Shared.Engine.Online
 
                         if (streams.Count == 0)
                             continue;
-
-                        string streansquality = "\"quality\": {" + string.Join(",", streams.Select(s => $"\"{s.quality}\":\"{s.link}\"")) + "}";
 
                         int fis = s == -1 ? 1 : (s ?? 1);
 

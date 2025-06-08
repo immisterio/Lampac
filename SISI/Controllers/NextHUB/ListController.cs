@@ -1,21 +1,22 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using HtmlAgilityPack;
+using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Shared.Model.SISI.NextHUB;
-using Shared.PlaywrightCore;
-using Shared.Model.SISI;
-using HtmlAgilityPack;
-using System.Web;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
 using Shared.Engine;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
+using Shared.Model.SISI;
+using Shared.Model.SISI.NextHUB;
+using Shared.Models.CSharpGlobals;
+using Shared.PlaywrightCore;
+using SISI;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System;
-using Lampac.Engine.CORE;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -23,7 +24,7 @@ namespace Lampac.Controllers.NextHUB
     {
         [HttpGet]
         [Route("nexthub")]
-        async public Task<ActionResult> Index(string plugin, string search, string sort, string cat, int pg = 1)
+        async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, int pg = 1)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
@@ -76,7 +77,7 @@ namespace Lampac.Controllers.NextHUB
             }
 
 
-            List<MenuItem> menu = new List<MenuItem>();
+            List<MenuItem> menu = new List<MenuItem>(3);
 
             #region search
             if (init.search?.uri != null)
@@ -158,7 +159,7 @@ namespace Lampac.Controllers.NextHUB
             if (nodes == null || nodes.Count == 0)
                 return null;
 
-            var playlists = new List<PlaylistItem>() { Capacity = nodes.Count };
+            var playlists = new List<PlaylistItem>(nodes.Count);
             string eval = string.IsNullOrEmpty(parse.eval) ? null : FileCache.ReadAllText($"NextHUB/{parse.eval}");
 
             foreach (var row in nodes)
@@ -252,7 +253,7 @@ namespace Lampac.Controllers.NextHUB
                     };
 
                     if (eval != null)
-                        pl = Root.Eval.Execute<PlaylistItem>(eval, new { host, init, pl, html, row = row.OuterHtml });
+                        pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(html, host, init, pl, nodes, row));
 
                     if (pl != null)
                         playlists.Add(pl);
@@ -264,7 +265,7 @@ namespace Lampac.Controllers.NextHUB
         #endregion
 
         #region ContentAsync
-        async ValueTask<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
+        async Task<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
         {
             try
             {
@@ -272,12 +273,12 @@ namespace Lampac.Controllers.NextHUB
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy: proxy, keepopen: init.keepopen);
+                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy: proxy, keepopen: init.keepopen).ConfigureAwait(false);
                     if (page == default)
                         return null;
 
                     if (init.cookies != null)
-                        await page.Context.AddCookiesAsync(init.cookies);
+                        await page.Context.AddCookiesAsync(init.cookies).ConfigureAwait(false);
 
                     string routeEval = null;
                     if (conf.routeEval != null)
@@ -290,16 +291,9 @@ namespace Lampac.Controllers.NextHUB
                             #region routeEval
                             if (routeEval != null)
                             {
-                                var e = Root.Eval.Execute<object>(routeEval, new { route.Request, search, sort, cat, pg });
-                                if (e != null)
-                                {
-                                    if (e is RouteContinue)
-                                    {
-                                        var r = (RouteContinue)e;
-                                        await route.ContinueAsync(new RouteContinueOptions { Url = r.url, PostData = r.postData, Headers = r.headers });
-                                        return;
-                                    }
-                                }
+                                bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, search, sort, cat, pg));
+                                if (!_next)
+                                    return;
                             }
                             #endregion
 
@@ -335,16 +329,17 @@ namespace Lampac.Controllers.NextHUB
                             await page.WaitForSelectorAsync(conf.waitForSelector, new PageWaitForSelectorOptions
                             {
                                 Timeout = conf.waitForSelector_timeout
-                            });
+
+                            }).ConfigureAwait(false);
                         }
                         catch { }
 
-                        content = await page.ContentAsync();
+                        content = await page.ContentAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                        content = await page.ContentAsync();
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle).ConfigureAwait(false);
+                        content = await page.ContentAsync().ConfigureAwait(false);
                     }
 
                     PlaywrightBase.WebLog("GET", url, content, proxy);

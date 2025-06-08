@@ -16,7 +16,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds")]
         [Route("xdsgay")]
         [Route("xdssml")]
-        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
             if (await IsBadInitialization(init, rch: true))
@@ -65,7 +65,7 @@ namespace Lampac.Controllers.Xvideos
         [Route("xds/stars")]
         [Route("xdsgay/stars")]
         [Route("xdssml/stars")]
-        async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
+        async public ValueTask<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
             if (await IsBadInitialization(init, rch: true))

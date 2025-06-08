@@ -104,7 +104,7 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public ValueTask<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
+        public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
@@ -138,7 +138,7 @@ namespace Shared.PlaywrightCore
             catch { }
         }
 
-        public ValueTask<string> WaitPageResult(int seconds = 10)
+        public Task<string> WaitPageResult(int seconds = 10)
         {
             try
             {
@@ -166,27 +166,27 @@ namespace Shared.PlaywrightCore
             {
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser, minimalAPI))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy);
+                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
                     if (cookies != null)
-                        await page.Context.AddCookiesAsync(cookies);
+                        await page.Context.AddCookiesAsync(cookies).ConfigureAwait(false);
 
                     IResponse response = default;
 
                     if (browser.firefox != null)
                     {
-                        response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                        response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
                     }
                     else
                     {
-                        response = await page.GotoAsync($"view-source:{url}");
+                        response = await page.GotoAsync($"view-source:{url}").ConfigureAwait(false);
                     }
 
                     if (response != null)
                     {
-                        string result = await response.TextAsync();
+                        string result = await response.TextAsync().ConfigureAwait(false);
                         PlaywrightBase.WebLog(response.Request, response, result, proxy);
 
                         return result;

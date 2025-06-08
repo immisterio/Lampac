@@ -92,7 +92,7 @@ namespace Shared.Engine.Online
                     if (json.Contains("not found"))
                         return new EmbedModel() { IsEmpty = true };
 
-                    var similars = new List<Similar>() {  Capacity = 10 };
+                    var similars = new List<Similar>(10);
 
                     foreach (var item in JsonSerializer.Deserialize<JsonElement>(json).GetProperty("online").EnumerateObject())
                     {
@@ -172,8 +172,9 @@ namespace Shared.Engine.Online
                 return string.Empty;
 
             #region Переводы
-            var vtpl = new VoiceTpl();
             var voices = result?.menu?.FirstOrDefault(i => i.title == "Перевод")?.submenu;
+            var vtpl = new VoiceTpl(voices != null ? voices.Count : 0);
+
             if (voices != null && voices.Count > 0)
             {
                 foreach (var translation in voices)
@@ -191,7 +192,7 @@ namespace Shared.Engine.Online
             {
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(quality: result.channels[0].quality_full?.Replace("2160p.", "4K "));
+                    var tpl = new SeasonTpl(quality: result.channels[0].quality_full?.Replace("2160p.", "4K "), result.channels.Count);
 
                     foreach (var ch in result.channels)
                     {
@@ -206,12 +207,16 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    var tpl = new EpisodeTpl();
+                    var series = result.channels.First(i => i.title.StartsWith($"{s} ") || i.title.EndsWith($" {s}")).submenu;
 
-                    foreach (var e in result.channels.First(i => i.title.StartsWith($"{s} ") || i.title.EndsWith($" {s}")).submenu)
+                    var tpl = new EpisodeTpl(series.Count);
+
+                    string sArhc = s.ToString();
+
+                    foreach (var e in series)
                     {
                         string ename = Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value;
-                        tpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url), vast: vast);
+                        tpl.Append(e.title, title ?? original_title, sArhc, ename, onstreamfile(e.stream_url), vast: vast);
                     }
 
                     if (rjson)

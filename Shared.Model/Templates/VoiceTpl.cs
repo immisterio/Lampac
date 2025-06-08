@@ -6,11 +6,9 @@ namespace Shared.Model.Templates
 {
     public class VoiceTpl
     {
-        List<(string name, bool active, string link)> data = new List<(string, bool, string)>();
+        List<(string name, bool active, string link)> data;
 
-        public VoiceTpl() { }
-
-        public VoiceTpl(int capacity) { data.Capacity = capacity; }
+        public VoiceTpl(int capacity = 15) { data = new List<(string, bool, string)>(capacity); }
 
         public void Append(string? name, bool active, string link)
         {

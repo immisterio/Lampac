@@ -80,7 +80,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
         {
             #region Initialization
             var init = await Initialization();
@@ -173,7 +173,7 @@ namespace Lampac.Controllers.LITE
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false)
+        async public ValueTask<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -205,7 +205,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/rezka/movie")]
         [Route("lite/rezka/movie.m3u8")]
-        async public Task<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
+        async public ValueTask<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))

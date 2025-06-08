@@ -20,12 +20,13 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>() { Capacity = 40 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
-            foreach (string row in html.Split("<div id=\"video_").Skip(1))
+            var rows = html.Split("<div id=\"video_");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 var g = Regex.Match(row, "<a href=\"/(video-[^\"]+)\" title=\"([^\"]+)\"").Groups;
                 string quality = Regex.Match(row, "<span class=\"superfluous\"> - </span>([^<]+)</span>").Groups[1].Value;

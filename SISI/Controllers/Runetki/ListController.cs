@@ -14,7 +14,7 @@ namespace Lampac.Controllers.Runetki
     {
         [HttpGet]
         [Route("runetki")]
-        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Runetki);
             if (await IsBadInitialization(init, rch: true))

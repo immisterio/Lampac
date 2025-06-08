@@ -40,7 +40,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -125,8 +125,9 @@ namespace Lampac.Controllers.LITE
                     #endregion
 
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
-                    foreach (var episode in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Reverse())
+                    foreach (var episode in data.Value<JObject>("seasons").GetValue(sArhc).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Reverse())
                     {
                         if (!string.IsNullOrWhiteSpace(activTranslate) && !episode.Value.translation.ContainsKey(activTranslate))
                             continue;
@@ -134,7 +135,7 @@ namespace Lampac.Controllers.LITE
                         string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}&token_movie={result.data.Value<string>("token_movie")}" + defaultargs;
                         string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", streamlink: streamlink);
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", streamlink: streamlink);
                     }
 
                     if (rjson)
@@ -151,7 +152,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/alloha/video")]
         [Route("lite/alloha/video.m3u8")]
-        async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
+        async public ValueTask<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -219,7 +220,7 @@ namespace Lampac.Controllers.LITE
                 // first or default
                 if (streams == null || hlsSource.Value<bool>("default"))
                 {
-                    streams = new List<(string link, string quality)>() { Capacity = 6 };
+                    streams = new List<(string link, string quality)>(6);
 
                     foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
                     {
@@ -236,10 +237,10 @@ namespace Lampac.Controllers.LITE
                 return Redirect(streams[0].link);
 
             return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
-                   streamquality: new StreamQualityTpl(streams),
-                   vast: init.vast,
-                   subtitles: subtitles,
-                   hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+                streamquality: new StreamQualityTpl(streams),
+                vast: init.vast,
+                subtitles: subtitles,
+                hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
             ));
         }
         #endregion
@@ -247,7 +248,7 @@ namespace Lampac.Controllers.LITE
         #region SpiderSearch
         [HttpGet]
         [Route("lite/alloha-search")]
-        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -310,9 +311,11 @@ namespace Lampac.Controllers.LITE
 
                     if (root.ContainsKey("data"))
                     {
+                        string stitle = title.ToLower();
+
                         foreach (var item in root["data"])
                         {
-                            if (item.Value<string>("name")?.ToLower()?.Trim() == title.ToLower())
+                            if (item.Value<string>("name")?.ToLower()?.Trim() == stitle)
                             {
                                 int y = item.Value<int>("year");
                                 if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))

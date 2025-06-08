@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Animevost);
             if (await IsBadInitialization(init, rch: true))
@@ -44,10 +44,12 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return res.Fail("search");
 
-                    var smlr = new List<(string title, string year, string uri, string s, string img)>();
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>();
+                    var rows = search.Split("class=\"shortstory\"");
 
-                    foreach (string row in search.Split("class=\"shortstory\"").Skip(1))
+                    var smlr = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
+
+                    foreach (string row in rows.Skip(1))
                     {
                         var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
                         string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>").Groups[1].Value;
@@ -131,8 +133,9 @@ namespace Lampac.Controllers.LITE
                         return res.Fail("data");
                     }
 
-                    var links = new List<(string episode, string id)>();
                     var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",");
+                    var links = new List<(string episode, string id)>(match.Length);
+
                     while (match.Success)
                     {
                         if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
@@ -152,13 +155,14 @@ namespace Lampac.Controllers.LITE
 
                 return OnResult(cache, () =>
                 {
-                    var etpl = new EpisodeTpl();
+                    var etpl = new EpisodeTpl(cache.Value.Count);
+                    string sArhc = s.ToString();
 
                     foreach (var l in cache.Value)
                     {
                         string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
 
-                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
+                        etpl.Append(l.episode, title, sArhc, Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();
@@ -172,7 +176,7 @@ namespace Lampac.Controllers.LITE
         #region Video
         [HttpGet]
         [Route("lite/animevost/video")]
-        async public Task<ActionResult> Video(int id, string title, bool play)
+        async public ValueTask<ActionResult> Video(int id, string title, bool play)
         {
             var init = await loadKit(AppInit.conf.Animevost);
             if (await IsBadInitialization(init, rch: true))

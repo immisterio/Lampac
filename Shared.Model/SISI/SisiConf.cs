@@ -8,6 +8,8 @@ namespace Lampac.Models.AppConf
 
         public bool NextHUB { get; set; }
 
+        public string[]? NextHUB_sites_enabled { get; set; }
+
         public bool rsize { get; set; }
 
         public string? rsize_host { get; set; }

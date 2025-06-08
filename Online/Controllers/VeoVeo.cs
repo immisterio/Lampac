@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/veoveo")]
-        async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.VeoVeo);
             if (await IsBadInitialization(init, rch: false))
@@ -60,7 +60,7 @@ namespace Lampac.Controllers.LITE
                 if (cache.Value.First["season"].Value<int>("order") == 0)
                 {
                     #region Фильм
-                    var mtpl = new MovieTpl(title, original_title);
+                    var mtpl = new MovieTpl(title, original_title, 1);
 
                     string stream = HostStreamProxy(init, cache.Value.First.Value<string>("m3u8MasterFilePath"), proxy: proxy);
 
@@ -93,6 +93,7 @@ namespace Lampac.Controllers.LITE
                     else
                     {
                         var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
 
                         foreach (var episode in cache.Value.Where(i => i["season"].Value<int>("order") == s))
                         {
@@ -103,7 +104,7 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             string stream = HostStreamProxy(init, file, proxy: proxy);
-                            etpl.Append(name ?? $"{episode.Value<int>("order")} серия", title ?? original_title, s.ToString(), episode.Value<int>("order").ToString(), stream, vast: init.vast);
+                            etpl.Append(name ?? $"{episode.Value<int>("order")} серия", title ?? original_title, sArhc, episode.Value<int>("order").ToString(), stream, vast: init.vast);
                         }
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();
@@ -122,7 +123,7 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var stpl = new SimilarTpl();
+            var stpl = new SimilarTpl(100);
             string _t = StringConvert.SearchName(title);
             if (string.IsNullOrEmpty(_t))
                 return OnError();
@@ -148,6 +149,9 @@ namespace Lampac.Controllers.LITE
 
         Movie search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
+
             Movie goSearch(bool searchToId)
             {
                 if (searchToId && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
@@ -171,15 +175,15 @@ namespace Lampac.Controllers.LITE
                     }
                     else
                     {
-                        if (StringConvert.SearchName(original_title) != null)
+                        if (sorigtitle != null)
                         {
-                            if (StringConvert.SearchName(item.originalTitle) == StringConvert.SearchName(original_title))
+                            if (StringConvert.SearchName(item.originalTitle) == sorigtitle)
                                 return item;
                         }
 
-                        if (StringConvert.SearchName(title) != null)
+                        if (stitle != null)
                         {
-                            if (StringConvert.SearchName(item.title) == StringConvert.SearchName(title))
+                            if (StringConvert.SearchName(item.title) == stitle)
                                 return item;
                         }
                     }

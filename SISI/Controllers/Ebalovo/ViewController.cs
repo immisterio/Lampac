@@ -13,7 +13,7 @@ namespace Lampac.Controllers.Ebalovo
     {
         [HttpGet]
         [Route("elo/vidosik")]
-        async public Task<ActionResult> Index(string uri, bool related)
+        async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Ebalovo);
             if (await IsBadInitialization(init, rch: true))

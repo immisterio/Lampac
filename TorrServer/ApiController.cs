@@ -10,10 +10,10 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using TorrServer;
 using System.Buffers;
-using Shared.Model.Online;
 using Shared.Engine;
 using Shared.Model.Base;
 using System.Web;
+using System.Net;
 
 namespace Lampac.Controllers
 {
@@ -30,19 +30,44 @@ namespace Lampac.Controllers
             if (!string.IsNullOrEmpty(token))
                 file = Regex.Replace(file, "Lampa.Storage.set\\('torrserver_login'[^\n\r]+", $"Lampa.Storage.set('torrserver_login','{HttpUtility.UrlEncode(token)}');");
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(file, "application/javascript; charset=utf-8");
         }
         #endregion
+
+        #region HttpClient
+        private static readonly HttpClient httpClient = new HttpClient(new SocketsHttpHandler
+        {
+            AllowAutoRedirect = true,
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+            MaxConnectionsPerServer = 20,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(10)
+        })
+        {
+            BaseAddress = new Uri($"http://{AppInit.conf.localhost}:{ModInit.tsport}"),
+            DefaultRequestHeaders =
+            {
+                Authorization = new AuthenticationHeaderValue("Basic", Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")),
+            },
+            Timeout = TimeSpan.FromSeconds(10)
+        };
+        #endregion
+
 
         #region Main
         [Route("ts")]
         [Route("ts/static/js/{suffix}")]
         async public Task<ActionResult> Main()
         {
+            string html = null;
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
-            string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
-            string html = await Engine.CORE.HttpClient.Get(servUri, timeoutSeconds: 5, headers: HeadersModel.Init("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}"));
+            try
+            {
+                var responseMessage = await httpClient.GetAsync(pathRequest + HttpContext.Request.QueryString.Value).ConfigureAwait(false);
+                html = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+            catch { }
 
             if (html == null)
                 return StatusCode(500);
@@ -77,7 +102,7 @@ namespace Lampac.Controllers
                 #region Обработка stream потока
                 if (HttpContext.Request.Method == "GET" && Regex.IsMatch(HttpContext.Request.Path.Value, "^/ts/(stream|play)"))
                 {
-                    await TorAPI();
+                    await TorAPI().ConfigureAwait(false);
                     return;
 
                     //if (ModInit.clientIps.Contains(HttpContext.Connection.RemoteIpAddress.ToString()))
@@ -117,7 +142,7 @@ namespace Lampac.Controllers
                             return;
                         }
 
-                        await TorAPI();
+                        await TorAPI().ConfigureAwait(false);
                         return;
                     }
                 }
@@ -134,7 +159,7 @@ namespace Lampac.Controllers
             }
             else
             {
-                await TorAPI();
+                await TorAPI().ConfigureAwait(false);
                 return;
             }
         }
@@ -152,23 +177,17 @@ namespace Lampac.Controllers
                 }
 
                 MemoryStream mem = new MemoryStream();
-                await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted);
+                await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted).ConfigureAwait(false);
                 string requestJson = Encoding.UTF8.GetString(mem.ToArray());
 
-                using (HttpClient client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
+                if (requestJson.Contains("\"get\""))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
-                    client.DefaultRequestHeaders.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
-
-                    if (requestJson.Contains("\"get\""))
-                    {
-                        var response = await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json"));
-                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
-                    }
-                    else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
-                    {
-                        await client.PostAsync($"http://{AppInit.conf.localhost}:{ModInit.tsport}/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
-                    }
+                    var rs = await httpClient.PostAsync("/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json")).ConfigureAwait(false);
+                    await rs.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+                }
+                else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
+                {
+                    await httpClient.PostAsync("/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
                 }
 
                 await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
@@ -176,18 +195,13 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            #region Отправляем запрос в torrserver
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
-            using (var client = Engine.CORE.HttpClient.httpClientFactory.CreateClient("base"))
-            {
-                var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
+            var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
 
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-                await CopyProxyHttpResponse(HttpContext, response);
-            }
-            #endregion
+            var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            await CopyProxyHttpResponse(HttpContext, response).ConfigureAwait(false);
         }
         #endregion
 
@@ -214,7 +228,6 @@ namespace Lampac.Controllers
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
 
-            requestMessage.Headers.Add("Authorization", $"Basic {Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")}");
             requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listenhost) ? context.Request.Host.Value : AppInit.conf.listenhost;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
@@ -234,7 +247,7 @@ namespace Lampac.Controllers
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-disposition")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
                         continue;
 
                     string value = string.Empty;
@@ -250,37 +263,33 @@ namespace Lampac.Controllers
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            try
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
             {
-                using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
+                if (response.Body == null)
+                    throw new ArgumentNullException("destination");
+
+                if (!responseStream.CanRead && !responseStream.CanWrite)
+                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+
+                if (!response.Body.CanRead && !response.Body.CanWrite)
+                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+
+                if (!responseStream.CanRead || !response.Body.CanWrite)
+                    throw new NotSupportedException("NotSupported_UnreadableStream");
+
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(response.ContentLength > 0 ? (int)Math.Min((long)response.ContentLength, 512000) : 4096);
+
+                try
                 {
-                    if (response.Body == null)
-                        throw new ArgumentNullException("destination");
-
-                    if (!responseStream.CanRead && !responseStream.CanWrite)
-                        throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
-
-                    if (!response.Body.CanRead && !response.Body.CanWrite)
-                        throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
-
-                    if (!responseStream.CanRead || !response.Body.CanWrite)
-                        throw new NotSupportedException("NotSupported_UnreadableStream");
-
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(response.ContentLength > 0 ? (5000000 > response.ContentLength ? (int)response.ContentLength : (int)Math.Min((long)response.ContentLength, 512000)) : 4096);
-
-                    try
-                    {
-                        int bytesRead;
-                        while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
-                            await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(buffer);
-                    }
+                    int bytesRead;
+                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
-            catch { }
         }
         #endregion
     }

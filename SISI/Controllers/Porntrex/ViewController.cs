@@ -17,7 +17,7 @@ namespace Lampac.Controllers.Porntrex
 
         [HttpGet]
         [Route("ptx/vidosik")]
-        async public Task<ActionResult> vidosik(string uri)
+        async public ValueTask<ActionResult> vidosik(string uri)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
             if (await IsBadInitialization(init, rch: true))
@@ -68,7 +68,7 @@ namespace Lampac.Controllers.Porntrex
 
         [HttpGet]
         [Route("ptx/strem")]
-        async public Task<ActionResult> strem(string link)
+        async public ValueTask<ActionResult> strem(string link)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
             if (await IsBadInitialization(init, rch: true))

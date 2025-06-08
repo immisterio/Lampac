@@ -28,7 +28,7 @@ namespace Shared.Engine
     public class PlaywrightBase
     {
         #region InitializationAsync
-        async public static ValueTask<bool> InitializationAsync()
+        async public static Task<bool> InitializationAsync()
         {
             try
             {
@@ -158,7 +158,7 @@ namespace Shared.Engine
         #endregion
 
         #region DownloadFile
-        async public static ValueTask<bool> DownloadFile(string uri, string outfile, string folder = null)
+        async public static Task<bool> DownloadFile(string uri, string outfile, string folder = null)
         {
             if (File.Exists($"{outfile}.ok"))
                 return true;
@@ -170,7 +170,7 @@ namespace Shared.Engine
 
             Console.WriteLine($"Playwright: Download {outfile}");
 
-            if (await HttpClient.DownloadFile(uri, outfile).ConfigureAwait(false))
+            if (await HttpClient.DownloadFile(uri, outfile))
             {
                 File.Create($"{outfile}.ok");
 
@@ -283,7 +283,7 @@ namespace Shared.Engine
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
         #region WaitPageResult
-        async public ValueTask<string> WaitPageResult(int seconds = 10)
+        async public Task<string> WaitPageResult(int seconds = 10)
         {
             try
             {

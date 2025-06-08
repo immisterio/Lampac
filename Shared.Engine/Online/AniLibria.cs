@@ -35,12 +35,15 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var result = new List<RootObject>();
+            string stitle = title.ToLower();
+
+            var result = new List<RootObject>(search.Count);
+
             foreach (var item in search)
             {
-                if (item.names.ru != null && item.names.ru.ToLower().StartsWith(title.ToLower()))
+                if (item.names.ru != null && item.names.ru.ToLower().StartsWith(stitle))
                     result.Add(item);
-                else if (item.names.en != null && item.names.en.ToLower().StartsWith(title.ToLower()))
+                else if (item.names.en != null && item.names.en.ToLower().StartsWith(stitle))
                     result.Add(item);
             }
 
@@ -60,14 +63,15 @@ namespace Shared.Engine.Online
             if (!similar && (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (result[0].names.ru?.ToLower() == title.ToLower() || result[0].names.en?.ToLower() == title.ToLower()))))
             {
                 #region Серии
-                var etpl = new EpisodeTpl();
-
                 var root = string.IsNullOrEmpty(code) ? result[0] : result.Find(i => i.code == code);
+                var episodes = root.player.playlist.Select(i => i.Value);
 
-                foreach (var episode in root.player.playlist.Select(i => i.Value))
+                var etpl = new EpisodeTpl(episodes.Count());
+
+                foreach (var episode in episodes)
                 {
                     #region streansquality
-                    var streams = new List<(string link, string quality)>() { Capacity = 5 };
+                    var streams = new List<(string link, string quality)>(3);
 
                     foreach (var f in new List<(string quality, string? url)> { ("1080p", episode.hls.fhd), ("720p", episode.hls.hd), ("480p", episode.hls.sd) })
                     {

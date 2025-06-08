@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public Task<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AniMedia);
             if (await IsBadInitialization(init, rch: false))
@@ -38,9 +38,11 @@ namespace Lampac.Controllers.LITE
                     if (search == null)
                         return OnError(proxyManager);
 
-                    catalog = new List<(string title, string url, string img)>();
+                    var rows = search.Split("<div class=\"ads-list__item\">");
 
-                    foreach (string row in search.Split("<div class=\"ads-list__item\">").Skip(1))
+                    catalog = new List<(string title, string url, string img)>(rows.Length);
+
+                    foreach (string row in rows.Skip(1))
                     {
                         var g = Regex.Match(row, "href=\"/anime/([^\"]+)\"[^>]+ class=\"h3 ads-list__item__title\">([^<]+)</a>").Groups;
 
@@ -88,7 +90,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(entryid))
                             return OnError();
 
-                        links = new List<(string, string, string)>();
+                        links = new List<(string, string, string)>(5);
 
                         var match = Regex.Match(news, $"<a href=\"/anime/{code}/([0-9]+)/1\" class=\"item\">([^<]+)</a>");
                         while (match.Success)
@@ -117,7 +119,6 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     #region Серии
-                    var etpl = new EpisodeTpl();
                     var proxy = proxyManager.Get();
 
                     string memKey = $"animedia:playlist:{entry_id}:{s}";
@@ -144,10 +145,13 @@ namespace Lampac.Controllers.LITE
                         hybridCache.Set(memKey, links, cacheTime(30, init: init));
                     }
 
+                    var etpl = new EpisodeTpl(links.Count);
+                    string sArhc = s.ToString();
+
                     foreach (var l in links)
                     {
                         string link = HostStreamProxy(init, l.uri, proxy: proxy);
-                        etpl.Append(l.name, $"{title} / {l.name.ToLower()}", s.ToString(), Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link, vast: init.vast);
+                        etpl.Append(l.name, $"{title} / {l.name.ToLower()}", sArhc, Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link, vast: init.vast);
                     }
 
                     return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());

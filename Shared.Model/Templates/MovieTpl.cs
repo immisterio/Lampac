@@ -11,13 +11,13 @@ namespace Shared.Model.Templates
     {
         string? title, original_title;
 
-        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?, int?)>();
+        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
 
-        public MovieTpl(string? title, string? original_title = null, int capacity = 0) 
+        public MovieTpl(string? title, string? original_title = null, int capacity = 15) 
         {
             this.title = title;
             this.original_title = original_title;
-            data.Capacity = capacity; 
+            data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?, int?)>(capacity); 
         }
         public bool IsEmpty() => data.Count == 0;
 

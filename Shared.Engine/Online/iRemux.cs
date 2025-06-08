@@ -44,6 +44,9 @@ namespace Shared.Engine.Online
                     return null;
                 }
 
+                string? stitle = title?.ToLower();
+                string? sorigtitle = original_title?.ToLower();
+
                 foreach (string row in search.Split("item--announce").Skip(1))
                 {
                     var g = Regex.Match(row, "class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>").Groups;
@@ -52,7 +55,7 @@ namespace Shared.Engine.Online
                     if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
                         continue;
 
-                    if ((!string.IsNullOrEmpty(title) && name.Contains(title.ToLower())) || (!string.IsNullOrEmpty(original_title) && name.Contains(original_title.ToLower())))
+                    if ((!string.IsNullOrEmpty(stitle) && name.Contains(stitle)) || (!string.IsNullOrEmpty(sorigtitle) && name.Contains(sorigtitle)))
                     {
                         if (string.IsNullOrEmpty(g["link"].Value))
                             continue;

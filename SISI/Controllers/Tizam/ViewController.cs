@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Tizam
     public class ViewController : BaseSisiController
     {
         [Route("tizam/vidosik")]
-        async public Task<ActionResult> Index(string uri)
+        async public ValueTask<ActionResult> Index(string uri)
         {
             var init = await loadKit(AppInit.conf.Tizam);
             if (await IsBadInitialization(init, rch: true))

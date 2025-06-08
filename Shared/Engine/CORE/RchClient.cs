@@ -13,6 +13,15 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
+    public class RchClientInfo
+    {
+        public int version { get; set; }
+        public string host { get; set; }
+        public string href { get; set; }
+        public string rchtype { get; set; }
+        public int apkVersion { get; set; }
+    }
+
     public class RchClient
     {
         #region static
@@ -20,7 +29,7 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static ConcurrentDictionary<string, (string ip, string json, JObject jb)> clients = new ConcurrentDictionary<string, (string, string, JObject)>();
+        public static ConcurrentDictionary<string, (string ip, string json, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
@@ -91,13 +100,16 @@ namespace Lampac.Engine.CORE
 
 
         #region Eval
-        public ValueTask<string> Eval(string data) => SendHub("eval", data);
+        public async Task<string> Eval(string data)
+        {
+            return await SendHub("eval", data).ConfigureAwait(false);
+        }
 
-        async public ValueTask<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
+        async public Task<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
         {
             try
             {
-                string json = await SendHub("eval", data);
+                string json = await SendHub("eval", data).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -114,11 +126,11 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Headers
-        async public ValueTask<(JObject headers, string currentUrl, string body)> Headers(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        async public Task<(JObject headers, string currentUrl, string body)> Headers(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
         {
             try
             {
-                string json = await SendHub(url, data, headers, useDefaultHeaders, true);
+                string json = await SendHub(url, data, headers, useDefaultHeaders, true).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -136,13 +148,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Get
-        public ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true) => SendHub(url, null, headers, useDefaultHeaders);
+        public async ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        {
+            return await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
+        }
 
         async public ValueTask<T> Get<T>(string url, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string html = await SendHub(url, null, headers, useDefaultHeaders);
+                string html = await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
                 if (html == null)
                     return default;
 
@@ -159,13 +174,16 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) => SendHub(url, data, headers, useDefaultHeaders);
+        public async ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
+        {
+            return await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
+        }
 
         async public ValueTask<T> Post<T>(string url, string data, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
-                string json = await SendHub(url, data, headers, useDefaultHeaders);
+                string json = await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
                 if (json == null)
                     return default;
 
@@ -182,7 +200,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region SendHub
-        async ValueTask<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
+        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
         {
             if (hub == null)
                 return null;
@@ -214,7 +232,7 @@ namespace Lampac.Engine.CORE
 
                 hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
 
-                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12));
+                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
                 rchIds.TryRemove(rchId, out _);
 
                 if (string.IsNullOrWhiteSpace(result))
@@ -260,7 +278,7 @@ namespace Lampac.Engine.CORE
                 return false; // заглушка для checksearch
 
             var info = InfoConnected();
-            if (string.IsNullOrEmpty(info.rchtype))
+            if (string.IsNullOrEmpty(info?.rchtype))
                 return false; // клиент не в сети
 
             // разрешен возврат на сервер
@@ -285,28 +303,23 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region InfoConnected
-        public (int version, string host, string href, string rchtype, int apkVersion) InfoConnected()
+        public RchClientInfo InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (client.Value.json == null && client.Value.jb == null)
+            if (client.Value.json == null && client.Value.info == null)
                 return default;
 
-            JObject job = client.Value.jb;
+            var info = client.Value.info;
 
-            if (job == null)
+            if (info == null)
             {
                 try
                 {
-                    job = JsonConvert.DeserializeObject<JObject>(client.Value.json);
-                    clients[client.Key] = (client.Value.ip, null, job);
+                    info = JsonConvert.DeserializeObject<RchClientInfo>(client.Value.json);
+                    clients[client.Key] = (client.Value.ip, null, info);
                 }
                 catch { return default; }
             }
-
-            (int version, string host, string href, string rchtype, int apkVersion) info = (job.Value<int>("version"), job.Value<string>("host"), job.Value<string>("href"), job.Value<string>("rchtype"), 0);
-
-            if (info.version >= 142)
-                info.apkVersion = job.Value<int>("apkVersion");
 
             return info;
         }

@@ -13,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/anilibria")]
-        async public Task<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AnilibriaOnline);
             if (await IsBadInitialization(init, rch: true))

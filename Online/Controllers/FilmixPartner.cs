@@ -23,7 +23,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/fxapi")]
-        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.FilmixPartner);
             if (await IsBadInitialization(init, rch: false))
@@ -171,6 +171,7 @@ namespace Lampac.Controllers.LITE
 
                     #region Серии
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
                     foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
                     {
@@ -189,7 +190,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         int e = episode.Value<int>("episode");
-                        etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                        etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
                     }
                     #endregion
 
@@ -316,9 +317,9 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async ValueTask<SearchResult> Search2(string? title, string? original_title, int year)
+        async Task<SearchResult> Search2(string? title, string? original_title, int year)
         {
-            async ValueTask<List<SearchModel>> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string? story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;

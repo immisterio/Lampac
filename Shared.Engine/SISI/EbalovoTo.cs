@@ -41,12 +41,13 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>() { Capacity = 35 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
-            foreach (string row in html.Split("<div class=\"item\">"))
+            var rows = html.Split("<div class=\"item\">");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows)
             {
                 if (!row.Contains("<div class=\"item-info\">"))
                     continue;

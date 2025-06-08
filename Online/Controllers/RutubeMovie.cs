@@ -5,6 +5,7 @@ using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Templates;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -12,7 +13,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/rutubemovie")]
-        async public Task<ActionResult> Index(string title, int year, int serial, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.RutubeMovie);
             if (await IsBadInitialization(init, rch: true))
@@ -24,7 +25,10 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             if (serial == 1)
             {
@@ -37,7 +41,7 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    string uri = $"api/search/video/?content_type=video&duration=movie&query={title} {year}";
+                    string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
                     var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("results"))
                         return res.Fail("content");
@@ -50,7 +54,7 @@ namespace Lampac.Controllers.LITE
 
                 return OnResult(cache, () =>
                 {
-                    var mtpl = new MovieTpl(title);
+                    var mtpl = new MovieTpl(title, original_title, cache.Value.Count);
 
                     foreach (var movie in cache.Value)
                     {
@@ -58,17 +62,17 @@ namespace Lampac.Controllers.LITE
                         if (name != null && name.StartsWith(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
                             long duration = movie.Value<long>("duration");
-                            if (duration > 900)
+                            if (duration > 1800) // 30 minutes
                             {
-                                if (name.Contains("трейлер") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
+                                if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
                                     continue;
 
                                 if (movie["category"].Value<int>("id") == 4)
                                 {
-                                    if (movie.Value<bool>("is_hidden") || movie.Value<bool>("is_deleted") || movie.Value<bool>("is_adult") || movie.Value<bool>("is_locked") || movie.Value<bool>("is_audio") || movie.Value<bool>("is_paid") || movie.Value<bool>("is_reborn_channel") || movie.Value<bool>("is_official") || movie.Value<bool>("is_livestream"))
+                                    if (movie.Value<bool>("is_hidden") || movie.Value<bool>("is_deleted") || movie.Value<bool>("is_adult") || movie.Value<bool>("is_locked") || movie.Value<bool>("is_audio") || movie.Value<bool>("is_paid") || movie.Value<bool>("is_livestream"))
                                         continue;
 
-                                    mtpl.Append(movie.Value<string>("title"), $"{host}/lite/rutubemovie/play.m3u8?linkid={movie.Value<string>("id")}", vast: init.vast);
+                                    mtpl.Append(movie.Value<string>("title"), $"{host}/lite/rutubemovie/play?linkid={movie.Value<string>("id")}", "call", vast: init.vast);
                                 }
                             }
                         }
@@ -82,8 +86,8 @@ namespace Lampac.Controllers.LITE
 
 
         [HttpGet]
-        [Route("lite/rutubemovie/play.m3u8")]
-        async public Task<ActionResult> Movie(string linkid)
+        [Route("lite/rutubemovie/play")]
+        async public ValueTask<ActionResult> Movie(string linkid)
         {
             var init = await loadKit(AppInit.conf.RutubeMovie);
             if (await IsBadInitialization(init, rch: true))
@@ -94,13 +98,13 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             var cache = await InvokeCache<string>($"rutubemovie:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";
                 var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("video_balancer"))
@@ -112,7 +116,7 @@ namespace Lampac.Controllers.LITE
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return Redirect(HostStreamProxy(init, cache.Value, proxy: proxyManager.Get()));
+            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, cache.Value, proxy: proxy), "auto", vast: init.vast));
         }
     }
 }

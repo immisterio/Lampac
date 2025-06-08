@@ -31,7 +31,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/mirage")]
-        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -52,9 +52,11 @@ namespace Lampac.Controllers.LITE
             if (result.category_id is 1 or 3)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
+                var videos = frame.all["theatrical"].ToObject<Dictionary<string, Dictionary<string, JObject>>>();
 
-                foreach (var i in frame.all["theatrical"].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
+                var mtpl = new MovieTpl(title, original_title, videos.Count);
+
+                foreach (var i in videos)
                 {
                     var file = i.Value.First().Value;
 
@@ -67,7 +69,6 @@ namespace Lampac.Controllers.LITE
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
-
                 }
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -92,9 +93,11 @@ namespace Lampac.Controllers.LITE
                     }
                     catch { }
 
-                    var tpl = new SeasonTpl(q);
+                    var seasons = frame.all["seasons"].ToObject<Dictionary<string, JToken>>();
 
-                    foreach (var season in frame.all.ToObject<Dictionary<string, object>>())
+                    var tpl = new SeasonTpl(q, seasons.Count);
+
+                    foreach (var season in seasons)
                         tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
 
                     return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
@@ -105,6 +108,8 @@ namespace Lampac.Controllers.LITE
                     var vtpl = new VoiceTpl();
                     var etpl = new EpisodeTpl();
                     var voices = new HashSet<int>();
+
+                    string sArhc = s.ToString();
 
                     if (frame.all[s.ToString()] is JArray)
                     {
@@ -144,7 +149,7 @@ namespace Lampac.Controllers.LITE
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                 if (e > 0)
-                                    etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                                    etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
                             }
                         }
                     }
@@ -183,7 +188,7 @@ namespace Lampac.Controllers.LITE
                                 string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}";
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                                etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                                etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
                             }
                         }
                     }
@@ -202,7 +207,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/mirage/video")]
         [Route("lite/mirage/video.m3u8")]
-        async public Task<ActionResult> Video(long id_file, string token_movie, string acceptsControls, bool play)
+        async public ValueTask<ActionResult> Video(long id_file, string token_movie, string acceptsControls, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -315,7 +320,7 @@ namespace Lampac.Controllers.LITE
         #region SpiderSearch
         [HttpGet]
         [Route("lite/mirage-search")]
-        async public Task<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -368,6 +373,8 @@ namespace Lampac.Controllers.LITE
 
             if (!hybridCache.TryGetValue(memKey, out (int category_id, JToken data) res))
             {
+                string stitle = title.ToLower();
+
                 if (memKey.Contains(":viewsearch:"))
                 {
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
@@ -381,7 +388,7 @@ namespace Lampac.Controllers.LITE
                     {
                         foreach (var item in root["data"])
                         {
-                            if (item.Value<string>("name")?.ToLower()?.Trim() == title.ToLower())
+                            if (item.Value<string>("name")?.ToLower()?.Trim() == stitle)
                             {
                                 int y = item.Value<int>("year");
                                 if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))

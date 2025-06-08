@@ -1,18 +1,19 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using SISI;
+﻿using HtmlAgilityPack;
 using Lampac.Models.SISI;
-using Shared.Model.Online;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Playwright;
+using Newtonsoft.Json;
 using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Model.Online;
 using Shared.Model.SISI.NextHUB;
+using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
+using SISI;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.Playwright;
-using Microsoft.AspNetCore.Routing;
-using HtmlAgilityPack;
-using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -20,7 +21,7 @@ namespace Lampac.Controllers.NextHUB
     {
         [HttpGet]
         [Route("nexthub/vidosik")]
-        async public Task<ActionResult> Index(string uri, bool related)
+        async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
@@ -78,20 +79,20 @@ namespace Lampac.Controllers.NextHUB
                 {
                     using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen).ConfigureAwait(false);
                         if (page == default)
                             return default;
 
                         string browser_host = "." + Regex.Replace(init.host, "^https?://", "");
 
                         if (init.view.keepopen)
-                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = browser_host, Name = "cf_clearance" });
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = browser_host, Name = "cf_clearance" }).ConfigureAwait(false);
 
                         if (init.cookies != null)
-                            await page.Context.AddCookiesAsync(init.cookies);
+                            await page.Context.AddCookiesAsync(init.cookies).ConfigureAwait(false);
 
                         if (!string.IsNullOrEmpty(init.view.addInitScript))
-                            await page.AddInitScriptAsync(init.view.addInitScript);
+                            await page.AddInitScriptAsync(init.view.addInitScript).ConfigureAwait(false);
 
                         #region RouteAsync
                         await page.RouteAsync("**/*", async route =>
@@ -169,9 +170,9 @@ namespace Lampac.Controllers.NextHUB
 
                         #region GotoAsync
                         string html = null;
-                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
                         if (responce != null)
-                            html = await responce.TextAsync();
+                            html = await responce.TextAsync().ConfigureAwait(false);
                         #endregion
 
                         #region WaitForSelector
@@ -182,14 +183,15 @@ namespace Lampac.Controllers.NextHUB
                                 await page.WaitForSelectorAsync(init.view.waitForSelector ?? init.view.playbtn, new PageWaitForSelectorOptions
                                 {
                                     Timeout = init.view.waitForSelector_timeout
-                                });
+
+                                }).ConfigureAwait(false);
                             }
                             catch { }
                         }
                         #endregion
 
                         if (!string.IsNullOrEmpty(init.view.playbtn))
-                            await page.ClickAsync(init.view.playbtn);
+                            await page.ClickAsync(init.view.playbtn).ConfigureAwait(false);
 
                         if (init.view.nodeFile != null)
                         {
@@ -212,12 +214,12 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 for (int i = 0; i < 10; i++)
                                 {
-                                    cache.file = goFile(await page.ContentAsync());
+                                    cache.file = goFile(await page.ContentAsync().ConfigureAwait(false));
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
                                     PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
-                                    await Task.Delay(800);
+                                    await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
                             else
@@ -238,16 +240,16 @@ namespace Lampac.Controllers.NextHUB
                                     string infile = $"NextHUB/{init.view.eval}";
                                     if (!System.IO.File.Exists(infile))
                                     {
-                                        return Root.Eval.Execute<string>(init.view.eval, new { html = _content, plugin, url });
+                                        return CSharpEval.Execute<string>(init.view.eval, new NxtFindStreamFile(_content, plugin, url));
                                     }
                                     else
                                     {
                                         string evaluate = FileCache.ReadAllText(infile);
 
                                         if (init.view.eval.EndsWith(".js"))
-                                            return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url });
+                                            return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url }).ConfigureAwait(false);
 
-                                        return Root.Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
+                                        return CSharpEval.Execute<string>(evaluate, new NxtFindStreamFile(_content, plugin, url));
                                     }
                                 }
 
@@ -258,12 +260,12 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 for (int i = 0; i < 10; i++)
                                 {
-                                    cache.file = await goFile(await page.ContentAsync());
+                                    cache.file = await goFile(await page.ContentAsync().ConfigureAwait(false));
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
                                     PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
-                                    await Task.Delay(800);
+                                    await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
                             else
@@ -276,7 +278,7 @@ namespace Lampac.Controllers.NextHUB
                         }
                         else
                         {
-                            cache.file = await browser.WaitPageResult();
+                            cache.file = await browser.WaitPageResult().ConfigureAwait(false);
                         }
 
                         #region related
@@ -286,7 +288,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 if (init.view.NetworkIdle)
                                 {
-                                    string contetnt = await page.ContentAsync();
+                                    string contetnt = await page.ContentAsync().ConfigureAwait(false);
                                     cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, contetnt, plugin);
                                 }
                                 else
@@ -312,12 +314,12 @@ namespace Lampac.Controllers.NextHUB
                         string infile = $"NextHUB/{init.view.fileEval}";
                         if (!System.IO.File.Exists(infile))
                         {
-                            cache.file = Root.Eval.Execute<string>(init.view.fileEval, new { cache.file, cache.headers });
+                            cache.file = CSharpEval.Execute<string>(init.view.fileEval, new NxtChangeStreamFile(cache.file, cache.headers));
                         }
                         else
                         {
                             string evaluate = FileCache.ReadAllText($"NextHUB/{init.view.fileEval}");
-                            cache.file = Root.Eval.Execute<string>(evaluate, new { cache.file, cache.headers });
+                            cache.file = CSharpEval.Execute<string>(evaluate, new NxtChangeStreamFile(cache.file, cache.headers));
                         }
                     }
                     #endregion

@@ -1,21 +1,22 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
+﻿using Lampac.Engine;
 using Lampac.Engine.CORE;
-using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Models.CSharpGlobals;
 using System;
-using IO = System.IO;
-using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Microsoft.AspNetCore.Http;
-using Shared.Engine.CORE;
-using System.Diagnostics;
-using Z.Expressions;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -132,7 +133,7 @@ namespace Lampac.Controllers
         #region app.min.js
         [Route("/app.min.js")]
         [Route("{type}/app.min.js")]
-        public ActionResult LampaApp(string type)
+        public ContentResult LampaApp(string type)
         {
             if (string.IsNullOrEmpty(type))
             {
@@ -151,53 +152,59 @@ namespace Lampac.Controllers
 
             bool usecubproxy = AppInit.conf.cub.enabled(requestInfo.Country);
 
-            if (!memoryCache.TryGetValue($"ApiController:{type}:{host}:{usecubproxy}:app.min.js", out string file))
+            string memKey = $"ApiController:{type}:{host}:{usecubproxy}:app.min.js";
+            if (!memoryCache.TryGetValue(memKey, out string file))
             {
                 file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
 
-                file = file.Replace("http://lite.lampa.mx", $"{host}/{type}");
-                file = file.Replace("https://yumata.github.io/lampa-lite", $"{host}/{type}");
-
-                file = file.Replace("http://lampa.mx", $"{host}/{type}");
-                file = file.Replace("https://yumata.github.io/lampa", $"{host}/{type}");
-
-                file = file.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
-                file = file.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
-
-                file = file.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa
-                file = file.Replace("return status$1;", "return true;"); // отключение рекламы
-
-                memoryCache.Set($"ApiController:{type}:app.min.js", file, DateTime.Now.AddMinutes(5));
-            }
-
-            if (usecubproxy)
-            {
-                file = file.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
-                file = file.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
-                file = file.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
-                file = file.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
-            }
-
-            if (AppInit.conf.LampaWeb.appReplace != null)
-            {
-                foreach (var r in AppInit.conf.LampaWeb.appReplace)
+                if (AppInit.conf.LampaWeb.appReplace != null)
                 {
-                    string val = r.Value;
-                    if (val.StartsWith("file:"))
-                        val = IO.File.ReadAllText(val.Remove(0, 5));
+                    foreach (var r in AppInit.conf.LampaWeb.appReplace)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.AsSpan(5).ToString());
 
-                    val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
-
-                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
+                        val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                        file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
+                    }
                 }
-            }
 
-            string playerinner = FileCache.ReadAllText("plugins/player-inner.js").Replace("{localhost}", host);
-            playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
-            file = file.Replace("Player.play(element);", playerinner);
+                string playerinner = IO.File.ReadAllText("plugins/player-inner.js");
+                playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+
+                var bulder = new StringBuilder(file);
+
+                bulder = bulder.Replace("Player.play(element);", playerinner);
+
+                if (usecubproxy)
+                {
+                    bulder = bulder.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+                    bulder = bulder.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
+                    bulder = bulder.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
+                    bulder = bulder.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
+                }
+
+                bulder = bulder.Replace("http://lite.lampa.mx", $"{host}/{type}");
+                bulder = bulder.Replace("https://yumata.github.io/lampa-lite", $"{host}/{type}");
+
+                bulder = bulder.Replace("http://lampa.mx", $"{host}/{type}");
+                bulder = bulder.Replace("https://yumata.github.io/lampa", $"{host}/{type}");
+
+                bulder = bulder.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
+                bulder = bulder.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
+
+                bulder = bulder.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa
+                bulder = bulder.Replace("return status$1;", "return true;"); // отключение рекламы
+
+                bulder = bulder.Replace("{localhost}", host);
+
+                file = bulder.ToString();
+                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
+            }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
-                file = Eval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new { file, host, type, requestInfo });
+                file = CSharpEval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new appReplaceGlobals(file, host, null, requestInfo, type));
 
             return Content(file, "application/javascript; charset=utf-8");
         }
@@ -205,22 +212,48 @@ namespace Lampac.Controllers
 
         #region app.css
         [Route("/css/app.css")]
-        public ActionResult LampaAppCss()
+        [Route("{type}/css/app.css")]
+        public ContentResult LampaAppCss(string type)
         {
-            string path;
-            if (AppInit.conf.LampaWeb.path != null)
+            if (string.IsNullOrEmpty(type))
             {
-                path = AppInit.conf.LampaWeb.path;
+                if (AppInit.conf.LampaWeb.path != null)
+                {
+                    type = AppInit.conf.LampaWeb.path;
+                }
+                else
+                {
+                    if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
+                        return Content(string.Empty, "application/javascript; charset=utf-8");
+
+                    type = AppInit.conf.LampaWeb.index.Split("/")[0];
+                }
             }
-            else
+
+            string memKey = "ApiController:css/app.css";
+            if (!memoryCache.TryGetValue(memKey, out string css))
             {
-                if (AppInit.conf.LampaWeb.index == null || !AppInit.conf.LampaWeb.index.Contains("/"))
-                    return Content(string.Empty, "text/css; charset=utf-8");
+                css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");
 
-                path = AppInit.conf.LampaWeb.index.Split("/")[0];
+                if (AppInit.conf.LampaWeb.cssReplace != null)
+                {
+                    foreach (var r in AppInit.conf.LampaWeb.cssReplace)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.AsSpan(5).ToString());
+
+                        val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+
+                        css = Regex.Replace(css, r.Key, val, RegexOptions.IgnoreCase);
+                    }
+                }
+
+                memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }
 
-            string css = FileCache.ReadAllText($"wwwroot/{path}/css/app.css");
+            if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.cssEval))
+                css = CSharpEval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.cssEval), new appReplaceGlobals(css, host, null, requestInfo, type));
 
             return Content(css, "text/css; charset=utf-8");
         }
@@ -302,7 +335,7 @@ namespace Lampac.Controllers
         [Route("startpage.js")]
         public ActionResult StartPage()
         {
-            return Content(FileCache.ReadAllText("plugins/startpage.js").Replace("{localhost}", host), contentType: "application/javascript; charset=utf-8");
+            return Content(FileCache.ReadAllText("plugins/startpage.js").Replace("{localhost}", host), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -312,7 +345,7 @@ namespace Lampac.Controllers
         public ActionResult LamInit(bool lite)
         {
             string initiale = string.Empty;
-            string file = FileCache.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js");
+            var sb = new StringBuilder(FileCache.ReadAllText($"plugins/{(lite ? "liteinit" : "lampainit")}.js"));
 
             if (AppInit.modules != null)
             {
@@ -359,26 +392,26 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.backup)
                         initiale += "{\"url\": \"{localhost}/backup.js\",\"status\": 1,\"name\": \"Backup\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.pirate_store) 
-                        file = file.Replace("{pirate_store}", FileCache.ReadAllText("plugins/pirate_store.js"));
+                    if (AppInit.conf.pirate_store)
+                        sb = sb.Replace("{pirate_store}", FileCache.ReadAllText("plugins/pirate_store.js"));
 
                     if (AppInit.conf.accsdb.enable)
-                        file = file.Replace("{deny}", FileCache.ReadAllText("plugins/deny.js").Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
+                        sb = sb.Replace("{deny}", FileCache.ReadAllText("plugins/deny.js").Replace("{cubMesage}", AppInit.conf.accsdb.authMesage));
                 }
             }
 
-            file = file.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.js"));
-            file = file.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
+            sb = sb.Replace("{lampainit-invc}", FileCache.ReadAllText("plugins/lampainit-invc.js"));
+            sb = sb.Replace("{initiale}", Regex.Replace(initiale, ",$", ""));
 
-            file = file.Replace("{country}", requestInfo.Country);
-            file = file.Replace("{localhost}", host);
-            file = file.Replace("{deny}", string.Empty);
-            file = file.Replace("{pirate_store}", string.Empty);
+            sb = sb.Replace("{country}", requestInfo.Country);
+            sb = sb.Replace("{localhost}", host);
+            sb = sb.Replace("{deny}", string.Empty);
+            sb = sb.Replace("{pirate_store}", string.Empty);
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
-                file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
+                sb = sb.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
-                file = file.Replace("{jachost}", "redapi.apn.monster");
+                sb = sb.Replace("{jachost}", "redapi.apn.monster");
 
             #region full_btn_priority_hash
             string online_version = Regex.Match(FileCache.ReadAllText("plugins/online.js"), "version: '([^']+)'").Groups[1].Value;
@@ -406,20 +439,20 @@ namespace Lampac.Controllers
 
             string full_btn_priority_hash = LampaUtilshash($"<div class=\"full-start__button selector view--online lampac--button\" data-subtitle=\"{AppInit.conf.online.name} v{online_version}\">\n        <svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 392.697 392.697\" xml:space=\"preserve\">\n            <path d=\"M21.837,83.419l36.496,16.678L227.72,19.886c1.229-0.592,2.002-1.846,1.98-3.209c-0.021-1.365-0.834-2.592-2.082-3.145\n                L197.766,0.3c-0.903-0.4-1.933-0.4-2.837,0L21.873,77.036c-1.259,0.559-2.073,1.803-2.081,3.18\n                C19.784,81.593,20.584,82.847,21.837,83.419z\" fill=\"currentColor\"></path>\n            <path d=\"M185.689,177.261l-64.988-30.01v91.617c0,0.856-0.44,1.655-1.167,2.114c-0.406,0.257-0.869,0.386-1.333,0.386\n                c-0.368,0-0.736-0.082-1.079-0.244l-68.874-32.625c-0.869-0.416-1.421-1.293-1.421-2.256v-92.229L6.804,95.5\n                c-1.083-0.496-2.344-0.406-3.347,0.238c-1.002,0.645-1.608,1.754-1.608,2.944v208.744c0,1.371,0.799,2.615,2.045,3.185\n                l178.886,81.768c0.464,0.211,0.96,0.315,1.455,0.315c0.661,0,1.318-0.188,1.892-0.555c1.002-0.645,1.608-1.754,1.608-2.945\n                V180.445C187.735,179.076,186.936,177.831,185.689,177.261z\" fill=\"currentColor\"></path>\n            <path d=\"M389.24,95.74c-1.002-0.644-2.264-0.732-3.347-0.238l-178.876,81.76c-1.246,0.57-2.045,1.814-2.045,3.185v208.751\n                c0,1.191,0.606,2.302,1.608,2.945c0.572,0.367,1.23,0.555,1.892,0.555c0.495,0,0.991-0.104,1.455-0.315l178.876-81.768\n                c1.246-0.568,2.045-1.813,2.045-3.185V98.685C390.849,97.494,390.242,96.384,389.24,95.74z\" fill=\"currentColor\"></path>\n            <path d=\"M372.915,80.216c-0.009-1.377-0.823-2.621-2.082-3.18l-60.182-26.681c-0.938-0.418-2.013-0.399-2.938,0.045\n                l-173.755,82.992l60.933,29.117c0.462,0.211,0.958,0.316,1.455,0.316s0.993-0.105,1.455-0.316l173.066-79.092\n                C372.122,82.847,372.923,81.593,372.915,80.216z\" fill=\"currentColor\"></path>\n        </svg>\n\n        <span>Онлайн</span>\n    </div>");
 
-            file = file.Replace("{full_btn_priority_hash}", full_btn_priority_hash);
-            file = file.Replace("{btn_priority_forced}", AppInit.conf.online.btn_priority_forced.ToString().ToLower());
+            sb = sb.Replace("{full_btn_priority_hash}", full_btn_priority_hash)
+                   .Replace("{btn_priority_forced}", AppInit.conf.online.btn_priority_forced.ToString().ToLower());
             #endregion
 
             #region domain token
             if (!string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
             {
                 string token = Regex.Match(HttpContext.Request.Host.Host, AppInit.conf.accsdb.domainId_pattern).Groups[1].Value;
-                file = file.Replace("{token}", token);
+                sb = sb.Replace("{token}", token);
             }
-            else file = file.Replace("{token}", string.Empty);
+            else { sb = sb.Replace("{token}", string.Empty); }
             #endregion
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -434,8 +467,8 @@ namespace Lampac.Controllers
             if (adult && HttpContext.Request.Path.Value.StartsWith("/on/h/"))
                 adult = false;
 
-            List<string> plugins = new List<string>(7);
-            string file = FileCache.ReadAllText("plugins/on.js");
+            var plugins = new List<string>(10);
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/on.js"));
 
             if (AppInit.modules != null)
             {
@@ -486,16 +519,16 @@ namespace Lampac.Controllers
             }
 
             if (plugins.Count == 0)
-                file = file.Replace("{plugins}", string.Empty);
+                sb = sb.Replace("{plugins}", string.Empty);
             else
             {
-                file = file.Replace("{plugins}", string.Join(",", plugins));
+                sb = sb.Replace("{plugins}", string.Join(",", plugins));
             }
 
-            file = file.Replace("{country}", requestInfo.Country);
-            file = file.Replace("{localhost}", host);
+            sb = sb.Replace("{country}", requestInfo.Country)
+                   .Replace("{localhost}", host);
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -508,18 +541,17 @@ namespace Lampac.Controllers
             if (user == null || user.ban || DateTime.UtcNow > user.expires)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            string initiale = string.Empty;
-            string file = FileCache.ReadAllText("plugins/privateinit.js");
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/privateinit.js"));
 
-            file = file.Replace("{country}", requestInfo.Country);
-            file = file.Replace("{localhost}", host);
+            sb = sb.Replace("{country}", requestInfo.Country)
+                   .Replace("{localhost}", host);
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
-                file = file.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
+                sb = sb.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
-                file = file.Replace("{jachost}", "redapi.apn.monster");
+                sb = sb.Replace("{jachost}", "redapi.apn.monster");
 
-            return Content(file, "application/javascript; charset=utf-8");
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -533,10 +565,12 @@ namespace Lampac.Controllers
             if (!AppInit.conf.storage.enable)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            string file = FileCache.ReadAllText("plugins/backup.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/backup.js"));
 
-            return Content(file, "application/javascript; charset=utf-8");
+            sb.Replace("{localhost}", host)
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -549,11 +583,13 @@ namespace Lampac.Controllers
             if (!AppInit.conf.storage.enable)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            string file = FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js");
-            file = file.Replace("{sync-invc}", FileCache.ReadAllText("plugins/sync-invc.js"));
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js"));
 
-            return Content(file.Replace("{localhost}", host), "application/javascript; charset=utf-8");
+            sb.Replace("{sync-invc}", FileCache.ReadAllText("plugins/sync-invc.js"))
+              .Replace("{localhost}", host)
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -563,10 +599,12 @@ namespace Lampac.Controllers
         [Route("invc-ws/js/{token}")]
         public ActionResult InvcSyncJS(string token)
         {
-            string file = FileCache.ReadAllText("plugins/invc-ws.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/invc-ws.js"));
 
-            return Content(file, "application/javascript; charset=utf-8");
+            sb.Replace("{localhost}", host)
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 

@@ -49,7 +49,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/videocdn")]
-        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
+        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
 
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(player.media.First()?.max_quality?.ToString());
+                    var tpl = new SeasonTpl(player.media.First()?.max_quality?.ToString(), player.media.Count);
 
                     foreach (var media in player.media.OrderBy(s => s.season_id))
                     {
@@ -160,6 +160,7 @@ namespace Lampac.Controllers.LITE
                         t = "0";
 
                     var etpl = new EpisodeTpl();
+                    string sArhc = s.ToString();
 
                     foreach (var media in player.media)
                     {
@@ -177,7 +178,7 @@ namespace Lampac.Controllers.LITE
                                 string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&hash={hash}&serial=true");
                                 string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
-                                etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, "call", streamlink: streamlink);
+                                etpl.Append($"{episode.episode_id} серия", title ?? original_title, sArhc, episode.episode_id.ToString(), link, "call", streamlink: streamlink);
                             }
                         }
                     }
@@ -198,7 +199,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/videocdn/video")]
         [Route("lite/videocdn/video.m3u8")]
-        async public Task<ActionResult> Video(string hash, long content_id, string content_type, string playlist, int max_quality, bool play, bool serial, int s, int e, int translation_id)
+        async public ValueTask<ActionResult> Video(string hash, long content_id, string content_type, string playlist, int max_quality, bool play, bool serial, int s, int e, int translation_id)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -408,7 +409,7 @@ namespace Lampac.Controllers.LITE
         #region Search
         async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(LumexSettings init, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
         {
-            async ValueTask<JToken> searchId(string imdb_id, long kinopoisk_id)
+            async Task<JToken> searchId(string imdb_id, long kinopoisk_id)
             {
                 if (string.IsNullOrEmpty(init.token))
                     return null;

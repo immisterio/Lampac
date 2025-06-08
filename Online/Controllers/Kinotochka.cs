@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public Task<ActionResult> Index(long kinopoisk_id, string title, int serial, string newsuri, int s = -1, bool rjson = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string newsuri, int s = -1, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Kinotochka);
             if (await IsBadInitialization(init, rch: true))
@@ -59,13 +59,16 @@ namespace Lampac.Controllers.LITE
                             return res.Fail("search");
                         }
 
-                        var links = new List<(string, string, string)>();
+                        var rows = search.Split("sres-wrap clearfix");
+                        var links = new List<(string, string, string)>(rows.Length);
 
-                        foreach (string row in search.Split("sres-wrap clearfix").Skip(1).Reverse())
+                        string stitle = title.ToLower();
+
+                        foreach (string row in rows.Skip(1).Reverse())
                         {
                             var gname = Regex.Match(row, "<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase).Groups;
 
-                            if (gname[1].Value.ToLower() == title.ToLower())
+                            if (gname[1].Value.ToLower() == stitle)
                             {
                                 string uri = Regex.Match(row, "href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
                                 if (string.IsNullOrWhiteSpace(uri))
@@ -86,7 +89,7 @@ namespace Lampac.Controllers.LITE
 
                     return OnResult(cache, () =>
                     {
-                        var tpl = new SeasonTpl();
+                        var tpl = new SeasonTpl(cache.Value.Count);
 
                         foreach (var l in cache.Value)
                             tpl.Append(l.name, l.uri, l.season);
@@ -130,7 +133,7 @@ namespace Lampac.Controllers.LITE
                         if (playlist == null)
                             return res.Fail("playlist");
 
-                        var links = new List<(string name, string uri)>();
+                        var links = new List<(string name, string uri)>(playlist.Count);
 
                         foreach (var pl in playlist)
                         {
@@ -156,7 +159,7 @@ namespace Lampac.Controllers.LITE
 
                     return OnResult(cache, () =>
                     {
-                        var etpl = new EpisodeTpl();
+                        var etpl = new EpisodeTpl(cache.Value.Count);
 
                         foreach (var l in cache.Value)
                             etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(init, l.uri, proxy: proxy), vast: init.vast);
@@ -209,7 +212,7 @@ namespace Lampac.Controllers.LITE
 
                 return OnResult(cache, () => 
                 {
-                    var mtpl = new MovieTpl(title);
+                    var mtpl = new MovieTpl(title, original_title, 1);
                     mtpl.Append("По умолчанию", HostStreamProxy(init, cache.Value.content, proxy: proxy), vast: init.vast);
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();

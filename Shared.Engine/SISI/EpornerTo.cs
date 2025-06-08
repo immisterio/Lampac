@@ -1,5 +1,4 @@
 ﻿using Lampac.Models.SISI;
-using Shared.Model;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -46,10 +45,8 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
-            var playlists = new List<PlaylistItem>() { Capacity = 70 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
             if (html.Contains("class=\"toptopbelinset\""))
                 html = html.Split("class=\"toptopbelinset\"")[1];
@@ -57,7 +54,10 @@ namespace Shared.Engine.SISI
             if (html.Contains("class=\"relatedtext\""))
                 html = html.Split("class=\"relatedtext\"")[1];
 
-            foreach (string row in Regex.Split(html, "<div class=\"mb( hdy)?\"").Skip(1))
+            var rows = Regex.Split(html, "<div class=\"mb( hdy)?\"");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>").Groups;
                 string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)").Groups[2].Value;

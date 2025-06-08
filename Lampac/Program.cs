@@ -1,21 +1,22 @@
+using Lampac.Engine;
+using Lampac.Engine.CORE;
+using Lampac.Engine.CRON;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
-using System.Net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Shared.Engine;
+using Shared.Model.Base;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
-using Lampac.Engine.CRON;
-using Lampac.Engine.CORE;
-using System;
-using System.IO;
-using Newtonsoft.Json;
-using Shared.Engine;
-using Lampac.Engine;
-using Microsoft.AspNetCore.SignalR;
-using System.Linq;
 using System.Threading.Tasks;
-using Shared.Model.Base;
-using System.Collections.Generic;
 
 namespace Lampac
 {
@@ -43,27 +44,9 @@ namespace Lampac
 
             Console.WriteLine(init + "\n");
             File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
-            
-            if (AppInit.conf.mikrotik) 
-            {
-                #region GC
-                {
-                    var timer = new System.Timers.Timer(1000 * 60);
-                    timer.Elapsed += (sender, e) =>
-                    {
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
-                    };
-                    timer.AutoReset = true;
-                    timer.Enabled = true;
-                }
-                #endregion
-            }
-            else
-            {
-                ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-                ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
-            }
+
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
 
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
@@ -85,12 +68,12 @@ namespace Lampac
 
                 if (AppInit.conf.chromium.enable)
                 {
-                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext());
-                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.Browser_Disconnected());
+                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext().ConfigureAwait(false));
+                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.Browser_Disconnected().ConfigureAwait(false));
                 }
 
                 if (AppInit.conf.firefox.enable)
-                    ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext());
+                    ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext().ConfigureAwait(false));
             }
             #endregion
 
@@ -103,24 +86,45 @@ namespace Lampac
             if (!File.Exists("vers-minor.txt"))
                 File.WriteAllText("vers-minor.txt", "1");
 
-            ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run());
-            ThreadPool.QueueUserWorkItem(async _ => await LampaCron.Run());
-            ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run());
-            ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run());
-            ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron());
-            ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run());
-            ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run());
+            ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await LampaCron.Run().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run().ConfigureAwait(false));
+
+            #region kitAllUsers
+            ThreadPool.QueueUserWorkItem(async _ => 
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds))).ConfigureAwait(false);
+
+                        if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
+                        {
+                            var users = await HttpClient.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
+                            if (users != null)
+                                AppInit.conf.kit.allUsers = users;
+                        }
+                    }
+                    catch { }
+                }
+            });
+            #endregion
 
             #region cloudflare_ips
             ThreadPool.QueueUserWorkItem(async _ => 
             {
-                string ips = await HttpClient.Get("https://www.cloudflare.com/ips-v4");
+                string ips = await HttpClient.Get("https://www.cloudflare.com/ips-v4").ConfigureAwait(false);
                 if (ips == null || !ips.Contains("173.245."))
                     ips = File.Exists("data/cloudflare/ips-v4.txt") ? File.ReadAllText("data/cloudflare/ips-v4.txt") : null;
 
                 if (ips != null)
                 {
-                    string ips_v6 = await HttpClient.Get("https://www.cloudflare.com/ips-v6");
+                    string ips_v6 = await HttpClient.Get("https://www.cloudflare.com/ips-v6").ConfigureAwait(false);
                     if (ips_v6 == null || !ips_v6.Contains("2400:cb00"))
                         ips_v6 = File.Exists("data/cloudflare/ips-v6.txt") ? File.ReadAllText("data/cloudflare/ips-v6.txt") : null;
 
@@ -148,11 +152,11 @@ namespace Lampac
             #region users.json
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
 
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
                     try
                     {
@@ -219,7 +223,7 @@ namespace Lampac
                     {
                         ThreadPool.QueueUserWorkItem(async _ => 
                         {
-                            string new_update = await HttpClient.Get("https://raw.githubusercontent.com/immisterio/Lampac/refs/heads/main/update.sh");
+                            string new_update = await HttpClient.Get("https://raw.githubusercontent.com/immisterio/Lampac/refs/heads/main/update.sh").ConfigureAwait(false);
                             if (new_update != null && new_update.Contains("DEST=\"/home/lampac\""))
                                 File.WriteAllText("update.sh", new_update);
                         });
@@ -251,10 +255,23 @@ namespace Lampac
                 {
                     webBuilder.UseKestrel(op => 
                     {
-                        if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
-                            op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
+                        if (string.IsNullOrEmpty(AppInit.conf.listen_sock) && string.IsNullOrEmpty(AppInit.conf.listenip))
+                        {
+                            op.Listen(IPAddress.Parse("127.0.0.1"), 9118);
+                        }
                         else
-                            op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
+                        {
+                            if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
+                            {
+                                if (File.Exists($"/var/run/{AppInit.conf.listen_sock}.sock"))
+                                    File.Delete($"/var/run/{AppInit.conf.listen_sock}.sock");
+
+                                op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
+                            }
+
+                            if (!string.IsNullOrEmpty(AppInit.conf.listenip))
+                                op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
+                        }
                     })
                     .UseStartup<Startup>();
                 });

@@ -24,7 +24,7 @@ namespace Lampac.Controllers
 			if (IO.File.ReadAllText("passwd") == "termux")
 			{
                 HttpContext.Response.Cookies.Append("passwd", "termux");
-                return Content(IO.File.ReadAllText("wwwroot/control/index.html"), contentType: "text/html; charset=utf-8");
+                return renderAdmin();
             }
 
             if (!string.IsNullOrEmpty(parol))
@@ -47,7 +47,7 @@ namespace Lampac.Controllers
             }
 
 			if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd"))
-				return Content(IO.File.ReadAllText("wwwroot/control/index.html"), contentType: "text/html; charset=utf-8");
+				return renderAdmin();
 
             string html = @"
 <!DOCTYPE html>
@@ -87,7 +87,7 @@ namespace Lampac.Controllers
 
 <form method=""post"" action=""/admin/auth"" id=""form"">
 	<div>
-		<input type=""text"" name=""parol"" placeholder=""пароль из passwd""></input>
+		<input type=""text"" name=""parol"" placeholder=""пароль из файла passwd""></input>
 	</div>
 	
 	<button type=""submit"">войти</button>
@@ -105,6 +105,12 @@ namespace Lampac.Controllers
 
             return Content(html, contentType: "text/html; charset=utf-8");
         }
+
+        ActionResult renderAdmin()
+		{
+            string adminHtml = IO.File.Exists("wwwroot/mycontrol/index.html") ? IO.File.ReadAllText("wwwroot/mycontrol/index.html") : IO.File.ReadAllText("wwwroot/control/index.html");
+            return Content(adminHtml, contentType: "text/html; charset=utf-8");
+		}
         #endregion
 
 
@@ -299,7 +305,10 @@ namespace Lampac.Controllers
         [Route("admin/manifest/install")]
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
-			bool isEditManifest = false;
+			if (IO.File.ReadAllText("passwd") == "termux")
+                return Content("На termux операция недоступна", contentType: "text/html; charset=utf-8");
+
+            bool isEditManifest = false;
 
 			if (IO.File.Exists("module/manifest.json"))
 			{

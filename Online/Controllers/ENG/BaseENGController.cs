@@ -14,7 +14,7 @@ namespace Lampac.Controllers.LITE
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public Task<ActionResult> ViewTmdb(OnlinesSettings _init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false, int? hls_manifest_timeout = null, string extension = "m3u8")
+        async public ValueTask<ActionResult> ViewTmdb(OnlinesSettings _init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false, int? hls_manifest_timeout = null, string extension = "m3u8")
         {
             if (checksearch)
                 return Content("data-json=");

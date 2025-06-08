@@ -1,29 +1,31 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
+﻿using Lampac.Engine;
 using Lampac.Engine.CORE;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System;
-using IO = System.IO;
-using System.Reflection;
-using Newtonsoft.Json;
-using Shared.Engine.CORE;
-using System.IO;
-using Shared.Model.Online;
-using Shared.Model.Base;
-using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine;
-using Shared.Engine.Online;
-using System.Data;
-using System.Collections.Concurrent;
-using Shared.Models.Module;
-using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Engine.Online;
+using Shared.Model.Base;
+using Shared.Model.Online;
+using Shared.Model.Online.Lumex;
+using Shared.Models.CSharpGlobals;
+using Shared.Models.Module;
 using Shared.PlaywrightCore;
-using Z.Expressions;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -38,66 +40,93 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("online.js")]
         [Route("online/js/{token}")]
-        public ActionResult Online(string token)
+        public ContentResult Online(string token)
         {
             var init = AppInit.conf.online;
 
-            string file = FileCache.ReadAllText("plugins/online.js");
-
-            if (init.appReplace != null)
+            string memKey = $"online.js:{init.appReplace?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
+            if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                foreach (var r in init.appReplace)
+                cache.file = IO.File.ReadAllText("plugins/online.js");
+                string playerinner = IO.File.ReadAllText("plugins/player-inner.js");
+                playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+
+                if (init.appReplace != null)
                 {
-                    string val = r.Value;
-                    if (val.StartsWith("file:"))
-                        val = IO.File.ReadAllText(val.Remove(0, 5));
+                    foreach (var r in init.appReplace)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.AsSpan(5).ToString());
 
-                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
+                        cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
+                    }
                 }
+
+                if (!init.version)
+                {
+                    cache.file = Regex.Replace(cache.file, "version: \\'[^\\']+\\'", "version: ''")
+                                .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
+                }
+
+                if (init.description != "Плагин для просмотра онлайн сериалов и фильмов")
+                    cache.file = Regex.Replace(cache.file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
+
+                if (!string.IsNullOrEmpty(init.apn))
+                    cache.file = Regex.Replace(cache.file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
+
+                var bulder = new StringBuilder(cache.file);
+
+                if (!init.spider)
+                {
+                    bulder = bulder.Replace("addSourceSearch('Spider', 'spider');", "")
+                                   .Replace("addSourceSearch('Anime', 'spider/anime');", "");
+                }
+
+                if (init.component != "lampac")
+                {
+                    bulder = bulder.Replace("component: 'lampac'", $"component: '{init.component}'")
+                                   .Replace("'lampac', component", $"'{init.component}', component")
+                                   .Replace("window.lampac_plugin", $"window.{init.component}_plugin");
+                }
+
+                if (init.name != "Lampac")
+                    bulder = bulder.Replace("name: 'Lampac'", $"name: '{init.name}'");
+
+                if (init.spiderName != "Spider")
+                {
+                    bulder = bulder.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'")
+                                   .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
+                }
+
+                bulder = bulder.Replace("{player-inner}", playerinner)
+                               .Replace("{localhost}", host);
+
+                cache.file = bulder.ToString();
+                cache.filecleaer = cache.file.Replace("{token}", string.Empty);
+
+                if (AppInit.conf.multiaccess)
+                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(5));
             }
 
-            if (!AppInit.conf.online.spider)
+            if (!string.IsNullOrEmpty(token))
             {
-                file = file.Replace("addSourceSearch('Spider', 'spider');", "");
-                file = file.Replace("addSourceSearch('Anime', 'spider/anime');", "");
+                if (!string.IsNullOrEmpty(init.eval))
+                {
+                    string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.file, host, token, requestInfo));
+                    return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
+                }
+
+                return Content(cache.file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
             }
-
-            if (init.component != "lampac")
-            {
-                file = file.Replace("component: 'lampac'", $"component: '{init.component}'");
-                file = file.Replace("'lampac', component", $"'{init.component}', component");
-                file = file.Replace("window.lampac_plugin", $"window.{init.component}_plugin");
-            }
-
-            if (!init.version)
-            {
-                file = Regex.Replace(file, "version: \\'[^\\']+\\'", "version: ''");
-                file = file.Replace("manifst.name, \" v\"", "manifst.name, \" \"");
-            }
-
-            if (init.name != "Lampac")
-                file = file.Replace("name: 'Lampac'", $"name: '{init.name}'");
-
-            if (init.spiderName != "Spider")
-            {
-                file = file.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'");
-                file = file.Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
-            }
-
-            file = Regex.Replace(file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
-            file = Regex.Replace(file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
-
-            string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
-            playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
-            file = file.Replace("{player-inner}", playerinner);
-
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
-            file = file.Replace("{localhost}", host);
 
             if (!string.IsNullOrEmpty(init.eval))
-                file = Eval.Execute<string>(FileCache.ReadAllText(init.eval), new { file, host, token, requestInfo });
+            {
+                string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
+                return Content(file, "application/javascript; charset=utf-8");
+            }
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            return Content(cache.filecleaer, "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -107,10 +136,12 @@ namespace Lampac.Controllers
         [Route("lite/js/{token}")]
         public ActionResult Lite(string token)
         {
-            string file = FileCache.ReadAllText("plugins/lite.js").Replace("{localhost}", $"{host}/lite");
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/lite.js"));
 
-            return Content(file, "application/javascript; charset=utf-8");
+            sb.Replace("{localhost}", $"{host}/lite")
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -124,7 +155,7 @@ namespace Lampac.Controllers
         static DateTime externalids_lastWriteTime = default;
 
         [Route("externalids")]
-        async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
+        async public ValueTask<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
             #region load externalids
             if (IO.File.Exists("cache/externalids/master.json"))
@@ -146,7 +177,7 @@ namespace Lampac.Controllers
             #region KP_
             if (id != null && id.StartsWith("KP_"))
             {
-                string _kp = id.Replace("KP_", "");
+                string _kp = id.AsSpan(3).ToString();
                 foreach (var eid in externalids)
                 {
                     if (eid.Value == _kp && !string.IsNullOrEmpty(eid.Key))
@@ -165,12 +196,12 @@ namespace Lampac.Controllers
                     string mkey = $"externalids:KP_:{_kp}";
                     if (!hybridCache.TryGetValue(mkey, out string _imdbid))
                     {
-                        string json = await HttpClient.Get($"https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&kp=" + id.Replace("KP_", ""), timeoutSeconds: 5);
+                        string json = await HttpClient.Get($"https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&kp=" + _kp, timeoutSeconds: 5);
                         _imdbid = Regex.Match(json ?? "", "\"id_imdb\":\"(tt[^\"]+)\"").Groups[1].Value;
                         hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
 
-                    return Json(new { imdb_id = _imdbid, kinopoisk_id = id.Replace("KP_", "") });
+                    return Json(new { imdb_id = _imdbid, kinopoisk_id = _kp });
                 }
             }
             #endregion
@@ -192,15 +223,17 @@ namespace Lampac.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
+                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token) || LITE.Lumex.database != null)
                 {
-                    string json = await HttpClient.Get($"https://kinobd.net/api/films/search/imdb_id?q={imdb}", timeoutSeconds: 4);
-                    if (json == null)
+                    if (LITE.Lumex.database == null && AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
+                        LITE.Lumex.database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
+
+                    if (LITE.Lumex.database == null)
                         return null;
 
-                    string kpid = Regex.Match(json, "\"kinopoisk_id\":\"?([0-9]+)\"?").Groups[1].Value;
-                    if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
-                        return kpid;
+                    long? res = LITE.Lumex.database.Find(i => i.imdb_id == imdb)?.kinopoisk_id;
+                    if (res > 0)
+                        return res.ToString();
 
                     return null;
                 }
@@ -239,9 +272,10 @@ namespace Lampac.Controllers
             {
                 if (kinopoisk_id > 0)
                 {
+                    string kinopoisk_id_str = kinopoisk_id.ToString();
                     foreach (var eid in externalids)
                     {
-                        if (eid.Value == kinopoisk_id.ToString() && !string.IsNullOrEmpty(eid.Key))
+                        if (eid.Value == kinopoisk_id_str && !string.IsNullOrEmpty(eid.Key))
                         {
                             imdb_id = eid.Key;
                             break;
@@ -490,9 +524,9 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public Task<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
+        async public ValueTask<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
-            var online = new List<(dynamic init, string name, string url, string plugin, int index)>(20);
+            var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
 
             #region fix title
@@ -838,7 +872,10 @@ namespace Lampac.Controllers
             #endregion
 
             if (serial == -1 || serial == 0)
-                send(conf.RutubeMovie, "rutubemovie", "Rutube");
+            {
+                send(conf.Plvideo, "plvideo", "Plvideo", rch_access: "apk,cors");
+                send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
+            }
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost))
                 send(conf.Hydraflix, "hydraflix", "HydraFlix (DASH)");
@@ -1056,6 +1093,8 @@ namespace Lampac.Controllers
                             case "mirage":
                             case "videodb":
                             case "iptvonline":
+                            case "plvideo":
+                            case "rutubemovie":
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":
@@ -1096,7 +1135,6 @@ namespace Lampac.Controllers
                             case "vokino-remux":
                             case "vokino-ashdi":
                             case "vokino-hdvb":
-                            case "rutubemovie":
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":

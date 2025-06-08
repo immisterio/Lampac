@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -114,7 +114,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/kodik/video")]
         [Route("lite/kodik/video.m3u8")]
-        async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
+        async public ValueTask<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
@@ -144,12 +144,12 @@ namespace Lampac.Controllers.LITE
 
                 string json = await HttpClient.Get($"{init.linkhost}/api/video-links" + $"?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
-                streams = new List<(string q, string url)>();
+                streams = new List<(string q, string url)>(4);
                 var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
                 while (match.Success)
                 {
                     if (!string.IsNullOrWhiteSpace(match.Groups[3].Value))
-                        streams.Insert(0, ($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
+                        streams.Add(($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
 
                     match = match.NextMatch();
                 }
@@ -159,6 +159,8 @@ namespace Lampac.Controllers.LITE
                     proxyManager.Refresh();
                     return Content(string.Empty);
                 }
+
+                streams.Reverse();
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, streams, cacheTime(20, init: init));
@@ -183,7 +185,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/kodik/videoparse")]
         [Route("lite/kodik/videoparse.m3u8")]
-        async public Task<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
+        async public ValueTask<ActionResult> VideoParse(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))

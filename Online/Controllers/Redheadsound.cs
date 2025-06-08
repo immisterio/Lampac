@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Redheadsound);
             if (await IsBadInitialization(init, rch: true))

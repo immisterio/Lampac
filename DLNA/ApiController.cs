@@ -1,26 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
-using System.IO;
-using System.Web;
-using System.Collections.Generic;
-using Lampac.Models.DLNA;
-using IO = System.IO;
-using MonoTorrent.Client;
-using System.Threading.Tasks;
-using System.Linq;
-using MonoTorrent;
-using Lampac.Engine.Parse;
-using Microsoft.Extensions.Caching.Memory;
-using System;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+﻿using Lampac.Engine;
 using Lampac.Engine.CORE;
-using System.Threading;
-using Shared.Engine;
+using Lampac.Engine.Parse;
+using Lampac.Models.DLNA;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Driver;
-using Shared.Model.Online;
-using Newtonsoft.Json.Linq;
+using MonoTorrent;
+using MonoTorrent.Client;
 using NetVips;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Shared.Engine;
+using Shared.Model.Online;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -44,7 +45,7 @@ namespace Lampac.Controllers
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                string trackers_best_ip = await HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20);
+                string trackers_best_ip = await HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20).ConfigureAwait(false);
                 if (trackers_best_ip != null)
                 {
                     foreach (string line in trackers_best_ip.Split("\n"))
@@ -62,7 +63,7 @@ namespace Lampac.Controllers
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(5));
+                        await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
                         await removeClientEngine();
                     }
                     catch { }
@@ -169,10 +170,12 @@ namespace Lampac.Controllers
             if (!AppInit.conf.dlna.enable)
                 return Content(string.Empty);
 
-            string file = FileCache.ReadAllText("plugins/dlna.js").Replace("{localhost}", host);
-            file = file.Replace("{token}", HttpUtility.UrlEncode(token));
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/dlna.js"));
 
-            return Content(file, contentType: "application/javascript; charset=utf-8");
+            sb.Replace("{localhost}", host)
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
         #endregion
 
@@ -782,9 +785,9 @@ namespace Lampac.Controllers
 
                                 string uri = Regex.Replace(thumb, "^https?://[^/]+/", "");
 
-                                var array = await HttpClient.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8);
+                                var array = await HttpClient.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8).ConfigureAwait(false);
                                 if (array == null || !IsValidImg(array))
-                                    array = await HttpClient.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}");
+                                    array = await HttpClient.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}").ConfigureAwait(false);
 
                                 if (array != null && IsValidImg(array))
                                 {

@@ -59,11 +59,10 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string video_uri, string list_uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
         {
-            string? videoCategory = null;
-            var playlists = new List<PlaylistItem>() { Capacity = 50 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
+
+            string? videoCategory = null;
 
             if (related)
             {
@@ -85,7 +84,7 @@ namespace Shared.Engine.SISI
             }
 
             if (videoCategory == null)
-                return playlists;
+                return new List<PlaylistItem>();
 
             ModelItem? model = null;
             if (IsModel_page) 
@@ -105,7 +104,10 @@ namespace Shared.Engine.SISI
 
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : "<li data-id=";
 
-            foreach (string row in videoCategory.Split("<h2>Languages</h2>")[0].Split(splitkey).Skip(1))
+            var rows = videoCategory.Split("<h2>Languages</h2>")[0].Split(splitkey);
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 string? m(string pattern, int index = 1)
                 {

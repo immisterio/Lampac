@@ -20,6 +20,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
@@ -32,7 +33,7 @@ namespace Lampac.Engine
 
         public static string appversion => "142";
 
-        public static string minorversion => "12";
+        public static string minorversion => "15";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -94,25 +95,25 @@ namespace Lampac.Engine
             var headers = new List<HeadersModel>(_headers.Count);
 
             string ip = requestInfo.IP;
-            string account_email = HttpContext.Request.Query["account_email"].ToString() ?? string.Empty;
+            string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLower().Trim() ?? string.Empty;
 
             foreach (var h in _headers)
             {
                 if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                string val = h.val;
+                var bulder = new StringBuilder(h.val)
+                   .Replace("{account_email}", account_email)
+                   .Replace("{ip}", ip)
+                   .Replace("{host}", site);
+
+                string val = bulder.ToString();
 
                 if (val.StartsWith("encrypt:"))
                 {
                     string encrypt = Regex.Match(val, "^encrypt:([^\n\r]+)").Groups[1].Value;
                     val = new OnlinesSettings(null, encrypt).host;
                 }
-
-                val = val.Replace("{account_email}", account_email.ToLower().Trim())
-                         .Replace("{ip}", ip)
-                         .Replace("{host}", site)
-                         .Replace("{cf_clearance}", CrypTo.cf_clearance());
 
                 if (val.Contains("{arg:"))
                 {
@@ -311,7 +312,7 @@ namespace Lampac.Engine
 
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
-            if (hybridCache.TryGetValue(key, out T _val))
+            if (hybridCache.TryGetValue(key, out T _val, memory))
             {
                 HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "HIT");
                 return new CacheResult<T>() { IsSuccess = true, Value = _val };
@@ -418,6 +419,7 @@ namespace Lampac.Engine
                 return new RedirectResult(overridehost);
             }
 
+            overridehost = Regex.Replace(overridehost, "^(https?://[^/]+)/.*", "$1");
             string uri = overridehost + HttpContext.Request.Path.Value + HttpContext.Request.QueryString.Value;
 
             string clientip = requestInfo.IP;
@@ -475,41 +477,55 @@ namespace Lampac.Engine
 
         async public ValueTask<JObject> loadKitConf()
         {
-            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path) || string.IsNullOrEmpty(requestInfo?.user_uid))
+            var init = AppInit.conf.kit;
+            if (!init.enable || string.IsNullOrEmpty(init.path) || string.IsNullOrEmpty(requestInfo?.user_uid))
                 return null;
 
-            string memKey = $"loadKit:{requestInfo.user_uid}";
-            if (!memoryCache.TryGetValue(memKey, out JObject appinit))
+            if (init.IsAllUsersPath)
             {
-                string json;
-
-                if (Regex.IsMatch(AppInit.conf.kit.path, "^https?://"))
-                {
-                    string uri = AppInit.conf.kit.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
-                    json = await HttpClient.Get(uri, timeoutSeconds: 5);
-                }
-                else
-                {
-                    string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
-                    if (!IO.File.Exists(init_file))
-                        return null;
-
-                    json = IO.File.ReadAllText(init_file);
-                }
-
-                if (json == null)
+                if (init.allUsers == null)
                     return null;
 
-                try
-                {
-                    appinit = JsonConvert.DeserializeObject<JObject>(json);
-                }
-                catch { return null; }
+                if (init.allUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
+                    return userInit;
 
-                memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
+                return null;
             }
+            else
+            {
+                string memKey = $"loadKit:{requestInfo.user_uid}";
+                if (!memoryCache.TryGetValue(memKey, out JObject appinit))
+                {
+                    string json;
 
-            return appinit;
+                    if (Regex.IsMatch(init.path, "^https?://"))
+                    {
+                        string uri = init.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
+                        json = await HttpClient.Get(uri, timeoutSeconds: 5).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        string init_file = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
+                        if (!IO.File.Exists(init_file))
+                            return null;
+
+                        json = IO.File.ReadAllText(init_file);
+                    }
+
+                    if (json == null)
+                        return null;
+
+                    try
+                    {
+                        appinit = JsonConvert.DeserializeObject<JObject>(json);
+                    }
+                    catch { return null; }
+
+                    memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, init.cacheToSeconds)));
+                }
+
+                return appinit;
+            }
         }
 
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable

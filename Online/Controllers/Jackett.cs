@@ -15,7 +15,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/jac")]
-        async public Task<ActionResult> Index(string title, string original_title, string original_language, int year, int serial, int quality = -1)
+        async public ValueTask<ActionResult> Index(string title, string original_title, string original_language, int year, int serial, int quality = -1)
         {
             if (!AppInit.conf.litejac)
                 return Content(string.Empty);

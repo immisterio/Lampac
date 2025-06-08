@@ -13,7 +13,7 @@ namespace Lampac.Controllers.Eporner
     {
         [HttpGet]
         [Route("epr")]
-        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
+        async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Eporner);
             if (await IsBadInitialization(init, rch: true))

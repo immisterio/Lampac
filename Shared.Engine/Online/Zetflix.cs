@@ -123,7 +123,7 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                         continue;
 
-                    var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                    var streams = new List<(string link, string quality)>(4);
 
                     foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
@@ -139,11 +139,13 @@ namespace Shared.Engine.Online
                         if (isbwa)
                             link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
 
-                        streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                        streams.Add((onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                     }
 
                     if (streams.Count == 0)
                         continue;
+
+                    streams.Reverse();
 
                     mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                 }
@@ -174,6 +176,8 @@ namespace Shared.Engine.Online
                     var vtpl = new VoiceTpl();
                     var etpl = new EpisodeTpl();
                     var hashvoices = new HashSet<string>();
+
+                    string sArhc = s.ToString();
 
                     foreach (var episode in root.pl.AsEnumerable().Reverse())
                     {
@@ -206,7 +210,7 @@ namespace Shared.Engine.Online
                             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                                 continue;
 
-                            var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                            var streams = new List<(string link, string quality)>(4);
 
                             foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                             {
@@ -222,13 +226,15 @@ namespace Shared.Engine.Online
                                 if (isbwa)
                                     link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
 
-                                streams.Insert(0, (onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                                streams.Add((onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
                             }
 
                             if (streams.Count == 0)
                                 continue;
 
-                            etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                            streams.Reverse();
+
+                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
                         }
                     }
 

@@ -21,7 +21,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/zetflix")]
-        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Zetflix);
             if (await IsBadInitialization(init, rch: false))
@@ -75,7 +75,7 @@ namespace Lampac.Controllers.LITE
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        }, proxy: proxy.data, keepopen: init.browser_keepopen);
+                        }, proxy: proxy.data, keepopen: init.browser_keepopen).ConfigureAwait(false);
 
                         if (page == null)
                             return null;
@@ -86,7 +86,8 @@ namespace Lampac.Controllers.LITE
                             {
                                 Domain = Regex.Replace(ztfhost, "^https?://", ""),
                                 Name = "PHPSESSID"
-                            });
+
+                            }).ConfigureAwait(false);
                         }
 
                         log += "page init\n";
@@ -104,16 +105,16 @@ namespace Lampac.Controllers.LITE
                         });
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle).ConfigureAwait(false);
 
-                        var responce = browser.firefox != null ? await page.GotoAsync(uri) : await page.ReloadAsync();
+                        var responce = browser.firefox != null ? await page.GotoAsync(uri).ConfigureAwait(false) : await page.ReloadAsync().ConfigureAwait(false);
                         if (responce == null)
                         {
                             proxyManager.Refresh();
                             return null;
                         }
 
-                        result = await responce.TextAsync();
+                        result = await responce.TextAsync().ConfigureAwait(false);
 
                         log += $"{result}\n\n";
 
@@ -123,7 +124,7 @@ namespace Lampac.Controllers.LITE
                             return null;
                         }
 
-                        var cook = await page.Context.CookiesAsync();
+                        var cook = await page.Context.CookiesAsync().ConfigureAwait(false);
                         PHPSESSID = cook?.FirstOrDefault(i => i.Name == "PHPSESSID")?.Value;
 
                         if (!result.Contains("new Playerjs"))
@@ -162,7 +163,7 @@ namespace Lampac.Controllers.LITE
         }
 
 
-        async Task<string> goHost(string host)
+        async ValueTask<string> goHost(string host)
         {
             if (!Regex.IsMatch(host, "^https?://go\\."))
                 return host;

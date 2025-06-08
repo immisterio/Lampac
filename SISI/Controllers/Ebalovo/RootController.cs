@@ -8,7 +8,7 @@ namespace Lampac.Controllers.Ebalovo
 {
     public static class RootController
     {
-        async public static Task<string> goHost(string host)
+        async public static ValueTask<string> goHost(string host)
         {
             if (!Regex.IsMatch(host, "^https?://www\\."))
                 return host;

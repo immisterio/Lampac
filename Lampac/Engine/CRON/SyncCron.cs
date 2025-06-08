@@ -21,11 +21,11 @@ namespace Lampac.Engine.CRON
                     continue;
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(1));
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
                 try
                 {
-                    var init = await HttpClient.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd));
+                    var init = await HttpClient.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd)).ConfigureAwait(false);
                     if (init != null)
                     {
                         if (sync.sync_full)

@@ -1,5 +1,4 @@
 ﻿using Shared.Model.Base;
-using Shared.Model.Online;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Online.FilmixTV;
 using Shared.Model.Templates;
@@ -58,11 +57,14 @@ namespace Shared.Engine.Online
             if (root == null || root.Count == 0)
                 return await Search2(title, original_title, year, clarification);
 
-            var ids = new List<int>();
+            var ids = new List<int>(root.Count);
             var stpl = new SimilarTpl(root.Count);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            string? stitle = title?.ToLower();
+            string? sorigtitle = original_title?.ToLower();
 
             foreach (var item in root)
             {
@@ -73,8 +75,8 @@ namespace Shared.Engine.Online
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
-                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
-                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -126,11 +128,14 @@ namespace Shared.Engine.Online
             if (result == null)
                 return null;
 
-            var ids = new List<int>();
+            var ids = new List<int>(result.Count);
             var stpl = new SimilarTpl(result.Count);
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
+
+            string? stitle = title?.ToLower();
+            string? sorigtitle = original_title?.ToLower();
 
             foreach (var item in result)
             {
@@ -141,8 +146,8 @@ namespace Shared.Engine.Online
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
-                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
-                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -257,11 +262,11 @@ namespace Shared.Engine.Online
                     if (selectedSeason.Value == null)
                         return string.Empty;
 
-                    var etpl = new EpisodeTpl();
+                    var etpl = new EpisodeTpl(selectedSeason.Value.episodes.Count);
 
                     foreach (var episode in selectedSeason.Value.episodes)
                     {
-                        var streams = new List<(string link, string quality)>() { Capacity = pro ? episode.Value.files.Count : 2 };
+                        var streams = new List<(string link, string quality)>(episode.Value.files.Count);
 
                         var sortedFiles = episode.Value.files
                             .Where(file => pro || file.quality <= 720)
@@ -293,7 +298,7 @@ namespace Shared.Engine.Online
 
                 foreach (var item in root.Movies)
                 {
-                    var streams = new List<(string link, string quality)>() { Capacity = pro ? item.files.Count : 2 };
+                    var streams = new List<(string link, string quality)>(item.files.Count);
 
                     foreach (var file in item.files)
                     {

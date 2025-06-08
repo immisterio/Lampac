@@ -6,6 +6,6 @@
 
         public string? content { get; set; }
 
-        public List<Similar> similars { get; set; } = new List<Similar>();
+        public List<Similar> similars { get; set; } = new List<Similar>(15);
     }
 }

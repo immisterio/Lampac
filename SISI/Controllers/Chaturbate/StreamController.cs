@@ -12,7 +12,7 @@ namespace Lampac.Controllers.Chaturbate
     {
         [HttpGet]
         [Route("chu/potok")]
-        async public Task<ActionResult> Index(string baba)
+        async public ValueTask<ActionResult> Index(string baba)
         {
             var init = await loadKit(AppInit.conf.Chaturbate);
             if (await IsBadInitialization(init, rch: true))

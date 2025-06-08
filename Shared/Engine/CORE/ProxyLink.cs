@@ -147,7 +147,7 @@ namespace Lampac.Engine.CORE
 
         async public static Task Cron()
         {
-            await Task.Delay(TimeSpan.FromMinutes(1));
+            await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
 
             while (true)
             {
@@ -171,7 +171,7 @@ namespace Lampac.Engine.CORE
                 }
                 catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(2));
+                await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
             }
         }
     }

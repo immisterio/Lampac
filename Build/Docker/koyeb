@@ -3,7 +3,7 @@ FROM debian:12.5-slim
 EXPOSE 8000
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl sed unzip chromium xvfb \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip libicu-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fSL -k -o dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/aspnetcore/Runtime/6.0.28/aspnetcore-runtime-6.0.28-linux-x64.tar.gz \
@@ -18,16 +18,13 @@ RUN curl -L -k -o publish.zip https://github.com/immisterio/Lampac/releases/late
 
 RUN curl -k -s https://raw.githubusercontent.com/immisterio/Lampac/main/Build/Docker/update.sh | bash
 
-RUN echo '{"listenport":8000,"listenscheme":"https","KnownProxies":[{"ip":"0.0.0.0","prefixLength":0}],"rch":{"enable":true},"typecache":"mem","mikrotik":true,"weblog":{"enable":true},"serverproxy":{"verifyip":false,"showOrigUri":true,"buffering":{"enable":false}},"pirate_store":false,"dlna":{"enable":false},"chromium":{"executablePath":"/usr/bin/chromium"},"LampaWeb":{"autoupdate":false},"online":{"checkOnlineSearch":false},"Ashdi":{"rhub":true},"Kinoukr":{"rhub":true},"Collaps":{"two":false},"Rezka":{"enable":false},"VideoDB":{"enable":false},"Zetflix":{"enable":false},"AnilibriaOnline":{"enable":false},"Animevost":{"enable":false},"Animebesst":{"enable":false},"Ebalovo":{"enable":false},"Chaturbate":{"enable":false}}' > /home/init.conf
+RUN echo '{"listenport":8000,"listenscheme":"https","frontend":"cloudflare","KnownProxies":[{"ip":"0.0.0.0","prefixLength":0}],"mikrotik":true,"typecache":"mem","pirate_store":false,"rch":{"keepalive":900},"weblog":{"enable":true},"chromium":{"enable":false},"firefox":{"enable":false},"LampaWeb":{"autoupdate":false,"initPlugins":{"timecode":false,"backup":false,"sync":false}},"cub":{"enable":true,"geo":["RU"]},"tmdb":{"enable":true},"serverproxy":{"verifyip":false,"buffering":{"enable":false},"image":{"cache":false,"cache_rsize":false}},"online":{"checkOnlineSearch":false},"sisi":{"push_all":false,"rsize_disable":["BongaCams","Chaturbate","Runetki","PornHub","Eporner","HQporner","Spankbang","Porntrex","Xnxx","Xvideos","Xhamster","Tizam"],"proxyimg_disable":["Ebalovo"]},"Mirage":{"displayindex":1},"Ashdi":{"rhub":true},"Kinoukr":{"rhub":true},"VDBmovies":{"rhub":true},"VideoDB":{"rhub":true},"FanCDN":{"rhub":true},"Rezka":{"rhub":true,"scheme":"https"},"Kinotochka":{"rhub":true,"rhub_streamproxy":true,"streamproxy":false,"geostreamproxy":null,"rhub_geo_disable":["RU"]},"Videoseed":{"streamproxy":false,"geostreamproxy":null},"Vibix":{"streamproxy":false,"geostreamproxy":null},"iRemux":{"streamproxy":false,"geostreamproxy":null},"Rgshows":{"streamproxy":false,"geostreamproxy":null},"Autoembed":{"enable":false},"Animevost":{"rhub":true},"AnilibriaOnline":{"rhub":true},"Ebalovo":{"rhub":true},"Spankbang":{"rhub":true,"rhub_geo_disable":["RU"]},"BongaCams":{"rhub":true},"Chaturbate":{"rhub":true,"rhub_geo_disable":["RU"]},"Runetki":{"rhub":true},"HQporner":{"rhub":true,"streamproxy":false,"geostreamproxy":null,"qualitys_proxy":false,"geo_hide":["RU"]},"Eporner":{"streamproxy":false,"geostreamproxy":null,"qualitys_proxy":false,"rhub_geo_disable":["RU"]},"Porntrex":{"rhub":true,"streamproxy":false,"geostreamproxy":null,"qualitys_proxy":false,"rhub_geo_disable":["RU"]},"Xhamster":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true,"rhub_geo_disable":["RU"]},"Xnxx":{"rhub":true,"rhub_fallback":true,"rhub_streamproxy":true,"rhub_geo_disable":["RU"]},"Tizam":{"rhub":true,"rhub_fallback":true,"streamproxy":false,"geostreamproxy":null,"qualitys_proxy":false},"Xvideos":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true,"rhub_geo_disable":["RU"]},"PornHub":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true},"RutubeMovie":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true,"rhub_geo_disable":["UA"]},"Plvideo":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true,"rhub_geo_disable":["UA"]},"CDNvideohub":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true},"Redheadsound":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true},"CDNmovies":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true},"AniMedia":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true},"Animebesst":{"rhub":true,"rhub_streamproxy":true,"rhub_fallback":true}}' > /home/init.conf
+
+RUN echo '"typesearch":"webapi","merge":null' > /home/module/JacRed.conf
 
 RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"initspace":"TorrServer.ModInit","dll":"TorrServer.dll"},{"enable":true,"initspace":"Jackett.ModInit","dll":"JacRed.dll"}]' > /home/module/manifest.json
 
-RUN echo '{"runtimeOptions":{"tfm":"net6.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"6.0.0"},{"name":"Microsoft.AspNetCore.App","version":"6.0.0"}],"configProperties":{"System.GC.HeapHardLimit": 140000000,"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > /home/Lampac.runtimeconfig.json
-
 RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-amd64 \
     && chmod +x torrserver/TorrServer-linux
-
-RUN mkdir -p .playwright/node/linux-x64 && curl -L -k -o .playwright/node/linux-x64/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-x64 \
-    && chmod +x .playwright/node/linux-x64/node
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]

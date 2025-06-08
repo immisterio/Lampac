@@ -45,9 +45,12 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var similar = new SimilarTpl();
+            var rows = content.Split("<li class=\"item\">");
             string? link = null, reservedlink = null;
-            foreach (string row in content.Split("<li class=\"item\">").Skip(1))
+
+            var similar = new SimilarTpl(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 if (row.Contains(">Трейлер</span>"))
                     continue;
@@ -146,7 +149,7 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title);
 
-                var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                var streams = new List<(string link, string quality)>(4);
 
                 foreach (string q in new string[] { "1080", "720", "480", "360" })
                 {
@@ -169,17 +172,18 @@ namespace Shared.Engine.Online
             {
                 #region Сериал
                 string? enc_title = HttpUtility.UrlEncode(title);
+                string sArhc = s.ToString();
 
                 string finEpisode(List<Season> data)
                 {
-                    var etpl = new EpisodeTpl();
+                    var etpl = new EpisodeTpl(data.Count);
 
                     foreach (var episode in data)
                     {
                         if (string.IsNullOrEmpty(episode.file))
                             continue;
 
-                        var streams = new List<(string link, string quality)>() { Capacity = 4 };
+                        var streams = new List<(string link, string quality)>(4);
 
                         foreach (string quality in new List<string> { "1080", "720", "480", "360" })
                         {
@@ -191,9 +195,9 @@ namespace Shared.Engine.Online
                         }
 
                         if (streams.Count == 0)
-                            return string.Empty;
+                            continue;
 
-                        etpl.Append(episode.title, title, s.ToString(), Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
                     }
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();

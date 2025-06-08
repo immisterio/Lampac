@@ -18,8 +18,14 @@ namespace Lampac.Models.AppConf
 
         public InitPlugins initPlugins { get; set; } = new InitPlugins();
 
+
         public Dictionary<string, string> appReplace { get; set; } = new Dictionary<string, string>();
 
         public string eval { get; set; }
+
+
+        public Dictionary<string, string> cssReplace { get; set; } = new Dictionary<string, string>();
+
+        public string cssEval { get; set; }
     }
 }

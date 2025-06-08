@@ -1,7 +1,6 @@
 ﻿using Lampac.Models.LITE.Ashdi;
 using Shared.Model.Base;
 using Shared.Model.Templates;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -84,19 +83,21 @@ namespace Shared.Engine.Online
             if (md.content != null)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
+                var mtpl = new MovieTpl(title, original_title, 1);
 
                 string hls = Regex.Match(md.content, "file:\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
                     return string.Empty;
 
                 #region subtitle
-                var subtitles = new SubtitleTpl();
+                SubtitleTpl? subtitles = null;
                 string subtitle = new Regex("subtitle(\")?:\"([^\"]+)\"").Match(md.content).Groups[2].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
                     var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
+                    subtitles = new SubtitleTpl(match.Length);
+
                     while (match.Success)
                     {
                         subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
@@ -120,7 +121,7 @@ namespace Shared.Engine.Online
                 {
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl(md.serial.Count);
+                        var tpl = new SeasonTpl();
                         var hashseason = new HashSet<string>();
 
                         foreach (var voice in md.serial)
@@ -162,16 +163,21 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        var etpl = new EpisodeTpl();
+                        string sArch = s.ToString();
+                        var episodes = md.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder;
 
-                        foreach (var episode in md.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder)
+                        var etpl = new EpisodeTpl(episodes.Count);
+
+                        foreach (var episode in episodes)
                         {
                             #region subtitle
-                            var subtitles = new SubtitleTpl();
+                            SubtitleTpl? subtitles = null;
 
                             if (!string.IsNullOrEmpty(episode.subtitle))
                             {
                                 var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
+                                subtitles = new SubtitleTpl(match.Length);
+
                                 while (match.Success)
                                 {
                                     subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
@@ -181,7 +187,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            etpl.Append(episode.title, title ?? original_title, s.ToString(), Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         if (rjson)

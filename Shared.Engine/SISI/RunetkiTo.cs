@@ -15,12 +15,14 @@ namespace Shared.Engine.SISI
         public static List<PlaylistItem> Playlist(string? html, out int total_pages, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             total_pages = 0;
-            var playlists = new List<PlaylistItem>() { Capacity = 75 };
 
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
-            foreach (string row in html.Split("\"gender\"").Skip(1))
+            var rows = html.Split("\"gender\"");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(baba))

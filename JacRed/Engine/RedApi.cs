@@ -50,6 +50,12 @@ namespace JacRed.Engine
                 if (t.url == null)
                     return;
 
+                if (!string.IsNullOrEmpty(ModInit.conf.filter) && !Regex.IsMatch(t.title, ModInit.conf.filter, RegexOptions.IgnoreCase))
+                    return;
+
+                if (!string.IsNullOrEmpty(ModInit.conf.filter_ignore) && Regex.IsMatch(t.title, ModInit.conf.filter_ignore, RegexOptions.IgnoreCase))
+                    return;
+
                 if (torrents.TryGetValue(t.url, out TorrentDetails val))
                 {
                     if (t.updateTime > val.updateTime)

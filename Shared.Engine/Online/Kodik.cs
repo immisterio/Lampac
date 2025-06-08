@@ -132,7 +132,7 @@ namespace Shared.Engine.Online
 
         public List<Result> Embed(List<Result> results, string pick)
         {
-            var content = new List<Result>();
+            var content = new List<Result>(results.Count);
 
             foreach (var i in results)
             {
@@ -227,9 +227,12 @@ namespace Shared.Engine.Online
                     }
                     #endregion
 
-                    var etpl = new EpisodeTpl();
+                    var series = results.First(i => i.id == kid).seasons[s.ToString()].episodes;
+                    var etpl = new EpisodeTpl(series.Count);
 
-                    foreach (var episode in results.First(i => i.id == kid).seasons[s.ToString()].episodes)
+                    string sArhc = s.ToString();
+
+                    foreach (var episode in series)
                     {
                         string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
 
@@ -242,7 +245,7 @@ namespace Shared.Engine.Online
                                 streamlink += $"&{args.Remove(0, 1)}";
                         }
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, url, "call", streamlink: streamlink);
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, url, "call", streamlink: streamlink);
                     }
 
                     if (rjson)
@@ -306,7 +309,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var streams = new List<StreamModel>();
+            var streams = new List<StreamModel>(4);
 
             var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
             while (match.Success)
@@ -333,7 +336,7 @@ namespace Shared.Engine.Online
                     if (!usehls && m3u.Contains(".m3u"))
                         m3u = m3u.Replace(":hls:manifest.m3u8", "");
 
-                    streams.Insert(0, new StreamModel() { q = $"{match.Groups[1].Value}p", url = m3u });
+                    streams.Add(new StreamModel() { q = $"{match.Groups[1].Value}p", url = m3u });
                 }
 
                 match = match.NextMatch();
@@ -341,6 +344,8 @@ namespace Shared.Engine.Online
 
             if (streams.Count == 0)
                 return null;
+
+            streams.Reverse();
 
             return streams;
         }

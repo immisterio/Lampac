@@ -259,6 +259,12 @@ namespace JacRed.Engine
                 if (t.trackerName == null)
                     t.trackerName = Regex.Match(t.url, "https?://([^/]+)").Groups[1].Value;
 
+                if (!string.IsNullOrEmpty(ModInit.conf.filter) && !Regex.IsMatch(t.title, ModInit.conf.filter, RegexOptions.IgnoreCase))
+                    continue;
+
+                if (!string.IsNullOrEmpty(ModInit.conf.filter_ignore) && Regex.IsMatch(t.title, ModInit.conf.filter_ignore, RegexOptions.IgnoreCase))
+                    continue;
+
                 if (!hash.Contains(t.url))
                 {
                     hash.Add(t.url);

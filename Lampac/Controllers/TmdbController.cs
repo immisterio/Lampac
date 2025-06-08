@@ -81,10 +81,12 @@ namespace Lampac.Controllers
             string uri = "https://api.themoviedb.org" + path + query;
 
             string mkey = $"tmdb/api:{path}:{query}";
-            if (hybridCache.TryGetValue(mkey, out JObject cache))
+            if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache))
             {
                 HttpContext.Response.Headers.Add("X-Cache-Status", "HIT");
-                await HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(cache), HttpContext.RequestAborted).ConfigureAwait(false);
+                HttpContext.Response.StatusCode = cache.statusCode;
+                HttpContext.Response.ContentType = "application/json; charset=utf-8";
+                await HttpContext.Response.WriteAsync(cache.json, HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
@@ -105,7 +107,7 @@ namespace Lampac.Controllers
                     if (!string.IsNullOrEmpty(dns_ip))
                         memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
                     else
-                        memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(1));
+                        memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                 }
 
                 if (!string.IsNullOrEmpty(dns_ip))
@@ -126,7 +128,7 @@ namespace Lampac.Controllers
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, statusCodeOK: false);
+            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: headers, statusCodeOK: false).ConfigureAwait(false);
             if (result.content == null)
             {
                 proxyManager.Refresh();
@@ -135,19 +137,29 @@ namespace Lampac.Controllers
                 return;
             }
 
+            cache.statusCode = (int)result.response.StatusCode;
+            HttpContext.Response.StatusCode = cache.statusCode;
+
             if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
             {
                 proxyManager.Refresh();
-                HttpContext.Response.StatusCode = (int)result.response.StatusCode;
-                await HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(result.content), HttpContext.RequestAborted).ConfigureAwait(false);
+                cache.json = JsonConvert.SerializeObject(result.content);
+
+                if (init.cache_api > 0)
+                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1));
+
+                await HttpContext.Response.WriteAsync(cache.json, HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
+            cache.json = JsonConvert.SerializeObject(result.content);
+
             if (init.cache_api > 0)
-                hybridCache.Set(mkey, result.content, DateTime.Now.AddMinutes(init.cache_api));
+                hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api));
 
             proxyManager.Success();
-            await HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(result.content), HttpContext.RequestAborted).ConfigureAwait(false);
+            HttpContext.Response.ContentType = "application/json; charset=utf-8";
+            await HttpContext.Response.WriteAsync(cache.json, HttpContext.RequestAborted).ConfigureAwait(false);
         }
         #endregion
 
@@ -197,7 +209,7 @@ namespace Lampac.Controllers
                     if (!string.IsNullOrEmpty(dns_ip))
                         memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
                     else
-                        memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(1));
+                        memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                 }
 
                 if (!string.IsNullOrEmpty(dns_ip))
@@ -218,10 +230,10 @@ namespace Lampac.Controllers
                 uri = uri.Replace("image.tmdb.org", tmdb_ip);
             }
 
-            if (init.cache_img > 0)
+            if (init.cache_img > 0 && AppInit.conf.mikrotik == false)
             {
                 #region cache
-                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers);
+                var array = await HttpClient.Download(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: headers, factoryClient: "http2").ConfigureAwait(false);
                 if (array == null || array.Length == 0)
                 {
                     proxyManager.Refresh();
@@ -282,18 +294,18 @@ namespace Lampac.Controllers
                     var handler = HttpClient.Handler(uri, proxyManager.Get());
                     handler.AllowAutoRedirect = true;
 
-                    using (var client = handler.UseProxy ? new System.Net.Http.HttpClient(handler) : HttpClient.httpClientFactory.CreateClient("base"))
+                    var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, "http2", headers?.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
                     {
-                        HttpClient.DefaultRequestHeaders(client, 10, 0, null, null, headers);
+                        HttpClient.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
+                    });
 
-                        using (var response = await client.GetAsync(uri))
-                        {
-                            HttpContext.Response.StatusCode = (int)response.StatusCode;
-                            HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+                    using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                    {
+                        HttpContext.Response.StatusCode = (int)response.StatusCode;
+                        HttpContext.Response.Headers.Add("X-Cache-Status", "bypass");
 
-                            proxyManager.Success();
-                            await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
-                        }
+                        proxyManager.Success();
+                        await response.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
                     }
                 }
                 catch 

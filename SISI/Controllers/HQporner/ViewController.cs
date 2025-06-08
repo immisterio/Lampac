@@ -12,7 +12,7 @@ namespace Lampac.Controllers.HQporner
     {
         [HttpGet]
         [Route("hqr/vidosik")]
-        async public Task<ActionResult> Index(string uri)
+        async public ValueTask<ActionResult> Index(string uri)
         {
             var init = await loadKit(AppInit.conf.HQporner);
             if (await IsBadInitialization(init, rch: true))

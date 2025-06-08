@@ -230,6 +230,8 @@ namespace Lampac
 
         public string typecache = "hybrid"; // mem|file|hybrid
 
+        public int cacheHybridExtend = 5; // seconds
+
         public string imagelibrary = "NetVips"; // NetVips|ImageMagick|none
 
         public bool pirate_store = true;
@@ -295,7 +297,7 @@ namespace Lampac
         {
             enable = true,
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = -1, check_img = false,
+            cache_api = 20, cache_img = 15, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 
@@ -308,7 +310,7 @@ namespace Lampac
             },
             image = new ServerproxyImageConf()
             {
-                cache = false, cache_rsize = true
+                cache = true, cache_rsize = true
             },
             maxlength_m3u = 1900000,
             maxlength_ts = 10000000
@@ -343,7 +345,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90,
             basetag = true, index = "lampa-main/index.html",
-            tree = "a5893edf85ffaef3bb2af561250b2d4d6f0ab29c"
+            tree = "75cf3cdd7c46d8965cd3aa4572a1150edfb57718"
         };
 
         public OnlineConf online = new OnlineConf()

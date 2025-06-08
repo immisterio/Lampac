@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/collaps")]
         [Route("lite/collaps-dash")]
-        async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Collaps, (j, i, c) =>
             {
@@ -82,7 +82,7 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/collaps-search")]
-        async public Task<ActionResult> Search(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Search(string title, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Collaps);
             if (await IsBadInitialization(init, rch: true))

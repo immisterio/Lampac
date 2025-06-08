@@ -45,12 +45,13 @@ namespace Shared.Engine.SISI
 
         public static List<PlaylistItem> Playlist(string uri, string uri_star, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, string site = "xds")
         {
-            var playlists = new List<PlaylistItem>() { Capacity = 40 };
-
             if (string.IsNullOrEmpty(html))
-                return playlists;
+                return new List<PlaylistItem>();
 
-            foreach (string row in html.Split("<div id=\"video_").Skip(1))
+            var rows = html.Split("<div id=\"video_");
+            var playlists = new List<PlaylistItem>(rows.Length);
+
+            foreach (string row in rows.Skip(1))
             {
                 // <a href="/video.ucmdacd450a/_" title="Горничная приходит на работу в коротком платье (лесбуха любит член)">
                 var g = Regex.Match(row, "<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
@@ -120,14 +121,22 @@ namespace Shared.Engine.SISI
             url += $"/{pg}";
 
             string? json = await onresult.Invoke(url);
-            if (json == null)
+            if (json == null || (!json.StartsWith("{") && !json.StartsWith("[")))
                 return null;
-
-            var playlists = new List<PlaylistItem>() { Capacity = 40 };
 
             try
             {
-                foreach (var r in JsonSerializer.Deserialize<JsonObject>(json)["videos"].Deserialize<List<Related>>())
+                var jsonObj = JsonSerializer.Deserialize<JsonObject>(json);
+                if (jsonObj == null || !jsonObj.ContainsKey("videos"))
+                    return null;
+
+                var videos = jsonObj["videos"]?.Deserialize<List<Related>>();
+                if (videos == null)
+                    return null;
+
+                var playlists = new List<PlaylistItem>(videos.Count);
+
+                foreach (var r in videos)
                 {
                     if (string.IsNullOrEmpty(r.tf) || string.IsNullOrEmpty(r.u) || string.IsNullOrEmpty(r.@if))
                         continue;
@@ -457,7 +466,10 @@ namespace Shared.Engine.SISI
 
             //string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? "", "^([^/]+)/.*", "$1/_")}");
             string? html = await onresult.Invoke($"{host}/{url}");
-            string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html ?? "").Groups[1].Value;
+            if (html == null)
+                return null;
+
+            string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html).Groups[1].Value;
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
 

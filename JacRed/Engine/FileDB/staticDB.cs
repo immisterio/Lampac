@@ -102,7 +102,7 @@ namespace JacRed.Engine
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(10));
+                await Task.Delay(TimeSpan.FromMinutes(10)).ConfigureAwait(false);
 
                 if (!ModInit.conf.Red.evercache.enable || 0 >= ModInit.conf.Red.evercache.validHour)
                     continue;
@@ -123,7 +123,7 @@ namespace JacRed.Engine
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                 if (!ModInit.conf.Red.evercache.enable || 0 >= ModInit.conf.Red.evercache.validHour)
                     continue;

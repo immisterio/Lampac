@@ -111,7 +111,7 @@ namespace Shared.Engine.Online
                 if (database == null)
                     return null;
 
-                var stpl = new SimilarTpl();
+                var stpl = new SimilarTpl(database.Count > 100 ? 100 : database.Count);
 
                 foreach (var item in database)
                 {
@@ -135,17 +135,18 @@ namespace Shared.Engine.Online
                             isok = true;
                     }
 
-                    if (!isok && StringConvert.SearchName(title) != null)
+                    string? stitle = StringConvert.SearchName(title);
+                    if (!isok && stitle != null)
                     {
                         if (!string.IsNullOrEmpty(item.ru_title))
                         {
-                            if (StringConvert.SearchName(item.ru_title, string.Empty)!.Contains(StringConvert.SearchName(title)))
+                            if (StringConvert.SearchName(item.ru_title, string.Empty)!.Contains(stitle))
                                 isok = true;
                         }
 
-                        if (!isok && StringConvert.SearchName(item.orig_title) != null && StringConvert.SearchName(title) != null)
+                        if (!isok && StringConvert.SearchName(item.orig_title) != null && stitle != null)
                         {
-                            if (StringConvert.SearchName(item.orig_title)!.Contains(StringConvert.SearchName(title)))
+                            if (StringConvert.SearchName(item.orig_title)!.Contains(stitle))
                                 isok = true;
                         }
                     }
@@ -186,7 +187,7 @@ namespace Shared.Engine.Online
 
                 foreach (var media in result.media)
                 {
-                    var subtitles = new SubtitleTpl();
+                    var subtitles = new SubtitleTpl(media.subtitles?.Count ?? 0);
                     if (media.subtitles != null && media.subtitles.Count > 0)
                     {
                         foreach (string srt in media.subtitles)
@@ -221,7 +222,7 @@ namespace Shared.Engine.Online
                 {
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl();
+                        var tpl = new SeasonTpl(result.media.Count);
 
                         foreach (var media in result.media.OrderBy(s => s.season_id))
                         {
@@ -265,6 +266,7 @@ namespace Shared.Engine.Online
                             t = "0";
 
                         var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
 
                         foreach (var media in result.media)
                         {
@@ -278,7 +280,7 @@ namespace Shared.Engine.Online
                                     if (voice.translation_id.ToString() != t)
                                         continue;
 
-                                    var subtitles = new SubtitleTpl();
+                                    var subtitles = new SubtitleTpl(media.subtitles?.Count ?? 0);
                                     if (media.subtitles != null && media.subtitles.Count > 0)
                                     {
                                         foreach (string srt in media.subtitles)
@@ -292,11 +294,11 @@ namespace Shared.Engine.Online
 
                                     if (bwa || !hls)
                                     {
-                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link.Replace(".m3u8", ""), "call", subtitles: subtitles);
+                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, sArhc, episode.episode_id.ToString(), link.Replace(".m3u8", ""), "call", subtitles: subtitles);
                                     }
                                     else
                                     {
-                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, subtitles: subtitles);
+                                        etpl.Append($"{episode.episode_id} серия", title ?? original_title, sArhc, episode.episode_id.ToString(), link, subtitles: subtitles);
                                     }
                                 }
                             }

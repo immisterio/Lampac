@@ -205,10 +205,13 @@ namespace Shared.Engine.Online
                     }
                     #endregion
 
-                    var etpl = new EpisodeTpl();
+                    var episodes = root.serial.First(i => i.id == t).folder[s.ToString()].folder;
 
-                    foreach (var episode in root.serial.First(i => i.id == t).folder[s.ToString()].folder)
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, s.ToString(), episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast, headers: headers);
+                    var etpl = new EpisodeTpl(episodes.Count);
+                    string sArhc = s.ToString();
+
+                    foreach (var episode in episodes)
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast, headers: headers);
 
                     if (rjson)
                         return etpl.ToJson(vtpl);

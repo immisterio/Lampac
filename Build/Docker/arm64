@@ -3,7 +3,7 @@ FROM arm64v8/debian:12.5-slim
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium xvfb \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium xvfb libnspr4 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L -k -o ffprobe.zip https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-linux-arm-64.zip \

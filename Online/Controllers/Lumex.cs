@@ -19,11 +19,11 @@ namespace Lampac.Controllers.LITE
 {
     public class Lumex : BaseOnlineController
     {
-        static List<DatumDB> database = null;
+        public static List<DatumDB> database = null;
 
         [HttpGet]
         [Route("lite/lumex")]
-        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Lumex);
             if (await IsBadInitialization(init, rch: false))
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
                 {
                     using(var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
                         if (page == null)
                             return null;
 
@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                         }
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        await browser.WaitPageResult();
+                        await browser.WaitPageResult().ConfigureAwait(false);
                     }
                 }
                 catch { }
@@ -168,7 +168,7 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/lumex/video")]
         [Route("lite/lumex/video.m3u8")]
-        async public Task<ActionResult> Video(string playlist, string csrf, int max_quality)
+        async public ValueTask<ActionResult> Video(string playlist, string csrf, int max_quality)
         {
             var init = await loadKit(AppInit.conf.Lumex);
             if (await IsBadInitialization(init, rch: false))
