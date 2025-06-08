@@ -1,18 +1,19 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using SISI;
+﻿using HtmlAgilityPack;
 using Lampac.Models.SISI;
-using Shared.Model.Online;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Playwright;
+using Newtonsoft.Json;
 using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Model.Online;
 using Shared.Model.SISI.NextHUB;
+using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
+using SISI;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.Playwright;
-using Microsoft.AspNetCore.Routing;
-using HtmlAgilityPack;
-using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -239,7 +240,7 @@ namespace Lampac.Controllers.NextHUB
                                     string infile = $"NextHUB/{init.view.eval}";
                                     if (!System.IO.File.Exists(infile))
                                     {
-                                        return Root.Eval.Execute<string>(init.view.eval, new { html = _content, plugin, url });
+                                        return CSharpEval.Execute<string>(init.view.eval, new NxtFindStreamFile(_content, plugin, url));
                                     }
                                     else
                                     {
@@ -248,7 +249,7 @@ namespace Lampac.Controllers.NextHUB
                                         if (init.view.eval.EndsWith(".js"))
                                             return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url }).ConfigureAwait(false);
 
-                                        return Root.Eval.Execute<string>(evaluate, new { html = _content, plugin, url });
+                                        return CSharpEval.Execute<string>(evaluate, new NxtFindStreamFile(_content, plugin, url));
                                     }
                                 }
 
@@ -259,7 +260,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 for (int i = 0; i < 10; i++)
                                 {
-                                    cache.file = await goFile(await page.ContentAsync());
+                                    cache.file = await goFile(await page.ContentAsync().ConfigureAwait(false));
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
@@ -313,12 +314,12 @@ namespace Lampac.Controllers.NextHUB
                         string infile = $"NextHUB/{init.view.fileEval}";
                         if (!System.IO.File.Exists(infile))
                         {
-                            cache.file = Root.Eval.Execute<string>(init.view.fileEval, new { cache.file, cache.headers });
+                            cache.file = CSharpEval.Execute<string>(init.view.fileEval, new NxtChangeStreamFile(cache.file, cache.headers));
                         }
                         else
                         {
                             string evaluate = FileCache.ReadAllText($"NextHUB/{init.view.fileEval}");
-                            cache.file = Root.Eval.Execute<string>(evaluate, new { cache.file, cache.headers });
+                            cache.file = CSharpEval.Execute<string>(evaluate, new NxtChangeStreamFile(cache.file, cache.headers));
                         }
                     }
                     #endregion

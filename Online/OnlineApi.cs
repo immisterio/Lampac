@@ -2,7 +2,6 @@
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -41,7 +40,7 @@ namespace Lampac.Controllers
         [HttpGet]
         [Route("online.js")]
         [Route("online/js/{token}")]
-        async public ValueTask<ContentResult> Online(string token)
+        public ContentResult Online(string token)
         {
             var init = AppInit.conf.online;
 
@@ -114,7 +113,7 @@ namespace Lampac.Controllers
             {
                 if (!string.IsNullOrEmpty(init.eval))
                 {
-                    string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.file, host, token, requestInfo));
+                    string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.file, host, token, requestInfo));
                     return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
                 }
 
@@ -123,7 +122,7 @@ namespace Lampac.Controllers
 
             if (!string.IsNullOrEmpty(init.eval))
             {
-                string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
+                string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
                 return Content(file, "application/javascript; charset=utf-8");
             }
 

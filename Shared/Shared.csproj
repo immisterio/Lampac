@@ -28,7 +28,6 @@
     <PackageReference Include="NetVips.Native" Version="8.16.1" />
 	<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
 	<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
-    <PackageReference Include="Z.Expressions.Eval" Version="6.2.11" />
   </ItemGroup>
 
   <ItemGroup>

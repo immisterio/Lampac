@@ -4,7 +4,6 @@ using Lampac.Engine.CORE;
 using Lampac.Models.Module;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -31,7 +30,7 @@ namespace SISI
         [HttpGet]
         [Route("sisi.js")]
         [Route("sisi/js/{token}")]
-        async public ValueTask<ContentResult> Sisi(string token, bool lite)
+        public ContentResult Sisi(string token, bool lite)
         {
             if (lite)
                 return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), "application/javascript; charset=utf-8");
@@ -84,7 +83,7 @@ namespace SISI
             {
                 if (!string.IsNullOrEmpty(init.eval))
                 {
-                    string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.file, host, token, requestInfo));
+                    string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.file, host, token, requestInfo));
                     return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
                 }
 
@@ -93,7 +92,7 @@ namespace SISI
 
             if (!string.IsNullOrEmpty(init.eval))
             {
-                string file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(init.eval), globals: new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
+                string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
                 return Content(file, "application/javascript; charset=utf-8");
             }
 

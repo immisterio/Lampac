@@ -1,21 +1,22 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using HtmlAgilityPack;
+using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Shared.Model.SISI.NextHUB;
-using Shared.PlaywrightCore;
-using Shared.Model.SISI;
-using HtmlAgilityPack;
-using System.Web;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
 using Shared.Engine;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
+using Shared.Model.SISI;
+using Shared.Model.SISI.NextHUB;
+using Shared.Models.CSharpGlobals;
+using Shared.PlaywrightCore;
+using SISI;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System;
-using Lampac.Engine.CORE;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.NextHUB
 {
@@ -252,7 +253,7 @@ namespace Lampac.Controllers.NextHUB
                     };
 
                     if (eval != null)
-                        pl = Root.Eval.Execute<PlaylistItem>(eval, new { html, host, init, pl, nodes, row });
+                        pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(html, host, init, pl, nodes, row));
 
                     if (pl != null)
                         playlists.Add(pl);
@@ -290,16 +291,9 @@ namespace Lampac.Controllers.NextHUB
                             #region routeEval
                             if (routeEval != null)
                             {
-                                var e = Root.Eval.Execute<object>(routeEval, new { route.Request, search, sort, cat, pg });
-                                if (e != null)
-                                {
-                                    if (e is RouteContinue)
-                                    {
-                                        var r = (RouteContinue)e;
-                                        await route.ContinueAsync(new RouteContinueOptions { Url = r.url, PostData = r.postData, Headers = r.headers });
-                                        return;
-                                    }
-                                }
+                                bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, search, sort, cat, pg));
+                                if (!_next)
+                                    return;
                             }
                             #endregion
 

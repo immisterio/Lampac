@@ -4,14 +4,12 @@ using System.IO;
 using Shared.Engine.CORE;
 using System;
 using Newtonsoft.Json.Linq;
-using Z.Expressions;
 using System.Linq;
 
 namespace Lampac.Controllers.NextHUB
 {
     public static class Root
     {
-        #region goInit
         public static NxtSettings goInit(string plugin)
         {
             if (string.IsNullOrEmpty(plugin) || !File.Exists($"NextHUB/{plugin}.json"))
@@ -68,26 +66,5 @@ namespace Lampac.Controllers.NextHUB
 
             return init;
         }
-        #endregion
-
-        #region Eval
-        static EvalContext evalContext;
-        
-        public static EvalContext Eval
-        {
-            get
-            {
-                if (evalContext != null)
-                    return evalContext;
-
-                evalContext = new EvalContext();
-                evalContext.RegisterAutoAddMissingTypeAssembly(typeof(Shared.Startup).Assembly);
-                evalContext.RegisterAutoAddMissingTypeAssembly(typeof(Shared.Model.AppInit).Assembly);
-                evalContext.AutoAddMissingTypes = true;
-
-                return evalContext;
-            }
-        }
-        #endregion
     }
 }

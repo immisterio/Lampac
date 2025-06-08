@@ -2,9 +2,7 @@
 using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.Extensions.Caching.Memory;
-using NetVips;
 using Newtonsoft.Json;
 using Shared.Engine;
 using Shared.Engine.CORE;
@@ -17,7 +15,6 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
 
@@ -136,7 +133,7 @@ namespace Lampac.Controllers
         #region app.min.js
         [Route("/app.min.js")]
         [Route("{type}/app.min.js")]
-        async public Task<ActionResult> LampaApp(string type)
+        public ContentResult LampaApp(string type)
         {
             if (string.IsNullOrEmpty(type))
             {
@@ -207,7 +204,7 @@ namespace Lampac.Controllers
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
-                file = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), globals: new appReplaceGlobals(file, host, null, requestInfo, type));
+                file = CSharpEval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new appReplaceGlobals(file, host, null, requestInfo, type));
 
             return Content(file, "application/javascript; charset=utf-8");
         }
@@ -216,7 +213,7 @@ namespace Lampac.Controllers
         #region app.css
         [Route("/css/app.css")]
         [Route("{type}/css/app.css")]
-        async public Task<ActionResult> LampaAppCss(string type)
+        public ContentResult LampaAppCss(string type)
         {
             if (string.IsNullOrEmpty(type))
             {
@@ -256,7 +253,7 @@ namespace Lampac.Controllers
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.cssEval))
-                css = await CSharpScript.EvaluateAsync<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.cssEval), globals: new appReplaceGlobals(css, host, null, requestInfo, type));
+                css = CSharpEval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.cssEval), new appReplaceGlobals(css, host, null, requestInfo, type));
 
             return Content(css, "text/css; charset=utf-8");
         }
