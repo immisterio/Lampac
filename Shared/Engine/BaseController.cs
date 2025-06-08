@@ -475,6 +475,8 @@ namespace Lampac.Engine
         #region loadKit
         public bool IsKitConf { get; private set; }
 
+        private static readonly object kitAllUsersLock = new();
+
         static Dictionary<string, JObject> kitAllUsers = null;
 
         async public ValueTask<JObject> loadKitConf()
@@ -485,7 +487,7 @@ namespace Lampac.Engine
 
             if (init.IsAllUsersPath)
             {
-                lock (kitAllUsers)
+                lock (kitAllUsersLock)
                 {
                     if (kitAllUsers == null)
                     {
