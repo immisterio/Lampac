@@ -485,22 +485,27 @@ namespace Lampac.Engine
 
             if (init.IsAllUsersPath)
             {
-                if (kitAllUsers == null)
+                lock (kitAllUsers)
                 {
-                    new Timer(async _ =>
+                    if (kitAllUsers == null)
                     {
-                        try
-                        {
-                            if (init.IsAllUsersPath)
-                            {
-                                var users = await HttpClient.Get<Dictionary<string, JObject>>(init.path).ConfigureAwait(false);
-                                if (users != null)
-                                    kitAllUsers = users;
-                            }
-                        }
-                        catch { }
+                        kitAllUsers = new Dictionary<string, JObject>();
 
-                    }, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, init.cacheToSeconds)));
+                        new Timer(async _ =>
+                        {
+                            try
+                            {
+                                if (init.IsAllUsersPath)
+                                {
+                                    var users = await HttpClient.Get<Dictionary<string, JObject>>(init.path).ConfigureAwait(false);
+                                    if (users != null)
+                                        kitAllUsers = users;
+                                }
+                            }
+                            catch { }
+
+                        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, init.cacheToSeconds)));
+                    }
                 }
 
                 if (kitAllUsers == null)
