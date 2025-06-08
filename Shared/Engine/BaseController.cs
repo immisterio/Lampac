@@ -475,10 +475,6 @@ namespace Lampac.Engine
         #region loadKit
         public bool IsKitConf { get; private set; }
 
-        private static readonly object kitAllUsersLock = new();
-
-        static Dictionary<string, JObject> kitAllUsers = null;
-
         async public ValueTask<JObject> loadKitConf()
         {
             var init = AppInit.conf.kit;
@@ -487,33 +483,10 @@ namespace Lampac.Engine
 
             if (init.IsAllUsersPath)
             {
-                lock (kitAllUsersLock)
-                {
-                    if (kitAllUsers == null)
-                    {
-                        kitAllUsers = new Dictionary<string, JObject>();
-
-                        new Timer(async _ =>
-                        {
-                            try
-                            {
-                                if (init.IsAllUsersPath)
-                                {
-                                    var users = await HttpClient.Get<Dictionary<string, JObject>>(init.path).ConfigureAwait(false);
-                                    if (users != null)
-                                        kitAllUsers = users;
-                                }
-                            }
-                            catch { }
-
-                        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, init.cacheToSeconds)));
-                    }
-                }
-
-                if (kitAllUsers == null)
+                if (init.allUsers == null)
                     return null;
 
-                if (kitAllUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
+                if (init.allUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
                     return userInit;
 
                 return null;

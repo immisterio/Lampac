@@ -1,21 +1,22 @@
+using Lampac.Engine;
+using Lampac.Engine.CORE;
+using Lampac.Engine.CRON;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
-using System.Net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Shared.Engine;
+using Shared.Model.Base;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
-using Lampac.Engine.CRON;
-using Lampac.Engine.CORE;
-using System;
-using System.IO;
-using Newtonsoft.Json;
-using Shared.Engine;
-using Lampac.Engine;
-using Microsoft.AspNetCore.SignalR;
-using System.Linq;
 using System.Threading.Tasks;
-using Shared.Model.Base;
-using System.Collections.Generic;
 
 namespace Lampac
 {
@@ -92,6 +93,27 @@ namespace Lampac
             ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron().ConfigureAwait(false));
             ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run().ConfigureAwait(false));
             ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run().ConfigureAwait(false));
+
+            #region kitAllUsers
+            ThreadPool.QueueUserWorkItem(async _ => 
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds))).ConfigureAwait(false);
+
+                        if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
+                        {
+                            var users = await HttpClient.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
+                            if (users != null)
+                                AppInit.conf.kit.allUsers = users;
+                        }
+                    }
+                    catch { }
+                }
+            });
+            #endregion
 
             #region cloudflare_ips
             ThreadPool.QueueUserWorkItem(async _ => 

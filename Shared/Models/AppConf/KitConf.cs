@@ -1,4 +1,7 @@
-﻿namespace Shared.Models.AppConf
+﻿using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+
+namespace Shared.Models.AppConf
 {
     public class KitConf
     {
@@ -11,5 +14,9 @@
         public int cacheToSeconds { get; set; }
 
         public bool rhub_fallback { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public Dictionary<string, JObject> allUsers { get; set; }
     }
 }
