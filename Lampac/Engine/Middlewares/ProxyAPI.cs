@@ -506,7 +506,6 @@ namespace Lampac.Engine.Middlewares
                 requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
             #endregion
 
-            requestMessage.Headers.ConnectionClose = false;
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);

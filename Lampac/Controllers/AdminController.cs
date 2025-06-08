@@ -87,7 +87,7 @@ namespace Lampac.Controllers
 
 <form method=""post"" action=""/admin/auth"" id=""form"">
 	<div>
-		<input type=""text"" name=""parol"" placeholder=""пароль из passwd""></input>
+		<input type=""text"" name=""parol"" placeholder=""пароль из файла passwd""></input>
 	</div>
 	
 	<button type=""submit"">войти</button>

@@ -51,10 +51,7 @@ namespace Lampac
             serviceCollection = services;
 
             #region IHttpClientFactory
-            services.AddHttpClient("proxy", client =>
-            {
-                client.DefaultRequestHeaders.ConnectionClose = false;
-            }).ConfigurePrimaryHttpMessageHandler(() =>
+            services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var handler = new HttpClientHandler()
                 {
@@ -69,7 +66,6 @@ namespace Lampac
             services.AddHttpClient("proxyhttp2", client =>
             {
                 client.DefaultRequestVersion = new Version(2, 0);
-                client.DefaultRequestHeaders.ConnectionClose = false;
                 client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
             })
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
@@ -82,10 +78,7 @@ namespace Lampac
             });
 
 
-            services.AddHttpClient("base", client =>
-            {
-                client.DefaultRequestHeaders.ConnectionClose = false;
-            }).ConfigurePrimaryHttpMessageHandler(() =>
+            services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var handler = new HttpClientHandler()
                 {
@@ -100,7 +93,6 @@ namespace Lampac
             services.AddHttpClient("http2", client =>
             {
                 client.DefaultRequestVersion = new Version(2, 0);
-                client.DefaultRequestHeaders.ConnectionClose = false;
                 client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
             })
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
@@ -393,14 +385,19 @@ namespace Lampac
             app.UseAccsdb();
             app.UseOverrideResponse(first: false);
 
+            app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
+            {
+                proxyApp.UseProxyAPI();
+            });
+
             app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxyimg"), proxyApp =>
             {
                 proxyApp.UseProxyIMG();
             });
 
-            app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
+            app.MapWhen(context => context.Request.Path.Value.StartsWith("/cub/"), proxyApp =>
             {
-                proxyApp.UseProxyAPI();
+                proxyApp.UseProxyCub();
             });
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.middlewares != null) != null)

@@ -134,9 +134,6 @@ namespace Lampac.Engine.Middlewares
                 var client = FrendlyHttp.CreateClient("proxyimg", handler, href.StartsWith("https") ? "http2" : "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
                 {
                     CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
-
-                    if (!handler.UseProxy)
-                        uclient.DefaultRequestHeaders.ConnectionClose = false;
                 });
 
                 using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
@@ -233,9 +230,6 @@ namespace Lampac.Engine.Middlewares
                 var client = FrendlyHttp.CreateClient("proxyimg", handler, url.StartsWith("https") ? "http2" : "base", headers?.ToDictionary(), updateClient: uclient => 
                 {
                     CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
-
-                    if (!handler.UseProxy)
-                        uclient.DefaultRequestHeaders.ConnectionClose = false;
                 });
 
                 using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))

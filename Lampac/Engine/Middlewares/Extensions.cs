@@ -34,6 +34,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<ProxyImg>();
         }
 
+        public static IApplicationBuilder UseProxyCub(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<ProxyCub>();
+        }
+
         public static IApplicationBuilder UseModule(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<Module>();
