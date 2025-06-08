@@ -6,6 +6,8 @@
 
         public string path { get; set; }
 
+        public bool IsAllUsersPath { get; set; }
+
         public int cacheToSeconds { get; set; }
 
         public bool rhub_fallback { get; set; }

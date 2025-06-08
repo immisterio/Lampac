@@ -20,6 +20,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
@@ -474,43 +475,77 @@ namespace Lampac.Engine
         #region loadKit
         public bool IsKitConf { get; private set; }
 
+        static Dictionary<string, JObject> kitAllUsers = null;
+
         async public ValueTask<JObject> loadKitConf()
         {
-            if (!AppInit.conf.kit.enable || string.IsNullOrEmpty(AppInit.conf.kit.path) || string.IsNullOrEmpty(requestInfo?.user_uid))
+            var init = AppInit.conf.kit;
+            if (!init.enable || string.IsNullOrEmpty(init.path) || string.IsNullOrEmpty(requestInfo?.user_uid))
                 return null;
 
-            string memKey = $"loadKit:{requestInfo.user_uid}";
-            if (!memoryCache.TryGetValue(memKey, out JObject appinit))
+            if (init.IsAllUsersPath)
             {
-                string json;
-
-                if (Regex.IsMatch(AppInit.conf.kit.path, "^https?://"))
+                if (kitAllUsers == null)
                 {
-                    string uri = AppInit.conf.kit.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
-                    json = await HttpClient.Get(uri, timeoutSeconds: 5).ConfigureAwait(false);
-                }
-                else
-                {
-                    string init_file = $"{AppInit.conf.kit.path}/{CrypTo.md5(requestInfo.user_uid)}";
-                    if (!IO.File.Exists(init_file))
-                        return null;
+                    new Timer(async _ =>
+                    {
+                        try
+                        {
+                            if (init.IsAllUsersPath)
+                            {
+                                var users = await HttpClient.Get<Dictionary<string, JObject>>(init.path).ConfigureAwait(false);
+                                if (users != null)
+                                    kitAllUsers = users;
+                            }
+                        }
+                        catch { }
 
-                    json = IO.File.ReadAllText(init_file);
+                    }, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, init.cacheToSeconds)));
                 }
 
-                if (json == null)
+                if (kitAllUsers == null)
                     return null;
 
-                try
-                {
-                    appinit = JsonConvert.DeserializeObject<JObject>(json);
-                }
-                catch { return null; }
+                if (kitAllUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
+                    return userInit;
 
-                memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
+                return null;
             }
+            else
+            {
+                string memKey = $"loadKit:{requestInfo.user_uid}";
+                if (!memoryCache.TryGetValue(memKey, out JObject appinit))
+                {
+                    string json;
 
-            return appinit;
+                    if (Regex.IsMatch(init.path, "^https?://"))
+                    {
+                        string uri = init.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
+                        json = await HttpClient.Get(uri, timeoutSeconds: 5).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        string init_file = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
+                        if (!IO.File.Exists(init_file))
+                            return null;
+
+                        json = IO.File.ReadAllText(init_file);
+                    }
+
+                    if (json == null)
+                        return null;
+
+                    try
+                    {
+                        appinit = JsonConvert.DeserializeObject<JObject>(json);
+                    }
+                    catch { return null; }
+
+                    memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, init.cacheToSeconds)));
+                }
+
+                return appinit;
+            }
         }
 
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
