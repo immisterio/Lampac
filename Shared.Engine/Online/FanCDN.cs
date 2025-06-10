@@ -63,7 +63,17 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(html))
                     return null;
 
-                string iframe_url = Regex.Match(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"").Groups[1].Value;
+
+                string iframe_url = null;
+
+                foreach (Match match in Regex.Matches(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\""))
+                {
+                    string cdn = match.Groups[1].Value;
+                    if (cdn.Contains("kinopoisk=") && cdn.Contains("key="))
+                        iframe_url = cdn;
+                }
+
+
                 if (string.IsNullOrEmpty(iframe_url))
                     return null;
 
