@@ -230,7 +230,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            string memKey = "ApiController:css/app.css";
+            string memKey = $"ApiController:css/app.css:{type}:{host}";
             if (!memoryCache.TryGetValue(memKey, out string css))
             {
                 css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");
