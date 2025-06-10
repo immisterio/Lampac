@@ -36,6 +36,9 @@ namespace Lampac.Controllers.NextHUB
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(init.search?.uri))
+                return OnError("search disable");
+
             string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
@@ -46,7 +49,7 @@ namespace Lampac.Controllers.NextHUB
                 string url = $"{init.host}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
                 if (!string.IsNullOrEmpty(search))
                 {
-                    string uri = pg == 1 && init.search.firstpage != null ? init.search.firstpage : init.search.uri;
+                    string uri = pg == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
                     url = $"{init.host}/{uri}".Replace("{search}", HttpUtility.UrlEncode(search));
                 }
                 else if (!string.IsNullOrEmpty(sort))
@@ -65,7 +68,7 @@ namespace Lampac.Controllers.NextHUB
 
                 var contentParse = init.list.contentParse ?? init.contentParse;
                 if (!string.IsNullOrEmpty(search))
-                    contentParse = init.search.contentParse ?? init.contentParse;
+                    contentParse = init.search?.contentParse ?? init.contentParse;
 
                 playlists = goPlaylist(host, contentParse, init, html, plugin);
 

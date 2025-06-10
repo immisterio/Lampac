@@ -20,7 +20,6 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
@@ -31,9 +30,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "142";
+        public static string appversion => "143";
 
-        public static string minorversion => "15";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -483,10 +482,7 @@ namespace Lampac.Engine
 
             if (init.IsAllUsersPath)
             {
-                if (init.allUsers == null)
-                    return null;
-
-                if (init.allUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
+                if (init.allUsers != null && init.allUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
                     return userInit;
 
                 return null;
