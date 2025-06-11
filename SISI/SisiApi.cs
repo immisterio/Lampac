@@ -40,7 +40,7 @@ namespace SISI
             string memKey = $"sisi.js:{init.appReplace?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = System.IO.File.ReadAllText("plugins/sisi.js");
+                cache.file = FileCache.ReadAllText("plugins/sisi.js");
 
                 if (init.appReplace != null)
                 {

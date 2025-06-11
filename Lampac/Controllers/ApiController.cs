@@ -170,7 +170,7 @@ namespace Lampac.Controllers
                     }
                 }
 
-                string playerinner = IO.File.ReadAllText("plugins/player-inner.js");
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 var bulder = new StringBuilder(file);

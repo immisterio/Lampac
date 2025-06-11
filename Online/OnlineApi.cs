@@ -47,8 +47,8 @@ namespace Lampac.Controllers
             string memKey = $"online.js:{init.appReplace?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = IO.File.ReadAllText("plugins/online.js");
-                string playerinner = IO.File.ReadAllText("plugins/player-inner.js");
+                cache.file = FileCache.ReadAllText("plugins/online.js");
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 if (init.appReplace != null)
