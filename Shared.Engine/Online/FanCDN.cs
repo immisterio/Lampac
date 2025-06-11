@@ -64,7 +64,7 @@ namespace Shared.Engine.Online
                     return null;
 
 
-                string iframe_url = null;
+                string? iframe_url = null;
 
                 foreach (Match match in Regex.Matches(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\""))
                 {

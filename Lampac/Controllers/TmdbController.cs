@@ -145,7 +145,7 @@ namespace Lampac.Controllers
                 proxyManager.Refresh();
                 cache.json = JsonConvert.SerializeObject(result.content);
 
-                if (init.cache_api > 0)
+                if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                     hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1));
 
                 await HttpContext.Response.WriteAsync(cache.json, HttpContext.RequestAborted).ConfigureAwait(false);
@@ -154,7 +154,7 @@ namespace Lampac.Controllers
 
             cache.json = JsonConvert.SerializeObject(result.content);
 
-            if (init.cache_api > 0)
+            if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                 hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api));
 
             proxyManager.Success();
