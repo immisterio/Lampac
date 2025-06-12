@@ -1,6 +1,6 @@
 ﻿namespace Shared.Model.SISI
 {
-    public class ModelItem
+    public struct ModelItem
     {
         public string uri { get; set; }
 

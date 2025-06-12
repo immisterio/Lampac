@@ -66,9 +66,9 @@ namespace Shared.Engine.SISI
 
             if (related)
             {
-                var ids = html.Split("id=\"loadMoreRelatedVideosCenter\"");
-                if (ids.Length > 1)
-                    videoCategory = ids[1];
+                string? relatedVideosListing = StringConvert.FindLastText(html, "id=\"relatedVideosListing\"", "</ul>");
+                if (relatedVideosListing != null)
+                    videoCategory = relatedVideosListing;
             }
             else if (html.Contains("id=\"videoCategory\""))
             {
@@ -109,6 +109,9 @@ namespace Shared.Engine.SISI
 
             foreach (string row in rows.Skip(1))
             {
+                if (row.Contains("brand__badge"))
+                    continue;
+
                 string? m(string pattern, int index = 1)
                 {
                     string res = Regex.Match(row, pattern).Groups[index].Value;
@@ -528,7 +531,7 @@ namespace Shared.Engine.SISI
 
                 menu.Add(new MenuItem()
                 {
-                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}"))?.title ?? "все"}",
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}")).title ?? "все"}",
                     playlist_url = "submenu",
                     submenu = submenu
                 });
@@ -971,7 +974,7 @@ namespace Shared.Engine.SISI
 
                 menu.Add(new MenuItem()
                 {
-                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}"))?.title ?? "все"}",
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}")).title ?? "все"}",
                     playlist_url = "submenu",
                     submenu = submenu
                 });

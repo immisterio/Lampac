@@ -299,7 +299,7 @@ namespace SISI
                         if (playlist_url.Contains("/bookmarks"))
                             continue;
 
-                        if (channels.FirstOrDefault(i => i.title == title) != null)
+                        if (channels.FirstOrDefault(i => i.title == title).title != null)
                             continue;
 
                         channels.Add(new ChannelItem(title, playlist_url, 20 + channels.Count));

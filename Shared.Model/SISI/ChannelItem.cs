@@ -1,6 +1,6 @@
 ﻿namespace Lampac.Models.SISI
 {
-    public class ChannelItem
+    public struct ChannelItem
     {
         public ChannelItem(string title, string playlist_url, int displayindex)
         {

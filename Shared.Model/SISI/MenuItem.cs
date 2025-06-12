@@ -1,6 +1,6 @@
 ﻿namespace Lampac.Models.SISI
 {
-    public class MenuItem
+    public struct MenuItem
     {
         public string? title { get; set; }
 

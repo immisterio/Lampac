@@ -94,7 +94,7 @@ namespace Shared.Engine.SISI
             {
                 new MenuItem()
                 {
-                    title = $"Сортировка: {sortmenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"={sort}"))?.title ?? "Лучшие" }",
+                    title = $"Сортировка: {sortmenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"={sort}")).title ?? "Лучшие" }",
                     playlist_url = "submenu",
                     submenu = sortmenu
                 }

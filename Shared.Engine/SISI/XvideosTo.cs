@@ -74,7 +74,7 @@ namespace Shared.Engine.SISI
                     img = img.Replace("thumbs169l/", "thumbs169lll/").Replace("thumbs169ll/", "thumbs169lll/");
 
                     var gm = Regex.Match(row, "href=\"/([^\"]+)\"><span class=\"name\">([^<]+)<").Groups;
-                    var model = string.IsNullOrEmpty(gm[1].Value) || string.IsNullOrEmpty(gm[2].Value) ? null : new ModelItem()
+                    var model = string.IsNullOrEmpty(gm[1].Value) || string.IsNullOrEmpty(gm[2].Value) ? default : new ModelItem()
                     {
                         name = gm[2].Value,
                         uri = $"{uri_star}?uri=" + (gm[1].Value.Contains("/") ? gm[1].Value : $"channels/{gm[1].Value}"),
@@ -145,7 +145,7 @@ namespace Shared.Engine.SISI
                     preview = Regex.Replace(preview, "/[^/]+$", "");
                     preview = Regex.Replace(preview, "-[0-9]+$", "");
 
-                    var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? null : new ModelItem()
+                    var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? default : new ModelItem()
                     {
                         name = r.pn,
                         uri = $"{uri_star}?uri=" + (r.ch ? "channels/" : "pornstars/") + r.p,
@@ -447,7 +447,7 @@ namespace Shared.Engine.SISI
 
                 menu.Add(new MenuItem()
                 {
-                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"c={c}"))?.title ?? "все"}",
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"c={c}")).title ?? "все"}",
                     playlist_url = "submenu",
                     submenu = submenu
                 });
@@ -493,7 +493,7 @@ namespace Shared.Engine.SISI
                         preview = Regex.Replace(preview, "/[^/]+$", "");
                         preview = Regex.Replace(preview, "-[0-9]+$", "");
 
-                        var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? null : new ModelItem()
+                        var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? default : new ModelItem()
                         {
                             name = r.pn,
                             uri = $"{uri_star}?uri=" + (r.ch ? "channels/" : "pornstars/") + r.p,

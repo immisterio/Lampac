@@ -566,7 +566,7 @@ namespace Shared.Engine.SISI
 
                 menu.Add(new MenuItem()
                 {
-                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}"))?.title ?? "все"}",
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}")).title ?? "все"}",
                     playlist_url = "submenu",
                     submenu = submenu
                 });
@@ -809,7 +809,7 @@ namespace Shared.Engine.SISI
 
                 menu.Add(new MenuItem()
                 {
-                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}"))?.title ?? "все"}",
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}")).title ?? "все"}",
                     playlist_url = "submenu",
                     submenu = submenu
                 });
@@ -1067,7 +1067,7 @@ namespace Shared.Engine.SISI
 
                 menu.Add(new MenuItem()
                 {
-                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}"))?.title ?? "все"}",
+                    title = $"Категория: {submenu.FirstOrDefault(i => i.playlist_url!.EndsWith($"&c={c}")).title ?? "все"}",
                     playlist_url = "submenu",
                     submenu = submenu
                 });
