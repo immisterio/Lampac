@@ -28,7 +28,7 @@ namespace Shared.Model
 
         public SisiConf sisi { get; set; } = new SisiConf()
         {
-            NextHUB = true,
+            NextHUB = true, spider = true,
             component = "sisi", iconame = "", push_all = true,
             heightPicture = 240, rsize = true, rsize_disable = new string[] { "BongaCams", "Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx" },
             bookmarks = new SISI.BookmarksConf() { saveimage = true, savepreview = true }
@@ -38,6 +38,7 @@ namespace Shared.Model
         #region SISI
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")
         {
+            spider = false,
             headers = HeadersModel.Init(
                 ("referer", "{host}/"),
                 ("x-requested-with", "XMLHttpRequest")
@@ -46,13 +47,17 @@ namespace Shared.Model
 
         public SisiSettings Runetki { get; set; } = new SisiSettings("Runetki", "kwwsv=22uxv1uxqhwnl81frp")
         {
+            spider = false,
             headers = HeadersModel.Init(
                 ("referer", "{host}/"),
                 ("x-requested-with", "XMLHttpRequest")
             ).ToDictionary()
         };
 
-        public SisiSettings Chaturbate { get; set; } = new SisiSettings("Chaturbate", "kwwsv=22fkdwxuedwh1frp");
+        public SisiSettings Chaturbate { get; set; } = new SisiSettings("Chaturbate", "kwwsv=22fkdwxuedwh1frp")
+        {
+            spider = false,
+        };
 
         public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur") 
         {

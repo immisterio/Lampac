@@ -25,6 +25,8 @@ namespace Lampac.Models.AppConf
         public int widthPicture { get; set; }
 
 
+        public bool spider { get; set; }
+
         public string? component { get; set; }
 
         public string? iconame { get; set; }

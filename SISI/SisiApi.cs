@@ -56,6 +56,9 @@ namespace SISI
 
                 var bulder = new StringBuilder(cache.file);
 
+                if (!init.spider)
+                    bulder = bulder.Replace("Lampa.Search.addSource(Search);", "");
+
                 if (init.component != "sisi")
                     bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
 
@@ -117,7 +120,7 @@ namespace SISI
 
 
         [Route("sisi")]
-        async public ValueTask<ActionResult> Index(string rchtype, string account_email, string uid, string token)
+        async public ValueTask<ActionResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
         {
             var conf = AppInit.conf;
             JObject kitconf = await loadKitConf();
@@ -176,6 +179,9 @@ namespace SISI
                 var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
                 if (!enable)
+                    return;
+
+                if (spder == true && init.spider != true)
                     return;
 
                 if (init.rhub && !init.rhub_fallback)

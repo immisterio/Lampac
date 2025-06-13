@@ -1,14 +1,15 @@
-﻿using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Lampac;
+﻿using Lampac;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Model.SISI;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace SISI
 {
@@ -21,14 +22,60 @@ namespace SISI
         }
 
         [Route("sisi/bookmarks")]
-        public ActionResult List(int pg = 1, int pageSize = 36)
+        public ActionResult List(string search, string model, int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null)
                 return OnError("access denied");
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
-            var bookmarks = bookmarkCache.Read();
+            var bookmarks = bookmarkCache.Read().AsEnumerable();
+
+            #region menu
+            var menu = new List<MenuItem>()
+            {
+                new MenuItem()
+                {
+                    title = "Поиск",
+                    search_on = "search_on",
+                    playlist_url = $"{host}/sisi/bookmarks",
+                }
+            };
+
+            var menu_models = new MenuItem()
+            {
+                title = $"Модель: {model ?? "выбрать"}",
+                playlist_url = "submenu",
+                submenu = new List<MenuItem>(20)
+            };
+
+            var temp_models = new HashSet<string>();
+            foreach (var b in bookmarks)
+            {
+                if (string.IsNullOrEmpty(b.model?.name) || temp_models.Contains(b.model.Value.name))
+                    continue;
+
+                temp_models.Add(b.model.Value.name);
+
+                menu_models.submenu.Add(new MenuItem() 
+                {
+                    title = b.model.Value.name,
+                    playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(b.model.Value.name)}"
+                });
+            }
+
+            if (menu_models.submenu.Count > 0)
+                menu.Add(menu_models);
+            #endregion
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string _s = search.ToLower();
+                bookmarks = bookmarks.Where(i => i.name.ToLower().Contains(_s));
+            }
+
+            if (!string.IsNullOrEmpty(model))
+                bookmarks = bookmarks.Where(i => i.model?.name == model);
 
             string getvideLink(PlaylistItem pl)
             {
@@ -42,6 +89,7 @@ namespace SISI
 
             return new JsonResult(new
             {
+                menu,
                 list = bookmarks.Skip((pg * pageSize) - pageSize).Take(pageSize).Select(pl => new
                 {
                     pl.name,
