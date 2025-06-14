@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
-    public class RchClientInfo
+    public struct RchClientInfo
     {
         public int version { get; set; }
         public string host { get; set; }
@@ -36,7 +36,7 @@ namespace Lampac.Engine.CORE
 
         public static void Registry(string ip, string connectionId, string json = null)
         {
-            clients.AddOrUpdate(connectionId, (ip, json, null), (i,j) => (ip, json, null));
+            clients.AddOrUpdate(connectionId, (ip, json, default), (i,j) => (ip, json, default));
         }
 
 
@@ -278,7 +278,7 @@ namespace Lampac.Engine.CORE
                 return false; // заглушка для checksearch
 
             var info = InfoConnected();
-            if (string.IsNullOrEmpty(info?.rchtype))
+            if (string.IsNullOrEmpty(info.rchtype))
                 return false; // клиент не в сети
 
             // разрешен возврат на сервер
@@ -306,12 +306,12 @@ namespace Lampac.Engine.CORE
         public RchClientInfo InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (client.Value.json == null && client.Value.info == null)
+            if (client.Value.json == null && client.Value.info.rchtype == null)
                 return default;
 
             var info = client.Value.info;
 
-            if (info == null)
+            if (info.rchtype == null)
             {
                 try
                 {
