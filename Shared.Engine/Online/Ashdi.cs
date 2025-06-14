@@ -100,7 +100,7 @@ namespace Shared.Engine.Online
 
                     while (match.Success)
                     {
-                        subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
+                        subtitles.Value.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
                         match = match.NextMatch();
                     }
                 }
@@ -180,7 +180,7 @@ namespace Shared.Engine.Online
 
                                 while (match.Success)
                                 {
-                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
+                                    subtitles.Value.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
                                     match = match.NextMatch();
                                 }
                             }

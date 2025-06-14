@@ -5,11 +5,13 @@ using System.Web;
 
 namespace Shared.Model.Templates
 {
-    public class SimilarTpl
+    public struct SimilarTpl
     {
         public List<(string title, string year, string details, string link, string? img)> data;
 
-        public SimilarTpl(int capacity = 20) { data = new List<(string, string, string, string, string?)>(capacity); }
+        public SimilarTpl() : this(20) { }
+
+        public SimilarTpl(int capacity) { data = new List<(string, string, string, string, string?)>(capacity); }
 
 
         public string OnlineSplit => "{prestige-split}";

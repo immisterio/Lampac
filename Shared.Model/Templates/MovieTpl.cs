@@ -7,7 +7,7 @@ using Shared.Model.Base;
 
 namespace Shared.Model.Templates
 {
-    public class MovieTpl
+    public struct MovieTpl
     {
         string? title, original_title;
 
@@ -19,6 +19,7 @@ namespace Shared.Model.Templates
             this.original_title = original_title;
             data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?, int?)>(capacity); 
         }
+
         public bool IsEmpty() => data.Count == 0;
 
         public void Append(string? voiceOrQuality, string? link, string method = "play", string? stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? voice_name = null, string? year = null, string? details = null, string? quality = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
@@ -85,6 +86,8 @@ namespace Shared.Model.Templates
             if (reverse)
                 data.Reverse();
 
+            string name = title ?? original_title;
+
             return JsonSerializer.Serialize(new
             {
                 type = "movie",
@@ -103,7 +106,7 @@ namespace Shared.Model.Templates
                     vast_url = (i.vast?.url ?? AppInit._vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
                     vast_msg = i.vast?.msg ?? AppInit._vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
+                    title = $"{name} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });

@@ -4,11 +4,13 @@ using System.Web;
 
 namespace Shared.Model.Templates
 {
-    public class VoiceTpl
+    public struct VoiceTpl
     {
         List<(string name, bool active, string link)> data;
 
-        public VoiceTpl(int capacity = 15) { data = new List<(string, bool, string)>(capacity); }
+        public VoiceTpl() : this(15) { }
+
+        public VoiceTpl(int capacity) { data = new List<(string, bool, string)>(capacity); }
 
         public void Append(string? name, bool active, string link)
         {

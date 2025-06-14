@@ -7,11 +7,13 @@ using System.Web;
 
 namespace Shared.Model.Templates
 {
-    public class EpisodeTpl
+    public struct EpisodeTpl
     {
         List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
 
-        public EpisodeTpl(int capacity = 20) 
+        public EpisodeTpl() : this(20) { }
+
+        public EpisodeTpl(int capacity) 
         {
             data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?, int?)>(capacity);
         }

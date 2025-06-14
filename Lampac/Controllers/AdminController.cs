@@ -492,7 +492,7 @@ namespace Lampac.Controllers
 			<input name='jac' type='radio' value='webapi' checked /> Быстрый поиск по внешним базам JacRed, Rutor, Kinozal, NNM-Club, Rutracker, etc
 		</div>
 		<div class='flex'>
-			<input name='jac' type='radio' value='fdb' /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства) - 10GB HDD
+			<input name='jac' type='radio' value='fdb' /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства) - 2GB HDD
 		</div>
 	</div>
 	

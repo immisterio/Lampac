@@ -96,7 +96,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (string.IsNullOrEmpty(pick))
-                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.ToJson() : res.stpl.ToHtml()));
+                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.Value.ToJson() : res.stpl.Value.ToHtml()));
 
                 content = oninvk.Embed(res.result, pick);
             }

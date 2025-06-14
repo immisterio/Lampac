@@ -2,11 +2,13 @@
 
 namespace Shared.Model.Templates
 {
-    public class SubtitleTpl
+    public struct SubtitleTpl
     {
         List<(string label, string url)> data;
 
-        public SubtitleTpl(int capacity = 10) { data = new List<(string, string)>(capacity); }
+        public SubtitleTpl() : this(10) { }
+
+        public SubtitleTpl(int capacity) { data = new List<(string, string)>(capacity); }
 
         public bool IsEmpty() => data.Count == 0;
 

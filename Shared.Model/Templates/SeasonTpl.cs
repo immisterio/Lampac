@@ -5,13 +5,15 @@ using System.Web;
 
 namespace Shared.Model.Templates
 {
-    public class SeasonTpl
+    public struct SeasonTpl
     {
         List<(string name, string link, int? id)> data;
 
         public string? quality = null;
 
-        public SeasonTpl(int capacity = 10) { data = new List<(string, string, int?)>(capacity); }
+        public SeasonTpl() : this(10) { }
+
+        public SeasonTpl(int capacity) { data = new List<(string, string, int?)>(capacity); }
 
         public SeasonTpl(string? quality, int capacity = 10) 
         {
@@ -40,7 +42,7 @@ namespace Shared.Model.Templates
             var html = new StringBuilder();
 
             if (vtpl != null)
-                html.Append(vtpl.ToHtml());
+                html.Append(vtpl?.ToHtml());
 
             html.Append("<div class=\"videos__line\">");
 

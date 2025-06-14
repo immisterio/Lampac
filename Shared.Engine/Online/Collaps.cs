@@ -102,7 +102,7 @@ namespace Shared.Engine.Online
                         foreach (var cc in subs)
                         {
                             if (cc.url != null)
-                                subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
+                                subtitles.Value.Append(cc.name, onstreamfile.Invoke(cc.url));
                         }
                     }
                 }

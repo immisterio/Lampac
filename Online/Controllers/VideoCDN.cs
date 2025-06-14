@@ -64,10 +64,10 @@ namespace Lampac.Controllers.LITE
                     () => Search(init, imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar)
                 );
 
-                if (search.content_type == null && search.similar == null)
+                if (search.content_type == null && search.similar.data == null)
                     return OnError();
 
-                if (search.similar != null)
+                if (search.similar.data != null)
                     return ContentTo(rjson ? search.similar.ToJson() : search.similar.ToHtml());
 
                 content_id = search.content_id;
@@ -432,7 +432,7 @@ namespace Lampac.Controllers.LITE
             var movie = similar ? null : (await searchId(imdb_id, 0) ?? await searchId(null, kinopoisk_id));
             if (movie != null)
             {
-                return (movie.Value<long>("id"), movie.Value<string>("content_type"), null);
+                return (movie.Value<long>("id"), movie.Value<string>("content_type"), default);
             }
             else
             {

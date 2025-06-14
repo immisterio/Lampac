@@ -107,7 +107,7 @@ namespace Lampac.Controllers.LITE
                     if (search.Value.similars == null)
                         return OnError();
 
-                    return ContentTo(rjson ? search.Value.similars.ToJson() : search.Value.similars.ToHtml());
+                    return ContentTo(rjson ? search.Value.similars.Value.ToJson() : search.Value.similars.Value.ToHtml());
                 }
 
                 postid = search.Value.id;

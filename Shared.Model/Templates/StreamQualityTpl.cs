@@ -2,7 +2,7 @@
 
 namespace Shared.Model.Templates
 {
-    public class StreamQualityTpl
+    public struct StreamQualityTpl
     {
         List<(string link, string quality)> data = new List<(string, string)>(8);
 
