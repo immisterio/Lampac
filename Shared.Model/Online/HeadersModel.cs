@@ -1,4 +1,6 @@
-﻿namespace Shared.Model.Online
+﻿using System;
+
+namespace Shared.Model.Online
 {
     public class HeadersModel
     {
@@ -59,6 +61,26 @@
 
             var result = new List<HeadersModel>(h1);
             result.AddRange(h2);
+
+            return result;
+        }
+
+        public static List<HeadersModel> Join(List<HeadersModel>? h1, Dictionary<string, string>? h2)
+        {
+            if (h1 == null)
+            {
+                if (h2 == null)
+                    return new List<HeadersModel>();
+
+                return Init(h2);
+            }
+
+            if (h2 == null)
+                return h1 ?? new List<HeadersModel>();
+
+            var result = new List<HeadersModel>(h1);
+            foreach (var _h2 in h2)
+                result.Add(new HeadersModel(_h2.Key, _h2.Value));
 
             return result;
         }

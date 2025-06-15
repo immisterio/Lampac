@@ -68,5 +68,7 @@ namespace Shared.Model.Online.Settings
         public string? country { get; set; }
 
         public string? no_country { get; set; }
+
+        public Dictionary<string, string>? headers { get; set; }
     }
 }
